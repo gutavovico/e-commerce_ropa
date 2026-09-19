@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 import '../../datos/modelos/registro_dto.dart';
 import '../bloc/registro_bloc.dart';
 
@@ -655,6 +656,13 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                         onTap: () {
                           if (Navigator.canPop(context)) {
                             Navigator.pop(context);
+                          } else {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PantallaLogin(),
+                              ),
+                            );
                           }
                         },
                         child: const Text.rich(

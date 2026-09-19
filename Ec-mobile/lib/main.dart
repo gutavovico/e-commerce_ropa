@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'src/modulos/autenticacion_seguridad/cu01_registrarse/presentacion/pantallas/pantalla_registro.dart';
+import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 
 void main() {
   runApp(const EcMobileApp());
@@ -28,7 +28,7 @@ class EcMobileApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const PantallaRegistro(),
+      home: const PantallaLogin(),
     );
   }
 }

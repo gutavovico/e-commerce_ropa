@@ -2,6 +2,27 @@
 
 Ver documento principal en [../../CHANGELOG.md](../../CHANGELOG.md).
 
+## [1.1.0] - 2026-09-19
+
+### Promoción a Baseline Permanente
+- **CU02 - Iniciar Sesión (Login / Autenticación Omnicanal):** Promovido oficialmente a especificación permanente del sistema en [`modules/autenticacion_seguridad/CU02-iniciar-sesion.md`](modules/autenticacion_seguridad/CU02-iniciar-sesion.md).
+- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `finalized/CU02-iniciar-sesion/` y limpiado el directorio de cambios activos `changes/`.
+- **Validación Completa:** 
+  - Backend: 28/28 tests en verde en `pytest` y verificación en vivo de autenticación (200 OK, 401 Unauthorized) con actualización atómica de `ultimo_acceso` en Neon PostgreSQL.
+  - Frontend Web: Compilación limpia en 5.4s con Angular CLI (`npm run build`) y comunicación proxy verificada.
+  - Mobile: 19/19 tests en verde en `flutter test` y 0 incidencias en `flutter analyze`.
+
+### Registro de Errores Corregidos y Soluciones Aplicadas
+8. **`OPTIONS 400 Bad Request` y `ClientException: Failed to fetch` en Flutter Web**:
+   - *Causa:* Flutter Web corre en puertos efímeros dinámicos (`http://localhost:*`). Starlette `CORSMiddleware` rechazaba los preflights al no estar el puerto dinámico en `CORS_ORIGINS`.
+   - *Solución:* Adición de `CORS_ORIGIN_REGEX: str | None = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"` en `core/config.py` y `main.py`, permitiendo cualquier puerto local de depuración.
+9. **Desbordamientos RenderFlex en `PantallaLogin` de Flutter**:
+   - *Causa:* Rótulos de contraseña y checkbox desbordaban en viewports móviles reducidos.
+   - *Solución:* Adaptación con `Flexible`, `Expanded` y `TextOverflow.ellipsis`.
+10. **Ajuste de Ruta de Entrada y Enrutamiento Bidireccional en Mobile**:
+   - *Causa:* La app iniciaba en registro y el enlace inferior no resolvía hacia login cuando era raíz.
+   - *Solución:* `home: const PantallaLogin()` en `main.dart` y navegación bidireccional inteligente en `pantalla_registro.dart` con `canPop`/`pushReplacement`.
+
 ## [1.0.0] - 2026-09-19
 
 ### Promoción a Baseline Permanente

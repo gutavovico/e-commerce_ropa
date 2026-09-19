@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # --- Opcionales (con default) ---
     JWT_EXPIRE_MINUTES: int = 60
     CORS_ORIGINS: list[str] | str = ["http://localhost:4200"]
+    CORS_ORIGIN_REGEX: str | None = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     IA_API_KEY: str = ""

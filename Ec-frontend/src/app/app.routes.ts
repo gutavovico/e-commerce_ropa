@@ -2,6 +2,18 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
+    path: 'login',
+    loadComponent: () =>
+      import(
+        './modules/autenticacion_seguridad/cu02_iniciar_sesion/paginas/login.component'
+      ).then((m) => m.LoginComponent),
+  },
+  {
+    path: 'iniciar-sesion',
+    redirectTo: 'login',
+    pathMatch: 'full',
+  },
+  {
     path: 'registro',
     loadComponent: () =>
       import(
@@ -10,7 +22,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: 'registro',
+    redirectTo: 'login',
     pathMatch: 'full',
   },
 ];
