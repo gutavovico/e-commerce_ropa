@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 
+import 'src/modulos/autenticacion_seguridad/cu04_gestionar_perfil/presentacion/pantallas/pantalla_perfil.dart';
+
 void main() {
   runApp(const EcMobileApp());
 }
@@ -28,7 +30,15 @@ class EcMobileApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const PantallaLogin(),
+      home: Builder(
+        builder: (ctx) => PantallaLogin(
+          alCompletarLoginConToken: (token) {
+            Navigator.of(ctx).push(
+              MaterialPageRoute(builder: (_) => PantallaPerfil(token: token)),
+            );
+          },
+        ),
+      ),
     );
   }
 }

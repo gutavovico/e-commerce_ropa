@@ -89,11 +89,13 @@ class HealthResponse(BaseModel):
     )
 
 
-# --- Endpoints ---
-
+from modules.autenticacion_seguridad.cu04_gestionar_perfil.router import (
+    router as router_perfil,
+)
 from modules.autenticacion_seguridad.router import router as router_autenticacion
 
 app.include_router(router_autenticacion, prefix="/api/v1")
+app.include_router(router_perfil, prefix="/api/v1")
 
 
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["Health"])

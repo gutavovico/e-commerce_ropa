@@ -6,11 +6,13 @@ import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu01_registrarse/p
 
 class PantallaLogin extends StatefulWidget {
   final VoidCallback? alCompletarLogin;
+  final void Function(String token)? alCompletarLoginConToken;
   final LoginBloc? bloc;
 
   const PantallaLogin({
     super.key,
     this.alCompletarLogin,
+    this.alCompletarLoginConToken,
     this.bloc,
   });
 
@@ -59,6 +61,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
           duration: const Duration(seconds: 2),
         ),
       );
+      widget.alCompletarLoginConToken?.call(estado.respuesta.accessToken);
       widget.alCompletarLogin?.call();
     } else if (estado is LoginFallido) {
       ScaffoldMessenger.of(context).showSnackBar(

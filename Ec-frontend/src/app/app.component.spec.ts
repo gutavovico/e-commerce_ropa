@@ -27,11 +27,11 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', async () => {
+  it('should render router outlet', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.main-title')?.textContent).toContain('Sistema de Comunicación Monorepo');
+    expect(compiled.querySelector('router-outlet')).toBeTruthy();
   });
 });

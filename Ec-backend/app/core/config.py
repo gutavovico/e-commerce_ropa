@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str
 
     # --- Opcionales (con default) ---
-    JWT_EXPIRE_MINUTES: int = 60
+    JWT_EXPIRE_MINUTES: int = 1440
     CORS_ORIGINS: list[str] | str = ["http://localhost:4200"]
     CORS_ORIGIN_REGEX: str | None = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
     STRIPE_SECRET_KEY: str = ""

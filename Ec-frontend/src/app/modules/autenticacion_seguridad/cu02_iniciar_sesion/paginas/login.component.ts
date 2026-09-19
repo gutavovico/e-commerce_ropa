@@ -82,7 +82,7 @@ export class LoginComponent {
         this.exito.set(true);
         // Redirigir tras autenticación exitosa
         setTimeout(() => {
-          this.router.navigate(['/']);
+          this.router.navigate(['/perfil']);
         }, 600);
       },
       error: (err: Error) => {
