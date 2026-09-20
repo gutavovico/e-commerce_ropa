@@ -22,6 +22,18 @@ export const routes: Routes = [
       ).then((m) => m.RegistroComponent),
   },
   {
+    path: 'recuperar-password',
+    loadComponent: () =>
+      import(
+        './modules/autenticacion_seguridad/cu33_recuperar_acceso/paginas/recuperar-password.component'
+      ).then((m) => m.RecuperarPasswordComponent),
+  },
+  {
+    path: 'recuperar-acceso',
+    redirectTo: 'recuperar-password',
+    pathMatch: 'full',
+  },
+  {
     path: 'perfil',
     canActivate: [authGuard],
     loadComponent: () =>

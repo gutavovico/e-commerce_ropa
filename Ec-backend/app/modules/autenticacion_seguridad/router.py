@@ -14,6 +14,9 @@ from modules.autenticacion_seguridad.cu03_cerrar_sesion.router import (
 from modules.autenticacion_seguridad.cu04_gestionar_perfil.router import (
     router as cu04_router,
 )
+from modules.autenticacion_seguridad.cu33_recuperar_acceso.router import (
+    router as cu33_router,
+)
 
 router = APIRouter(prefix="/autenticacion", tags=["Autenticacion y Seguridad"])
 
@@ -22,4 +25,6 @@ router.include_router(cu01_router)
 router.include_router(cu02_router)
 router.include_router(cu03_router)
 router.include_router(cu04_router)
+router.include_router(cu33_router)
+
 

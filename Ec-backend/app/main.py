@@ -9,7 +9,13 @@ from pathlib import Path
 # Permite resolver imports como 'from core...' y 'from modules...' directamente
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import logging
 from datetime import datetime, timezone
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware

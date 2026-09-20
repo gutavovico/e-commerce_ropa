@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../datos/modelos/login_dto.dart';
 import '../bloc/login_bloc.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu01_registrarse/presentacion/pantallas/pantalla_registro.dart';
+import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu33_recuperar_acceso/presentacion/pantallas/pantalla_recuperar_password.dart';
 
 class PantallaLogin extends StatefulWidget {
   final VoidCallback? alCompletarLogin;
@@ -287,12 +288,10 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                 Flexible(
                                   child: GestureDetector(
                                     onTap: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Función de recuperación disponible próximamente.',
-                                          ),
-                                          duration: Duration(seconds: 2),
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const PantallaRecuperarPassword(),
                                         ),
                                       );
                                     },

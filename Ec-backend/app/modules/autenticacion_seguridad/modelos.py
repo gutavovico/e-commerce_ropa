@@ -81,3 +81,32 @@ class ClienteORM(Base):
         "UsuarioORM",
         back_populates="cliente",
     )
+
+
+class CodigoRecuperacionORM(Base):
+    """Entidad ORM que mapea la tabla `fashionstore.codigos_recuperacion` para códigos OTP."""
+
+    __tablename__ = "codigos_recuperacion"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_codigo: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id_usuario: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("fashionstore.usuarios.id_usuario", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    codigo_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    expira_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    usado: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    intentos_fallidos: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ip_solicitante: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    # Relacion con UsuarioORM
+    usuario: Mapped["UsuarioORM"] = relationship("UsuarioORM")
+

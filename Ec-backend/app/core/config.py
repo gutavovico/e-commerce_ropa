@@ -33,6 +33,19 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     IA_API_KEY: str = ""
 
+    # --- Notificaciones SMTP Gmail ---
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = "fashionstore321@gmail.com"
+    SMTP_PASSWORD: str = "PasswordSegura321"
+    SMTP_USE_TLS: bool = True
+    SMTP_FROM_NAME: str = "Fashion Store Atelier"
+
+    # --- Políticas OTP Recuperación ---
+    OTP_EXPIRE_MINUTES: int = 15
+    OTP_MAX_ATTEMPTS: int = 5
+    OTP_RESEND_COOLDOWN_SECONDS: int = 60
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: Any) -> list[str]:
