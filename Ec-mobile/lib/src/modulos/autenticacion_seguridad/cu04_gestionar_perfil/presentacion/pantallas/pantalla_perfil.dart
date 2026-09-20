@@ -3,6 +3,7 @@ import '../../datos/modelos/perfil_dto.dart';
 import '../bloc/perfil_bloc.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/repositorios/login_repositorio.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
+import 'package:ec_mobile/src/modulos/catalogo/cu06_buscar_filtrar/presentacion/pantallas/pantalla_buscar_productos.dart';
 
 class PantallaPerfil extends StatefulWidget {
   final String token;
@@ -965,9 +966,20 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _tabSeleccionado,
         onTap: (index) {
-          setState(() {
-            _tabSeleccionado = index;
-          });
+          if (index == 1) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PantallaBuscarProductos(
+                  alIrAPerfil: () => Navigator.of(context).pop(),
+                  alIrAInicio: () => Navigator.of(context).pop(),
+                ),
+              ),
+            );
+          } else {
+            setState(() {
+              _tabSeleccionado = index;
+            });
+          }
         },
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,

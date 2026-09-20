@@ -2,63 +2,55 @@
 <div class="min-h-screen bg-[#FAF9F7] text-neutral-900 flex flex-col selection:bg-black selection:text-white">
 
   <!-- 1. Barra de Navegación Superior Institucional -->
-  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      
-      <!-- Marca / Logotipo -->
-      <a routerLink="/" class="text-xl font-bold tracking-[0.2em] text-neutral-950 uppercase select-none">
+  <header class="w-full border-b border-[#ECEAE6] bg-white sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <!-- Marca Principal -->
+      <a routerLink="/" class="text-sm font-semibold tracking-[0.25em] text-[#111111] uppercase hover:opacity-80 transition-opacity">
         FASHION STORE
       </a>
 
       <!-- Enlaces Centrales de Navegación -->
-      <nav class="hidden md:flex items-center space-x-8 text-xs font-medium tracking-widest uppercase">
-        <a routerLink="/" class="text-neutral-500 hover:text-black transition py-2">
-          INICIO
-        </a>
-        <a routerLink="/" class="text-neutral-500 hover:text-black transition py-2">
-          BUSCAR
-        </a>
-        <a routerLink="/" class="text-neutral-500 hover:text-black transition py-2">
-          CATÁLOGO
-        </a>
-        <a routerLink="/perfil" class="text-black font-semibold border-b-2 border-black py-2 tracking-widest">
-          PERFIL
-        </a>
+      <nav class="hidden md:flex items-center space-x-10 text-[11px] font-medium tracking-[0.2em] uppercase">
+        <a routerLink="/" class="text-[#666666] hover:text-black transition-colors">INICIO</a>
+        <a routerLink="/buscar" class="text-[#666666] hover:text-black transition-colors">BUSCAR</a>
+        <a routerLink="/catalogo" class="text-[#666666] hover:text-black transition-colors">CATÁLOGO</a>
+        <a routerLink="/perfil" class="text-black font-semibold border-b-2 border-black pb-1">PERFIL</a>
       </nav>
 
-      <!-- Iconos de Acción Derecha -->
-      <div class="flex items-center space-x-4">
+      <!-- Utilidades: Notificaciones, Cesta, Avatar -->
+      <div class="flex items-center space-x-6">
         <!-- Notificaciones -->
-        <button type="button" class="p-2 text-neutral-600 hover:text-black transition rounded-full hover:bg-neutral-100" aria-label="Notificaciones">
+        <button type="button" class="relative text-[#333333] hover:text-black transition-colors" title="Notificaciones">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
+          <span class="absolute -top-1 -right-1 w-2 h-2 bg-[#991B1B] rounded-full"></span>
         </button>
 
         <!-- Bolsa de Compra con Contador -->
-        <button type="button" class="p-2 text-neutral-600 hover:text-black transition rounded-full hover:bg-neutral-100 relative" aria-label="Bolsa de compra">
+        <button type="button" class="relative flex items-center text-[#333333] hover:text-black transition-colors" title="Cesta de compras">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
-          <span class="absolute top-1 right-1 bg-black text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-            3
+          <span class="absolute -top-1.5 -right-2 bg-black text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+            2
           </span>
         </button>
 
         <!-- Avatar Circular Miniatura -->
-        <div class="w-8 h-8 rounded-full overflow-hidden border border-neutral-200 shrink-0">
+        <a routerLink="/perfil" class="w-8 h-8 rounded-full overflow-hidden border border-[#D5D2CD] hover:border-black transition-colors block shrink-0" title="Perfil">
           <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
+            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80"
             alt="Avatar Cliente"
             class="w-full h-full object-cover"
           />
-        </div>
+        </a>
       </div>
     </div>
   </header>
 
   <!-- Contenido Principal -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 flex-grow w-full">
+  <main class="max-w-[1440px] mx-auto px-6 py-8 sm:py-10 flex-grow w-full">
 
     <!-- Notificación de Éxito / Feedback -->
     @if (mensajeExito()) {
@@ -646,7 +638,7 @@
 
   <!-- 8. Footer Institucional de Alta Costura -->
   <footer class="bg-white border-t border-neutral-100 mt-16 text-neutral-600 text-xs">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="max-w-[1440px] mx-auto px-6 py-12">
       
       <!-- 4 Columnas Editoriales -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">

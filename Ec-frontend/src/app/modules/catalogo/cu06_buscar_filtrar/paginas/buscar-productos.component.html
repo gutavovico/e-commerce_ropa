@@ -1,0 +1,724 @@
+<div class="min-h-screen bg-[#FFFFFF] text-[#111111] flex flex-col font-sans selection:bg-black selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- 1. BARRA SUPERIOR DE NAVEGACIÓN (HEADER)                                 -->
+  <!-- ========================================================================= -->
+  <header class="w-full border-b border-[#ECEAE6] bg-white sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <!-- Marca Principal -->
+      <a routerLink="/" class="text-sm font-semibold tracking-[0.25em] text-[#111111] uppercase hover:opacity-80 transition-opacity">
+        FASHION STORE
+      </a>
+
+      <!-- Navegación de Secciones -->
+      <nav class="hidden md:flex items-center space-x-10 text-[11px] font-medium tracking-[0.2em] uppercase">
+        <a routerLink="/" class="text-[#666666] hover:text-black transition-colors">INICIO</a>
+        <a routerLink="/buscar" class="text-black font-semibold border-b-2 border-black pb-1">BUSCAR</a>
+        <a routerLink="/catalogo" class="text-[#666666] hover:text-black transition-colors">CATÁLOGO</a>
+        <a routerLink="/perfil" class="text-[#666666] hover:text-black transition-colors">PERFIL</a>
+      </nav>
+
+      <!-- Utilidades: Notificaciones, Cesta, Avatar -->
+      <div class="flex items-center space-x-6">
+        <!-- Notificaciones -->
+        <button class="relative text-[#333333] hover:text-black transition-colors" title="Notificaciones">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span class="absolute -top-1 -right-1 w-2 h-2 bg-[#991B1B] rounded-full"></span>
+        </button>
+
+        <!-- Cesta con Contador -->
+        <button class="relative flex items-center text-[#333333] hover:text-black transition-colors" title="Cesta de compras">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+          <span class="absolute -top-1.5 -right-2 bg-black text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+            {{ cestaCount() }}
+          </span>
+        </button>
+
+        <!-- Avatar Circular -->
+        <a routerLink="/perfil" class="w-8 h-8 rounded-full overflow-hidden border border-[#D5D2CD] hover:border-black transition-colors">
+          <img
+            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80"
+            alt="Perfil de Cliente"
+            class="w-full h-full object-cover"
+          />
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 2. BREADCRUMBS Y AVISO ATELIER SERRANO                                    -->
+  <!-- ========================================================================= -->
+  <div class="max-w-[1440px] mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between text-[11px] tracking-[0.15em] uppercase border-b border-[#F0EFEB]">
+    <div class="text-[#777777] font-medium flex items-center space-x-2">
+      <span>FASHION STORE</span>
+      <span>/</span>
+      <span>BÚSQUEDA & EXPLORACIÓN</span>
+      <span>/</span>
+      <span class="text-black font-semibold">PRENDAS</span>
+    </div>
+
+    <div class="flex items-center space-x-4 mt-2 md:mt-0">
+      <div class="flex items-center space-x-1.5 text-[#555555]">
+        <span class="w-2 h-2 rounded-full bg-[#1A1A1A]"></span>
+        <span>Atelier Serrano Online · Citas Disponibles Hoy</span>
+      </div>
+      <span class="bg-[#F4F1EA] text-[#222222] px-2.5 py-0.5 rounded text-[9px] font-bold tracking-[0.2em]">
+        ACCESO CLIENTE VIP
+      </span>
+    </div>
+  </div>
+
+  <!-- Contenedor Principal -->
+  <main class="max-w-[1440px] mx-auto px-6 py-6 flex-1 w-full">
+
+    <!-- Mensaje flotante de confirmación de cesta -->
+    @if (mensajeAgregado()) {
+      <div class="fixed bottom-6 right-6 bg-[#111111] text-white px-5 py-3 rounded-xl shadow-2xl text-xs font-medium z-50 animate-fadeIn flex items-center space-x-3">
+        <svg class="w-4 h-4 text-[#C2A688]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>{{ mensajeAgregado() }}</span>
+      </div>
+    }
+
+    <!-- ======================================================================= -->
+    <!-- 3. BARRA HERO DE BÚSQUEDA                                               -->
+    <!-- ======================================================================= -->
+    <div class="w-full bg-[#F5F5F5] rounded-xl px-5 py-3.5 flex items-center space-x-4 border border-[#EBEBEB]">
+      <!-- Icono de lupa -->
+      <svg class="w-5 h-5 text-[#777777]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+
+      <!-- Input reactivo -->
+      <input
+        type="text"
+        [formControl]="searchControl"
+        (keydown.enter)="confirmarBusqueda()"
+        [placeholder]="terminoBusquedaActivo() ? 'Filtro activo: ' + terminoBusquedaActivo() + ' (escribe para cambiar)' : 'Vestidos, sastrería y sedas nobles'"
+        class="bg-transparent flex-1 text-sm md:text-base text-[#111111] placeholder-[#888888] focus:outline-none tracking-wide"
+      />
+
+      <!-- Botón de Limpiar 'X' -->
+      @if (searchControl.value) {
+        <button
+          type="button"
+          (click)="limpiarInput()"
+          class="text-[#777777] hover:text-black transition-colors text-sm px-1.5"
+          title="Limpiar búsqueda"
+        >
+          ✕
+        </button>
+      }
+
+      <!-- Separador vertical y botón para confirmar la búsqueda -->
+      <div class="h-6 w-[1px] bg-[#D8D8D8] hidden sm:block"></div>
+      <button
+        type="button"
+        id="btn-confirmar-busqueda"
+        (click)="confirmarBusqueda()"
+        class="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white text-xs font-bold tracking-[0.15em] uppercase rounded transition-all shadow-sm flex items-center space-x-2 cursor-pointer active:scale-95 flex-shrink-0"
+        title="Confirmar búsqueda y aplicar filtros (o presiona Enter)"
+      >
+        <span>BUSCAR</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- 4. SELECTOR DE TEMPORADAS Y SELECTOR DE VISTA                           -->
+    <!-- ======================================================================= -->
+    <div class="mt-6 flex flex-col md:flex-row md:items-center md:justify-between pb-6 border-b border-[#F0EFEB] gap-4">
+      <!-- Selector de Temporadas -->
+      <div class="flex items-center flex-wrap gap-2.5">
+        <span class="text-[11px] font-bold tracking-[0.2em] text-[#888888] uppercase mr-2">TEMPORADA:</span>
+
+        @for (temp of temporadasTabs; track temp.id) {
+          <button
+            type="button"
+            (click)="seleccionarTemporada(temp.nombre)"
+            class="px-4 py-1.5 rounded-full text-[11px] font-medium tracking-wide transition-all"
+            [ngClass]="{
+              'bg-black text-white shadow-sm': temporadaSeleccionada() === temp.nombre,
+              'bg-[#F5F5F5] text-[#444444] hover:bg-[#EAEAEA] hover:text-black': temporadaSeleccionada() !== temp.nombre
+            }"
+          >
+            {{ temp.nombre }}
+            @if (temporadaSeleccionada() === temp.nombre) {
+              <span class="ml-1 text-[8px]">•</span>
+            }
+          </button>
+        }
+      </div>
+
+      <!-- Selector de Vista Cuadrícula -->
+      <div class="flex items-center space-x-3 text-[11px] text-[#777777] uppercase tracking-wider self-end md:self-auto">
+        <span>Vista: {{ vistaCuadruple() ? 'Cuadrícula Cuádruple' : 'Cuadrícula Doble' }}</span>
+        <div class="flex items-center space-x-1 border border-[#E0E0E0] rounded p-0.5">
+          <!-- Botón 4 Columnas -->
+          <button
+            type="button"
+            (click)="toggleVista(true)"
+            [ngClass]="vistaCuadruple() ? 'bg-black text-white' : 'text-[#888888] hover:text-black'"
+            class="p-1 rounded transition-colors"
+            title="Cuadrícula 4 columnas"
+          >
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+            </svg>
+          </button>
+          <!-- Botón 2 Columnas -->
+          <button
+            type="button"
+            (click)="toggleVista(false)"
+            [ngClass]="!vistaCuadruple() ? 'bg-black text-white' : 'text-[#888888] hover:text-black'"
+            class="p-1 rounded transition-colors"
+            title="Cuadrícula 2 columnas"
+          >
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h11A1.5 1.5 0 0 1 15 2.5v4A1.5 1.5 0 0 1 13.5 8h-11A1.5 1.5 0 0 1 1 6.5v-4zm1.5-.5a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5h-11zm-1.5 8A1.5 1.5 0 0 1 2.5 9h11a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 14.5v-4zm1.5-.5a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5h-11z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- 5. ESTRUCTURA PRINCIPAL: SIDEBAR FILTROS + GRILLA PRENDAS                -->
+    <!-- ======================================================================= -->
+    <div class="mt-8 flex flex-col lg:flex-row gap-10">
+
+      <!-- ------------------------------------------------------------------- -->
+      <!-- 5.A SIDEBAR IZQUIERDO: FILTROS REFINADOS                            -->
+      <!-- ------------------------------------------------------------------- -->
+      <aside class="w-full lg:w-[260px] flex-shrink-0 space-y-7 text-xs">
+
+        <!-- Cabecera Sidebar -->
+        <div class="flex items-center justify-between pb-3 border-b border-[#ECEAE6]">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            <span class="font-bold tracking-[0.15em] text-[#111111] uppercase">Filtros Refinados</span>
+          </div>
+          <button
+            type="button"
+            (click)="restablecerFiltros()"
+            class="text-[10px] tracking-[0.15em] font-bold text-[#888888] hover:text-black uppercase underline transition-colors"
+          >
+            RESTABLECER
+          </button>
+        </div>
+
+        <!-- 1. Colección & Línea -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold tracking-[0.15em] text-[#222222] uppercase text-[11px]">COLECCIÓN & LÍNEA</span>
+            <span class="text-[10px] text-[#888888]">{{ listaColecciones().length }} opciones</span>
+          </div>
+
+          <div class="space-y-2.5 max-h-44 overflow-y-auto pr-1">
+            @for (col of listaColecciones(); track col.id) {
+              <label class="flex items-center justify-between cursor-pointer group select-none">
+                <div class="flex items-center space-x-2.5">
+                  <input
+                    type="checkbox"
+                    [checked]="coleccionSeleccionada().toLowerCase() === col.nombre.toLowerCase()"
+                    (change)="alternarColeccion(col.nombre)"
+                    class="w-3.5 h-3.5 rounded border-[#D5D2CD] text-black focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span
+                    class="text-[#333333] group-hover:text-black transition-colors"
+                    [ngClass]="{ 'font-bold text-black': coleccionSeleccionada().toLowerCase() === col.nombre.toLowerCase() }"
+                  >
+                    {{ col.nombre }}
+                  </span>
+                </div>
+                <span class="text-[10px] text-[#888888]">{{ col.conteo }}</span>
+              </label>
+            }
+          </div>
+        </div>
+
+        <!-- 2. Tallas Disponibles -->
+        <div class="space-y-3 pt-4 border-t border-[#F0EFEB]">
+          <div class="flex items-center justify-between">
+            <span class="font-bold tracking-[0.15em] text-[#222222] uppercase text-[11px]">TALLAS DISPONIBLES</span>
+            <button
+              type="button"
+              (click)="toggleGuiaAtelier()"
+              class="text-[10px] text-[#777777] hover:text-black underline uppercase tracking-wider"
+            >
+              GUÍA ATELIER
+            </button>
+          </div>
+
+          <!-- Matriz de Cuadros de Talla -->
+          <div class="grid grid-cols-3 gap-2">
+            @for (t of tallasAtelier; track t) {
+              <button
+                type="button"
+                (click)="seleccionarTalla(t)"
+                class="h-9 border text-[11px] font-medium transition-all flex items-center justify-center rounded"
+                [ngClass]="{
+                  'bg-black text-white border-black font-bold': tallaSeleccionada() === t,
+                  'border-[#E5E3DF] text-[#333333] hover:border-black': tallaSeleccionada() !== t
+                }"
+              >
+                {{ t }}
+              </button>
+            }
+          </div>
+
+          <!-- Modal Auxiliar Guía Atelier -->
+          @if (guiaAtelierAbierta()) {
+            <div class="p-3 bg-[#F9F8F6] border border-[#EBE8E2] rounded-lg text-[10px] text-[#555555] space-y-1 animate-fadeIn">
+              <p class="font-bold text-black uppercase tracking-wider">Patronaje y Calce:</p>
+              <p>Las prendas de sastrería responden a medidas anatómicas exactas europeas. Si dudas entre dos tallas, recomendamos optar por la superior.</p>
+            </div>
+          }
+        </div>
+
+        <!-- 3. Color & Textura (Paleta Textil de Ropa) -->
+        <div class="space-y-3 pt-4 border-t border-[#F0EFEB]">
+          <div class="flex items-center justify-between">
+            <span class="font-bold tracking-[0.15em] text-[#222222] uppercase text-[11px] block">COLOR & TEXTURA</span>
+            @if (colorSeleccionado()) {
+              <span class="text-[10px] text-black font-bold">{{ colorSeleccionado() }}</span>
+            }
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+            @for (c of listaColores(); track c.nombre) {
+              <button
+                type="button"
+                (click)="seleccionarColor(c.nombre)"
+                class="flex items-center space-x-2 p-1.5 rounded-lg border text-left transition-all"
+                [ngClass]="{
+                  'border-black bg-[#FAF9F7] font-bold shadow-sm': colorSeleccionado().toLowerCase() === c.nombre.toLowerCase(),
+                  'border-[#ECEAE6] hover:border-[#D5D2CD]': colorSeleccionado().toLowerCase() !== c.nombre.toLowerCase()
+                }"
+              >
+                <span
+                  class="w-4 h-4 rounded-full border flex-shrink-0 shadow-inner"
+                  [style.backgroundColor]="c.hex"
+                  [style.borderColor]="c.border"
+                ></span>
+                <div class="overflow-hidden">
+                  <span class="block text-[11px] text-[#222222] leading-tight truncate">{{ c.nombre }}</span>
+                  <span class="block text-[8px] text-[#888888] font-mono leading-none">{{ c.hex }}</span>
+                </div>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- 4. Rango de Inversión (€) -->
+        <div class="space-y-3 pt-4 border-t border-[#F0EFEB]">
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="font-bold tracking-[0.15em] text-[#222222] uppercase">INVERSIÓN (€)</span>
+            <span class="font-semibold text-black">
+              {{ filtroPrecioActivo() ? (precioMin() + ' € – ' + precioMax() + ' €') : 'Cualquier precio' }}
+            </span>
+          </div>
+
+          <!-- Sliders de rango -->
+          <div class="space-y-2 pt-1">
+            <input
+              type="range"
+              min="0"
+              max="2500"
+              step="50"
+              [value]="precioMin()"
+              (input)="onCambioPrecioMin($event)"
+              class="w-full accent-black h-1 bg-[#EAE8E4] rounded-lg cursor-pointer"
+            />
+            <input
+              type="range"
+              min="0"
+              max="2500"
+              step="50"
+              [value]="precioMax()"
+              (input)="onCambioPrecioMax($event)"
+              class="w-full accent-black h-1 bg-[#EAE8E4] rounded-lg cursor-pointer"
+            />
+          </div>
+
+          <!-- Botón de Aplicar Filtros desde Sidebar -->
+          <div class="pt-3">
+            <button
+              type="button"
+              id="btn-aplicar-filtros-sidebar"
+              (click)="confirmarBusqueda()"
+              class="w-full py-2.5 bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-[0.15em] rounded transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer active:scale-95"
+              title="Confirmar y aplicar filtros seleccionados"
+            >
+              <span>APLICAR FILTROS</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- ------------------------------------------------------------------- -->
+      <!-- 5.B PANEL CENTRAL: GRILLA DE PRENDAS                                 -->
+      <!-- ------------------------------------------------------------------- -->
+      <section class="flex-1">
+
+        <!-- Cabecera de la sección de resultados -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#F0EFEB] gap-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <h1 class="text-xl md:text-2xl font-sans font-semibold text-[#111111] tracking-tight">
+              Visto recientemente
+            </h1>
+            <span class="bg-[#F0EFEB] text-[#444444] px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-[0.1em] uppercase">
+              {{ paginacion().total_registros }} PRENDAS
+            </span>
+            @if (terminoBusquedaActivo()) {
+              <div class="inline-flex items-center space-x-1.5 bg-[#111111] text-white text-[10px] font-semibold tracking-[0.1em] uppercase px-3 py-1 rounded-full shadow-sm">
+                <span>BÚSQUEDA: "{{ terminoBusquedaActivo() }}"</span>
+                <button
+                  type="button"
+                  (click)="quitarTerminoBusqueda()"
+                  class="text-neutral-400 hover:text-white transition-colors cursor-pointer ml-1 text-xs"
+                  title="Quitar término de búsqueda"
+                >
+                  ✕
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="flex items-center space-x-5 text-xs">
+            <button
+              type="button"
+              (click)="catalogoService.limpiarHistorial()"
+              class="flex items-center space-x-1.5 text-[#666666] hover:text-black uppercase text-[10px] tracking-[0.15em] font-medium"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>LIMPIAR HISTORIAL</span>
+            </button>
+
+            <!-- Selector de Orden -->
+            <div class="flex items-center space-x-1.5 text-[11px] font-medium text-[#444444]">
+              <span class="uppercase tracking-wider text-[#888888]">ORDENAR:</span>
+              <select
+                [value]="ordenSeleccionado()"
+                (change)="cambiarOrden($event)"
+                class="bg-transparent text-black font-semibold focus:outline-none cursor-pointer border-b border-black pb-0.5"
+              >
+                <option value="recientes">Más recientes</option>
+                <option value="precio_asc">Precio: Menor a Mayor</option>
+                <option value="precio_desc">Precio: Mayor a Menor</option>
+                <option value="nombre_asc">Nombre: A - Z</option>
+                <option value="relevancia">Relevancia</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estado de Carga (Spinner / Shimmer) -->
+        @if (cargando()) {
+          <div class="py-20 flex flex-col items-center justify-center space-y-3">
+            <div class="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-xs uppercase tracking-[0.2em] text-[#777777]">Consultando colección de alta costura...</span>
+          </div>
+        } @else if (error()) {
+          <div class="py-16 text-center space-y-3">
+            <p class="text-sm text-[#991B1B]">{{ error() }}</p>
+            <button
+              type="button"
+              (click)="ejecutarConsulta()"
+              class="px-5 py-2 bg-black text-white text-xs font-semibold uppercase tracking-wider rounded"
+            >
+              Reintentar
+            </button>
+          </div>
+        } @else if (productos().length === 0) {
+          <!-- Estado Vacío -->
+          <div class="py-24 text-center space-y-4">
+            <p class="font-sans font-medium text-xl text-[#666666]">Ninguna pieza coincide con los criterios especificados.</p>
+            <p class="text-xs text-[#888888] max-w-md mx-auto">
+              Te sugerimos ajustar el rango de inversión o restablecer las colecciones y tallas para explorar otras propuestas de sastrería.
+            </p>
+            <button
+              type="button"
+              (click)="restablecerFiltros()"
+              class="mt-2 px-6 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-[0.2em] rounded"
+            >
+              Restablecer Filtros
+            </button>
+          </div>
+        } @else {
+          <!-- Grilla de Tarjetas de Prendas (4 Columnas) -->
+          <div
+            class="grid gap-6 mt-6"
+            [ngClass]="vistaCuadruple() ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2'"
+          >
+            @for (item of productos(); track item.id_producto) {
+              <article class="flex flex-col bg-white border border-[#EBE8E2] rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 group">
+
+                <!-- Contenedor de Imagen y Badges -->
+                <div class="relative w-full aspect-[3/4] bg-[#F7F6F4] overflow-hidden">
+                  <!-- Imagen de Prenda con Zoom Suave -->
+                  <img
+                    [src]="item.imagen_url || 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&auto=format&fit=crop&q=80'"
+                    [alt]="item.nombre"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                    loading="lazy"
+                  />
+
+                  <!-- Badge Superior Izquierdo -->
+                  @if (item.badge_editorial) {
+                    <span class="absolute top-3 left-3 bg-[#111111]/90 backdrop-blur-sm text-white px-2.5 py-1 text-[9px] font-bold tracking-[0.15em] uppercase rounded">
+                      {{ item.badge_editorial }}
+                    </span>
+                  }
+
+                  <!-- Botón Favoritos (Wishlist Heart) Superior Derecho -->
+                  <button
+                    type="button"
+                    (click)="toggleFavorito(item)"
+                    class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#444444] hover:text-black hover:bg-white shadow transition-all"
+                    [title]="item.en_favoritos ? 'Quitar de favoritos' : 'Añadir a favoritos'"
+                  >
+                    <svg
+                      class="w-4 h-4"
+                      [ngClass]="item.en_favoritos ? 'text-[#991B1B] fill-current' : 'fill-none stroke-current'"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Detalle y Tipografía Editorial -->
+                <div class="p-4 flex flex-col flex-1 justify-between space-y-3">
+                  <div class="space-y-1">
+                    <!-- Sub-badge y Talla -->
+                    <div class="flex items-center justify-between text-[10px] tracking-[0.15em] uppercase text-[#777777] font-semibold">
+                      <span>{{ item.subtitulo_atelier || item.categoria }}</span>
+                      @if (item.talla_sugerida) {
+                        <span>{{ item.talla_sugerida }}</span>
+                      }
+                    </div>
+
+                    <!-- Título de Prenda -->
+                    <h2 class="text-sm font-medium text-[#111111] leading-snug tracking-normal">
+                      {{ item.nombre }}
+                    </h2>
+                  </div>
+
+                  <!-- Precio y Color Muestra -->
+                  <div class="flex items-center justify-between pt-1">
+                    <span class="text-sm font-semibold text-black">
+                      {{ item.precio_base }} €
+                    </span>
+
+                    @if (item.color_sugerido) {
+                      <div class="flex items-center space-x-1.5 text-[11px] text-[#666666]">
+                        <span class="w-2.5 h-2.5 rounded-full border border-[#D5D2CD]" [style.backgroundColor]="item.variantes[0]?.codigo_hex || '#000'"></span>
+                        <span>{{ item.color_sugerido }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Botón Agregar a Cesta -->
+                  <button
+                    type="button"
+                    (click)="agregarACesta(item)"
+                    class="w-full py-2 bg-[#F6F5F2] hover:bg-black text-[#222222] hover:text-white border border-[#E5E2DC] hover:border-black rounded text-[11px] font-bold tracking-[0.15em] uppercase transition-all flex items-center justify-center space-x-1"
+                  >
+                    <span>+ CESTA</span>
+                  </button>
+                </div>
+
+              </article>
+            }
+          </div>
+
+          <!-- =============================================================== -->
+          <!-- Paginador Atelier                                               -->
+          <!-- =============================================================== -->
+          <div class="mt-12 pt-6 border-t border-[#F0EFEB] flex flex-col md:flex-row md:items-center md:justify-between text-xs gap-4">
+            <span class="text-[#777777] font-medium tracking-wide">
+              {{ resumenPaginacionTexto() }}
+            </span>
+
+            <div class="flex items-center space-x-1 self-center md:self-auto">
+              <!-- Anterior -->
+              <button
+                type="button"
+                (click)="cambiarPagina(paginacion().pagina_actual - 1)"
+                [disabled]="!paginacion().tiene_anterior"
+                class="px-3.5 py-1.5 border border-[#E0E0E0] rounded text-[10px] font-bold uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed hover:border-black transition-colors"
+              >
+                ANTERIOR
+              </button>
+
+              <!-- Botones numéricos -->
+              <button
+                type="button"
+                (click)="cambiarPagina(1)"
+                class="w-8 h-8 rounded text-xs font-bold transition-colors flex items-center justify-center"
+                [ngClass]="paginacion().pagina_actual === 1 ? 'bg-black text-white' : 'border border-[#E0E0E0] text-black hover:border-black'"
+              >
+                1
+              </button>
+
+              @if (paginacion().total_paginas >= 2) {
+                <button
+                  type="button"
+                  (click)="cambiarPagina(2)"
+                  class="w-8 h-8 rounded text-xs font-bold transition-colors flex items-center justify-center"
+                  [ngClass]="paginacion().pagina_actual === 2 ? 'bg-black text-white' : 'border border-[#E0E0E0] text-black hover:border-black'"
+                >
+                  2
+                </button>
+              }
+
+              @if (paginacion().total_paginas >= 3) {
+                <button
+                  type="button"
+                  (click)="cambiarPagina(3)"
+                  class="w-8 h-8 rounded text-xs font-bold transition-colors flex items-center justify-center"
+                  [ngClass]="paginacion().pagina_actual === 3 ? 'bg-black text-white' : 'border border-[#E0E0E0] text-black hover:border-black'"
+                >
+                  3
+                </button>
+              }
+
+              <!-- Siguiente -->
+              <button
+                type="button"
+                (click)="cambiarPagina(paginacion().pagina_actual + 1)"
+                [disabled]="!paginacion().tiene_siguiente"
+                class="px-3.5 py-1.5 border border-[#E0E0E0] rounded text-[10px] font-bold uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed hover:border-black transition-colors"
+              >
+                SIGUIENTE
+              </button>
+            </div>
+          </div>
+        }
+
+      </section>
+
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- 6. SECCIÓN DE BÚSQUEDAS MÁS FRECUENTES                                  -->
+    <!-- ======================================================================= -->
+    <div class="mt-16 pt-8 border-t border-[#F0EFEB] flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
+      <div class="flex items-center space-x-2 text-[11px] font-bold tracking-[0.15em] text-[#222222] uppercase flex-shrink-0">
+        <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+        <span>BÚSQUEDAS MÁS FRECUENTES</span>
+      </div>
+
+      <div class="flex items-center flex-wrap gap-2.5">
+        @for (item of busquedasRecientes(); track item) {
+          <button
+            type="button"
+            (click)="aplicarBusquedaFrecuente(item)"
+            class="px-3.5 py-1.5 bg-[#F7F7F7] hover:bg-[#EAEAEA] border border-[#ECECE8] text-[#333333] hover:text-black rounded-full text-xs font-medium tracking-wide transition-all flex items-center space-x-1.5"
+          >
+            <span>{{ item }}</span>
+            <span class="text-[10px] text-[#888888]">↗</span>
+          </button>
+        }
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 7. FOOTER EDITORIAL HAUTE COUTURE                                         -->
+  <!-- ========================================================================= -->
+  <footer class="w-full bg-[#FBFBFA] border-t border-[#EAE8E3] mt-20 pt-16 pb-12 text-[#222222]">
+    <div class="max-w-[1440px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 text-xs">
+
+      <!-- Columna 1: Atención al Cliente -->
+      <div class="space-y-3">
+        <h3 class="font-bold tracking-[0.15em] uppercase text-[11px] text-[#111111]">ATENCIÓN AL CLIENTE</h3>
+        <ul class="space-y-2 text-[#666666]">
+          <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Citas Privadas</a></li>
+          <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Envíos y Devoluciones</a></li>
+          <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Cuidado de Prendas</a></li>
+          <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Contacto Concierge</a></li>
+        </ul>
+      </div>
+
+      <!-- Columna 2: Boutiques -->
+      <div class="space-y-3">
+        <h3 class="font-bold tracking-[0.15em] uppercase text-[11px] text-[#111111]">BOUTIQUES</h3>
+        <div class="space-y-2 text-[#666666]">
+          <div>
+            <p class="font-bold text-black">Madrid</p>
+            <p>Calle Serrano, 48</p>
+            <p class="text-[10px] text-[#888888]">Lunes a Sábado · 10:00 - 20:30</p>
+          </div>
+          <div class="pt-2">
+            <p class="font-bold text-black">París</p>
+            <p>Rue du Faubourg Saint-Honoré, 22</p>
+            <p class="text-[10px] text-[#888888]">Lundi à Samedi · 10:30 - 19:30</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna 3: Sostenibilidad & Oficio -->
+      <div class="space-y-3">
+        <h3 class="font-bold tracking-[0.15em] uppercase text-[11px] text-[#111111]">SOSTENIBILIDAD & OFICIO</h3>
+        <p class="text-[#666666] leading-relaxed">
+          Piezas concebidas bajo estándares de confección artesanal europea, trazabilidad integral de tejidos nobles y producción en series numeradas con certificación de bajo impacto.
+        </p>
+        <a href="javascript:void(0)" class="inline-block font-bold text-black tracking-[0.15em] uppercase text-[10px] hover:underline">
+          MANIFIESTO CIRCULAR 2025 →
+        </a>
+      </div>
+
+      <!-- Columna 4: Boletín Editorial -->
+      <div class="space-y-3">
+        <h3 class="font-bold tracking-[0.15em] uppercase text-[11px] text-[#111111]">BOLETÍN EDITORIAL</h3>
+        <p class="text-[#666666]">
+          Reciba avances exclusivos de colección, cápsulas limitadas y crónicas de archivo.
+        </p>
+        <div class="flex items-center border-b border-black pb-1.5">
+          <input
+            type="email"
+            placeholder="Correo electrónico"
+            class="bg-transparent flex-1 text-xs text-black placeholder-[#888888] focus:outline-none"
+          />
+          <button class="text-black hover:opacity-70 transition-opacity">
+            →
+          </button>
+        </div>
+        <p class="text-[9px] text-[#888888]">Privacidad garantizada bajo protocolo confidencial.</p>
+      </div>
+
+    </div>
+
+    <!-- Copyright -->
+    <div class="max-w-[1440px] mx-auto px-6 mt-14 pt-6 border-t border-[#ECEAE6] flex flex-col sm:flex-row items-center justify-between text-[10px] text-[#777777] tracking-[0.1em] uppercase">
+      <span>© 2025 FASHION STORE. TODOS LOS DERECHOS RESERVADOS.</span>
+      <div class="flex space-x-6 mt-3 sm:mt-0">
+        <a href="javascript:void(0)" class="hover:text-black">Términos de Servicio</a>
+        <a href="javascript:void(0)" class="hover:text-black">Privacidad</a>
+        <a href="javascript:void(0)" class="hover:text-black">Cookies</a>
+      </div>
+    </div>
+  </footer>
+
+</div>

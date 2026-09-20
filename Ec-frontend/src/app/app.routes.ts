@@ -47,8 +47,20 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    path: 'buscar',
+    loadComponent: () =>
+      import(
+        './modules/catalogo/cu06_buscar_filtrar/paginas/buscar-productos.component'
+      ).then((m) => m.BuscarProductosComponent),
+  },
+  {
+    path: 'catalogo',
+    redirectTo: 'buscar',
+    pathMatch: 'full',
+  },
+  {
     path: '',
-    redirectTo: 'login',
+    redirectTo: 'buscar',
     pathMatch: 'full',
   },
 ];
