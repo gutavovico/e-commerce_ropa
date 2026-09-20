@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, tap, throwError } from 'rxjs';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Observable, catchError, finalize, map, of, tap, throwError } from 'rxjs';
 import {
   LoginPeticion,
   LoginRespuesta,
@@ -13,6 +13,7 @@ import {
 export class LoginService {
   private readonly http = inject(HttpClient);
   private readonly endpoint = '/api/v1/autenticacion/login';
+  private readonly logoutEndpoint = '/api/v1/autenticacion/logout';
 
   private readonly TOKEN_KEY = 'fashionstore_token';
   private readonly USER_KEY = 'fashionstore_user';
@@ -103,9 +104,51 @@ export class LoginService {
   }
 
   /**
-   * Cierra la sesión activa y purga los tokens del almacenamiento.
+   * Obtiene el token JWT activo de la sesión actual.
    */
-  cerrarSesion(): void {
+  obtenerToken(): string | null {
+    const sesion = this.usuarioActual();
+    if (sesion?.token) {
+      return sesion.token;
+    }
+    try {
+      if (typeof window !== 'undefined') {
+        return (
+          localStorage.getItem(this.TOKEN_KEY) ||
+          sessionStorage.getItem(this.TOKEN_KEY)
+        );
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  /**
+   * Cierra la sesión activa:
+   * 1. Notifica al backend en POST /api/v1/autenticacion/logout para revocar el token en el servidor.
+   * 2. Purga las credenciales y tokens de localStorage y sessionStorage de forma garantizada.
+   * 3. Resetea el signal reactivo usuarioActual (estaAutenticado -> false).
+   */
+  cerrarSesion(): Observable<void> {
+    const token = this.obtenerToken();
+    const headers = token
+      ? new HttpHeaders({ Authorization: `Bearer ${token}` })
+      : undefined;
+
+    return this.http.post(this.logoutEndpoint, {}, { headers }).pipe(
+      catchError(() => of(null)), // Resiliencia: si falla la red, continuar con la purga
+      finalize(() => {
+        this.purgarSesionLocal();
+      }),
+      map(() => void 0)
+    );
+  }
+
+  /**
+   * Limpia inmediatamente el almacenamiento local y resetea las señales reactivas.
+   */
+  purgarSesionLocal(): void {
     this.usuarioActual.set(null);
     try {
       if (typeof window !== 'undefined') {

@@ -56,4 +56,13 @@ class LoginBloc extends ChangeNotifier {
     _estado = const LoginInicial();
     notifyListeners();
   }
+
+  Future<void> cerrarSesion(String token) async {
+    try {
+      await _repositorio.cerrarSesion(token);
+    } catch (_) {
+      // Resiliencia ante fallos
+    }
+    reiniciar();
+  }
 }

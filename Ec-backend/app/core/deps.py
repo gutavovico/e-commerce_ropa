@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, joinedload
 from core.database import get_db
 from core.errors import AuthenticationError, AuthorizationError
 from core.security import decode_access_token
+from core.token_blacklist import token_blacklist
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -30,11 +31,17 @@ def get_current_user(
     """Extrae y valida el usuario activo a partir del token Bearer JWT.
 
     Raises:
-        AuthenticationError: si el token es ausente, invalido o expirado (HTTP 401).
+        AuthenticationError: si el token es ausente, invalido, expirado o revocado (HTTP 401).
         AuthorizationError: si la cuenta de usuario se encuentra inactiva (HTTP 403).
     """
     if not token:
         raise AuthenticationError("Token de acceso no proporcionado", code="TOKEN_INVALIDO")
+
+    if token_blacklist.esta_revocado(token):
+        raise AuthenticationError(
+            "La sesión ha sido finalizada. Inicie sesión nuevamente.",
+            code="TOKEN_REVOCADO",
+        )
 
     try:
         payload = decode_access_token(token)

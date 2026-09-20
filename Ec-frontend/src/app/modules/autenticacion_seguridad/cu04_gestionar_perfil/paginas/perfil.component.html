@@ -474,12 +474,13 @@
           <button
             type="button"
             (click)="cerrarSesion()"
-            class="w-full bg-white hover:bg-red-50/50 border border-neutral-200 hover:border-red-200 text-neutral-700 hover:text-red-700 text-xs font-semibold tracking-wider uppercase py-4 rounded-2xl transition shadow-sm flex items-center justify-center space-x-2"
+            [disabled]="cerrandoSesion()"
+            class="w-full bg-white hover:bg-red-50/50 border border-neutral-200 hover:border-red-200 text-neutral-700 hover:text-red-700 text-xs font-semibold tracking-wider uppercase py-4 rounded-2xl transition shadow-sm flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            <span>CERRAR SESIÓN SEGURA</span>
+            <span>CERRAR SESIÓN</span>
           </button>
 
           <!-- Metadatos de Sistema -->

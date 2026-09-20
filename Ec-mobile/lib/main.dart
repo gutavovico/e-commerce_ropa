@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/repositorios/login_repositorio.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
-
 import 'src/modulos/autenticacion_seguridad/cu04_gestionar_perfil/presentacion/pantallas/pantalla_perfil.dart';
 
 void main() {
@@ -31,13 +31,39 @@ class EcMobileApp extends StatelessWidget {
         ),
       ),
       home: Builder(
-        builder: (ctx) => PantallaLogin(
-          alCompletarLoginConToken: (token) {
-            Navigator.of(ctx).push(
-              MaterialPageRoute(builder: (_) => PantallaPerfil(token: token)),
+        builder: (ctx) {
+          Widget construirLogin() {
+            return PantallaLogin(
+              alCompletarLoginConToken: (token) {
+                void abrirPerfil(String tokenActivo) {
+                  Navigator.of(ctx).push(
+                    MaterialPageRoute(
+                      builder: (perfilCtx) => PantallaPerfil(
+                        token: tokenActivo,
+                        alCerrarSesion: () async {
+                          final repo = LoginRepositorioImpl();
+                          await repo.cerrarSesion(tokenActivo);
+                          if (perfilCtx.mounted) {
+                            Navigator.of(perfilCtx).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => construirLogin(),
+                              ),
+                              (route) => false,
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                }
+
+                abrirPerfil(token);
+              },
             );
-          },
-        ),
+          }
+
+          return construirLogin();
+        },
       ),
     );
   }

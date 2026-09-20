@@ -53,7 +53,7 @@ describe('PerfilComponent (CU04)', () => {
     };
 
     mockLoginService = {
-      cerrarSesion: vi.fn(),
+      cerrarSesion: vi.fn().mockReturnValue(of(void 0)),
     };
 
     await TestBed.configureTestingModule({

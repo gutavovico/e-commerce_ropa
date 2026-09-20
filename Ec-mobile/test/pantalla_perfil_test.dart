@@ -103,7 +103,36 @@ void main() {
     expect(find.text('Personal Shopper Asignado'), findsOneWidget);
 
     // 6. Botón de cierre y BottomNavigationBar
-    expect(find.text('CERRAR SESIÓN SEGURA'), findsOneWidget);
+    expect(find.text('CERRAR SESIÓN'), findsOneWidget);
     expect(find.text('PERFIL'), findsOneWidget);
+  });
+
+  testWidgets('PantallaPerfil botón CERRAR SESIÓN ejecuta alCerrarSesion callback', (tester) async {
+    final mockRepo = MockPerfilRepositorioPruebas();
+    final bloc = PerfilBloc(repositorio: mockRepo);
+    var cerrado = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PantallaPerfil(
+          token: 'token_prueba',
+          bloc: bloc,
+          alCerrarSesion: () => cerrado = true,
+          habilitarImagenesRed: false,
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final botonCerrar = find.text('CERRAR SESIÓN');
+    expect(botonCerrar, findsOneWidget);
+
+    await tester.ensureVisible(botonCerrar);
+    await tester.tap(botonCerrar);
+    await tester.pump();
+
+    expect(cerrado, true);
   });
 }

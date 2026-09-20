@@ -8,6 +8,9 @@ from modules.autenticacion_seguridad.cu01_registrarse.router import (
 from modules.autenticacion_seguridad.cu02_iniciar_sesion.router import (
     router as cu02_router,
 )
+from modules.autenticacion_seguridad.cu03_cerrar_sesion.router import (
+    router as cu03_router,
+)
 from modules.autenticacion_seguridad.cu04_gestionar_perfil.router import (
     router as cu04_router,
 )
@@ -17,5 +20,6 @@ router = APIRouter(prefix="/autenticacion", tags=["Autenticacion y Seguridad"])
 # Montar endpoints de cada caso de uso del paquete
 router.include_router(cu01_router)
 router.include_router(cu02_router)
+router.include_router(cu03_router)
 router.include_router(cu04_router)
 

@@ -73,4 +73,20 @@ class LoginRemotoDatasource {
       );
     }
   }
+
+  Future<void> cerrarSesion(String token) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/v1/autenticacion/logout');
+    try {
+      await _client.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+    } catch (_) {
+      // Resiliencia ante fallos de conexión
+    }
+  }
 }

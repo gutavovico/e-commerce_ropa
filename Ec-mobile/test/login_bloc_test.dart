@@ -16,6 +16,9 @@ class MockLoginRepositorioExitoso implements LoginRepositorio {
       rol: 'cliente',
     );
   }
+
+  @override
+  Future<void> cerrarSesion(String token) async {}
 }
 
 class MockLoginRepositorioFallido implements LoginRepositorio {
@@ -27,6 +30,9 @@ class MockLoginRepositorioFallido implements LoginRepositorio {
   Future<LoginRespuestaDto> autenticarUsuario(LoginPeticionDto datos) async {
     throw Exception(mensajeError);
   }
+
+  @override
+  Future<void> cerrarSesion(String token) async {}
 }
 
 void main() {
@@ -95,6 +101,20 @@ void main() {
       expect(bloc.estado, isA<LoginExitoso>());
 
       bloc.reiniciar();
+      expect(bloc.estado, isA<LoginInicial>());
+    });
+
+    test('cerrarSesion invoca el repositorio y reinicia a LoginInicial', () async {
+      final bloc = LoginBloc(repositorio: MockLoginRepositorioExitoso());
+      const peticion = LoginPeticionDto(
+        email: 'usuario@fashionstore.com',
+        password: 'Password123!',
+      );
+
+      await bloc.iniciarSesion(peticion);
+      expect(bloc.estado, isA<LoginExitoso>());
+
+      await bloc.cerrarSesion('token-jwt-mock');
       expect(bloc.estado, isA<LoginInicial>());
     });
   });

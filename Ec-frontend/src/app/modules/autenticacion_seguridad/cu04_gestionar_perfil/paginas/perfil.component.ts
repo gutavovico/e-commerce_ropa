@@ -4,6 +4,7 @@ import {
   Component,
   OnInit,
   inject,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -40,6 +41,7 @@ export class PerfilComponent implements OnInit {
   protected readonly mensajeExito = this.perfilService.mensajeExito;
   protected readonly modalAbierto = this.perfilService.modalEdicionAbierto;
   protected readonly pedidos = this.perfilService.pedidos;
+  protected readonly cerrandoSesion = signal<boolean>(false);
 
   // Formulario reactivo para la actualización de perfil
   protected readonly formularioPerfil: FormGroup = this.fb.group({
@@ -149,11 +151,25 @@ export class PerfilComponent implements OnInit {
   }
 
   /**
-   * Cierra la sesión activa del usuario y redirige al login.
+   * Cierra la sesión activa del usuario, revoca el token en el backend y redirige al login.
    */
   cerrarSesion(): void {
-    this.loginService.cerrarSesion();
-    this.router.navigate(['/login']);
+    if (this.cerrandoSesion()) return;
+    this.cerrandoSesion.set(true);
+    this.cdr.markForCheck();
+
+    this.loginService.cerrarSesion().subscribe({
+      next: () => {
+        this.router.navigate(['/login']);
+      },
+      error: () => {
+        this.router.navigate(['/login']);
+      },
+      complete: () => {
+        this.cerrandoSesion.set(false);
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   /**

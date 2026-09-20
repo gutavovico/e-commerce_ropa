@@ -3,6 +3,7 @@ import '../../datos/modelos/login_dto.dart';
 
 abstract class LoginRepositorio {
   Future<LoginRespuestaDto> autenticarUsuario(LoginPeticionDto datos);
+  Future<void> cerrarSesion(String token);
 }
 
 class LoginRepositorioImpl implements LoginRepositorio {
@@ -14,5 +15,10 @@ class LoginRepositorioImpl implements LoginRepositorio {
   @override
   Future<LoginRespuestaDto> autenticarUsuario(LoginPeticionDto datos) {
     return _datasource.autenticarUsuario(datos);
+  }
+
+  @override
+  Future<void> cerrarSesion(String token) {
+    return _datasource.cerrarSesion(token);
   }
 }

@@ -18,6 +18,9 @@ class MockLoginRepositorio implements LoginRepositorio {
       rol: 'cliente',
     );
   }
+
+  @override
+  Future<void> cerrarSesion(String token) async {}
 }
 
 void main() {

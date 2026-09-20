@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../datos/modelos/perfil_dto.dart';
 import '../bloc/perfil_bloc.dart';
+import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/repositorios/login_repositorio.dart';
+import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 
 class PantallaPerfil extends StatefulWidget {
   final String token;
@@ -922,7 +924,11 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                   if (widget.alCerrarSesion != null) {
                     widget.alCerrarSesion!();
                   } else {
-                    Navigator.pop(context);
+                    LoginRepositorioImpl().cerrarSesion(widget.token);
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const PantallaLogin()),
+                      (route) => false,
+                    );
                   }
                 },
                 child: const Row(
@@ -931,7 +937,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                     Icon(Icons.logout, size: 16, color: Colors.black87),
                     SizedBox(width: 8),
                     Text(
-                      'CERRAR SESIÓN SEGURA',
+                      'CERRAR SESIÓN',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
