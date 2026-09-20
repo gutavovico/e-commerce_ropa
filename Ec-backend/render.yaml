@@ -1,0 +1,48 @@
+# ==============================================================================
+# Render Blueprint Specification para FashionStore Backend
+# ==============================================================================
+services:
+  - type: web
+    name: fashionstore-backend
+    runtime: python
+    region: ohio
+    plan: free
+    rootDir: Ec-backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    preDeployCommand: alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE_MINUTES
+        value: "1440"
+      - key: CORS_ORIGINS
+        value: "http://localhost:4200,https://fashionstore-web.vercel.app"
+      - key: CORS_ORIGIN_REGEX
+        value: "^https:\\/\\/.*\\.vercel\\.app$"
+      - key: SMTP_SERVER
+        value: "smtp.gmail.com"
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_USE_TLS
+        value: "True"
+      - key: SMTP_FROM_NAME
+        value: "Fashion Store Atelier"
+      - key: OTP_EXPIRE_MINUTES
+        value: "15"
+      - key: OTP_MAX_ATTEMPTS
+        value: "5"
+      - key: OTP_RESEND_COOLDOWN_SECONDS
+        value: "60"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: IA_API_KEY
+        sync: false
