@@ -36,6 +36,8 @@ class PantallaBuscarProductos extends StatefulWidget {
   final VoidCallback? alIrAPerfil;
   final VoidCallback? alIrAInicio;
   final VoidCallback? alIrACatalogo;
+  final bool mostrarBottomNav;
+  final bool habilitarImagenesRed;
 
   const PantallaBuscarProductos({
     super.key,
@@ -43,6 +45,8 @@ class PantallaBuscarProductos extends StatefulWidget {
     this.alIrAPerfil,
     this.alIrAInicio,
     this.alIrACatalogo,
+    this.mostrarBottomNav = true,
+    this.habilitarImagenesRed = true,
   });
 
   @override
@@ -286,7 +290,7 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
           backgroundColor: Colors.white,
           appBar: _construirAppBar(),
           body: _construirCuerpo(),
-          bottomNavigationBar: _construirBottomNav(),
+          bottomNavigationBar: widget.mostrarBottomNav ? _construirBottomNav() : null,
         );
       },
     );
@@ -294,6 +298,7 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
 
   PreferredSizeWidget _construirAppBar() {
     return AppBar(
+      automaticallyImplyLeading: false,
       elevation: 0,
       backgroundColor: Colors.white,
       foregroundColor: Colors.black,
@@ -340,11 +345,13 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
                 border: Border.all(color: const Color(0xFFD5D2CD)),
               ),
               child: ClipOval(
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 20),
-                ),
+                child: widget.habilitarImagenesRed
+                    ? Image.network(
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 20),
+                      )
+                    : const Icon(Icons.person, size: 20),
               ),
             ),
           ),
@@ -1189,8 +1196,12 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
       selectedLabelStyle: const TextStyle(fontFamily: 'Outfit', fontSize: 10, fontWeight: FontWeight.bold),
       unselectedLabelStyle: const TextStyle(fontFamily: 'Outfit', fontSize: 10),
       onTap: (index) {
-        if (index == 0 && widget.alIrAInicio != null) {
-          widget.alIrAInicio!();
+        if (index == 0) {
+          if (widget.alIrAInicio != null) {
+            widget.alIrAInicio!();
+          } else if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
         } else if (index == 2 && widget.alIrACatalogo != null) {
           widget.alIrACatalogo!();
         } else if (index == 3 && widget.alIrAPerfil != null) {

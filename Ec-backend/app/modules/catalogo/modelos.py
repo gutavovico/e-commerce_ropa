@@ -56,6 +56,25 @@ estado_prenda_stock_enum = PG_ENUM(
     create_type=False,
 )
 
+tipo_venta_enum = PG_ENUM(
+    "presencial",
+    "digital_web",
+    "digital_movil",
+    name="tipo_venta",
+    schema="fashionstore",
+    create_type=False,
+)
+
+estado_venta_enum = PG_ENUM(
+    "pendiente",
+    "pagada",
+    "anulada",
+    "devuelta",
+    name="estado_venta",
+    schema="fashionstore",
+    create_type=False,
+)
+
 
 class CategoriaORM(Base):
     """Mapeo de la tabla `fashionstore.categorias`."""
@@ -96,6 +115,29 @@ class TemporadaORM(Base):
     )
 
 
+class ProveedorORM(Base):
+    """Mapeo de la tabla `fashionstore.proveedores`."""
+
+    __tablename__ = "proveedores"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_proveedor: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_usuario: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    razon_social: Mapped[str] = mapped_column(String(200), nullable=False)
+    nit: Mapped[Optional[str]] = mapped_column(String(30), unique=True, nullable=True)
+    contacto_nombre: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    colecciones: Mapped[List["ColeccionORM"]] = relationship("ColeccionORM", back_populates="proveedor")
+
+
 class ColeccionORM(Base):
     """Mapeo de la tabla `fashionstore.colecciones`."""
 
@@ -106,7 +148,9 @@ class ColeccionORM(Base):
     id_temporada: Mapped[int] = mapped_column(
         Integer, ForeignKey("fashionstore.temporadas.id_temporada"), nullable=False, index=True
     )
-    id_proveedor: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    id_proveedor: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("fashionstore.proveedores.id_proveedor"), nullable=True, index=True
+    )
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     creado_en: Mapped[datetime] = mapped_column(
@@ -116,6 +160,7 @@ class ColeccionORM(Base):
     )
 
     temporada: Mapped["TemporadaORM"] = relationship("TemporadaORM", back_populates="colecciones")
+    proveedor: Mapped[Optional["ProveedorORM"]] = relationship("ProveedorORM", back_populates="colecciones")
     productos: Mapped[List["ProductoORM"]] = relationship("ProductoORM", back_populates="coleccion")
 
 
@@ -236,3 +281,100 @@ class InventarioSucursalORM(Base):
     variante: Mapped["VarianteProductoORM"] = relationship(
         "VarianteProductoORM", back_populates="inventarios"
     )
+
+
+class SucursalORM(Base):
+    """Mapeo de la tabla `fashionstore.sucursales`."""
+
+    __tablename__ = "sucursales"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_sucursal: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_ciudad: Mapped[int] = mapped_column(Integer, nullable=False)
+    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
+    direccion: Mapped[str] = mapped_column(String(255), nullable=False)
+    telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class VentaORM(Base):
+    """Mapeo de la tabla `fashionstore.ventas`."""
+
+    __tablename__ = "ventas"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_venta: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    numero_comprobante: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
+    id_cliente: Mapped[Optional[int]] = mapped_column(
+        BigInteger, ForeignKey("fashionstore.clientes.id_cliente"), nullable=True, index=True
+    )
+    id_sucursal: Mapped[int] = mapped_column(
+        Integer, ForeignKey("fashionstore.sucursales.id_sucursal"), nullable=False, index=True
+    )
+    id_cajero: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    id_reserva: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    tipo_venta: Mapped[str] = mapped_column(tipo_venta_enum, nullable=False)
+    estado: Mapped[str] = mapped_column(estado_venta_enum, nullable=False, default="pendiente", index=True)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    descuento: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    fecha_venta: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    sucursal: Mapped["SucursalORM"] = relationship("SucursalORM")
+    detalles: Mapped[List["VentaDetalleORM"]] = relationship(
+        "VentaDetalleORM", back_populates="venta", cascade="all, delete-orphan"
+    )
+
+
+class VentaDetalleORM(Base):
+    """Mapeo de la tabla `fashionstore.venta_detalle`."""
+
+    __tablename__ = "venta_detalle"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_venta_detalle: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id_venta: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("fashionstore.ventas.id_venta", ondelete="CASCADE"), nullable=False, index=True
+    )
+    id_variante: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("fashionstore.variantes_producto.id_variante"), nullable=False
+    )
+    cantidad: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    precio_unitario: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+
+    venta: Mapped["VentaORM"] = relationship("VentaORM", back_populates="detalles")
+    variante: Mapped["VarianteProductoORM"] = relationship("VarianteProductoORM")
+
+
+class RecomendacionIAORM(Base):
+    """Mapeo de la tabla `fashionstore.recomendaciones_ia`."""
+
+    __tablename__ = "recomendaciones_ia"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_recomendacion: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id_cliente: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("fashionstore.clientes.id_cliente"), nullable=False, index=True
+    )
+    id_producto: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("fashionstore.productos.id_producto"), nullable=False, index=True
+    )
+    score_relevancia: Mapped[Decimal] = mapped_column(Numeric(5, 4), nullable=False)
+    motivo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    generado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    producto: Mapped["ProductoORM"] = relationship("ProductoORM")
+

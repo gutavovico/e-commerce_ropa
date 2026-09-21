@@ -1,53 +1,7 @@
 <!-- Contenedor Principal: Perfil de Cliente Fashion Store (Haute Couture) -->
 <div class="min-h-screen bg-[#FAF9F7] text-neutral-900 flex flex-col selection:bg-black selection:text-white">
 
-  <!-- 1. Barra de Navegación Superior Institucional -->
-  <header class="w-full border-b border-[#ECEAE6] bg-white sticky top-0 z-30">
-    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
-      <!-- Marca Principal -->
-      <a routerLink="/inicio" class="text-sm font-semibold tracking-[0.25em] text-[#111111] uppercase hover:opacity-80 transition-opacity">
-        FASHION STORE
-      </a>
 
-      <!-- Enlaces Centrales de Navegación -->
-      <nav class="hidden md:flex items-center space-x-10 text-[11px] font-medium tracking-[0.2em] uppercase">
-        <a routerLink="/inicio" class="text-[#666666] hover:text-black transition-colors">INICIO</a>
-        <a routerLink="/buscar" class="text-[#666666] hover:text-black transition-colors">BUSCAR</a>
-        <a routerLink="/catalogo" class="text-[#666666] hover:text-black transition-colors">CATÁLOGO</a>
-        <a routerLink="/perfil" class="text-black font-semibold border-b-2 border-black pb-1">PERFIL</a>
-      </nav>
-
-      <!-- Utilidades: Notificaciones, Cesta, Avatar -->
-      <div class="flex items-center space-x-6">
-        <!-- Notificaciones -->
-        <button type="button" class="relative text-[#333333] hover:text-black transition-colors" title="Notificaciones">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          <span class="absolute -top-1 -right-1 w-2 h-2 bg-[#991B1B] rounded-full"></span>
-        </button>
-
-        <!-- Bolsa de Compra con Contador -->
-        <button type="button" class="relative flex items-center text-[#333333] hover:text-black transition-colors" title="Cesta de compras">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-          <span class="absolute -top-1.5 -right-2 bg-black text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-            2
-          </span>
-        </button>
-
-        <!-- Avatar Circular Miniatura -->
-        <a routerLink="/perfil" class="w-8 h-8 rounded-full overflow-hidden border border-[#D5D2CD] hover:border-black transition-colors block shrink-0" title="Perfil">
-          <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80"
-            alt="Avatar Cliente"
-            class="w-full h-full object-cover"
-          />
-        </a>
-      </div>
-    </div>
-  </header>
 
   <!-- Contenido Principal -->
   <main class="max-w-[1440px] mx-auto px-6 py-8 sm:py-10 flex-grow w-full">

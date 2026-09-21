@@ -80,9 +80,9 @@ export class LoginComponent {
       next: () => {
         this.cargando.set(false);
         this.exito.set(true);
-        // Redirigir tras autenticación exitosa
+        // Redirigir tras autenticación exitosa a la página de inicio
         setTimeout(() => {
-          this.router.navigate(['/perfil']);
+          this.router.navigate(['/inicio']);
         }, 600);
       },
       error: (err: Error) => {

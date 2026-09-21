@@ -1,0 +1,174 @@
+<div class="page-wrapper">
+
+  <!-- TOP BAR / HEADER EDITORIAL -->
+  <header class="top-header">
+    <div class="header-container">
+      <!-- Botón Volver a Colecciones -->
+      <a routerLink="/colecciones" class="back-link">
+        <span class="arrow">←</span>
+        <span>VOLVER A COLECCIONES</span>
+      </a>
+
+      <!-- Brand Logo Centrado -->
+      <a routerLink="/inicio" class="brand-title">
+        FASHION STORE
+      </a>
+
+      <div class="header-spacer"></div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="main-content">
+
+    <!-- ESTADO DE CARGA -->
+    @if (cargando()) {
+      <div class="cards-grid">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="editorial-card">
+            <div class="image-box" style="background: #EBEBE5;"></div>
+            <div style="background: #EFEFEA; height: 12px; margin-bottom: 8px;"></div>
+            <div style="background: #EFEFEA; height: 12px; width: 60%;"></div>
+          </div>
+        }
+      </div>
+    } @else if (error()) {
+      <!-- ESTADO DE ERROR (404 U OTRO) -->
+      <div class="empty-state-box">
+        <h2 class="empty-title" style="color: #5E1924;">Colección no disponible</h2>
+        <p class="empty-desc">{{ error() }}</p>
+        <a
+          routerLink="/colecciones"
+          class="empty-action-btn">
+          VER OTRAS COLECCIONES
+        </a>
+      </div>
+    } @else if (detalle(); as col) {
+
+      <!-- CABECERA DE LA COLECCIÓN SELECCIONADA -->
+      <header class="collection-hero-header">
+        <div class="season-tag">
+          <span>{{ col.temporada_nombre }}</span>
+          @if (col.taller_origen) {
+            <span>·</span>
+            <span>{{ col.taller_origen }}</span>
+          }
+        </div>
+
+        <h1 class="main-title">
+          {{ col.nombre }}
+        </h1>
+
+        <p class="main-subtitle">
+          {{ col.descripcion || 'Piezas confeccionadas con hilaturas nobles de molinos históricos. Siluetas de precisión diseñadas para una cadencia eterna.' }}
+        </p>
+      </header>
+
+      <!-- LISTADO DE PRENDAS O EMPTY STATE -->
+      @if (col.productos && col.productos.length > 0) {
+        <section class="cards-grid">
+          @for (item of col.productos; track item.id_producto) {
+            <article class="editorial-card" (click)="irACatalogo(item)">
+              <!-- Imagen de la prenda -->
+              <div class="image-box">
+                <img
+                  [src]="item.imagen_url || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop'"
+                  [alt]="item.nombre"
+                  class="card-image"
+                  loading="lazy"
+                />
+
+                <!-- Bookmark discreto -->
+                <div class="bookmark-badge">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Metadatos de la prenda -->
+              <div class="card-details">
+                <div class="top-meta-row">
+                  <span class="atelier-subtext">{{ item.subtitulo_atelier || item.categoria }}</span>
+                  <span class="price-tag">{{ item.precio_base }} €</span>
+                </div>
+
+                <h2 class="product-title">
+                  {{ item.nombre }}
+                </h2>
+
+                <!-- Swatches y Botón VER -->
+                <div class="card-footer-row">
+                  <div class="swatches-group">
+                    @for (color of (item.colores || []); track color.nombre) {
+                      <span
+                        class="swatch-dot"
+                        [style.backgroundColor]="color.hex"
+                        [title]="color.nombre">
+                      </span>
+                    }
+                  </div>
+
+                  <button
+                    type="button"
+                    (click)="irACatalogo(item); $event.stopPropagation()"
+                    class="action-btn">
+                    <span>VER</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              </div>
+            </article>
+          }
+        </section>
+      } @else {
+        <!-- EMPTY STATE: PRÓXIMO LANZAMIENTO -->
+        <section class="empty-state-box">
+          <div class="empty-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 class="empty-title">
+            {{ col.mensaje_empty_state || 'Próximo lanzamiento' }}
+          </h2>
+          <p class="empty-desc">
+            Las piezas exclusivas de esta colección se encuentran en confección en nuestro taller. Los miembros del Atelier recibirán notificación prioritaria.
+          </p>
+          <a
+            routerLink="/colecciones"
+            class="empty-action-btn">
+            VOLVER AL ARCHIVO DE COLECCIONES
+          </a>
+        </section>
+      }
+
+    }
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="editorial-footer">
+    <div class="footer-inner">
+      <div class="brand-block">
+        <span class="brand-name">
+          FASHION STORE
+        </span>
+        <span class="brand-tagline">
+          Curated Editorial & Modern Garments
+        </span>
+      </div>
+
+      <nav class="footer-nav">
+        <a routerLink="/colecciones">EDITORIAL</a>
+        <a routerLink="/inicio">ATELIER</a>
+        <a routerLink="/perfil">CONCIERGE</a>
+      </nav>
+
+      <div class="copyright-block">
+        © 2025 Fashion Store Flagship. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</div>

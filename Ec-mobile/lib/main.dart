@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/repositorios/login_repositorio.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
-import 'src/modulos/autenticacion_seguridad/cu04_gestionar_perfil/presentacion/pantallas/pantalla_perfil.dart';
+import 'src/navegacion/pantalla_principal_hub.dart';
 
 void main() {
   runApp(const EcMobileApp());
@@ -17,6 +17,7 @@ class EcMobileApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: 'Outfit',
         scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.black,
@@ -34,36 +35,44 @@ class EcMobileApp extends StatelessWidget {
         builder: (ctx) {
           Widget construirLogin() {
             return PantallaLogin(
+              alCompletarLoginConUsuario: (token, usuario) {
+                final nombreCompleto = '${usuario.nombres} ${usuario.apellidos}'.trim();
+                _abrirHub(ctx, token, nombreCompleto, construirLogin);
+              },
               alCompletarLoginConToken: (token) {
-                void abrirPerfil(String tokenActivo) {
-                  Navigator.of(ctx).push(
-                    MaterialPageRoute(
-                      builder: (perfilCtx) => PantallaPerfil(
-                        token: tokenActivo,
-                        alCerrarSesion: () async {
-                          final repo = LoginRepositorioImpl();
-                          await repo.cerrarSesion(tokenActivo);
-                          if (perfilCtx.mounted) {
-                            Navigator.of(perfilCtx).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (_) => construirLogin(),
-                              ),
-                              (route) => false,
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                  );
-                }
-
-                abrirPerfil(token);
+                _abrirHub(ctx, token, null, construirLogin);
               },
             );
           }
 
           return construirLogin();
         },
+      ),
+    );
+  }
+
+  static void _abrirHub(
+    BuildContext ctx,
+    String tokenActivo,
+    String? nombreUsuario,
+    Widget Function() loginBuilder,
+  ) {
+    Navigator.of(ctx).pushReplacement(
+      MaterialPageRoute(
+        builder: (hubCtx) => PantallaPrincipalHub(
+          token: tokenActivo,
+          nombreUsuario: nombreUsuario,
+          alCerrarSesion: () async {
+            final repo = LoginRepositorioImpl();
+            await repo.cerrarSesion(tokenActivo);
+            if (hubCtx.mounted) {
+              Navigator.of(hubCtx).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => loginBuilder()),
+                (route) => false,
+              );
+            }
+          },
+        ),
       ),
     );
   }

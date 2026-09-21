@@ -6,6 +6,10 @@
 
 **Plataforma inteligente de comercio electrónico para una cadena de tiendas de ropa, que integre comercio electrónico web y móvil, reservas de prendas, gestión de sucursales, inventario, puntos de venta, pagos electrónicos, vestidores virtuales mediante realidad aumentada e inteligencia artificial, utilizando el Proceso Unificado de Desarrollo y modelos UML.**&nbsp;&nbsp;
 
+> [!IMPORTANT]
+> **REGLA DE DOMINIO GLOBAL INQUEBRANTABLE (MODA EXCLUSIVA PARA MUJERES):**
+> FashionStore es una firma de comercio electrónico omnicanal y galería de alta costura **EXCLUSIVAMENTE FEMENINA**. Toda prenda de vestir, producto, colección, variante, fotografía editorial, imagen de portada, catálogo y probador virtual (AR) está estrictamente destinado a mujeres. Queda terminantemente prohibido incluir prendas masculinas, modelos masculinos o fotografía de ropa de hombre. Asimismo, todas las prendas exhibidas deben provenir estrictamente de la base de datos oficial (`fashionstore.productos`), respetando la jerarquía canónica: una **temporada** contiene una o más **colecciones**, y una **colección** contiene múltiples **prendas de ropa**.
+
 **DOCENTE:** Ing. Garzón Cuellar Angélica
 
 **MATERIA:** Sistemas de Información II \- SA

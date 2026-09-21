@@ -10,6 +10,10 @@ class PantallaPerfil extends StatefulWidget {
   final PerfilBloc? bloc;
   final VoidCallback? alCerrarSesion;
   final bool habilitarImagenesRed;
+  final VoidCallback? alIrAInicio;
+  final VoidCallback? alIrABuscar;
+  final VoidCallback? alIrACatalogo;
+  final bool mostrarBottomNav;
 
   const PantallaPerfil({
     super.key,
@@ -17,6 +21,10 @@ class PantallaPerfil extends StatefulWidget {
     this.bloc,
     this.alCerrarSesion,
     this.habilitarImagenesRed = true,
+    this.alIrAInicio,
+    this.alIrABuscar,
+    this.alIrACatalogo,
+    this.mostrarBottomNav = true,
   });
 
   @override
@@ -314,6 +322,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F7),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 0.5,
         title: const Text(
@@ -963,49 +972,59 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _tabSeleccionado,
-        onTap: (index) {
-          if (index == 1) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => PantallaBuscarProductos(
-                  alIrAPerfil: () => Navigator.of(context).pop(),
-                  alIrAInicio: () => Navigator.of(context).pop(),
+      bottomNavigationBar: widget.mostrarBottomNav
+          ? BottomNavigationBar(
+              currentIndex: _tabSeleccionado,
+              onTap: (index) {
+                if (index == 0 && widget.alIrAInicio != null) {
+                  widget.alIrAInicio!();
+                } else if (index == 1) {
+                  if (widget.alIrABuscar != null) {
+                    widget.alIrABuscar!();
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PantallaBuscarProductos(
+                          alIrAPerfil: () => Navigator.of(context).pop(),
+                          alIrAInicio: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                    );
+                  }
+                } else if (index == 2 && widget.alIrACatalogo != null) {
+                  widget.alIrACatalogo!();
+                } else {
+                  setState(() {
+                    _tabSeleccionado = index;
+                  });
+                }
+              },
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: Colors.white,
+              selectedItemColor: Colors.black,
+              unselectedItemColor: Colors.grey,
+              selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              unselectedLabelStyle: const TextStyle(fontSize: 10, letterSpacing: 0.5),
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined),
+                  label: 'INICIO',
                 ),
-              ),
-            );
-          } else {
-            setState(() {
-              _tabSeleccionado = index;
-            });
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey,
-        selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        unselectedLabelStyle: const TextStyle(fontSize: 10, letterSpacing: 0.5),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'INICIO',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'BUSCAR',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_outlined),
-            label: 'CATÁLOGO',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'PERFIL',
-          ),
-        ],
-      ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.search),
+                  label: 'BUSCAR',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.grid_view_outlined),
+                  label: 'CATÁLOGO',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline),
+                  label: 'PERFIL',
+                ),
+              ],
+            )
+          : null,
     );
   }
 
