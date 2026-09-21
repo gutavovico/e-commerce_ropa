@@ -11,10 +11,19 @@ from modules.gestion_operativa.cu22_prendas_productos.router import (
 from modules.gestion_operativa.cu23_categorias_tallas_colores.router import (
     router as router_atributos,
 )
+from modules.gestion_operativa.cu24_inventario_stock.router import (
+    router as router_inventario,
+)
+from modules.gestion_operativa.cu25_proveedores.router import (
+    router as router_proveedores,
+)
 
 router = APIRouter()
 router.include_router(router_sucursales)
 router.include_router(router_productos)
 router.include_router(router_atributos)
+router.include_router(router_inventario)
+router.include_router(router_proveedores)
+
 
 

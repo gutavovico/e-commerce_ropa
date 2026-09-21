@@ -56,21 +56,25 @@ describe('AdminDashboardComponent', () => {
     expect(compiled.textContent).toContain('Administrador');
   });
 
-  it('debe renderizar las cuatro tarjetas boutique para rol administrador', () => {
+  it('debe renderizar las seis tarjetas boutique para rol administrador', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     // Tarjeta 1 (CU21)
-    expect(compiled.textContent).toContain('Boutiques y Ciudades');
+    expect(compiled.textContent).toContain('Gestionar sucursales y ciudades');
     // Tarjeta 2 (CU23)
-    expect(compiled.textContent).toContain('Categorias, Tallas y Colores');
+    expect(compiled.textContent).toContain('Gestionar categorias, tallas y colores');
     // Tarjeta 3 (CU22)
-    expect(compiled.textContent).toContain('Prendas y Variantes');
+    expect(compiled.textContent).toContain('Gestionar productos');
     // Tarjeta 4 (CU20)
-    expect(compiled.textContent).toContain('Usuarios y Privilegios');
+    expect(compiled.textContent).toContain('Gestionar usuarios y roles');
+    // Tarjeta 5 (CU24)
+    expect(compiled.textContent).toContain('Inventario y Existencias');
+    // Tarjeta 6 (CU25)
+    expect(compiled.textContent).toContain('Gestionar proveedores');
 
-    expect(component.totalModulosActivos()).toBe('4 Activos');
+    expect(component.totalModulosActivos()).toBe('6 Activos');
   });
 
-  it('debe contener los enlaces de navegacion hacia /admin/sucursales, /admin/atributos, /admin/productos y /admin/usuarios', () => {
+  it('debe contener los enlaces de navegacion hacia /admin/sucursales, /admin/atributos, /admin/productos, /admin/usuarios, /admin/inventario y /admin/proveedores', () => {
     const links = fixture.debugElement.queryAll(By.directive(RouterLink));
     const hrefs = links.map((link) => link.injector.get(RouterLink).href);
 
@@ -78,6 +82,8 @@ describe('AdminDashboardComponent', () => {
     expect(hrefs).toContain('/admin/atributos');
     expect(hrefs).toContain('/admin/productos');
     expect(hrefs).toContain('/admin/usuarios');
+    expect(hrefs).toContain('/admin/inventario');
+    expect(hrefs).toContain('/admin/proveedores');
     expect(hrefs).toContain('/admin');
   });
 
@@ -86,17 +92,35 @@ describe('AdminDashboardComponent', () => {
     const botonPrendas = compiled.querySelector('#btn-gestionar-prendas') as HTMLAnchorElement;
 
     expect(botonPrendas).toBeTruthy();
-    expect(botonPrendas.textContent?.toUpperCase()).toContain('GESTIONAR PRENDAS');
+    expect(botonPrendas.textContent?.toUpperCase()).toContain('GESTIONAR PRODUCTOS');
     expect(botonPrendas.getAttribute('routerLink')).toBe('/admin/productos');
   });
 
-  it('debe localizar el boton GESTIONAR USUARIOS y verificar que apunte a /admin/usuarios', () => {
+  it('debe localizar el boton GESTIONAR USUARIOS Y ROLES y verificar que apunte a /admin/usuarios', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const botonUsuarios = compiled.querySelector('#btn-gestionar-usuarios') as HTMLAnchorElement;
 
     expect(botonUsuarios).toBeTruthy();
-    expect(botonUsuarios.textContent?.toUpperCase()).toContain('GESTIONAR USUARIOS');
+    expect(botonUsuarios.textContent?.toUpperCase()).toContain('GESTIONAR USUARIOS Y ROLES');
     expect(botonUsuarios.getAttribute('routerLink')).toBe('/admin/usuarios');
+  });
+
+  it('debe localizar el boton GESTIONAR INVENTARIO y verificar que apunte a /admin/inventario', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const botonInventario = compiled.querySelector('#btn-gestionar-inventario') as HTMLAnchorElement;
+
+    expect(botonInventario).toBeTruthy();
+    expect(botonInventario.textContent?.toUpperCase()).toContain('GESTIONAR INVENTARIO');
+    expect(botonInventario.getAttribute('routerLink')).toBe('/admin/inventario');
+  });
+
+  it('debe localizar el boton GESTIONAR PROVEEDORES y verificar que apunte a /admin/proveedores', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const botonProveedores = compiled.querySelector('#btn-gestionar-proveedores') as HTMLAnchorElement;
+
+    expect(botonProveedores).toBeTruthy();
+    expect(botonProveedores.textContent?.toUpperCase()).toContain('GESTIONAR PROVEEDORES');
+    expect(botonProveedores.getAttribute('routerLink')).toBe('/admin/proveedores');
   });
 
   it('debe mantener activa la tarjeta y el boton GESTIONAR USUARIOS con rol ADMINISTRADOR en mayusculas', () => {
@@ -121,7 +145,7 @@ describe('AdminDashboardComponent', () => {
     expect(botonUsuarios.getAttribute('routerLink')).toBe('/admin/usuarios');
   });
 
-  it('debe aplicar segmentacion RBAC: si el rol es encargado_sucursal, ocultar tarjetas de CU20 y CU21', () => {
+  it('debe aplicar segmentacion RBAC: si el rol es encargado_sucursal, mostrar Inventario y Proveedores y ocultar tarjetas de CU20 y CU21', () => {
     const mockEncargado: UsuarioSesion = {
       id_usuario: 50,
       email: 'encargado.central@fashionstore.com',
@@ -136,20 +160,49 @@ describe('AdminDashboardComponent', () => {
 
     expect(component.esAdmin()).toBe(false);
     expect(component.esEncargado()).toBe(true);
-    expect(component.totalModulosActivos()).toBe('2 Activos');
+    expect(component.totalModulosActivos()).toBe('4 Activos');
 
     const compiled = fixture.nativeElement as HTMLElement;
     // Deben estar visibles
-    expect(compiled.textContent).toContain('Categorias, Tallas y Colores');
-    expect(compiled.textContent).toContain('Prendas y Variantes');
+    expect(compiled.textContent).toContain('Gestionar categorias, tallas y colores');
+    expect(compiled.textContent).toContain('Gestionar productos');
+    expect(compiled.textContent).toContain('Inventario y Existencias');
+    expect(compiled.textContent).toContain('Gestionar proveedores');
 
     // Deben estar estrictamente ocultos
-    expect(compiled.textContent).not.toContain('Boutiques y Ciudades');
-    expect(compiled.textContent).not.toContain('Usuarios y Privilegios');
+    expect(compiled.textContent).not.toContain('Gestionar sucursales y ciudades');
+    expect(compiled.textContent).not.toContain('Gestionar usuarios y roles');
 
     const botonUsuarios = compiled.querySelector('#btn-gestionar-usuarios');
     const botonSucursales = compiled.querySelector('#btn-gestionar-sucursales');
+    const botonInventario = compiled.querySelector('#btn-gestionar-inventario');
+    const botonProveedores = compiled.querySelector('#btn-gestionar-proveedores');
     expect(botonUsuarios).toBeNull();
     expect(botonSucursales).toBeNull();
+    expect(botonInventario).toBeTruthy();
+    expect(botonProveedores).toBeTruthy();
+  });
+
+  it('debe ocultar los botones GESTIONAR INVENTARIO y GESTIONAR PROVEEDORES si el rol es cajero o cliente', () => {
+    const mockCajero: UsuarioSesion = {
+      id_usuario: 12,
+      email: 'cajero@fashionstore.com',
+      nombres: 'Carlos',
+      apellidos: 'Perez',
+      rol: 'cajero',
+      token: 'jwt-cajero',
+    };
+
+    usuarioActualSignal.set(mockCajero);
+    fixture.detectChanges();
+
+    expect(component.esAdmin()).toBe(false);
+    expect(component.esEncargado()).toBe(false);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const botonInventario = compiled.querySelector('#btn-gestionar-inventario');
+    const botonProveedores = compiled.querySelector('#btn-gestionar-proveedores');
+    expect(botonInventario).toBeNull();
+    expect(botonProveedores).toBeNull();
   });
 });

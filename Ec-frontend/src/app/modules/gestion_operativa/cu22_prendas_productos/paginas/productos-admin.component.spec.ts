@@ -193,7 +193,7 @@ describe('ProductosAdminComponent (CU22)', () => {
     expect(botonVolver?.getAttribute('routerLink')).toBe('/admin');
 
     const titulo = compiled.querySelector('h1');
-    expect(titulo?.textContent).toContain('Prendas y Variantes (SKUs)');
+    expect(titulo?.textContent).toContain('Gestionar productos');
   });
 
   it('debe filtrar productos en vivo por texto de busqueda', () => {

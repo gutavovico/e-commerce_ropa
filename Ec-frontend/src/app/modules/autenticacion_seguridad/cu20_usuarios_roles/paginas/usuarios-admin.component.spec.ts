@@ -134,7 +134,7 @@ describe('UsuariosAdminComponent (CU20)', () => {
     expect(mockSucursalesService.cargarSucursales).toHaveBeenCalled();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Gestion de Usuarios y Roles');
+    expect(compiled.textContent).toContain('Gestionar usuarios y roles');
     expect(compiled.textContent).toContain('Control de Acceso RBAC');
   });
 

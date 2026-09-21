@@ -67,6 +67,7 @@ export class LoginService {
       apellidos: respuesta.apellidos,
       rol: respuesta.rol,
       token: respuesta.access_token,
+      id_sucursal: respuesta.id_sucursal ?? null,
     };
 
     this.usuarioActual.set(sesion);

@@ -52,9 +52,11 @@ export class AdminDashboardComponent {
     }
   });
 
-  readonly totalModulosActivos = computed(() =>
-    this.esAdmin() ? '4 Activos' : '2 Activos'
-  );
+  readonly totalModulosActivos = computed(() => {
+    if (this.esAdmin()) return '6 Activos';
+    if (this.esEncargado()) return '4 Activos';
+    return '0 Activos';
+  });
 
   readonly nivelAccesoLabel = computed(() =>
     this.esAdmin() ? 'Superusuario' : 'Encargado de Sede'

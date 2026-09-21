@@ -92,7 +92,7 @@
               </div>
               <div>
                 <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
-                  Boutiques y Ciudades
+                  Gestionar sucursales y ciudades
                 </h2>
                 <p class="text-xs text-slate-500 mt-1 leading-relaxed">
                   Supervision y parametrizacion de sedes fisicas, horarios de atencion y plazas comerciales.
@@ -124,7 +124,7 @@
               (click)="navegar('/admin/sucursales')"
               class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
             >
-              <span>Gestionar Sucursales</span>
+              <span>Gestionar sucursales y ciudades</span>
               <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
@@ -154,7 +154,7 @@
             </div>
             <div>
               <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
-                Categorias, Tallas y Colores
+                Gestionar categorias, tallas y colores
               </h2>
               <p class="text-xs text-slate-500 mt-1 leading-relaxed">
                 Parametrizacion de tallas comerciales, swatches cromáticos #HEX y categorias.
@@ -186,7 +186,7 @@
             (click)="navegar('/admin/atributos')"
             class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
           >
-            <span>Gestionar Atributos</span>
+            <span>Gestionar categorias, tallas y colores</span>
             <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
@@ -215,7 +215,7 @@
             </div>
             <div>
               <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
-                Prendas y Variantes
+                Gestionar productos
               </h2>
               <p class="text-xs text-slate-500 mt-1 leading-relaxed">
                 Alta editorial de prendas, parametrizacion de precios y generacion de matrices SKU.
@@ -247,7 +247,7 @@
             (click)="navegar('/admin/productos')"
             class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
           >
-            <span>Gestionar Prendas</span>
+            <span>Gestionar productos</span>
             <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
@@ -277,7 +277,7 @@
               </div>
               <div>
                 <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
-                  Usuarios y Privilegios
+                  Gestionar usuarios y roles
                 </h2>
                 <p class="text-xs text-slate-500 mt-1 leading-relaxed">
                   Alta de cuentas corporativas, asignacion de credenciales y gobierno de roles RBAC.
@@ -309,7 +309,133 @@
               (click)="navegar('/admin/usuarios')"
               class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
             >
-              <span>Gestionar Usuarios</span>
+              <span>Gestionar usuarios y roles</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 5: Inventario y Existencias (CU24) - Visible para Administrador y Encargado de Sucursal -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gestion Operativa
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Control de Stock
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Inventario y Existencias
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Control fisico de existencias por boutique, recepcion de mercaderia, ajustes y transferencias inter-sucursales.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Stock disponible y reservas en tiempo real</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Ajustes fisicos, transferencias y kardex</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-gestionar-inventario"
+              routerLink="/admin/inventario"
+              (click)="navegar('/admin/inventario')"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Gestionar Inventario</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 6: Proveedores y Fabricantes (CU25) - Visible para Administrador y Encargado de Sucursal -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gestion de Abastecimiento
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Cadena de Suministro
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Gestionar proveedores
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Directorio de talleres textiles, distribuidores mayoristas y condiciones comerciales de abastecimiento.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Talleres textiles y distribuidores mayoristas</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>NIT/RUT, rubros y contactos comerciales</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-gestionar-proveedores"
+              routerLink="/admin/proveedores"
+              (click)="navegar('/admin/proveedores')"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Gestionar proveedores</span>
               <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>

@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { adminOnlyGuard } from './core/guards/role.guard';
+import { adminOnlyGuard, roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   {
@@ -98,6 +98,22 @@ export const routes: Routes = [
       import(
         './modules/gestion_operativa/cu22_prendas_productos/paginas/productos-admin.component'
       ).then((m) => m.ProductosAdminComponent),
+  },
+  {
+    path: 'admin/inventario',
+    canActivate: [authGuard, roleGuard(['administrador', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu24_inventario_stock/paginas/inventario-admin.component'
+      ).then((m) => m.InventarioAdminComponent),
+  },
+  {
+    path: 'admin/proveedores',
+    canActivate: [authGuard, roleGuard(['administrador', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu25_proveedores/paginas/proveedores-admin.component'
+      ).then((m) => m.ProveedoresAdminComponent),
   },
   {
     path: '',

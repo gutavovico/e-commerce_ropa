@@ -81,3 +81,7 @@ Ec-backend/static/uploads/**/*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Scripts y logs temporales de operacion local
+scratch/
+*.log

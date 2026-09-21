@@ -18,6 +18,7 @@ from typing import List, Optional
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
@@ -220,7 +221,14 @@ class InventarioSucursalORM(Base):
     """Mapeo de la tabla `fashionstore.inventario_sucursal`."""
 
     __tablename__ = "inventario_sucursal"
-    __table_args__ = {"schema": "fashionstore"}
+    __table_args__ = (
+        UniqueConstraint("id_sucursal", "id_variante", "id_temporada", name="uq_inventario_sucursal_variante_temporada"),
+        CheckConstraint("cantidad_disponible >= 0", name="chk_inventario_disponible_positivo"),
+        CheckConstraint("cantidad_reservada >= 0", name="chk_inventario_reservada_positivo"),
+        CheckConstraint("stock_minimo >= 0", name="chk_inventario_stock_minimo_positivo"),
+        CheckConstraint("stock_alerta >= 0", name="chk_inventario_stock_alerta_positivo"),
+        {"schema": "fashionstore", "extend_existing": True},
+    )
 
     id_inventario: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     id_variante: Mapped[int] = mapped_column(
@@ -229,11 +237,22 @@ class InventarioSucursalORM(Base):
         nullable=False,
         index=True,
     )
-    id_sucursal: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    id_temporada: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_sucursal: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("fashionstore.sucursales.id_sucursal"),
+        nullable=False,
+        index=True,
+    )
+    id_temporada: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("fashionstore.temporadas.id_temporada"),
+        nullable=False,
+        default=1,
+    )
     cantidad_disponible: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     cantidad_reservada: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     stock_minimo: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    stock_alerta: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
     estado: Mapped[str] = mapped_column(
         estado_prenda_stock_enum, nullable=False, default="disponible", index=True
     )
@@ -241,8 +260,18 @@ class InventarioSucursalORM(Base):
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
     variante: Mapped["VarianteProductoORM"] = relationship(
         "VarianteProductoORM", back_populates="inventarios"
     )
+    sucursal = relationship(
+        "SucursalORM",
+        foreign_keys=[id_sucursal],
+        lazy="joined",
+    )
+
+
+
+

@@ -1,0 +1,1027 @@
+<!-- Vista Administrativa: Gestion de Inventario, Stock y Kardex por Sucursal (CU24) -->
+<div class="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-slate-900 selection:text-white">
+
+  <!-- 1. Cabecera Institucional Superior -->
+  <header class="w-full border-b border-slate-200 bg-white sticky top-0 z-30 shadow-sm">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <a routerLink="/admin" class="text-sm font-semibold tracking-widest text-slate-900 uppercase hover:opacity-80 transition-opacity">
+          FASHION STORE
+        </a>
+        <span class="text-slate-300">/</span>
+        <a routerLink="/admin" class="text-xs font-medium tracking-wider text-[#AD8C63] uppercase hover:underline">
+          PANEL CORPORATIVO
+        </a>
+        <span class="text-slate-300">/</span>
+        <span class="text-xs font-bold tracking-wider text-slate-700 uppercase">
+          INVENTARIO Y STOCK
+        </span>
+      </div>
+
+      <nav class="flex items-center space-x-6 text-xs font-medium tracking-wider uppercase">
+        <a
+          routerLink="/admin"
+          class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Volver al Panel Principal</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 2. Contenido Principal -->
+  <main class="max-w-[1440px] px-6 py-8 mx-auto w-full flex-grow flex flex-col">
+
+    <!-- Encabezado de la Seccion -->
+    <div class="pb-6 border-b border-slate-200 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-semibold tracking-widest text-[#AD8C63] uppercase">
+            LOGISTICA Y EXISTENCIAS FISICAS
+          </span>
+          @if (esEncargado()) {
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+              Sede: {{ nombreSucursalEncargado() }}
+            </span>
+          } @else {
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+              Vista Global Multi-Sede
+            </span>
+          }
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+          Inventario y Existencias por Sucursal
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+          Control fisico de existencias en boutiques, recepcion de mercaderia, ajustes por mermas y libro de Kardex inmutable.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          id="btn-abrir-modal-crear"
+          type="button"
+          (click)="abrirModalCrear()"
+          class="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+        >
+          <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Ingresar Mercaderia</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Luxury Banners Contextuales (409 / 422 / Exito) -->
+    @if (errorBanner() || inventarioService.error()) {
+      <div
+        id="banner-error-inventario"
+        class="mt-6 bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start justify-between gap-3 text-rose-900 shadow-xs animate-in fade-in duration-200"
+      >
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-rose-900">Alerta del Sistema de Stock</p>
+            <p class="text-xs mt-0.5 leading-relaxed text-rose-800">
+              {{ errorBanner() || inventarioService.error() }}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="descartarErrorBanner()"
+          class="text-rose-500 hover:text-rose-900 p-1 transition-colors"
+          title="Descartar aviso"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    @if (inventarioService.mensajeExito()) {
+      <div
+        id="banner-exito-inventario"
+        class="mt-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start justify-between gap-3 text-emerald-900 shadow-xs animate-in fade-in duration-200"
+      >
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-emerald-900">Operacion Confirmada</p>
+            <p class="text-xs mt-0.5 leading-relaxed text-emerald-800">
+              {{ inventarioService.mensajeExito() }}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="descartarErrorBanner()"
+          class="text-emerald-500 hover:text-emerald-900 p-1 transition-colors"
+          title="Descartar aviso"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- 3. Barra Reactiva de Filtros Multicriterio -->
+    <div class="mt-6 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-center gap-4">
+
+      <!-- Campo de Busqueda Reactiva por Prenda o SKU -->
+      <div class="relative flex-1 w-full">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <input
+          id="input-busqueda-inventario"
+          type="text"
+          [value]="busquedaTexto()"
+          (input)="onBuscarInput($event)"
+          placeholder="Buscar prenda o SKU corporativo..."
+          class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#AD8C63] focus:bg-white transition-all"
+        />
+      </div>
+
+      <!-- Selector de Sucursal (Bloqueado para Encargado) -->
+      <div class="w-full md:w-60 shrink-0">
+        @if (esEncargado()) {
+          <div class="relative">
+            <select
+              id="select-filtro-sucursal"
+              [value]="idSucursalEncargado() || ''"
+              disabled
+              class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-medium cursor-not-allowed appearance-none"
+            >
+              <option [value]="idSucursalEncargado()">{{ nombreSucursalEncargado() }} (Fijada)</option>
+            </select>
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+          </div>
+        } @else {
+          <select
+            id="select-filtro-sucursal"
+            [value]="filtroSucursal() || ''"
+            (change)="onCambiarFiltroSucursal($event)"
+            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#AD8C63] focus:bg-white transition-all cursor-pointer font-medium"
+          >
+            <option value="">Todas las Sedes</option>
+            @for (suc of sucursalesService.sucursales(); track suc.id_sucursal) {
+              <option [value]="suc.id_sucursal">{{ suc.nombre }} ({{ suc.ciudad_nombre }})</option>
+            }
+          </select>
+        }
+      </div>
+
+      <!-- Selector de Categorias -->
+      <div class="w-full md:w-52 shrink-0">
+        <select
+          id="select-filtro-categoria"
+          [value]="filtroCategoria() || ''"
+          (change)="onCambiarFiltroCategoria($event)"
+          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#AD8C63] focus:bg-white transition-all cursor-pointer font-medium"
+        >
+          <option value="">Todas las Categorias</option>
+          @for (cat of atributosService.categorias(); track cat.id_categoria) {
+            <option [value]="cat.id_categoria">{{ cat.nombre }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Selector de Estado de Stock -->
+      <div class="w-full md:w-48 shrink-0">
+        <select
+          id="select-filtro-estado"
+          [value]="filtroEstado()"
+          (change)="onCambiarFiltroEstado($event)"
+          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#AD8C63] focus:bg-white transition-all cursor-pointer font-medium"
+        >
+          <option value="todos">Todos los Estados</option>
+          <option value="optimo">Optimo</option>
+          <option value="alerta_baja">Alerta de Reposicion</option>
+          <option value="agotado">Agotado</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- 4. Tabla Maestra Editorial de Existencias -->
+    <div class="mt-6 bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden flex flex-col">
+
+      @if (inventarioService.cargando()) {
+        <div class="py-16 text-center text-slate-400 flex flex-col items-center justify-center">
+          <svg class="w-8 h-8 animate-spin text-[#AD8C63] mb-3" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p class="text-xs font-semibold uppercase tracking-wider">Consultando existencias de bodega...</p>
+        </div>
+      } @else if (inventarioService.inventario().length === 0) {
+        <div class="py-16 text-center text-slate-400 flex flex-col items-center justify-center">
+          <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3 text-slate-400">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">No se encontraron existencias registradas</h3>
+          <p class="text-xs text-slate-500 mt-1 max-w-sm leading-relaxed">
+            No hay registros que coincidan con los filtros aplicados. Puedes iniciar la recepcion de mercaderia con el boton superior.
+          </p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th class="py-3.5 px-5">Prenda / Modelo</th>
+                <th class="py-3.5 px-4">Talla y Color</th>
+                <th class="py-3.5 px-4">Boutique / Sede</th>
+                <th class="py-3.5 px-4 text-center">Disponible</th>
+                <th class="py-3.5 px-4 text-center">Reservado</th>
+                <th class="py-3.5 px-4 text-center">Umbrales</th>
+                <th class="py-3.5 px-4 text-center">Estado</th>
+                <th class="py-3.5 px-5 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs text-slate-800">
+              @for (item of inventarioService.inventario(); track item.id_inventario) {
+                <tr class="hover:bg-slate-50/50 transition-colors">
+
+                  <!-- Columna 1: Prenda y SKU -->
+                  <td class="py-4 px-5">
+                    <div class="flex items-center gap-3">
+                      <!-- Miniatura cuadrada con SVG fallback -->
+                      <div class="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                        @if (item.variante.imagen_url) {
+                          <img
+                            [src]="item.variante.imagen_url"
+                            [alt]="item.variante.nombre_prenda"
+                            class="w-full h-full object-cover"
+                          />
+                        } @else {
+                          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          </svg>
+                        }
+                      </div>
+
+                      <div>
+                        <p class="font-bold text-slate-900 leading-snug">
+                          {{ item.variante.nombre_prenda }}
+                        </p>
+                        <div class="flex items-center gap-2 mt-1">
+                          <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono text-[10px] text-slate-600 font-bold uppercase">
+                            SKU: {{ item.variante.sku }}
+                          </span>
+                          <span class="text-[11px] text-slate-400">{{ item.variante.categoria_nombre }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Columna 2: Talla y Color -->
+                  <td class="py-4 px-4">
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 font-mono text-xs font-bold text-slate-800">
+                        {{ item.variante.talla }}
+                      </span>
+                      <div class="flex items-center gap-1.5" [title]="item.variante.color_nombre">
+                        <span
+                          class="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs"
+                          [style.backgroundColor]="item.variante.color_hex"
+                        ></span>
+                        <span class="text-xs text-slate-600">{{ item.variante.color_nombre }}</span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Columna 3: Sede / Sucursal -->
+                  <td class="py-4 px-4">
+                    <p class="font-semibold text-slate-900">{{ item.sucursal.nombre }}</p>
+                    <p class="text-[11px] text-slate-400">{{ item.sucursal.ciudad }}</p>
+                  </td>
+
+                  <!-- Columna 4: Cantidad Disponible -->
+                  <td class="py-4 px-4 text-center">
+                    <span class="text-sm font-extrabold text-slate-900">
+                      {{ item.cantidad_disponible }}
+                    </span>
+                    <span class="block text-[10px] text-slate-400">unidades</span>
+                  </td>
+
+                  <!-- Columna 5: Cantidad Reservada -->
+                  <td class="py-4 px-4 text-center">
+                    <span class="text-xs font-semibold text-slate-500">
+                      {{ item.cantidad_reservada }}
+                    </span>
+                    <span class="block text-[10px] text-slate-400">en carrito/orden</span>
+                  </td>
+
+                  <!-- Columna 6: Umbrales Min/Alerta -->
+                  <td class="py-4 px-4 text-center">
+                    <div class="inline-flex items-center gap-1.5 text-[11px] text-slate-600 font-mono">
+                      <span title="Stock Minimo">Min: {{ item.stock_minimo }}</span>
+                      <span class="text-slate-300">/</span>
+                      <span title="Umbral de Alerta">Alert: {{ item.stock_alerta }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Columna 7: Badge de Estado -->
+                  <td class="py-4 px-4 text-center">
+                    <span
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border"
+                      [ngClass]="obtenerClaseBadgeEstado(item.estado_calculado)"
+                    >
+                      <span
+                        class="w-1.5 h-1.5 rounded-full"
+                        [ngClass]="obtenerDotColorEstado(item.estado_calculado)"
+                      ></span>
+                      {{ obtenerEtiquetaEstado(item.estado_calculado) }}
+                    </span>
+                  </td>
+
+                  <!-- Columna 8: Botones de Accion -->
+                  <td class="py-4 px-5 text-right">
+                    <div class="inline-flex items-center gap-1.5">
+                      <!-- Boton Ajustar -->
+                      <button
+                        type="button"
+                        [id]="'btn-ajustar-' + item.id_inventario"
+                        (click)="abrirModalAjuste(item)"
+                        title="Ajuste fisico de existencias"
+                        class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-black rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        Ajustar
+                      </button>
+
+                      <!-- Boton Transferir -->
+                      <button
+                        type="button"
+                        [id]="'btn-transferir-' + item.id_inventario"
+                        (click)="abrirModalTransferencia(item)"
+                        [disabled]="item.cantidad_disponible <= 0"
+                        title="Transferir a otra boutique"
+                        class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-black rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        Transferir
+                      </button>
+
+                      <!-- Boton Kardex -->
+                      <button
+                        type="button"
+                        [id]="'btn-kardex-' + item.id_inventario"
+                        (click)="abrirModalKardex(item)"
+                        title="Consultar historial de Kardex"
+                        class="px-2.5 py-1.5 bg-[#0F172A] hover:bg-black text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        Kardex
+                      </button>
+                    </div>
+                  </td>
+
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Barra Inferior de Paginacion -->
+        <div class="px-5 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <p>
+            Mostrando pagina <span class="font-bold text-slate-800">{{ inventarioService.paginaActual() }}</span> de
+            <span class="font-bold text-slate-800">{{ inventarioService.totalPaginas() }}</span>
+            (<span class="font-bold text-slate-800">{{ inventarioService.totalRegistros() }}</span> existencias registradas)
+          </p>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="cambiarPagina(paginaActual() - 1)"
+              [disabled]="paginaActual() <= 1"
+              class="px-3 py-1.5 border border-slate-200 rounded-lg font-medium hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              (click)="cambiarPagina(paginaActual() + 1)"
+              [disabled]="paginaActual() >= inventarioService.totalPaginas()"
+              class="px-3 py-1.5 border border-slate-200 rounded-lg font-medium hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: ALTA DE STOCK INICIAL (RECEPCION DE MERCADERIA)               -->
+  <!-- ===================================================================== -->
+  @if (modalCrearAbierto()) {
+    <div
+      id="modal-stock-inicial"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div class="bg-white border border-slate-200 rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <!-- Cabecera del Modal -->
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold tracking-widest text-[#AD8C63] uppercase">
+              Recepcion de Mercaderia
+            </span>
+            <h3 class="text-lg font-bold text-slate-900 mt-0.5">Ingresar Stock a Boutique</h3>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalCrear()"
+            class="text-slate-400 hover:text-slate-700 p-1 transition-colors"
+            title="Cerrar modal"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Formulario de Alta -->
+        <form [formGroup]="formCrear" (ngSubmit)="guardarStockInicial()" class="px-6 py-5 overflow-y-auto space-y-4 text-xs">
+
+          <!-- Selector de Sucursal -->
+          <div>
+            <label for="modal-crear-sucursal" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Boutique / Sede Destino *
+            </label>
+            @if (esEncargado()) {
+              <input
+                type="text"
+                [value]="nombreSucursalEncargado()"
+                disabled
+                class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-600 font-medium cursor-not-allowed"
+              />
+            } @else {
+              <select
+                id="modal-crear-sucursal"
+                formControlName="id_sucursal"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white"
+              >
+                <option [ngValue]="null">Selecciona una boutique...</option>
+                @for (suc of sucursalesService.sucursales(); track suc.id_sucursal) {
+                  <option [value]="suc.id_sucursal">{{ suc.nombre }} ({{ suc.ciudad_nombre }})</option>
+                }
+              </select>
+            }
+          </div>
+
+          <!-- Selector de Prenda / Producto -->
+          <div>
+            <label for="modal-crear-producto" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Modelo de Prenda *
+            </label>
+            <select
+              id="modal-crear-producto"
+              formControlName="id_producto"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white"
+            >
+              <option [ngValue]="null">Selecciona una prenda...</option>
+              @for (prod of productosService.productos(); track prod.id_producto) {
+                <option [value]="prod.id_producto">{{ prod.nombre }} (ID #{{ prod.id_producto }})</option>
+              }
+            </select>
+          </div>
+
+          <!-- Selector de Variante (Talla/Color) -->
+          <div>
+            <label for="modal-crear-variante" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Variante Especifica (SKU / Talla / Color) *
+            </label>
+            <select
+              id="modal-crear-variante"
+              formControlName="id_variante"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white"
+            >
+              <option [ngValue]="null">Selecciona una variante...</option>
+              @for (v of variantesDisponibles(); track v.id_variante) {
+                <option [value]="v.id_variante">
+                  SKU: {{ v.sku }} - Talla {{ v.talla_codigo }} - {{ v.color_nombre }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <!-- Fila: Cantidad Inicial, Minimo y Alerta -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label for="modal-crear-cantidad" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Cantidad Inicial *
+              </label>
+              <input
+                id="modal-crear-cantidad"
+                type="number"
+                min="0"
+                formControlName="cantidad_inicial"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white font-mono"
+              />
+            </div>
+
+            <div>
+              <label for="modal-crear-minimo" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Stock Minimo *
+              </label>
+              <input
+                id="modal-crear-minimo"
+                type="number"
+                min="0"
+                formControlName="stock_minimo"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white font-mono"
+              />
+            </div>
+
+            <div>
+              <label for="modal-crear-alerta" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Stock Alerta *
+              </label>
+              <input
+                id="modal-crear-alerta"
+                type="number"
+                min="0"
+                formControlName="stock_alerta"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white font-mono"
+              />
+            </div>
+          </div>
+
+          <!-- Documento de Referencia y Observacion -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="modal-crear-doc" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Documento de Recepcion
+              </label>
+              <input
+                id="modal-crear-doc"
+                type="text"
+                formControlName="referencia_documento"
+                placeholder="Ej. Guia Remision #GR-2026-089"
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white"
+              />
+            </div>
+
+            <div>
+              <label for="modal-crear-obs" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Observaciones
+              </label>
+              <input
+                id="modal-crear-obs"
+                type="text"
+                formControlName="observacion"
+                placeholder="Proveedor o lote de confeccion..."
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white"
+              />
+            </div>
+          </div>
+
+          <!-- Botones de Accion -->
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              (click)="cerrarModalCrear()"
+              class="px-4 py-2.5 border border-slate-200 rounded-xl font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              id="btn-guardar-stock-inicial"
+              type="submit"
+              [disabled]="formCrear.invalid || inventarioService.guardando()"
+              class="px-5 py-2.5 bg-[#0F172A] hover:bg-black text-white rounded-xl font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              @if (inventarioService.guardando()) {
+                <span>Procesando Ingreso...</span>
+              } @else {
+                <span>Confirmar Recepcion</span>
+              }
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: AJUSTE FISICO MANUAL (MERMA / ROTURA / SOBRANTE)             -->
+  <!-- ===================================================================== -->
+  @if (modalAjusteAbierto() && itemSeleccionado()) {
+    <div
+      id="modal-ajuste-fisico"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div class="bg-white border border-slate-200 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col">
+        <!-- Cabecera -->
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold tracking-widest text-[#AD8C63] uppercase">
+              Auditoria de Existencias
+            </span>
+            <h3 class="text-lg font-bold text-slate-900 mt-0.5">Ajuste Fisico Manual</h3>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalAjuste()"
+            class="text-slate-400 hover:text-slate-700 p-1 transition-colors"
+            title="Cerrar modal"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Ficha de la Prenda Seleccionada -->
+        <div class="px-6 py-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between text-xs">
+          <div>
+            <p class="font-bold text-slate-900">{{ itemSeleccionado()?.variante?.nombre_prenda }}</p>
+            <p class="text-[11px] text-slate-500 font-mono">
+              SKU: {{ itemSeleccionado()?.variante?.sku }} | Sede: {{ itemSeleccionado()?.sucursal?.nombre }}
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Saldo Actual</span>
+            <span class="text-sm font-extrabold text-slate-900">
+              {{ itemSeleccionado()?.cantidad_disponible }} un.
+            </span>
+          </div>
+        </div>
+
+        <!-- Formulario de Ajuste -->
+        <form [formGroup]="formAjuste" (ngSubmit)="guardarAjuste()" class="px-6 py-5 space-y-4 text-xs">
+
+          <!-- Tipo de Ajuste -->
+          <div>
+            <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Tipo de Ajuste *
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+              <label
+                class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-all"
+                [ngClass]="formAjuste.get('tipo_ajuste')?.value === 'incremento' ? 'border-[#AD8C63] bg-[#FAF7F2]' : 'border-slate-200 bg-white'"
+              >
+                <input
+                  type="radio"
+                  formControlName="tipo_ajuste"
+                  value="incremento"
+                  class="text-[#AD8C63] focus:ring-[#AD8C63]"
+                />
+                <span class="font-bold text-slate-900">Sobrante (+)</span>
+              </label>
+
+              <label
+                class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-all"
+                [ngClass]="formAjuste.get('tipo_ajuste')?.value === 'decremento' ? 'border-rose-500 bg-rose-50' : 'border-slate-200 bg-white'"
+              >
+                <input
+                  type="radio"
+                  formControlName="tipo_ajuste"
+                  value="decremento"
+                  class="text-rose-600 focus:ring-rose-500"
+                />
+                <span class="font-bold text-slate-900">Merma / Merma (-)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Cantidad a Ajustar -->
+          <div>
+            <label for="input-ajuste-cantidad" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Cantidad a Ajustar *
+            </label>
+            <input
+              id="input-ajuste-cantidad"
+              type="number"
+              min="1"
+              formControlName="cantidad"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white font-mono"
+            />
+          </div>
+
+          <!-- Motivo Obligatorio (minimo 5 caracteres) -->
+          <div>
+            <label for="textarea-ajuste-motivo" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Justificacion del Ajuste (Minimo 5 caracteres) *
+            </label>
+            <textarea
+              id="textarea-ajuste-motivo"
+              rows="3"
+              formControlName="motivo"
+              placeholder="Indica el motivo concreto (ej. Prenda manchada en vitrina, conteo fisico de inventario)..."
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white resize-none"
+            ></textarea>
+            @if (formAjuste.get('motivo')?.touched && formAjuste.get('motivo')?.errors?.['minlength']) {
+              <p class="text-rose-600 text-[11px] mt-1 font-medium">
+                La justificacion debe contar con al menos 5 caracteres para efectos de auditoria.
+              </p>
+            }
+          </div>
+
+          <!-- Referencia Documental Opcional -->
+          <div>
+            <label for="input-ajuste-doc" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Acta o Documento de Respaldo
+            </label>
+            <input
+              id="input-ajuste-doc"
+              type="text"
+              formControlName="referencia_documento"
+              placeholder="Ej. Acta de Merma #ACT-2026-04"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white"
+            />
+          </div>
+
+          <!-- Botones de Accion -->
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              (click)="cerrarModalAjuste()"
+              class="px-4 py-2.5 border border-slate-200 rounded-xl font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              id="btn-guardar-ajuste"
+              type="submit"
+              [disabled]="formAjuste.invalid || inventarioService.guardando()"
+              class="px-5 py-2.5 bg-[#0F172A] hover:bg-black text-white rounded-xl font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              @if (inventarioService.guardando()) {
+                <span>Registrando Asiento...</span>
+              } @else {
+                <span>Confirmar Ajuste</span>
+              }
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 3: TRANSFERENCIA INTER-SUCURSAL (TRASPASO ENTRE BOUTIQUES)       -->
+  <!-- ===================================================================== -->
+  @if (modalTransferenciaAbierto() && itemSeleccionado()) {
+    <div
+      id="modal-transferencia"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div class="bg-white border border-slate-200 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col">
+        <!-- Cabecera -->
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold tracking-widest text-[#AD8C63] uppercase">
+              Logistica Inter-Sedes
+            </span>
+            <h3 class="text-lg font-bold text-slate-900 mt-0.5">Transferencia de Mercaderia</h3>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalTransferencia()"
+            class="text-slate-400 hover:text-slate-700 p-1 transition-colors"
+            title="Cerrar modal"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Ficha de Origen -->
+        <div class="px-6 py-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between text-xs">
+          <div>
+            <p class="font-bold text-slate-900">{{ itemSeleccionado()?.variante?.nombre_prenda }}</p>
+            <p class="text-[11px] text-slate-500 font-mono">
+              SKU: {{ itemSeleccionado()?.variante?.sku }}
+            </p>
+            <p class="text-[11px] text-indigo-700 font-semibold mt-0.5">
+              Sede Origen: {{ itemSeleccionado()?.sucursal?.nombre }}
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Disponible a Transferir</span>
+            <span class="text-sm font-extrabold text-emerald-700">
+              {{ itemSeleccionado()?.cantidad_disponible }} un.
+            </span>
+          </div>
+        </div>
+
+        <!-- Formulario de Transferencia -->
+        <form [formGroup]="formTransferencia" (ngSubmit)="guardarTransferencia()" class="px-6 py-5 space-y-4 text-xs">
+
+          <!-- Selector de Sede Destino (Excluye la Sede Origen) -->
+          <div>
+            <label for="select-transferencia-destino" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Boutique Destino *
+            </label>
+            <select
+              id="select-transferencia-destino"
+              formControlName="id_sucursal_destino"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white font-medium"
+            >
+              <option [ngValue]="null">Selecciona boutique de recepcion...</option>
+              @for (suc of sucursalesDestinoDisponibles(); track suc.id_sucursal) {
+                <option [value]="suc.id_sucursal">{{ suc.nombre }} ({{ suc.ciudad_nombre }})</option>
+              }
+            </select>
+          </div>
+
+          <!-- Cantidad a Transferir (Con tope en disponible) -->
+          <div>
+            <label for="input-transferencia-cantidad" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Cantidad a Transferir (Max: {{ itemSeleccionado()?.cantidad_disponible }}) *
+            </label>
+            <input
+              id="input-transferencia-cantidad"
+              type="number"
+              min="1"
+              [max]="itemSeleccionado()?.cantidad_disponible || 1"
+              formControlName="cantidad"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white font-mono"
+            />
+            @if (formTransferencia.get('cantidad')?.touched && formTransferencia.get('cantidad')?.errors?.['max']) {
+              <p class="text-rose-600 text-[11px] mt-1 font-medium">
+                La cantidad supera el stock fisico disponible en la boutique de origen.
+              </p>
+            }
+          </div>
+
+          <!-- Motivo de la Transferencia -->
+          <div>
+            <label for="textarea-transferencia-motivo" class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Motivo del Traspaso (Minimo 5 caracteres) *
+            </label>
+            <textarea
+              id="textarea-transferencia-motivo"
+              rows="3"
+              formControlName="motivo"
+              placeholder="Ej. Rebalanceo de inventario por alta demanda en boutique destino..."
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#AD8C63] focus:bg-white resize-none"
+            ></textarea>
+          </div>
+
+          <!-- Botones de Accion -->
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              (click)="cerrarModalTransferencia()"
+              class="px-4 py-2.5 border border-slate-200 rounded-xl font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              id="btn-guardar-transferencia"
+              type="submit"
+              [disabled]="formTransferencia.invalid || inventarioService.guardando()"
+              class="px-5 py-2.5 bg-[#0F172A] hover:bg-black text-white rounded-xl font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              @if (inventarioService.guardando()) {
+                <span>Procesando Traspaso...</span>
+              } @else {
+                <span>Ejecutar Transferencia</span>
+              }
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 4: KARDEX DE MOVIMIENTOS HISTORICOS (LIBRO CONTABLE DE STOCK)    -->
+  <!-- ===================================================================== -->
+  @if (modalKardexAbierto()) {
+    <div
+      id="modal-kardex"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div class="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <!-- Cabecera -->
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold tracking-widest text-[#AD8C63] uppercase">
+              Trazabilidad Inmutable
+            </span>
+            <h3 class="text-lg font-bold text-slate-900 mt-0.5">Historial de Movimientos Kardex</h3>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalKardex()"
+            class="text-slate-400 hover:text-slate-700 p-1 transition-colors"
+            title="Cerrar modal"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Ficha Resumen -->
+        @if (inventarioService.kardexActual(); as kardex) {
+          <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div>
+              <p class="font-bold text-slate-900">Prenda SKU: {{ kardex.prenda_sku }}</p>
+              <p class="text-[11px] text-slate-500">Sede: {{ kardex.sucursal_nombre }}</p>
+            </div>
+            <div class="sm:text-right">
+              <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Saldo Fisico Actual</span>
+              <span class="text-base font-extrabold text-[#AD8C63]">
+                {{ kardex.saldo_actual }} unidades
+              </span>
+            </div>
+          </div>
+
+          <!-- Listado Cronologico de Asientos -->
+          <div class="p-6 overflow-y-auto flex-grow space-y-3">
+            @if (kardex.movimientos.length === 0) {
+              <div class="py-12 text-center text-slate-400">
+                <p class="text-xs uppercase tracking-wider font-bold">No existen asientos de kardex registrados</p>
+              </div>
+            } @else {
+              <div class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
+                @for (mov of kardex.movimientos; track mov.id_movimiento) {
+                  <div class="p-4 hover:bg-slate-50/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div class="space-y-1">
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-slate-900">
+                          {{ obtenerEtiquetaMovimiento(mov.tipo_movimiento) }}
+                        </span>
+                        @if (mov.referencia_documento) {
+                          <span class="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[10px] text-slate-600">
+                            {{ mov.referencia_documento }}
+                          </span>
+                        }
+                      </div>
+                      <p class="text-slate-600 leading-relaxed">{{ mov.motivo }}</p>
+                      <div class="flex items-center gap-2 text-[11px] text-slate-400">
+                        <span>{{ mov.creado_en | date:'dd/MM/yyyy HH:mm' }}</span>
+                        <span>•</span>
+                        <span>Responsable: {{ mov.usuario_nombre || 'Sistema Automatico' }}</span>
+                      </div>
+                    </div>
+
+                    <div class="text-right shrink-0">
+                      <div class="inline-flex items-center gap-1 font-mono font-extrabold text-sm"
+                        [ngClass]="esMovimientoPositivo(mov.tipo_movimiento, mov.cantidad) ? 'text-emerald-700' : 'text-rose-700'"
+                      >
+                        <span>{{ esMovimientoPositivo(mov.tipo_movimiento, mov.cantidad) ? '+' : '' }}{{ mov.cantidad }}</span>
+                        <span class="text-xs text-slate-400 font-normal">un.</span>
+                      </div>
+                      <p class="text-[11px] text-slate-500 font-mono mt-0.5">
+                        Saldo: {{ mov.saldo_anterior }} → <span class="font-bold text-slate-800">{{ mov.saldo_nuevo }}</span>
+                      </p>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="py-16 text-center text-slate-400">
+            <p class="text-xs font-semibold uppercase tracking-wider">Cargando bitacora de movimientos...</p>
+          </div>
+        }
+
+        <!-- Pie del Modal -->
+        <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end">
+          <button
+            type="button"
+            (click)="cerrarModalKardex()"
+            class="px-5 py-2 bg-[#0F172A] hover:bg-black text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
+          >
+            Cerrar Libro
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+</div>
