@@ -1,0 +1,882 @@
+<div class="min-h-screen bg-white text-neutral-900 font-sans selection:bg-black selection:text-white">
+  <!-- ========================================================================
+       1. HEADER / NAVBAR ADHESIVO
+       ======================================================================== -->
+  <header
+    class="sticky top-0 z-50 w-full glass-panel border-b border-neutral-200 transition-all duration-200"
+  >
+    <div
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between"
+    >
+      <!-- Logo de la marca -->
+      <a
+        routerLink="/"
+        class="text-xl tracking-[0.2em] font-medium text-black uppercase hover:opacity-80 transition-opacity"
+      >
+        FASHION STORE
+      </a>
+
+      <!-- Navegación central por anclas (Smooth Scroll) -->
+      <nav class="hidden md:flex items-center space-x-8">
+        <button
+          type="button"
+          (click)="scrollToSection('funcionalidades')"
+          class="text-xs tracking-[0.15em] font-medium text-neutral-600 hover:text-black uppercase transition-colors cursor-pointer"
+        >
+          FUNCIONALIDADES
+        </button>
+        <button
+          type="button"
+          (click)="scrollToSection('vestidor-virtual')"
+          class="text-xs tracking-[0.15em] font-medium text-neutral-600 hover:text-black uppercase transition-colors cursor-pointer"
+        >
+          VESTIDOR VIRTUAL IA
+        </button>
+        <button
+          type="button"
+          (click)="scrollToSection('sucursales')"
+          class="text-xs tracking-[0.15em] font-medium text-neutral-600 hover:text-black uppercase transition-colors cursor-pointer"
+        >
+          SUCURSALES
+        </button>
+      </nav>
+
+      <!-- Accesos de autenticación -->
+      <div class="flex items-center space-x-6">
+        <a
+          routerLink="/login"
+          class="text-xs tracking-[0.15em] font-medium text-neutral-700 hover:text-black uppercase transition-colors"
+        >
+          INICIAR SESIÓN
+        </a>
+        <a
+          routerLink="/registro"
+          class="inline-flex items-center justify-center px-6 py-2.5 bg-black text-white text-xs tracking-[0.15em] font-semibold uppercase rounded-full hover:bg-neutral-800 transition-all duration-200 shadow-sm"
+        >
+          REGISTRAR
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       2. HERO SECTION
+       ======================================================================== -->
+  <section id="hero" class="relative pt-12 pb-20 lg:pt-16 lg:pb-28 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Cintillo superior de metadatos -->
+      <div
+        class="flex flex-wrap items-center justify-between text-[11px] tracking-[0.18em] text-neutral-500 uppercase pb-8 mb-10 border-b border-neutral-100 gap-4"
+      >
+        <div class="flex items-center space-x-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-neutral-400"></span>
+          <span>MANIFIESTO DIGITAL — CONFECCIÓN V1.0 · SALAMANCA LA</span>
+        </div>
+        <div class="flex items-center space-x-6">
+          <span class="flex items-center space-x-1.5">
+            <svg
+              class="w-3.5 h-3.5 text-neutral-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <span>Boutique Privada Serrano · Madrid</span>
+          </span>
+          <span class="flex items-center space-x-1.5">
+            <svg
+              class="w-3.5 h-3.5 text-neutral-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            <span>Apertura de la Nueva Galería</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Cuadrícula Hero: Titular y Explicación (Izquierda) + Card Flagship (Derecha) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+        <!-- Columna Izquierda (7 cols) -->
+        <div class="lg:col-span-7 space-y-8">
+          <h1
+            class="text-4xl sm:text-5xl lg:text-6xl font-light tracking-tight text-neutral-900 leading-[1.12]"
+          >
+            El Futuro de la
+            <span class="font-serif italic font-normal block sm:inline">Alta Costura</span>
+            <br />
+            y la Sastrería Digital
+          </h1>
+
+          <p
+            class="text-base sm:text-lg text-neutral-600 font-light leading-relaxed max-w-2xl"
+          >
+            Fashion Store redefine la experiencia de compra de lujo fusionando la
+            maestría de talleres artesanales de Biella y Lyon con visión artificial
+            predictiva. Calce milimétrico, simulación háptica y un vestidor inteligente al
+            servicio de su armario personal.
+          </p>
+
+          <!-- Botones de Conversión -->
+          <div class="flex flex-wrap items-center gap-4 pt-2">
+            <a
+              routerLink="/catalogo"
+              class="inline-flex items-center justify-center px-8 py-4 bg-black text-white text-xs tracking-[0.18em] font-semibold uppercase rounded-full hover:bg-neutral-800 transition-all duration-200 shadow-md group"
+            >
+              <span>ARMAR OUTFIT</span>
+              <span class="ml-2 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">↗</span>
+            </a>
+
+            <button
+              type="button"
+              (click)="scrollToSection('sucursales')"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white border border-neutral-300 text-neutral-900 text-xs tracking-[0.18em] font-semibold uppercase rounded-full hover:border-black transition-colors cursor-pointer"
+            >
+              AGENDAR SESIÓN
+            </button>
+
+            <a
+              routerLink="/catalogo"
+              class="inline-flex items-center space-x-2 text-xs tracking-[0.15em] font-medium text-neutral-600 hover:text-black uppercase transition-colors ml-2 py-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+              </svg>
+              <span>CATÁLOGO A MEDIDA</span>
+            </a>
+          </div>
+
+          <!-- Métricas de Precisión Técnica -->
+          <div
+            class="grid grid-cols-3 gap-6 pt-10 mt-6 border-t border-neutral-100"
+          >
+            <div>
+              <div class="text-3xl lg:text-4xl font-light text-neutral-900 tracking-tight">
+                0.8<span class="text-lg lg:text-xl font-normal text-neutral-500">mm</span>
+              </div>
+              <div class="text-[10px] sm:text-[11px] tracking-[0.15em] text-neutral-400 uppercase font-medium mt-1">
+                PRECISIÓN BIOMÉTRICA
+              </div>
+            </div>
+
+            <div>
+              <div class="text-3xl lg:text-4xl font-light text-neutral-900 tracking-tight">
+                50<span class="text-lg lg:text-xl font-normal text-neutral-500">piezas</span>
+              </div>
+              <div class="text-[10px] sm:text-[11px] tracking-[0.15em] text-neutral-400 uppercase font-medium mt-1">
+                EDICIÓN CÁPSULA LIMITADA
+              </div>
+            </div>
+
+            <div>
+              <div class="text-3xl lg:text-4xl font-light text-neutral-900 tracking-tight">
+                100<span class="text-lg lg:text-xl font-normal text-neutral-500">%</span>
+              </div>
+              <div class="text-[10px] sm:text-[11px] tracking-[0.15em] text-neutral-400 uppercase font-medium mt-1">
+                TRAZABILIDAD EN BLOCKCHAIN
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Tarjeta Visual de Boutique Flagship (5 cols) -->
+        <div class="lg:col-span-5">
+          <div class="relative rounded-2xl overflow-hidden shadow-2xl bg-neutral-100 border border-neutral-200/80 group">
+            <img
+              src="/atelier_bg.jpg"
+              alt="Boutique Privada Serrano Madrid"
+              class="w-full h-[520px] object-cover object-center transition-transform duration-700 group-hover:scale-105"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+            <!-- Tarjeta flotante superpuesta en la base de la foto -->
+            <div class="absolute bottom-6 left-6 right-6 glass-dark text-white p-5 rounded-xl border border-white/15 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] tracking-[0.2em] font-semibold text-neutral-400 uppercase">
+                  ATELIER SALAMANCA
+                </div>
+                <div class="text-base font-medium tracking-tight text-white mt-0.5">
+                  Boutique Privada Serrano · Madrid
+                </div>
+                <div class="text-xs font-light text-neutral-300 mt-0.5">
+                  Prueba presencial con validación digital 3D
+                </div>
+              </div>
+
+              <button
+                type="button"
+                (click)="scrollToSection('sucursales')"
+                class="w-10 h-10 rounded-full bg-white/10 hover:bg-white hover:text-black flex items-center justify-center transition-colors text-white cursor-pointer"
+                title="Agendar Cita en Serrano"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       3. SECCIÓN VESTIDOR VIRTUAL CON IA · FITTING ROOM 3D
+       ======================================================================== -->
+  <section
+    id="vestidor-virtual"
+    class="py-24 bg-[#FAFAFA] border-t border-b border-neutral-200/80"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Encabezado de la Sección -->
+      <div class="max-w-3xl mb-12">
+        <div class="flex items-center space-x-2 text-[11px] tracking-[0.2em] font-semibold text-neutral-500 uppercase mb-3">
+          <span>✦</span>
+          <span>PROBADOR BIOMÉTRICO 3D Y HÁPTICO</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-light tracking-tight text-neutral-900">
+          Vestidor Virtual con IA ·
+          <span class="font-serif italic font-normal">Fitting Room 3D</span>
+        </h2>
+        <p class="text-neutral-600 font-light text-sm sm:text-base mt-4 leading-relaxed">
+          Suba una fotografía o seleccione su silueta biométrica. Nuestro motor de
+          renderizado físico calcula la caída exacta de tejidos nobles (seda 22 momme,
+          lanas virgen Super 150s) y confirma la elongación háptica dinámicamente para
+          FashionStore.
+        </p>
+      </div>
+
+      <!-- Contenedor Interactivo del Workspace -->
+      <div class="bg-white rounded-2xl border border-neutral-200 shadow-lg overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+        <!-- Columna Izquierda: Panel de Control (5 cols) -->
+        <div class="lg:col-span-5 p-6 sm:p-8 lg:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-neutral-200">
+          <div class="space-y-6">
+            <div class="text-[11px] tracking-[0.18em] font-semibold text-neutral-400 uppercase">
+              PASO 1: SELECCIONE UNA PRENDA DE DEMOSTRACIÓN
+            </div>
+
+            <!-- Selector de 3 Prendas Demo -->
+            <div class="grid grid-cols-3 gap-3">
+              @for (prenda of prendasDemo; track prenda.id) {
+                <button
+                  type="button"
+                  (click)="seleccionarPrenda(prenda.id)"
+                  class="p-3.5 rounded-xl text-left border transition-all duration-200 cursor-pointer flex flex-col justify-between h-28"
+                  [ngClass]="{
+                    'border-black bg-neutral-50 shadow-sm': prendaSeleccionadaId() === prenda.id,
+                    'border-neutral-200 hover:border-neutral-300 bg-white': prendaSeleccionadaId() !== prenda.id
+                  }"
+                >
+                  <span class="text-[10px] tracking-[0.15em] font-semibold uppercase text-neutral-400">
+                    {{ prenda.categoria }}
+                  </span>
+                  <div>
+                    <span class="block text-xs font-semibold text-neutral-900 leading-tight">
+                      {{ prenda.nombre }}
+                    </span>
+                    <span class="block text-[11px] text-neutral-500 font-light mt-0.5">
+                      {{ prenda.tejido }}
+                    </span>
+                  </div>
+                </button>
+              }
+            </div>
+
+            <!-- Mapa de Tensión Textil -->
+            <div class="pt-6 border-t border-neutral-100 space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs tracking-[0.15em] font-semibold uppercase text-neutral-900">
+                  MAPA DE TENSIÓN TEXTIL
+                </span>
+                <span class="text-xs px-2.5 py-0.5 bg-neutral-100 text-neutral-800 font-medium rounded-full">
+                  Ajuste Óptimo {{ prendaActiva().ajusteOptimo }}
+                </span>
+              </div>
+
+              <!-- Barra 1: Hombros -->
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-xs text-neutral-600">
+                  <span>Hombros & Espalda</span>
+                  <span class="font-medium text-neutral-900">{{ prendaActiva().holguraHombros }}</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div
+                    class="progress-bar-fill"
+                    [style.width.%]="prendaActiva().porcentajeHombros"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Barra 2: Pretina -->
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-xs text-neutral-600">
+                  <span>Pretina & Cadera</span>
+                  <span class="font-medium text-neutral-900">{{ prendaActiva().caidaCadera }}</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div
+                    class="progress-bar-fill"
+                    [style.width.%]="prendaActiva().porcentajeCadera"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Caja informativa de validación de biotipos -->
+            <div class="p-4 rounded-xl bg-neutral-50 border border-neutral-200/80 flex items-start space-x-3 text-xs text-neutral-600 leading-relaxed font-light">
+              <svg class="w-4 h-4 text-neutral-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span>
+                Algoritmo entrenado con 120.000 biotipos femeninos; validado por
+                maestros sastres en París y Biella.
+              </span>
+            </div>
+          </div>
+
+          <!-- Botón de Conversión y Nota al pie -->
+          <div class="pt-8 mt-6">
+            <a
+              routerLink="/login"
+              class="w-full py-3.5 bg-black text-white text-xs tracking-[0.18em] font-semibold uppercase rounded-xl hover:bg-neutral-800 transition-colors flex items-center justify-center space-x-2"
+            >
+              <span>INICIAR SESIÓN Y PROBAR MI PRENDA</span>
+            </a>
+            <p class="text-[10px] text-neutral-400 text-center mt-3 font-light leading-relaxed">
+              La versión completa permite calibración por escaneo lidar personal o
+              medidas antropométricas ISO 8559.
+            </p>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Visor de Taller 3D Simulado (7 cols) -->
+        <div class="lg:col-span-7 relative min-h-[480px] lg:min-h-[580px] bg-neutral-100 flex items-center justify-center overflow-hidden">
+          <img
+            [src]="prendaActiva().imagenPreview"
+            [alt]="prendaActiva().nombre"
+            class="w-full h-full object-cover object-center absolute inset-0 filter brightness-95 transition-all duration-500"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20"></div>
+
+          <!-- Bocadillo / Tooltip de diagnóstico en tiempo real -->
+          <div
+            class="absolute top-12 left-8 right-8 max-w-sm glass-panel text-neutral-900 px-4 py-2.5 rounded-xl border border-white/60 shadow-lg flex items-center space-x-2 text-xs animate-pulse-subtle"
+          >
+            <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
+            <span class="font-medium truncate">{{ prendaActiva().descripcionVisual }}</span>
+          </div>
+
+          <!-- Barra flotante de controles hápticos 3D en la base -->
+          <div class="absolute bottom-6 left-6 right-6 flex flex-wrap items-center justify-between glass-dark text-white px-5 py-3 rounded-xl border border-white/10 gap-3">
+            <div class="flex items-center space-x-2">
+              <button
+                type="button"
+                (click)="cambiarModo3D('dorsal')"
+                class="px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-wider uppercase transition-colors"
+                [ngClass]="modo3DActivo() === 'dorsal' ? 'bg-white text-black' : 'text-neutral-300 hover:text-white'"
+              >
+                VISTA DORSAL
+              </button>
+
+              <button
+                type="button"
+                (click)="cambiarModo3D('360')"
+                class="px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-wider uppercase transition-colors"
+                [ngClass]="modo3DActivo() === '360' ? 'bg-white text-black' : 'text-neutral-300 hover:text-white'"
+              >
+                ROTACIÓN 360°
+              </button>
+
+              <button
+                type="button"
+                (click)="cambiarModo3D('colision')"
+                class="px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-wider uppercase transition-colors hidden sm:inline-block"
+                [ngClass]="modo3DActivo() === 'colision' ? 'bg-white text-black' : 'text-neutral-300 hover:text-white'"
+              >
+                COLISIÓN 4D
+              </button>
+
+              <button
+                type="button"
+                (click)="cambiarModo3D('envivo')"
+                class="px-3 py-1.5 rounded-lg text-[11px] font-medium tracking-wider uppercase transition-colors hidden sm:inline-block"
+                [ngClass]="modo3DActivo() === 'envivo' ? 'bg-white text-black' : 'text-neutral-300 hover:text-white'"
+              >
+                EN VIVO 60 FPS
+              </button>
+            </div>
+
+            <div class="text-[11px] text-neutral-300 tracking-wider font-light flex items-center space-x-1.5">
+              <span>Tensión de fijación:</span>
+              <span class="font-medium text-white">{{ prendaActiva().tensionFijacion }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       4. SECCIÓN ASESORÍA DE ESTILISMO IA (CONCIERGE DIGITAL 24/7)
+       ======================================================================== -->
+  <section id="concierge-ia" class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+        <!-- Columna Izquierda: Propuesta Editorial (5 cols) -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="text-[11px] tracking-[0.2em] font-semibold text-neutral-500 uppercase">
+            ASESORÍA EDITORIAL EN TIEMPO REAL
+          </div>
+
+          <h2 class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 leading-[1.2]">
+            Atelier AI Stylist ·
+            <span class="font-serif italic font-normal block">Concierge Digital 24/7</span>
+          </h2>
+
+          <p class="text-neutral-600 font-light text-sm sm:text-base leading-relaxed">
+            Consulte a nuestro asistente editorial sobre etiquetas, armonías,
+            protocolos de etiqueta para eventos internacionales o combinaciones de
+            temporada. Si lo desea, el asistente transferirá su selección a su
+            estilista personal en nuestras boutiques de Madrid o París.
+          </p>
+
+          <div class="space-y-5 pt-4">
+            <div class="flex items-start space-x-4">
+              <div class="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 mt-0.5 text-neutral-800">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-neutral-900">Coherencia Predictiva</h3>
+                <p class="text-xs text-neutral-500 font-light mt-0.5 leading-relaxed">
+                  Análisis de climatología y protocolo según la geolocalización para cada evento.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-start space-x-4">
+              <div class="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 mt-0.5 text-neutral-800">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-neutral-900">Conexión con Percheros Físicos</h3>
+                <p class="text-xs text-neutral-500 font-light mt-0.5 leading-relaxed">
+                  Apartado directo y prueba humana en tienda en &lt; 4 horas en Madrid.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4">
+            <a
+              routerLink="/login"
+              class="inline-flex items-center space-x-1.5 text-xs tracking-[0.15em] font-semibold text-neutral-900 hover:text-black uppercase border-b border-neutral-900 pb-1"
+            >
+              <span>INICIAR CONVERSACIÓN DE PRUEBA</span>
+              <span>↗</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Simulación de Interfaz de Chat (7 cols) -->
+        <div class="lg:col-span-7">
+          <div class="rounded-2xl border border-neutral-200 bg-white shadow-xl overflow-hidden">
+            <!-- Header del Chat -->
+            <div class="px-6 py-4 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/70">
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center font-serif italic text-sm font-semibold">
+                  FS
+                </div>
+                <div>
+                  <div class="text-xs font-semibold text-neutral-900">Atelier Concierge AI</div>
+                  <div class="text-[11px] text-neutral-500 font-light">Conectado con Suite Privada Madrid</div>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2 text-[10px] tracking-wider font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>ATELIER EN VIVO</span>
+              </div>
+            </div>
+
+            <!-- Cuerpo de Mensajes -->
+            <div class="p-6 space-y-6 max-h-[460px] overflow-y-auto bg-neutral-50/30">
+              <!-- Mensaje Usuario -->
+              <div class="flex justify-end">
+                <div class="max-w-md bg-black text-white p-4 rounded-2xl rounded-tr-sm text-xs leading-relaxed font-light shadow-sm">
+                  ¿Qué prendas combinan mejor con mi blazer camel de doble botonadura para una gala de noche en el Palacio Real de la Almudaina?
+                </div>
+              </div>
+
+              <!-- Mensaje Concierge AI -->
+              <div class="flex items-start space-x-3">
+                <div class="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center font-serif text-xs flex-shrink-0 mt-1">
+                  FS
+                </div>
+                <div class="max-w-lg space-y-3">
+                  <div class="bg-white border border-neutral-200 text-neutral-800 p-4 rounded-2xl rounded-tl-sm text-xs leading-relaxed font-light shadow-sm">
+                    Para el clima de noviembre en Palma (temp. estimada 17°C), la sobriedad formal sugiere atenuar la energía con una seda de contraste en tonos oscuros o brillo sutil. Le sugiero:
+                  </div>
+
+                  <!-- Mini-cards de prendas sugeridas dentro del chat -->
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Prenda 1 -->
+                    <div class="p-3 bg-white rounded-xl border border-neutral-200 shadow-sm flex flex-col justify-between space-y-2">
+                      <div class="flex items-center space-x-2.5">
+                        <img
+                          src="https://images.unsplash.com/photo-1566174053879-31528523f8ae?q=80&w=200&auto=format&fit=crop"
+                          alt="Vestido Noche"
+                          class="w-11 h-11 rounded-lg object-cover"
+                        />
+                        <div>
+                          <div class="text-[9px] tracking-wider text-neutral-400 font-semibold uppercase">VESTIDO DE GALA NOCHE</div>
+                          <div class="text-xs font-semibold text-neutral-900 leading-tight">Vestido de Seda Lúrex con Cortes Asimétricos</div>
+                          <div class="text-xs font-medium text-neutral-800 mt-0.5">875 €</div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        (click)="scrollToSection('vestidor-virtual')"
+                        class="w-full py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[10px] tracking-wider uppercase font-semibold rounded-lg transition-colors cursor-pointer text-center"
+                      >
+                        Ver en vestidor
+                      </button>
+                    </div>
+
+                    <!-- Prenda 2 -->
+                    <div class="p-3 bg-white rounded-xl border border-neutral-200 shadow-sm flex flex-col justify-between space-y-2">
+                      <div class="flex items-center space-x-2.5">
+                        <img
+                          src="https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=200&auto=format&fit=crop"
+                          alt="Pantalón Palazzo"
+                          class="w-11 h-11 rounded-lg object-cover"
+                        />
+                        <div>
+                          <div class="text-[9px] tracking-wider text-neutral-400 font-semibold uppercase">COMPLEMENTO DE ALTA COSTURA</div>
+                          <div class="text-xs font-semibold text-neutral-900 leading-tight">Pantalón Palazzo Lana Super 150s</div>
+                          <div class="text-xs font-medium text-neutral-800 mt-0.5">550 €</div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        (click)="scrollToSection('sucursales')"
+                        class="w-full py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[10px] tracking-wider uppercase font-semibold rounded-lg transition-colors cursor-pointer text-center"
+                      >
+                        Disponible en boutique
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Barra de entrada de texto del Chat -->
+            <div class="p-4 border-t border-neutral-200 bg-white flex items-center space-x-3">
+              <input
+                type="text"
+                readonly
+                value="¿Tienen disponibilidad de la talla 38 para prueba en Madrid este viernes?"
+                class="flex-1 bg-neutral-50 border border-neutral-200 text-neutral-600 text-xs rounded-xl px-4 py-2.5 focus:outline-none cursor-not-allowed"
+              />
+              <a
+                routerLink="/login"
+                class="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center hover:bg-neutral-800 transition-colors flex-shrink-0"
+                title="Enviar mensaje (Iniciar Sesión)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       5. SECCIÓN PRIVILEGIOS DEL MIEMBRO ATELIER (#funcionalidades)
+       ======================================================================== -->
+  <section
+    id="funcionalidades"
+    class="py-24 bg-[#FAFAFA] border-t border-b border-neutral-200"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-6">
+        <div>
+          <div class="text-[11px] tracking-[0.2em] font-semibold text-neutral-500 uppercase mb-3">
+            ARQUITECTURA DE SERVICIO
+          </div>
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-light tracking-tight text-neutral-900">
+            Privilegios
+            <span class="font-serif italic font-normal">del Miembro Atelier</span>
+          </h2>
+        </div>
+
+        <p class="text-neutral-500 font-light text-sm max-w-md leading-relaxed">
+          Cada interacción digital está respaldada por una infraestructura física
+          de excelencia, un taller propio en Madrid y nuestras boutiques insignia.
+        </p>
+      </div>
+
+      <!-- Tríptico de Tarjetas de Servicio -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Tarjeta 1: Trazabilidad Digital -->
+        <div class="bg-white p-8 rounded-2xl border border-neutral-200/90 shadow-sm flex flex-col justify-between space-y-6 hover:shadow-md transition-shadow">
+          <div class="space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-800">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+            </div>
+            <div class="text-[10px] tracking-[0.2em] font-semibold text-neutral-400 uppercase">
+              PASAPORTE DIGITAL
+            </div>
+            <h3 class="text-lg font-medium text-neutral-900">Trazabilidad Digital Inmutable</h3>
+            <p class="text-xs text-neutral-600 font-light leading-relaxed">
+              Certificación de procedencia de cada hilatura de Biella hasta la costura final. Registro transparente en blockchain y ficha de lavado de por vida.
+            </p>
+          </div>
+
+          <a
+            routerLink="/login"
+            class="inline-flex items-center text-xs tracking-wider font-semibold text-neutral-900 uppercase hover:text-neutral-600 transition-colors pt-2"
+          >
+            <span>VER CERTIFICACIÓN OFICIAL</span>
+            <span class="ml-1.5">→</span>
+          </a>
+        </div>
+
+        <!-- Tarjeta 2: Entrega Guante Blanco -->
+        <div class="bg-white p-8 rounded-2xl border border-neutral-200/90 shadow-sm flex flex-col justify-between space-y-6 hover:shadow-md transition-shadow">
+          <div class="space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-800">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+              </svg>
+            </div>
+            <div class="text-[10px] tracking-[0.2em] font-semibold text-neutral-400 uppercase">
+              SERVICIO DE GUANTE
+            </div>
+            <h3 class="text-lg font-medium text-neutral-900">Citas & Entrega Guante Blanco</h3>
+            <p class="text-xs text-neutral-600 font-light leading-relaxed">
+              Entrega en mano de sus piezas planchadas, realizadas indeformables. En Madrid, Barcelona, París y Milán con maestro de sastre a domicilio a pedido.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            (click)="scrollToSection('sucursales')"
+            class="inline-flex items-center text-xs tracking-wider font-semibold text-neutral-900 uppercase hover:text-neutral-600 transition-colors pt-2 cursor-pointer"
+          >
+            <span>RED DE CIUDADES</span>
+            <span class="ml-1.5">→</span>
+          </button>
+        </div>
+
+        <!-- Tarjeta 3: Sincronización Omnicanal -->
+        <div class="bg-white p-8 rounded-2xl border border-neutral-200/90 shadow-sm flex flex-col justify-between space-y-6 hover:shadow-md transition-shadow">
+          <div class="space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-800">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+              </svg>
+            </div>
+            <div class="text-[10px] tracking-[0.2em] font-semibold text-neutral-400 uppercase">
+              EXPERIENCIA 360°
+            </div>
+            <h3 class="text-lg font-medium text-neutral-900">Sincronización Omnicanal</h3>
+            <p class="text-xs text-neutral-600 font-light leading-relaxed">
+              Guarde prendas en su vestidor digital y pruébelas físicamente en su boutique preferida sin esperas; su percha estará lista antes de que usted llegue.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            (click)="scrollToSection('sucursales')"
+            class="inline-flex items-center text-xs tracking-wider font-semibold text-neutral-900 uppercase hover:text-neutral-600 transition-colors pt-2 cursor-pointer"
+          >
+            <span>AGENDAR LA GALERÍA</span>
+            <span class="ml-1.5">→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       6. SECCIÓN NUESTRAS SUCURSALES · BOUTIQUES FLAGSHIP (#sucursales)
+       ======================================================================== -->
+  <section id="sucursales" class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-6">
+        <div>
+          <div class="text-[11px] tracking-[0.2em] font-semibold text-neutral-500 uppercase mb-3">
+            PRESENCIA FÍSICA GLOBAL
+          </div>
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-light tracking-tight text-neutral-900">
+            Nuestras Sucursales ·
+            <span class="font-serif italic font-normal">Boutiques Flagship</span>
+          </h2>
+        </div>
+
+        <p class="text-neutral-500 font-light text-sm max-w-md leading-relaxed">
+          Espacios concebidos para la experimentación sensorial. Los probadores
+          biométricos conviven con el silencio y la atención de nuestros
+          consultores de moda en nuestras cuatro sedes.
+        </p>
+      </div>
+
+      <!-- Cuadrícula de 4 Boutiques Flagship -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        @for (sucursal of sucursales; track sucursal.id) {
+          <div
+            class="p-6 rounded-2xl border flex flex-col justify-between transition-all duration-200"
+            [ngClass]="{
+              'border-neutral-900 bg-neutral-50/50 shadow-sm': sucursal.esPrincipal,
+              'border-neutral-200 bg-white hover:border-neutral-300': !sucursal.esPrincipal
+            }"
+          >
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="text-[9px] tracking-[0.18em] font-semibold uppercase text-neutral-400">
+                  {{ sucursal.categoria }}
+                </span>
+                <span class="text-[9px] font-semibold tracking-wider text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">
+                  {{ sucursal.estado }}
+                </span>
+              </div>
+
+              <div>
+                <h3 class="text-base font-semibold text-neutral-900">{{ sucursal.nombre }}</h3>
+                <div class="text-xs text-neutral-500 font-light mt-1 flex items-center space-x-1.5">
+                  <svg class="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  <span class="truncate">{{ sucursal.direccion }}</span>
+                </div>
+                <div class="text-xs text-neutral-500 font-light mt-0.5 flex items-center space-x-1.5">
+                  <svg class="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span>{{ sucursal.horario }}</span>
+                </div>
+              </div>
+
+              <div class="pt-3 border-t border-neutral-100">
+                <div class="text-[10px] tracking-wider text-neutral-400 uppercase font-semibold">SERVICIOS ESPECIALES:</div>
+                <div class="text-[11px] text-neutral-600 font-light mt-1 leading-snug">
+                  {{ sucursal.serviciosEspeciales }}
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-6 mt-4">
+              <button
+                type="button"
+                (click)="agendarCita(sucursal)"
+                class="w-full py-2.5 rounded-xl text-xs tracking-wider uppercase font-semibold flex items-center justify-center space-x-2 transition-all duration-200 cursor-pointer"
+                [ngClass]="{
+                  'bg-black text-white hover:bg-neutral-800 shadow-sm': sucursal.esPrincipal,
+                  'border border-neutral-300 text-neutral-900 hover:border-black hover:bg-neutral-50': !sucursal.esPrincipal
+                }"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span>AGENDAR CITA</span>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       7. FOOTER CORPORATIVO
+       ======================================================================== -->
+  <footer class="bg-[#FAFAFA] border-t border-neutral-200 pt-16 pb-12 text-neutral-600 font-light text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-neutral-200">
+        <!-- Columna 1: Marca y Sede (6 cols) -->
+        <div class="md:col-span-6 space-y-4">
+          <div class="text-sm tracking-[0.2em] font-medium text-black uppercase">
+            FASHION STORE
+          </div>
+          <p class="max-w-md text-neutral-500 leading-relaxed">
+            Herederos de excelencia textil y confluencia tecnológica. Diseñado para
+            señoras con criterio estético irrenunciable, donde la sostenibilidad
+            converge con el modelado predictivo y el probador de inteligencia artificial.
+          </p>
+          <div class="pt-2 text-neutral-500">
+            <span class="font-medium text-neutral-800 uppercase tracking-wider block text-[10px] mb-0.5">SEDE CENTRAL</span>
+            Calle de Serrano 48, Salamanca 28001 Madrid, España
+          </div>
+        </div>
+
+        <!-- Columna 2: Manifiesto & Origen (3 cols) -->
+        <div class="md:col-span-3 space-y-3">
+          <div class="text-[11px] tracking-[0.18em] font-semibold text-neutral-900 uppercase">
+            MANIFIESTO & ORIGEN
+          </div>
+          <ul class="space-y-2.5 text-neutral-500">
+            <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Código de Ética y Sostenibilidad</a></li>
+            <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Taller Artesanal en Biella</a></li>
+            <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Seda de Morera de Lyon</a></li>
+            <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Visión Artificial de Tejidos 2026</a></li>
+            <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Guía de Cuidado de Prendas</a></li>
+          </ul>
+        </div>
+
+        <!-- Columna 3: Soporte VIP (3 cols) -->
+        <div class="md:col-span-3 space-y-3">
+          <div class="text-[11px] tracking-[0.18em] font-semibold text-neutral-900 uppercase">
+            SOPORTE VIP
+          </div>
+          <ul class="space-y-2.5 text-neutral-500">
+            <li><button type="button" (click)="scrollToSection('concierge-ia')" class="hover:text-black transition-colors cursor-pointer">Servicio de Concierge</button></li>
+            <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Guía de Medidas y Tallas</a></li>
+            <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Cuidado de Tejidos Nobles</a></li>
+            <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Envío en Embalaje Seguro</a></li>
+            <li><a href="javascript:void(0)" class="hover:text-black transition-colors">Cancelación de Reservas</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Barra de Copyright e Hipervínculos Legales -->
+      <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-neutral-400 text-[11px] gap-4">
+        <div>
+          © 2026 Fashion Store Flagship Digital. Todos los derechos reservados.
+        </div>
+        <div class="flex items-center space-x-6">
+          <a href="javascript:void(0)" class="hover:text-neutral-700 transition-colors">Privacidad</a>
+          <a href="javascript:void(0)" class="hover:text-neutral-700 transition-colors">Términos del Atelier</a>
+          <a href="javascript:void(0)" class="hover:text-neutral-700 transition-colors">Directiva Transparente</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>

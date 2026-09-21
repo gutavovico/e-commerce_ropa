@@ -1,0 +1,72 @@
+/* ==============================================================================
+   FASHION STORE — Landing Page Stylesheet (Haute Couture Editorial)
+   ============================================================================== */
+
+:host {
+  display: block;
+  width: 100%;
+  background-color: #ffffff;
+  color: #111111;
+  overflow-x: hidden;
+}
+
+.font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-sans {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Suavizado de scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Animaciones sutiles */
+@keyframes pulseSubtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 3s ease-in-out infinite;
+}
+
+/* Estilos de línea ultrafina */
+.border-hairline {
+  border-width: 1px;
+}
+
+/* Efectos de vidrio esmerilado para headers y tarjetas elevadas */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-dark {
+  background: rgba(15, 17, 22, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Barra de progreso de tensión textil */
+.progress-bar-container {
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+  height: 6px;
+}
+
+.progress-bar-fill {
+  background-color: #0f1116;
+  height: 100%;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}

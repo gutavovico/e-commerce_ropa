@@ -59,8 +59,17 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
-    path: '',
-    redirectTo: 'buscar',
+    path: 'inicio',
+    redirectTo: 'catalogo',
     pathMatch: 'full',
+  },
+  {
+    path: '',
+    loadComponent: () =>
+      import('./public/landing/landing.component').then(
+        (m) => m.LandingPageComponent
+      ),
+    pathMatch: 'full',
+    title: 'FASHION STORE | Alta Costura y Sastrería Digital',
   },
 ];
