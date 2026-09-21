@@ -378,3 +378,32 @@ class RecomendacionIAORM(Base):
 
     producto: Mapped["ProductoORM"] = relationship("ProductoORM")
 
+
+class PromocionORM(Base):
+    """Mapeo de la tabla `fashionstore.promociones`."""
+
+    __tablename__ = "promociones"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_promocion: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
+    descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    porcentaje_descuento: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2), nullable=True)
+    fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
+    fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
+    activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class PromocionProductoORM(Base):
+    """Mapeo de la tabla de asociación `fashionstore.promocion_producto`."""
+
+    __tablename__ = "promocion_producto"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_promocion: Mapped[int] = mapped_column(
+        Integer, ForeignKey("fashionstore.promociones.id_promocion", ondelete="CASCADE"), primary_key=True
+    )
+    id_producto: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("fashionstore.productos.id_producto", ondelete="CASCADE"), primary_key=True
+    )
+

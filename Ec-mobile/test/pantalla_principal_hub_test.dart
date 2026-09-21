@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ec_mobile/src/navegacion/pantalla_principal_hub.dart';
-import 'package:ec_mobile/src/modulos/catalogo/cu05_catalogo_placeholder/presentacion/pantallas/pantalla_catalogo_placeholder.dart';
+import 'package:ec_mobile/src/modulos/catalogo/cu05_consultar_catalogo/presentacion/pantallas/pantalla_catalogo.dart';
 
 void main() {
   group('PantallaPrincipalHub Navigation Tests (Hub-and-Spoke)', () {
@@ -58,7 +58,7 @@ void main() {
       await tester.pumpAndSettle();
       final stackCatalogo = tester.widget<IndexedStack>(indexedStackFinder);
       expect(stackCatalogo.index, 2);
-      expect(find.byType(PantallaCatalogoPlaceholder), findsOneWidget);
+      expect(find.byType(PantallaCatalogo), findsOneWidget);
 
       // Transición a PERFIL (índice 3)
       await tester.tap(find.text('Perfil'));

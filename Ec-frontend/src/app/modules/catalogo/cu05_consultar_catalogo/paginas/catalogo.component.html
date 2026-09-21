@@ -1,0 +1,443 @@
+<div class="w-full bg-[#FFFFFF] min-h-screen text-[#111111] pb-20 selection:bg-black selection:text-white">
+  <!-- 1. BREADCRUMBS Y BADGE DE SINCRONIZACIÓN EN TIEMPO REAL -->
+  <div class="border-b border-[#ECEAE6] bg-[#FAFAF8]">
+    <div class="max-w-[1440px] mx-auto px-6 py-3 flex flex-col md:flex-row md:items-center md:justify-between text-[11px] font-medium tracking-[0.18em] uppercase text-[#666666]">
+      <div class="flex items-center space-x-2">
+        <a routerLink="/inicio" class="hover:text-black transition-colors">FASHION STORE</a>
+        <span>/</span>
+        <span class="text-[#999999]">CATÁLOGO</span>
+        <span>/</span>
+        <span class="text-black font-semibold">{{ categoriaSeleccionadaNombre() }}</span>
+      </div>
+
+      <div class="mt-2 md:mt-0 flex items-center space-x-2 text-[10px] text-[#444444]">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="tracking-[0.15em]">STOCK SINCRONIZADO EN TIEMPO REAL · FLAGSHIP SERRANO & SAINT-HONORÉ</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-[1440px] mx-auto px-6">
+    <!-- 2. CABECERA EDITORIAL DE ALTA COSTURA -->
+    <header class="pt-8 pb-6 flex flex-col md:flex-row md:items-end justify-between border-b border-[#ECEAE6] gap-4">
+      <div>
+        <span class="text-[11px] font-bold tracking-[0.25em] text-[#888888] uppercase block mb-1">
+          COLECCIÓN GENERAL & ATELIER
+        </span>
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-[#111111] uppercase font-sans">
+          CATÁLOGO DE PRENDAS
+        </h1>
+        <p class="text-xs md:text-sm text-[#555555] mt-2 max-w-2xl font-normal leading-relaxed">
+          Siluetas arquitectónicas creadas con materiales nobles, sedas puras y acabados artesanos concebidos para el guardarropa femenino contemporáneo.
+        </p>
+      </div>
+
+      <!-- Sello Editorial Artesanal -->
+      <div class="flex items-center space-x-3 text-right shrink-0">
+        <div class="hidden sm:block">
+          <span class="text-[10px] font-bold tracking-[0.2em] text-[#111111] uppercase block">
+            CERTIFICACIÓN ARTESANAL
+          </span>
+          <span class="text-[9px] text-[#777777] tracking-[0.15em] block">
+            MADRID · PARÍS · BIELLA
+          </span>
+        </div>
+        <div class="w-10 h-10 border border-[#D5D2CD] rounded-full flex items-center justify-center text-[#111111] font-serif text-sm font-bold bg-[#FAFAF8]">
+          FS
+        </div>
+      </div>
+    </header>
+
+    <!-- 3. BARRA DE CHIPS DE CATEGORÍAS Y CONTROLES DE VISTA -->
+    <div class="py-4 border-b border-[#ECEAE6] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <!-- Carrusel / Fila de Chips de Categoría con Contadores Numéricos -->
+      <div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-1">
+        <!-- Chip "TODOS LOS PRODUCTOS" -->
+        <button
+          type="button"
+          (click)="seleccionarCategoria(null)"
+          [class]="
+            categoriaSeleccionada() === null
+              ? 'bg-black text-white border-black font-semibold'
+              : 'bg-[#F6F5F2] text-[#444444] border-[#E8E6E1] hover:bg-[#ECEAE4]'
+          "
+          class="px-4 py-2 rounded-full text-[11px] tracking-[0.15em] uppercase border transition-all whitespace-nowrap shrink-0 flex items-center space-x-1.5 cursor-pointer shadow-xs"
+        >
+          <span>TODOS LOS PRODUCTOS</span>
+          <span class="opacity-75 text-[10px]">({{ totalGlobalPrendas() }})</span>
+        </button>
+
+        <!-- Chips de Cada Categoría de la BD -->
+        @for (cat of resumenCategorias(); track cat.id_categoria) {
+          <button
+            type="button"
+            (click)="seleccionarCategoria(cat.id_categoria)"
+            [class]="
+              categoriaSeleccionada() === cat.id_categoria
+                ? 'bg-black text-white border-black font-semibold'
+                : 'bg-[#F6F5F2] text-[#444444] border-[#E8E6E1] hover:bg-[#ECEAE4]'
+            "
+            class="px-4 py-2 rounded-full text-[11px] tracking-[0.15em] uppercase border transition-all whitespace-nowrap shrink-0 flex items-center space-x-1.5 cursor-pointer shadow-xs"
+          >
+            <span>{{ cat.nombre }}</span>
+            <span class="opacity-75 text-[10px]">({{ cat.total_prendas }})</span>
+          </button>
+        }
+      </div>
+
+      <!-- Barra de Utilidades: Filtrar/Ordenar y Modo de Cuadrícula -->
+      <div class="flex items-center justify-between lg:justify-end space-x-4 shrink-0 pt-2 lg:pt-0">
+        <!-- Botón de Búsqueda Avanzada / Filtros -->
+        <button
+          type="button"
+          (click)="irABusquedaAvanzada()"
+          class="flex items-center space-x-2 px-3.5 py-1.5 border border-[#D5D2CD] rounded-sm text-[11px] font-medium tracking-[0.15em] text-[#222222] hover:border-black hover:bg-black hover:text-white transition-all cursor-pointer"
+          title="Ir a Búsqueda y Filtros Combinados (CU06)"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+          <span>FILTRAR Y ORDENAR</span>
+        </button>
+
+        <!-- Selector de Criterio de Ordenación -->
+        <div class="flex items-center space-x-2">
+          <label for="ordenar-select" class="text-[10px] font-bold tracking-[0.2em] uppercase text-[#777777]">
+            ORDEN:
+          </label>
+          <select
+            id="ordenar-select"
+            (change)="cambiarOrden($event)"
+            [value]="ordenarPor()"
+            class="text-[11px] font-medium border border-[#D5D2CD] rounded-sm bg-white px-2.5 py-1.5 text-[#111111] focus:outline-none focus:border-black cursor-pointer uppercase tracking-wider"
+          >
+            <option value="recientes">RECIENTES</option>
+            <option value="precio_asc">PRECIO: MENOR A MAYOR</option>
+            <option value="precio_desc">PRECIO: MAYOR A MENOR</option>
+            <option value="nombre_asc">NOMBRE (A - Z)</option>
+          </select>
+        </div>
+
+        <!-- Conmutador de Densidad de Cuadrícula (4 vs 2 Columnas) -->
+        <div class="hidden sm:flex items-center border border-[#D5D2CD] rounded-sm p-0.5 bg-[#FAFAF8]">
+          <button
+            type="button"
+            (click)="cambiarVista('grid4')"
+            [class]="vistaColumnas() === 'grid4' ? 'bg-black text-white shadow-xs' : 'text-[#777777] hover:text-black'"
+            class="p-1.5 rounded-xs transition-colors cursor-pointer"
+            title="Vista de 4 columnas"
+          >
+            <!-- Icono 4 Columnas -->
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="2" y="3" width="3.5" height="18" rx="0.5" />
+              <rect x="7.5" y="3" width="3.5" height="18" rx="0.5" />
+              <rect x="13" y="3" width="3.5" height="18" rx="0.5" />
+              <rect x="18.5" y="3" width="3.5" height="18" rx="0.5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            (click)="cambiarVista('grid2')"
+            [class]="vistaColumnas() === 'grid2' ? 'bg-black text-white shadow-xs' : 'text-[#777777] hover:text-black'"
+            class="p-1.5 rounded-xs transition-colors cursor-pointer"
+            title="Vista editorial amplia (2 columnas)"
+          >
+            <!-- Icono 2 Columnas -->
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="3" y="3" width="8" height="18" rx="0.5" />
+              <rect x="13" y="3" width="8" height="18" rx="0.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. ESTADOS: CARGANDO / ERROR / EMPTY STATE / GRILLA -->
+    <div class="mt-8">
+      <!-- A. SKELETON DE CARGA -->
+      @if (cargando()) {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
+          @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
+            <div class="flex flex-col space-y-3">
+              <div class="w-full aspect-[3/4] bg-[#ECEAE6] rounded-xs"></div>
+              <div class="h-3 w-1/3 bg-[#ECEAE6] rounded-xs"></div>
+              <div class="h-4 w-4/5 bg-[#ECEAE6] rounded-xs"></div>
+              <div class="h-3 w-1/4 bg-[#ECEAE6] rounded-xs"></div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- B. MENSAJE DE ERROR -->
+      @else if (error()) {
+        <div class="p-8 border border-[#E5D7D7] bg-[#FAF5F5] rounded-sm text-center max-w-xl mx-auto my-12">
+          <p class="text-xs font-semibold tracking-[0.2em] uppercase text-[#991B1B] mb-2">
+            INCIDENCIA DE CONEXIÓN CON ATELIER
+          </p>
+          <p class="text-sm text-[#555555] mb-5 font-light">
+            {{ error() }}
+          </p>
+          <button
+            type="button"
+            (click)="cargarCatalogo()"
+            class="px-5 py-2 bg-black text-white text-[11px] font-semibold tracking-[0.2em] uppercase rounded-sm hover:bg-[#333333] transition-colors cursor-pointer"
+          >
+            REINTENTAR CONSULTA
+          </button>
+        </div>
+      }
+
+      <!-- C. EMPTY STATE CUANDO UNA CATEGORÍA NO TIENE PRENDAS -->
+      @else if (productos().length === 0) {
+        <div class="py-20 text-center border border-dashed border-[#D5D2CD] rounded-sm bg-[#FAFAF8] my-8">
+          <div class="w-12 h-12 rounded-full bg-[#EAE8E2] text-[#666666] flex items-center justify-center mx-auto mb-4 font-serif text-lg font-bold">
+            0
+          </div>
+          <h3 class="text-base font-bold tracking-[0.2em] uppercase text-[#111111]">
+            COLECCIÓN NO DISPONIBLE ACTUALMENTE
+          </h3>
+          <p class="text-xs text-[#666666] mt-2 max-w-md mx-auto leading-relaxed">
+            No se encuentran piezas registradas bajo "{{ categoriaSeleccionadaNombre() }}". Nuevas creaciones de atelier se encuentran en confección.
+          </p>
+          <div class="mt-6">
+            <button
+              type="button"
+              (click)="seleccionarCategoria(null)"
+              class="px-6 py-2.5 bg-black text-white text-[11px] font-semibold tracking-[0.2em] uppercase rounded-sm hover:bg-[#333333] transition-colors cursor-pointer shadow-sm"
+            >
+              VER TODAS LAS PRENDAS DISPONIBLES
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- D. GRILLA EDITORIAL DE PRODUCTOS REALES -->
+      @else {
+        <div
+          [class]="
+            vistaColumnas() === 'grid4'
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6'
+              : 'grid grid-cols-1 md:grid-cols-2 gap-8'
+          "
+        >
+          @for (prod of productos(); track prod.id_producto) {
+            <article
+              class="group flex flex-col justify-between bg-white border border-[#EAE8E2] hover:border-black transition-all duration-300 rounded-sm p-3 relative shadow-2xs"
+            >
+              <!-- 1. FOTOGRAFÍA CON BADGES Y ACCIONES -->
+              <div class="relative w-full aspect-[3/4] bg-[#F5F4F0] overflow-hidden rounded-xs mb-3">
+                <img
+                  [src]="prod.imagen_url || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop&q=80'"
+                  [alt]="prod.nombre"
+                  loading="lazy"
+                  class="w-full h-full object-cover object-center group-hover:scale-104 transition-transform duration-500 ease-out"
+                />
+
+                <!-- Badge Editorial en Esquina Superior Izquierda -->
+                @if (prod.etiqueta_badge) {
+                  <div class="absolute top-2.5 left-2.5">
+                    <span
+                      [class]="
+                        prod.tiene_descuento
+                          ? 'bg-[#991B1B] text-white'
+                          : 'bg-white/95 text-[#111111] border border-[#E0DED8]'
+                      "
+                      class="text-[9px] font-bold tracking-[0.18em] px-2 py-0.5 uppercase shadow-xs block backdrop-blur-xs"
+                    >
+                      {{ prod.etiqueta_badge }}
+                    </span>
+                  </div>
+                }
+
+                <!-- Botón de Favorito / Wishlist en Esquina Superior Derecha -->
+                <button
+                  type="button"
+                  (click)="toggleFavorito(prod, $event)"
+                  [class]="
+                    prod.es_favorito
+                      ? 'text-[#991B1B] bg-white'
+                      : 'text-[#444444] bg-white/80 hover:bg-white hover:text-black'
+                  "
+                  class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-xs cursor-pointer"
+                  [title]="prod.es_favorito ? 'Eliminar de favoritos' : 'Guardar en favoritos'"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    [attr.fill]="prod.es_favorito ? 'currentColor' : 'none'"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
+                  </svg>
+                </button>
+
+                <!-- Botón de Añadir a la Cesta Superpuesto en Hover -->
+                <div class="absolute inset-x-2 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button
+                    type="button"
+                    (click)="anadirACesta(prod, $event)"
+                    class="w-full py-2 bg-black/90 hover:bg-black text-white text-[10px] font-semibold tracking-[0.2em] uppercase rounded-xs transition-colors backdrop-blur-xs shadow-md cursor-pointer flex items-center justify-center space-x-1.5"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    <span>AÑADIR A LA CESTA</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 2. METADATOS EDITORIALES DE LA PRENDA -->
+              <div class="flex-1 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-1 text-[10px] tracking-[0.18em] uppercase font-semibold text-[#888888]">
+                    <span>{{ prod.subtitulo_atelier }}</span>
+                    <span class="text-[#555555] font-normal font-mono">REF. {{ prod.id_producto }}</span>
+                  </div>
+
+                  <h3 class="text-xs md:text-sm font-semibold text-[#111111] tracking-tight line-clamp-1 group-hover:text-[#444444] transition-colors">
+                    {{ prod.nombre }}
+                  </h3>
+
+                  <!-- Precios y Descuentos -->
+                  <div class="mt-2 flex items-baseline space-x-2">
+                    @if (prod.tiene_descuento) {
+                      <span class="text-sm font-bold text-[#991B1B]">
+                        {{ prod.precio_final }} €
+                      </span>
+                      <span class="text-xs text-[#888888] line-through font-light">
+                        {{ prod.precio_base }} €
+                      </span>
+                    } @else {
+                      <span class="text-sm font-bold text-[#111111]">
+                        {{ prod.precio_base }} €
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <!-- 3. TALLAS DISPONIBLES Y PALETA TEXTIL DE COLOR -->
+                <div class="mt-3 pt-2.5 border-t border-[#F0EFEA] flex items-center justify-between">
+                  <!-- Tallas Disponibles -->
+                  <div class="text-[10px] font-medium tracking-wider text-[#666666] flex items-center space-x-1">
+                    <span class="text-[#999999] uppercase text-[9px] mr-1">TALLAS:</span>
+                    @if (prod.tallas_disponibles.length > 0) {
+                      <span>{{ prod.tallas_disponibles.join(' · ') }}</span>
+                    } @else {
+                      <span class="italic">TALLA ÚNICA</span>
+                    }
+                  </div>
+
+                  <!-- Dots de Colores Disponibles -->
+                  <div class="flex items-center space-x-1">
+                    @for (col of prod.colores_disponibles; track col.id_color) {
+                      <span
+                        class="w-3 h-3 rounded-full border border-[#D5D2CD] inline-block shadow-2xs"
+                        [style.backgroundColor]="col.codigo_hex || '#111111'"
+                        [title]="col.nombre"
+                      ></span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+
+        <!-- 5. PAGINACIÓN EDITORIAL CON BARRA DE PROGRESO -->
+        <div class="mt-12 pt-6 border-t border-[#ECEAE6] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <!-- Indicador Numérico de Rango -->
+          <div class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#666666]">
+            MOSTRANDO {{ rangoPaginacionTexto() }}
+          </div>
+
+          <!-- Botones de Paginación Editorial -->
+          <div class="flex items-center space-x-2">
+            <!-- Anterior -->
+            <button
+              type="button"
+              (click)="paginaAnterior()"
+              [disabled]="!tieneAnterior()"
+              [class]="
+                tieneAnterior()
+                  ? 'border-[#D5D2CD] text-black hover:border-black hover:bg-black hover:text-white cursor-pointer'
+                  : 'border-[#EAE8E2] text-[#BBBBBB] cursor-not-allowed opacity-50'
+              "
+              class="px-3 py-1.5 border rounded-sm text-[10px] font-semibold tracking-[0.2em] uppercase transition-all"
+            >
+              &lt; ANTERIOR
+            </button>
+
+            <!-- Números de Página -->
+            @for (pag of paginasDisponibles(); track pag) {
+              <button
+                type="button"
+                (click)="irAPagina(pag)"
+                [class]="
+                  paginaActual() === pag
+                    ? 'bg-black text-white border-black font-bold'
+                    : 'bg-white text-[#444444] border-[#D5D2CD] hover:border-black'
+                "
+                class="w-8 h-8 border rounded-sm text-[11px] font-medium flex items-center justify-center transition-colors cursor-pointer"
+              >
+                {{ pag }}
+              </button>
+            }
+
+            <!-- Siguiente -->
+            <button
+              type="button"
+              (click)="paginaSiguiente()"
+              [disabled]="!tieneSiguiente()"
+              [class]="
+                tieneSiguiente()
+                  ? 'border-[#D5D2CD] text-black hover:border-black hover:bg-black hover:text-white cursor-pointer'
+                  : 'border-[#EAE8E2] text-[#BBBBBB] cursor-not-allowed opacity-50'
+              "
+              class="px-3 py-1.5 border rounded-sm text-[10px] font-semibold tracking-[0.2em] uppercase transition-all"
+            >
+              SIGUIENTE &gt;
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- 6. BLOQUE EDITORIAL DE CONSERJERÍA PRIVADA DE TALLAS & FITTING -->
+    <section class="mt-16 p-8 border border-[#EAE8E2] bg-[#FAFAF8] rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xs">
+      <div class="max-w-2xl">
+        <span class="text-[10px] font-bold tracking-[0.25em] text-[#888888] uppercase block mb-1">
+          SERVICIO EXCLUSIVO DE ATELIER
+        </span>
+        <h2 class="text-xl font-bold tracking-tight text-[#111111] uppercase font-sans">
+          CONSERJERÍA PRIVADA DE TALLAS & FITTING
+        </h2>
+        <p class="text-xs text-[#555555] mt-2 font-light leading-relaxed">
+          ¿Dudas sobre el patrón arquitectónico, caída de las lanas frías o drapeado de las sedas? Reserve cita de fitting privado en nuestras boutiques de Madrid o solicite asesoramiento textil con nuestros directores de confección.
+        </p>
+      </div>
+
+      <div class="shrink-0">
+        <button
+          type="button"
+          (click)="solicitarAsesoria()"
+          class="px-6 py-3 bg-black text-white text-[11px] font-bold tracking-[0.2em] uppercase rounded-sm hover:bg-[#333333] transition-all cursor-pointer shadow-sm"
+        >
+          SOLICITAR ASESORÍA
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- TOAST FLOTANTE DE FEEDBACK -->
+  @if (mensajeFeedback()) {
+    <div class="fixed bottom-6 right-6 z-50 bg-black text-white px-5 py-3 rounded-sm text-xs font-medium tracking-wider uppercase shadow-2xl border border-white/20 animate-fadeIn flex items-center space-x-2.5">
+      <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+      <span>{{ mensajeFeedback() }}</span>
+    </div>
+  }
+</div>

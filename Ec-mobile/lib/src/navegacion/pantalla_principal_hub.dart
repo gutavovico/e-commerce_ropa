@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../modulos/autenticacion_seguridad/cu04_gestionar_perfil/dominio/repositorios/perfil_repositorio.dart';
 import '../modulos/autenticacion_seguridad/cu04_gestionar_perfil/presentacion/pantallas/pantalla_perfil.dart';
-import '../modulos/catalogo/cu05_catalogo_placeholder/presentacion/pantallas/pantalla_catalogo_placeholder.dart';
+import '../modulos/catalogo/cu05_consultar_catalogo/presentacion/pantallas/pantalla_catalogo.dart';
 import '../modulos/catalogo/cu06_buscar_filtrar/presentacion/pantallas/pantalla_buscar_productos.dart';
 import '../modulos/catalogo/cu18_recomendaciones/presentacion/pantallas/pantalla_inicio.dart';
 import '../modulos/catalogo/cu36_consultar_colecciones/presentacion/pantallas/colecciones_screen.dart';
@@ -107,9 +107,10 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
         alIrAPerfil: () => _cambiarTab(3),
       ),
 
-      // 2. Catálogo (Placeholder en blanco listo para CU05)
-      PantallaCatalogoPlaceholder(
+      // 2. Catálogo (CU05: Consultar Catálogo de Prendas)
+      PantallaCatalogo(
         mostrarBottomNav: false,
+        habilitarImagenesRed: widget.habilitarImagenesRed,
         alIrAInicio: () => _cambiarTab(0),
         alIrABuscar: () => _cambiarTab(1),
         alIrAPerfil: () => _cambiarTab(3),

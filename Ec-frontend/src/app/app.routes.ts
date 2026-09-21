@@ -37,8 +37,8 @@ export const routes: Routes = [
         path: 'catalogo',
         loadComponent: () =>
           import(
-            './modules/catalogo/cu06_buscar_filtrar/paginas/buscar-productos.component'
-          ).then((m) => m.BuscarProductosComponent),
+            './modules/catalogo/cu05_consultar_catalogo/paginas/catalogo.component'
+          ).then((m) => m.CatalogoComponent),
         title: 'FASHION STORE | Catálogo & Exploración Atelier',
       },
       {
