@@ -26,6 +26,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -180,7 +181,10 @@ class VarianteProductoORM(Base):
     """Mapeo de la tabla `fashionstore.variantes_producto`."""
 
     __tablename__ = "variantes_producto"
-    __table_args__ = {"schema": "fashionstore"}
+    __table_args__ = (
+        UniqueConstraint("id_producto", "id_talla", "id_color", name="uq_variante_producto_talla_color"),
+        {"schema": "fashionstore"},
+    )
 
     id_variante: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     id_producto: Mapped[int] = mapped_column(
@@ -195,8 +199,14 @@ class VarianteProductoORM(Base):
     id_color: Mapped[int] = mapped_column(
         Integer, ForeignKey("fashionstore.colores.id_color"), nullable=False, index=True
     )
-    sku: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    sku: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     precio_extra: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=Decimal("0.00"))
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
 
     producto: Mapped["ProductoORM"] = relationship("ProductoORM", back_populates="variantes")
     talla: Mapped["TallaORM"] = relationship("TallaORM")

@@ -38,7 +38,12 @@ class UsuarioORM(Base):
     apellidos: Mapped[str] = mapped_column(String(100), nullable=False)
     telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     rol: Mapped[str] = mapped_column(rol_usuario_enum, nullable=False, default="cliente", index=True)
-    id_sucursal: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    id_sucursal: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("fashionstore.sucursales.id_sucursal"),
+        nullable=True,
+        index=True,
+    )
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     fecha_registro: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -55,6 +60,13 @@ class UsuarioORM(Base):
         back_populates="usuario",
         uselist=False,
         cascade="all, delete-orphan",
+        lazy="joined",
+    )
+
+    # Relacion N:1 con SucursalORM
+    sucursal: Mapped[Optional["SucursalORM"]] = relationship(
+        "modules.gestion_operativa.modelos.SucursalORM",
+        foreign_keys=[id_sucursal],
         lazy="joined",
     )
 

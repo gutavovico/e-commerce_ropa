@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { adminOnlyGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   {
@@ -57,6 +58,46 @@ export const routes: Routes = [
     path: 'catalogo',
     redirectTo: 'buscar',
     pathMatch: 'full',
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import(
+        './modules/admin/dashboard/admin-dashboard.component'
+      ).then((m) => m.AdminDashboardComponent),
+  },
+  {
+    path: 'admin/usuarios',
+    canActivate: [authGuard, adminOnlyGuard],
+    loadComponent: () =>
+      import(
+        './modules/autenticacion_seguridad/cu20_usuarios_roles/paginas/usuarios-admin.component'
+      ).then((m) => m.UsuariosAdminComponent),
+  },
+  {
+    path: 'admin/sucursales',
+    canActivate: [authGuard, adminOnlyGuard],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu21_sucursales_ciudades/paginas/sucursales-admin.component'
+      ).then((m) => m.SucursalesAdminComponent),
+  },
+  {
+    path: 'admin/atributos',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu23_categorias_tallas_colores/paginas/categorias-tallas-colores-admin.component'
+      ).then((m) => m.CategoriasTallasColoresAdminComponent),
+  },
+  {
+    path: 'admin/productos',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu22_prendas_productos/paginas/productos-admin.component'
+      ).then((m) => m.ProductosAdminComponent),
   },
   {
     path: '',

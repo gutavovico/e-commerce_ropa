@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnInit,
   inject,
   signal,
 } from '@angular/core';
@@ -23,10 +24,21 @@ import { LoginPeticion } from '../modelos/login.dto';
   styleUrls: ['./login.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
+
+  ngOnInit(): void {
+    const usuario = this.loginService.usuarioActual();
+    if (usuario) {
+      if (usuario.rol === 'administrador') {
+        this.router.navigate(['/admin']);
+      } else {
+        this.router.navigate(['/perfil']);
+      }
+    }
+  }
 
   // Estados reactivos con Signals
   readonly cargando = signal<boolean>(false);
@@ -77,12 +89,16 @@ export class LoginComponent {
     };
 
     this.loginService.iniciarSesion(peticion).subscribe({
-      next: () => {
+      next: (resp) => {
         this.cargando.set(false);
         this.exito.set(true);
-        // Redirigir tras autenticación exitosa
+        // Redirigir segun el rol del usuario autenticado
         setTimeout(() => {
-          this.router.navigate(['/perfil']);
+          if (resp.rol === 'administrador') {
+            this.router.navigate(['/admin']);
+          } else {
+            this.router.navigate(['/perfil']);
+          }
         }, 600);
       },
       error: (err: Error) => {

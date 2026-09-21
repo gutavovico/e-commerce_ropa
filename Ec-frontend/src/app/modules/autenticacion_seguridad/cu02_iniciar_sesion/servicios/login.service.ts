@@ -21,6 +21,7 @@ export class LoginService {
   // Estado reactivo de usuario con Signals
   readonly usuarioActual = signal<UsuarioSesion | null>(this.recuperarSesionInicial());
   readonly estaAutenticado = computed(() => this.usuarioActual() !== null);
+  readonly esAdmin = computed(() => this.usuarioActual()?.rol === 'administrador');
 
   /**
    * Envía las credenciales al backend de FastAPI y emite la respuesta.

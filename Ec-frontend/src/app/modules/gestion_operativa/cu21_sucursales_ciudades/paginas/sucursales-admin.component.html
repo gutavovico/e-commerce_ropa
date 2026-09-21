@@ -1,0 +1,754 @@
+<!-- Panel de Administracion Territorial: Boutiques y Ciudades Fashion Store -->
+<div class="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-slate-900 selection:text-white">
+
+  <!-- 1. Cabecera Institucional del Panel -->
+  <header class="w-full border-b border-slate-200 bg-white sticky top-0 z-30 shadow-sm">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <a routerLink="/admin" class="text-sm font-semibold tracking-widest text-slate-900 uppercase hover:opacity-80 transition-opacity">
+          FASHION STORE
+        </a>
+        <span class="text-slate-300">/</span>
+        <a routerLink="/admin" class="text-xs font-medium tracking-wider text-[#AD8C63] uppercase hover:underline">
+          ADMINISTRACION CORPORATIVA
+        </a>
+      </div>
+
+      <nav class="flex items-center space-x-6 text-xs font-medium tracking-wider uppercase">
+        <a
+          routerLink="/admin"
+          routerLinkActive="text-slate-900 font-semibold border-b-2 border-[#AD8C63] pb-1"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          PANEL PRINCIPAL
+        </a>
+        <a
+          routerLink="/perfil"
+          routerLinkActive="text-slate-900 font-semibold border-b-2 border-[#AD8C63] pb-1"
+          class="text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          MI CUENTA
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 2. Contenido Principal -->
+  <main class="max-w-[1440px] mx-auto px-6 py-8 flex-grow w-full flex flex-col">
+
+    <!-- Boton de Retorno al Panel Principal -->
+    <div class="mb-4">
+      <a
+        routerLink="/admin"
+        class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors uppercase tracking-wider group"
+      >
+        <svg class="w-4 h-4 text-[#AD8C63] group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span>Volver al Panel Principal</span>
+      </a>
+    </div>
+
+    <!-- Titulo Editorial y Acciones Globales -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
+      <div>
+        <p class="text-xs font-semibold tracking-widest text-[#AD8C63] uppercase">
+          GESTION TERRITORIAL Y OPERACIONES
+        </p>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+          Boutiques y Ciudades
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">
+          Supervision de puntos de venta fisicos, ateliers de costura y cobertura metropolitana.
+        </p>
+      </div>
+
+      <!-- Metricas Resumen -->
+      <div class="flex items-center gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-right shadow-xs">
+          <p class="text-xs font-medium text-slate-400 uppercase">Total Boutiques</p>
+          <p class="text-xl font-bold text-slate-900">{{ totalBoutiques() }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-right shadow-xs">
+          <p class="text-xs font-medium text-slate-400 uppercase">Activas</p>
+          <p class="text-xl font-bold text-emerald-600">{{ totalActivas() }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-right shadow-xs">
+          <p class="text-xs font-medium text-slate-400 uppercase">Inactivas</p>
+          <p class="text-xl font-bold text-slate-500">{{ totalInactivas() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Banner de Conflicto de Integridad 409 (AC-14) -->
+    @if (notificacionConflicto()) {
+      <div class="mt-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start justify-between shadow-xs">
+        <div class="flex items-start space-x-3">
+          <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h4 class="text-xs font-bold text-rose-900 uppercase tracking-wider">Restriccion de Operacion</h4>
+            <p class="text-xs text-rose-700 mt-1 leading-relaxed">{{ notificacionConflicto() }}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="limpiarAlertas()"
+          class="text-rose-400 hover:text-rose-700 transition-colors"
+          title="Cerrar notificacion"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- Banner de Exito -->
+    @if (mensajeExito()) {
+      <div class="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between shadow-xs">
+        <div class="flex items-center space-x-3 text-emerald-800 text-xs font-medium">
+          <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>{{ mensajeExito() }}</span>
+        </div>
+        <button
+          type="button"
+          (click)="limpiarAlertas()"
+          class="text-emerald-400 hover:text-emerald-700 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- Selector de Pestañas Principales -->
+    <div class="mt-6 flex items-center justify-between border-b border-slate-200">
+      <div class="flex space-x-8">
+        <button
+          type="button"
+          (click)="cambiarPestana('boutiques')"
+          [class.text-slate-900]="pestanaActiva() === 'boutiques'"
+          [class.border-[#AD8C63]]="pestanaActiva() === 'boutiques'"
+          [class.text-slate-400]="pestanaActiva() !== 'boutiques'"
+          [class.border-transparent]="pestanaActiva() !== 'boutiques'"
+          class="py-4 text-xs font-bold tracking-widest uppercase border-b-2 transition-colors flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          Boutiques & Sucursales ({{ totalBoutiques() }})
+        </button>
+
+        <button
+          type="button"
+          (click)="cambiarPestana('ciudades')"
+          [class.text-slate-900]="pestanaActiva() === 'ciudades'"
+          [class.border-[#AD8C63]]="pestanaActiva() === 'ciudades'"
+          [class.text-slate-400]="pestanaActiva() !== 'ciudades'"
+          [class.border-transparent]="pestanaActiva() !== 'ciudades'"
+          class="py-4 text-xs font-bold tracking-widest uppercase border-b-2 transition-colors flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Ciudades Operativas ({{ ciudades().length }})
+        </button>
+      </div>
+
+      <!-- Boton de Accion Contextual -->
+      @if (pestanaActiva() === 'boutiques') {
+        <button
+          type="button"
+          (click)="abrirModalNuevaBoutique()"
+          class="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg shadow-sm transition-all"
+        >
+          <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Nueva Boutique
+        </button>
+      } @else {
+        <button
+          type="button"
+          (click)="abrirModalNuevaCiudad()"
+          class="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg shadow-sm transition-all"
+        >
+          <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Nueva Ciudad
+        </button>
+      }
+    </div>
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 1: BOUTIQUES & SUCURSALES -->
+    <!-- ========================================== -->
+    @if (pestanaActiva() === 'boutiques') {
+
+      <!-- Barra de Filtros Reactivos -->
+      <div class="mt-6 p-4 bg-white border border-slate-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+        <!-- Buscador por texto -->
+        <div class="relative flex-grow max-w-md">
+          <input
+            type="text"
+            [value]="filtroBusqueda()"
+            (input)="actualizarFiltroBusqueda($any($event.target).value)"
+            placeholder="Buscar por nombre, direccion o ciudad..."
+            class="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 bg-slate-50 transition-colors"
+          />
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        <!-- Filtro por Ciudad -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-medium text-slate-500 uppercase">Ciudad:</label>
+          <select
+            [value]="filtroCiudad() ?? ''"
+            (change)="actualizarFiltroCiudad($any($event.target).value ? +$any($event.target).value : null)"
+            class="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-slate-900"
+          >
+            <option value="">Todas las Ciudades</option>
+            @for (ciudad of ciudades(); track ciudad.id_ciudad) {
+              <option [value]="ciudad.id_ciudad">{{ ciudad.nombre }} ({{ ciudad.pais }})</option>
+            }
+          </select>
+        </div>
+
+        <!-- Filtro por Estado Operativo -->
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+          <button
+            type="button"
+            (click)="actualizarFiltroEstado('todos')"
+            [class.bg-white]="filtroEstado() === 'todos'"
+            [class.shadow-xs]="filtroEstado() === 'todos'"
+            [class.text-slate-900]="filtroEstado() === 'todos'"
+            [class.text-slate-500]="filtroEstado() !== 'todos'"
+            class="text-xs font-medium px-3 py-1.5 rounded-md transition-all uppercase"
+          >
+            Todas
+          </button>
+          <button
+            type="button"
+            (click)="actualizarFiltroEstado('activa')"
+            [class.bg-white]="filtroEstado() === 'activa'"
+            [class.shadow-xs]="filtroEstado() === 'activa'"
+            [class.text-emerald-700]="filtroEstado() === 'activa'"
+            [class.text-slate-500]="filtroEstado() !== 'activa'"
+            class="text-xs font-medium px-3 py-1.5 rounded-md transition-all uppercase"
+          >
+            Activas
+          </button>
+          <button
+            type="button"
+            (click)="actualizarFiltroEstado('inactiva')"
+            [class.bg-white]="filtroEstado() === 'inactiva'"
+            [class.shadow-xs]="filtroEstado() === 'inactiva'"
+            [class.text-slate-700]="filtroEstado() === 'inactiva'"
+            [class.text-slate-500]="filtroEstado() !== 'inactiva'"
+            class="text-xs font-medium px-3 py-1.5 rounded-md transition-all uppercase"
+          >
+            Inactivas
+          </button>
+        </div>
+      </div>
+
+      <!-- Listado en Cuadricula Editorial de Boutiques -->
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (sucursal of sucursalesFiltradas(); track sucursal.id_sucursal) {
+          <div class="bg-white border border-slate-200 rounded-xl p-6 flex flex-col justify-between hover:border-slate-300 transition-all shadow-xs">
+            <div>
+              <!-- Insignias Superiores -->
+              <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md tracking-wider uppercase"
+                  [class.bg-emerald-50]="sucursal.activa"
+                  [class.text-emerald-700]="sucursal.activa"
+                  [class.border]="true"
+                  [class.border-emerald-200]="sucursal.activa"
+                  [class.bg-slate-100]="!sucursal.activa"
+                  [class.text-slate-600]="!sucursal.activa"
+                  [class.border-slate-200]="!sucursal.activa"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full"
+                    [class.bg-emerald-500]="sucursal.activa"
+                    [class.bg-slate-400]="!sucursal.activa"
+                  ></span>
+                  {{ sucursal.activa ? 'ACTIVA' : 'INACTIVA' }}
+                </span>
+
+                <span class="text-xs font-medium text-[#AD8C63] uppercase tracking-wider bg-[#FAF7F2] px-2.5 py-1 rounded-md border border-[#ECE4D8]">
+                  {{ sucursal.ciudad_nombre }}
+                </span>
+              </div>
+
+              <!-- Titulo y Ubicacion -->
+              <div class="mt-4">
+                <h3 class="text-base font-bold text-slate-900 tracking-tight leading-snug">
+                  {{ sucursal.nombre }}
+                </h3>
+                <div class="mt-2 flex items-start gap-2 text-xs text-slate-500">
+                  <svg class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span class="leading-relaxed">{{ sucursal.direccion }}</span>
+                </div>
+              </div>
+
+              <!-- Horarios y Telefono -->
+              <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p class="text-slate-400 uppercase font-medium text-[10px]">Horario de Atencion</p>
+                  <p class="text-slate-700 font-semibold mt-0.5 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {{ sucursal.horario_apertura }} - {{ sucursal.horario_cierre }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-slate-400 uppercase font-medium text-[10px]">Contacto</p>
+                  <p class="text-slate-700 font-semibold mt-0.5">
+                    {{ sucursal.telefono || 'Sin telefono' }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Indicadores de Stock y Operacion -->
+              <div class="mt-4 bg-slate-50 rounded-lg p-3 grid grid-cols-3 gap-2 text-center text-xs">
+                <div>
+                  <p class="text-[10px] uppercase text-slate-400 font-medium">Personal</p>
+                  <p class="font-bold text-slate-900 mt-0.5">{{ sucursal.total_empleados }}</p>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase text-slate-400 font-medium">Prendas</p>
+                  <p class="font-bold text-slate-900 mt-0.5">{{ sucursal.total_prendas_stock }}</p>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase text-slate-400 font-medium">Reservas</p>
+                  <p class="font-bold text-slate-900 mt-0.5" [class.text-amber-600]="sucursal.reservas_activas_conteo > 0">
+                    {{ sucursal.reservas_activas_conteo }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Acciones de la Tarjeta -->
+            <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                (click)="alternarEstadoSucursal(sucursal)"
+                [disabled]="guardando()"
+                class="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5"
+                [class.border-slate-200]="sucursal.activa"
+                [class.text-slate-600]="sucursal.activa"
+                [class.hover:bg-slate-100]="sucursal.activa"
+                [class.border-emerald-300]="!sucursal.activa"
+                [class.text-emerald-700]="!sucursal.activa"
+                [class.hover:bg-emerald-50]="!sucursal.activa"
+              >
+                {{ sucursal.activa ? 'Desactivar' : 'Activar' }}
+              </button>
+
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="abrirModalEditarBoutique(sucursal)"
+                  class="text-xs font-medium text-slate-700 hover:text-black px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-400 transition-colors"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  (click)="solicitarEliminacion('boutique', sucursal.id_sucursal, sucursal.nombre)"
+                  class="text-xs font-medium text-rose-600 hover:text-rose-800 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 transition-colors"
+                  title="Eliminar boutique"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="col-span-full py-16 text-center bg-white border border-slate-200 rounded-xl">
+            <svg class="w-12 h-12 text-slate-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <p class="text-sm font-semibold text-slate-700 mt-3">No se encontraron boutiques</p>
+            <p class="text-xs text-slate-400 mt-1">Intente ajustar los parametros de busqueda o registre una nueva boutique.</p>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 2: CIUDADES OPERATIVAS -->
+    <!-- ========================================== -->
+    @if (pestanaActiva() === 'ciudades') {
+      <div class="mt-6 bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              Catalogo Metropolitano
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Ciudades autorizadas para la implantacion de boutiques, talleres y puntos de retiro.
+            </p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+              <tr>
+                <th class="px-6 py-3">ID</th>
+                <th class="px-6 py-3">Ciudad</th>
+                <th class="px-6 py-3">Pais</th>
+                <th class="px-6 py-3 text-center">Boutiques Vinculadas</th>
+                <th class="px-6 py-3">Fecha de Registro</th>
+                <th class="px-6 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (ciudad of ciudades(); track ciudad.id_ciudad) {
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                  <td class="px-6 py-4 font-mono text-slate-400">#{{ ciudad.id_ciudad }}</td>
+                  <td class="px-6 py-4 font-bold text-slate-900">{{ ciudad.nombre }}</td>
+                  <td class="px-6 py-4 text-slate-600">{{ ciudad.pais }}</td>
+                  <td class="px-6 py-4 text-center">
+                    <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                      [class.bg-slate-100]="ciudad.total_sucursales === 0"
+                      [class.text-slate-600]="ciudad.total_sucursales === 0"
+                      [class.bg-[#FAF7F2]]="ciudad.total_sucursales > 0"
+                      [class.text-[#AD8C63]]="ciudad.total_sucursales > 0"
+                      [class.border]="ciudad.total_sucursales > 0"
+                      [class.border-[#ECE4D8]="ciudad.total_sucursales > 0"
+                    >
+                      {{ ciudad.total_sucursales }} {{ ciudad.total_sucursales === 1 ? 'boutique' : 'boutiques' }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-slate-500">
+                    {{ ciudad.creado_en | date:'dd/MM/yyyy' }}
+                  </td>
+                  <td class="px-6 py-4 text-right space-x-2">
+                    <button
+                      type="button"
+                      (click)="abrirModalEditarCiudad(ciudad)"
+                      class="text-slate-600 hover:text-slate-900 font-medium transition-colors"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      (click)="solicitarEliminacion('ciudad', ciudad.id_ciudad, ciudad.nombre)"
+                      class="text-rose-600 hover:text-rose-800 font-medium transition-colors ml-3"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                    No hay ciudades territoriales registradas.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL: NUEVA / EDITAR BOUTIQUE -->
+  <!-- ========================================== -->
+  @if (modalBoutiqueAbierto()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div>
+            <p class="text-xs font-semibold text-[#AD8C63] uppercase tracking-wider">
+              {{ boutiqueEnEdicion() ? 'Edicion Editorial' : 'Alta de Establecimiento' }}
+            </p>
+            <h2 class="text-lg font-bold text-slate-900 mt-0.5">
+              {{ boutiqueEnEdicion() ? 'Actualizar Boutique' : 'Registrar Nueva Boutique' }}
+            </h2>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalBoutique()"
+            class="text-slate-400 hover:text-slate-700 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Alerta de Conflicto en Formulario (AC-14) -->
+        @if (notificacionConflicto()) {
+          <div class="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+            <span class="font-bold">Conflicto:</span> {{ notificacionConflicto() }}
+          </div>
+        }
+
+        <form [formGroup]="formularioBoutique" (ngSubmit)="guardarBoutique()" class="mt-4 space-y-4">
+          <!-- Ciudad -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Ciudad Territorial *
+            </label>
+            <select
+              formControlName="id_ciudad"
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:border-slate-900"
+            >
+              <option [value]="0" disabled>Seleccione una ciudad...</option>
+              @for (ciudad of ciudades(); track ciudad.id_ciudad) {
+                <option [value]="ciudad.id_ciudad">{{ ciudad.nombre }} ({{ ciudad.pais }})</option>
+              }
+            </select>
+            @if (formularioBoutique.get('id_ciudad')?.touched && formularioBoutique.get('id_ciudad')?.errors) {
+              <p class="text-[11px] text-rose-600 mt-1">La seleccion de ciudad es obligatoria.</p>
+            }
+          </div>
+
+          <!-- Nombre -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Nombre de la Boutique *
+            </label>
+            <input
+              type="text"
+              formControlName="nombre"
+              placeholder="Ej. Atelier Serrano Haute Couture"
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+            />
+            @if (formularioBoutique.get('nombre')?.touched && formularioBoutique.get('nombre')?.errors) {
+              <p class="text-[11px] text-rose-600 mt-1">El nombre debe tener al menos 3 caracteres.</p>
+            }
+          </div>
+
+          <!-- Direccion -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Direccion Fisica *
+            </label>
+            <input
+              type="text"
+              formControlName="direccion"
+              placeholder="Ej. Calle de Serrano 45, Planta Baja"
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+            />
+            @if (formularioBoutique.get('direccion')?.touched && formularioBoutique.get('direccion')?.errors) {
+              <p class="text-[11px] text-rose-600 mt-1">La direccion es obligatoria (minimo 5 caracteres).</p>
+            }
+          </div>
+
+          <!-- Telefono -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Telefono de Contacto
+            </label>
+            <input
+              type="text"
+              formControlName="telefono"
+              placeholder="+34 910 123 456"
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+
+          <!-- Horarios de Apertura y Cierre -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Apertura (HH:mm) *
+              </label>
+              <input
+                type="text"
+                formControlName="horario_apertura"
+                placeholder="10:00"
+                class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 font-mono focus:outline-none focus:border-slate-900"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Cierre (HH:mm) *
+              </label>
+              <input
+                type="text"
+                formControlName="horario_cierre"
+                placeholder="20:30"
+                class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 font-mono focus:outline-none focus:border-slate-900"
+              />
+            </div>
+          </div>
+
+          <!-- Validacion de Coherencia Horaria (AC-13) -->
+          @if (formularioBoutique.errors?.['horarioInvalido']) {
+            <div class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center gap-2">
+              <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>El horario de cierre debe ser posterior a la hora de apertura.</span>
+            </div>
+          }
+
+          <!-- Botones de Accion -->
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              (click)="cerrarModalBoutique()"
+              class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors uppercase"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="guardando() || formularioBoutique.invalid"
+              class="px-5 py-2 text-xs font-bold text-white bg-[#0F172A] hover:bg-black disabled:bg-slate-300 rounded-lg transition-colors uppercase tracking-wider shadow-xs"
+            >
+              {{ guardando() ? 'Guardando...' : (boutiqueEnEdicion() ? 'Actualizar' : 'Registrar') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- MODAL: NUEVA / EDITAR CIUDAD -->
+  <!-- ========================================== -->
+  @if (modalCiudadAbierto()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div>
+            <p class="text-xs font-semibold text-[#AD8C63] uppercase tracking-wider">
+              Territorio
+            </p>
+            <h2 class="text-lg font-bold text-slate-900 mt-0.5">
+              {{ ciudadEnEdicion() ? 'Editar Ciudad' : 'Registrar Nueva Ciudad' }}
+            </h2>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalCiudad()"
+            class="text-slate-400 hover:text-slate-700 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        @if (notificacionConflicto()) {
+          <div class="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+            <span class="font-bold">Conflicto:</span> {{ notificacionConflicto() }}
+          </div>
+        }
+
+        <form [formGroup]="formularioCiudad" (ngSubmit)="guardarCiudad()" class="mt-4 space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Nombre de la Ciudad *
+            </label>
+            <input
+              type="text"
+              formControlName="nombre"
+              placeholder="Ej. Madrid"
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+            />
+            @if (formularioCiudad.get('nombre')?.touched && formularioCiudad.get('nombre')?.errors) {
+              <p class="text-[11px] text-rose-600 mt-1">El nombre de la ciudad es obligatorio (minimo 2 caracteres).</p>
+            }
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Pais *
+            </label>
+            <input
+              type="text"
+              formControlName="pais"
+              placeholder="Ej. Espana"
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              (click)="cerrarModalCiudad()"
+              class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors uppercase"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="guardando() || formularioCiudad.invalid"
+              class="px-5 py-2 text-xs font-bold text-white bg-[#0F172A] hover:bg-black disabled:bg-slate-300 rounded-lg transition-colors uppercase tracking-wider shadow-xs"
+            >
+              {{ guardando() ? 'Guardando...' : (ciudadEnEdicion() ? 'Actualizar' : 'Registrar') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- MODAL: CONFIRMAR ELIMINACION -->
+  <!-- ========================================== -->
+  @if (modalEliminarAbierto()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center">
+        <div class="w-12 h-12 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto text-rose-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </div>
+
+        <h3 class="text-base font-bold text-slate-900 mt-4">
+          Confirmar Eliminacion
+        </h3>
+        <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+          Esta a punto de eliminar
+          <span class="font-bold text-slate-800">"{{ elementoAEliminar()?.nombre }}"</span>.
+          Esta accion no podra completarse si existen operaciones o entidades vinculadas.
+        </p>
+
+        <div class="mt-6 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            (click)="cerrarModalEliminar()"
+            class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors uppercase"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="confirmarEliminacion()"
+            [disabled]="guardando()"
+            class="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 rounded-lg transition-colors uppercase tracking-wider shadow-xs"
+          >
+            {{ guardando() ? 'Eliminando...' : 'Eliminar Definitivamente' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

@@ -9,10 +9,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 import { CatalogoService } from '../../servicios/catalogo.service';
+import { LoginService } from '../../../autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 import {
   FiltrosBusquedaState,
   ProductoItem,
@@ -21,16 +22,21 @@ import {
 @Component({
   selector: 'app-buscar-productos',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
   templateUrl: './buscar-productos.component.html',
   styleUrls: ['./buscar-productos.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BuscarProductosComponent implements OnInit, OnDestroy {
   protected readonly catalogoService = inject(CatalogoService);
+  private readonly loginService = inject(LoginService, { optional: true });
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroy$ = new Subject<void>();
+
+  protected readonly esAdmin = computed(() => {
+    return this.loginService?.usuarioActual()?.rol === 'administrador';
+  });
 
   // Signals derivadas del servicio
   protected readonly productos = this.catalogoService.productos;
