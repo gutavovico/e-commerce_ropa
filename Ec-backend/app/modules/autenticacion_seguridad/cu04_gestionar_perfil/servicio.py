@@ -98,10 +98,7 @@ class ServicioPerfilCliente:
 
         # Actualización de campos de ClienteORM
         if datos.fecha_nacimiento is not None:
-            cliente.fecha_nacimiento = datetime.combine(
-                datos.fecha_nacimiento,
-                datetime.min.time(),
-            )
+            cliente.fecha_nacimiento = datos.fecha_nacimiento
         if datos.genero is not None:
             cliente.genero = datos.genero
         if datos.talla_preferida is not None:

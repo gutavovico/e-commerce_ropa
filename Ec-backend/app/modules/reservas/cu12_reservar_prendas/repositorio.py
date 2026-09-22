@@ -151,7 +151,12 @@ class ReservaRepositorio:
         saldo_anterior: int = 0,
         saldo_nuevo: int = 0,
     ) -> MovimientoInventarioORM:
-        """Registra la auditoría física inmutable de reserva en movimientos_inventario."""
+        """Registra la auditoría física inmutable de reserva en movimientos_inventario.
+
+        `saldo_anterior` y `saldo_nuevo` son las existencias disponibles antes y después del
+        apartado. Sin ellos la bitácora solo dice cuántas unidades se movieron, no desde qué
+        cifra hasta cuál, que es lo que permite reconstruir el inventario a posteriori.
+        """
         movimiento = MovimientoInventarioORM(
             id_inventario=id_inventario,
             tipo_movimiento="reserva",

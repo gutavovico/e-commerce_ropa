@@ -6,6 +6,7 @@ import '../modulos/catalogo/cu06_buscar_filtrar/presentacion/pantallas/pantalla_
 import '../modulos/catalogo/cu18_recomendaciones/presentacion/pantallas/pantalla_inicio.dart';
 import '../modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../modulos/catalogo/cu36_consultar_colecciones/presentacion/pantallas/colecciones_screen.dart';
+import '../modulos/compras_pagos/cu11_gestionar_carrito/presentacion/pantallas/shopping_bag_screen.dart';
 
 /// Contenedor Principal (Hub) que orquesta las 4 pantallas raíz del sistema FashionStore:
 /// - Índice 0: Inicio (/inicio - Atelier & Recomendaciones)
@@ -74,6 +75,21 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
     }
   }
 
+  /// Abre la Bolsa de Compra como pantalla hoja (`Navigator.push`).
+  ///
+  /// Se apila sobre el hub en lugar de ocupar una pestaña: conforme a la directriz
+  /// Hub-and-Spoke sólo existen 4 pantallas raíz, y la bolsa es una vista secundaria.
+  void _abrirBolsa() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ShoppingBagScreen(
+          token: widget.token,
+          habilitarImagenesRed: widget.habilitarImagenesRed,
+        ),
+      ),
+    );
+  }
+
   void _abrirColecciones() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -109,6 +125,7 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
         alIrACatalogo: () => _cambiarTab(2),
         alIrAPerfil: () => _cambiarTab(3),
         alIrAColecciones: _abrirColecciones,
+        alIrABolsa: _abrirBolsa,
       ),
 
       // 1. Buscar

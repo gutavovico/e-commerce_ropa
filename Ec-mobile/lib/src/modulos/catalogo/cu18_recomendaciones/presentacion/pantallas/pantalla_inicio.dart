@@ -12,6 +12,8 @@ class PantallaInicio extends StatefulWidget {
   final VoidCallback? alIrACatalogo;
   final VoidCallback? alIrAPerfil;
   final VoidCallback? alIrAColecciones;
+  /// Abre la Bolsa de Compra como pantalla hoja.
+  final VoidCallback? alIrABolsa;
   final bool mostrarBottomNav;
   final bool habilitarImagenesRed;
 
@@ -24,6 +26,7 @@ class PantallaInicio extends StatefulWidget {
     this.alIrACatalogo,
     this.alIrAPerfil,
     this.alIrAColecciones,
+    this.alIrABolsa,
     this.mostrarBottomNav = true,
     this.habilitarImagenesRed = true,
   });
@@ -176,6 +179,13 @@ class _PantallaInicioState extends State<PantallaInicio> {
           icon: const Icon(Icons.notifications_none_outlined, color: Colors.black),
           onPressed: () {},
           tooltip: 'Notificaciones',
+        ),
+        // Acceso a la Bolsa de Compra. Es una pantalla hoja, no una quinta pestaña:
+        // la directriz Hub-and-Spoke fija en 4 las pantallas raíz.
+        IconButton(
+          icon: const Icon(Icons.shopping_bag_outlined, color: Colors.black),
+          onPressed: widget.alIrABolsa,
+          tooltip: 'Bolsa de compra',
         ),
         GestureDetector(
           onTap: widget.alIrAPerfil,

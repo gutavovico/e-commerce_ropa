@@ -32,7 +32,11 @@ from core.errors import (
     ConflictError,
     DomainError,
     NotFoundError,
+<<<<<<< Updated upstream
     UnprocessableEntityError,
+=======
+    PaymentRequiredError,
+>>>>>>> Stashed changes
 )
 
 app = FastAPI(
@@ -113,6 +117,13 @@ async def authentication_handler(_request: Request, exc: AuthenticationError) ->
 @app.exception_handler(AuthorizationError)
 async def authorization_handler(_request: Request, exc: AuthorizationError) -> JSONResponse:
     return _domain_error_response(403, exc)
+
+
+@app.exception_handler(PaymentRequiredError)
+async def payment_required_handler(
+    _request: Request, exc: PaymentRequiredError
+) -> JSONResponse:
+    return _domain_error_response(402, exc)
 
 
 @app.exception_handler(DomainError)

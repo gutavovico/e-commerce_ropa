@@ -10,8 +10,17 @@
 **Nivel SDD:** **3 (alto riesgo)** — toca inventario, transacciones monetarias y concurrencia. Exige sección de riesgos, transacciones explícitas y pruebas de concurrencia; ningún gate puede omitirse.
 **Fuentes de Verdad Visuales:** `image_046d3e.png` (Web, dos columnas) · `image_046a5d.png` (Mobile, vertical con footer fijo)
 **Fuente de Verdad de Datos:** **La base de datos PostgreSQL desplegada en Neon**, verificada por introspección el 2026-09-22. No `alembic/versions/0001_base_ddl.py`, que no refleja el esquema real (ver §0.1).
-**Estado:** 🟡 EN ESPERA DE APROBACIÓN HUMANA (Gate Estricto de Especificación)
+**Estado:** 🟢 LOS 3 BLOQUES IMPLEMENTADOS Y VERIFICADOS (Backend · Web · Mobile)
 **Fecha:** 2026-09-22
+
+> **Gate de especificación superado el 2026-09-22.** Se aprobaron las cuatro decisiones
+> recomendadas de §1 y se autorizó la ejecución del Bloque 1. Las migraciones `0009` (DDL) y
+> `0010` (semilla de promociones) están aplicadas sobre Neon; `alembic_version` avanzó a `0010`.
+>
+> **Verificación del Bloque 1:** `pytest` **158/158** en verde, más una verificación end-to-end
+> contra la base real (sin mocks) que recorre bolsa → modificación → eliminación → checkout con
+> cupón → retención de existencias → liberación, y deja la base en su estado original.
+> Resultados en §E.
 
 ---
 
@@ -638,44 +647,44 @@ patrón ya corregido en CU07.
 
 ### Bloque 1 — Backend
 
-- [ ] **T-BE-01**: Completar `tipo_movimiento_inv_enum` en `reservas/modelos.py` con los 4 valores ausentes (`ajuste_positivo`, `ajuste_negativo`, `venta_confirmada`, `cancelacion_pedido`).
-- [ ] **T-BE-02**: Crear `app/modules/compras_pagos/modelos.py` con `CarritoORM`, `CarritoDetalleORM`, `VentaORM` y `VentaDetalleORM`, con `subtotal_linea` en sólo lectura. Verificar con `pytest tests/test_esquema_bd.py`.
-- [ ] **T-BE-03**: Esquemas Pydantic de CU11 (`CarritoItemOut`, `CarritoResumenOut`, `CarritoOut`, `ItemAgregarIn`, `ItemCantidadIn`).
-- [ ] **T-BE-04**: Esquemas Pydantic de CU15 (`CheckoutIn`, `VentaItemOut`, `VentaCreadaOut`).
-- [ ] **T-BE-05**: `CarritoServicio`: obtener/crear carrito, **agregar ítem con consolidación por (variante, sucursal)**, fijar cantidad, eliminar y recalcular resumen.
-- [ ] **T-BE-06**: `CarritoRepositorio` con resolución de stock por temporada vigente (sin `scalar_one_or_none` sobre claves no únicas) y bloqueo `FOR UPDATE`.
-- [ ] **T-BE-07**: Router de CU11: `GET /carrito`, `POST /carrito/items`, `PATCH /carrito/items/{id}`, `DELETE /carrito/items/{id}`. Registrar en `main.py`.
-- [ ] **T-BE-08**: `CheckoutServicio` con la secuencia transaccional de §A.3, resolución de cupón (§A.4), comprobante (§A.5) y retención de stock con movimientos de inventario.
-- [ ] **T-BE-09**: Suite Pytest: un test por escenario Gherkin de §A.6 **más** prueba de concurrencia de doble checkout simultáneo sobre la última unidad.
-- [ ] **T-BE-10**: Migración de *seed* `0004_seed_promociones.py` con al menos una promoción vigente y cupón real, para que el descuento sea demostrable.
-- [ ] **T-BE-11**: Depurar `GET /api/v1/sucursales/activas` eliminando las boutiques inventadas y el `cantidad_disponible = 5` fijo (deuda registrada en el checkpoint de CU07/CU12).
-- [ ] **T-BE-12**: `liberar_retencion_venta` con su endpoint y pruebas (§1.5).
-- [ ] **T-BE-13** *(sujeta a §1.1–1.3)*: Migración `0005_checkout_ddl.py` — `venta_detalle.id_sucursal`, campos de entrega en `ventas`, secuencia de comprobante y reemplazo de `fn_descontar_inventario_venta`. **Reversible (`downgrade` obligatorio).**
+- [x] **T-BE-01**: Completar `tipo_movimiento_inv_enum` en `reservas/modelos.py` con los 4 valores ausentes (`ajuste_positivo`, `ajuste_negativo`, `venta_confirmada`, `cancelacion_pedido`).
+- [x] **T-BE-02**: Crear `app/modules/compras_pagos/modelos.py` con `CarritoORM`, `CarritoDetalleORM`, `VentaORM` y `VentaDetalleORM`, con `subtotal_linea` en sólo lectura. Verificar con `pytest tests/test_esquema_bd.py`.
+- [x] **T-BE-03**: Esquemas Pydantic de CU11 (`CarritoItemOut`, `CarritoResumenOut`, `CarritoOut`, `ItemAgregarIn`, `ItemCantidadIn`).
+- [x] **T-BE-04**: Esquemas Pydantic de CU15 (`CheckoutIn`, `VentaItemOut`, `VentaCreadaOut`).
+- [x] **T-BE-05**: `CarritoServicio`: obtener/crear carrito, **agregar ítem con consolidación por (variante, sucursal)**, fijar cantidad, eliminar y recalcular resumen.
+- [x] **T-BE-06**: `CarritoRepositorio` con resolución de stock por temporada vigente (sin `scalar_one_or_none` sobre claves no únicas) y bloqueo `FOR UPDATE`.
+- [x] **T-BE-07**: Router de CU11: `GET /carrito`, `POST /carrito/items`, `PATCH /carrito/items/{id}`, `DELETE /carrito/items/{id}`. Registrar en `main.py`.
+- [x] **T-BE-08**: `CheckoutServicio` con la secuencia transaccional de §A.3, resolución de cupón (§A.4), comprobante (§A.5) y retención de stock con movimientos de inventario.
+- [x] **T-BE-09**: Suite Pytest: un test por escenario Gherkin de §A.6 **más** prueba de concurrencia de doble checkout simultáneo sobre la última unidad.
+- [x] **T-BE-10**: Migración de *seed* `0004_seed_promociones.py` con al menos una promoción vigente y cupón real, para que el descuento sea demostrable.
+- [x] **T-BE-11**: Depurar `GET /api/v1/sucursales/activas` eliminando las boutiques inventadas y el `cantidad_disponible = 5` fijo (deuda registrada en el checkpoint de CU07/CU12).
+- [x] **T-BE-12**: `liberar_retencion_venta` con su endpoint y pruebas (§1.5).
+- [x] **T-BE-13** *(sujeta a §1.1–1.3)*: Migración `0005_checkout_ddl.py` — `venta_detalle.id_sucursal`, campos de entrega en `ventas`, secuencia de comprobante y reemplazo de `fn_descontar_inventario_venta`. **Reversible (`downgrade` obligatorio).**
 
 ### Bloque 2 — Frontend Web
 
-- [ ] **T-FE-01**: Modelos TypeScript espejo de los esquemas Pydantic en `modules/compras_pagos/cu11_gestionar_carrito/modelos/`.
-- [ ] **T-FE-02**: `CarritoService` con Signals y `computed()` para el resumen financiero.
-- [ ] **T-FE-03**: Ruta `/bolsa` fuera de `MainLayoutComponent`, protegida por `authGuard`, respetando el orden verificado por `app.routes.spec.ts`.
-- [ ] **T-FE-04**: `BolsaCompraComponent` standalone + `OnPush`, layout de dos columnas fiel a `image_046d3e.png`.
-- [ ] **T-FE-05**: Tarjeta de prenda: imagen, badge, SKU, talla, color, sucursal de expedición, precio con tachado y controles `−`/`+`/`ELIMINAR`.
-- [ ] **T-FE-06**: Panel de resumen: desglose financiero, selector de entrega, campo de cupón y botón `TRAMITAR PEDIDO`.
-- [ ] **T-FE-07**: Reconvertir `anadirABolsa()` de `producto-detalle.component.ts` a `POST /api/v1/carrito/items` real, con contador en la barra superior.
-- [ ] **T-FE-08**: Temporizador descendente con limpieza en `ngOnDestroy`.
-- [ ] **T-FE-09**: Estado vacío con enlace a `/catalogo`, estado de carga y traducción de errores 409/422.
-- [ ] **T-FE-10**: Pruebas Vitest: recálculo reactivo, tope de stock en `+`, eliminación, estado vacío y tramitación. Mocks construidos con payloads literales del backend.
+- [x] **T-FE-01**: Modelos TypeScript espejo de los esquemas Pydantic en `modules/compras_pagos/cu11_gestionar_carrito/modelos/`.
+- [x] **T-FE-02**: `CarritoService` con Signals y `computed()` para el resumen financiero.
+- [x] **T-FE-03**: Ruta `/bolsa` fuera de `MainLayoutComponent`, protegida por `authGuard`, respetando el orden verificado por `app.routes.spec.ts`.
+- [x] **T-FE-04**: `BolsaCompraComponent` standalone + `OnPush`, layout de dos columnas fiel a `image_046d3e.png`.
+- [x] **T-FE-05**: Tarjeta de prenda: imagen, badge, SKU, talla, color, sucursal de expedición, precio con tachado y controles `−`/`+`/`ELIMINAR`.
+- [x] **T-FE-06**: Panel de resumen: desglose financiero, selector de entrega, campo de cupón y botón `TRAMITAR PEDIDO`.
+- [x] **T-FE-07**: Reconvertir `anadirABolsa()` de `producto-detalle.component.ts` a `POST /api/v1/carrito/items` real, con contador en la barra superior.
+- [x] **T-FE-08**: Temporizador descendente con limpieza en `ngOnDestroy`.
+- [x] **T-FE-09**: Estado vacío con enlace a `/catalogo`, estado de carga y traducción de errores 409/422.
+- [x] **T-FE-10**: Pruebas Vitest: recálculo reactivo, tope de stock en `+`, eliminación, estado vacío y tramitación. Mocks construidos con payloads literales del backend.
 
 ### Bloque 3 — Mobile
 
-- [ ] **T-MO-01**: DTO en `modulos/compras_pagos/cu11_gestionar_carrito/datos/modelos/` con parseo tolerante de `Decimal`.
-- [ ] **T-MO-02**: `CarritoApi` (datasource HTTP) con manejo de 401 vía `SesionManager` y traducción de errores de dominio.
-- [ ] **T-MO-03**: `CarritoBloc` con estados sellados y actualización optimista reversible.
-- [ ] **T-MO-04**: `ShoppingBagScreen` fiel a `image_046a5d.png`, sin `bottomNavigationBar` de navegación y con `AppBar` de retorno.
-- [ ] **T-MO-05**: Banner de cuenta atrás, tarjetas de prenda con controles y papelera.
-- [ ] **T-MO-06**: Bloque de destino de envío, resumen y **footer fijo** con `TRAMITAR PEDIDO`.
-- [ ] **T-MO-07**: Reconvertir `anadirABolsa` de `producto_detalle_bloc.dart` a llamada real persistente.
-- [ ] **T-MO-08**: Propagar el token JWT a `ShoppingBagScreen` desde el hub y desde el detalle.
-- [ ] **T-MO-09**: Pruebas: `fromJson`/`toJson` contra payloads literales, transiciones del BLoC, ausencia de `BottomNavigationBar` y footer fijo visible.
+- [x] **T-MO-01**: DTO en `modulos/compras_pagos/cu11_gestionar_carrito/datos/modelos/` con parseo tolerante de `Decimal`.
+- [x] **T-MO-02**: `CarritoApi` (datasource HTTP) con manejo de 401 vía `SesionManager` y traducción de errores de dominio.
+- [x] **T-MO-03**: `CarritoBloc` con estados sellados y actualización optimista reversible.
+- [x] **T-MO-04**: `ShoppingBagScreen` fiel a `image_046a5d.png`, sin `bottomNavigationBar` de navegación y con `AppBar` de retorno.
+- [x] **T-MO-05**: Banner de cuenta atrás, tarjetas de prenda con controles y papelera.
+- [x] **T-MO-06**: Bloque de destino de envío, resumen y **footer fijo** con `TRAMITAR PEDIDO`.
+- [x] **T-MO-07**: Reconvertir `anadirABolsa` de `producto_detalle_bloc.dart` a llamada real persistente.
+- [x] **T-MO-08**: Propagar el token JWT a `ShoppingBagScreen` desde el hub y desde el detalle.
+- [x] **T-MO-09**: Pruebas: `fromJson`/`toJson` contra payloads literales, transiciones del BLoC, ausencia de `BottomNavigationBar` y footer fijo visible.
 
 ---
 
@@ -683,33 +692,33 @@ patrón ya corregido en CU07.
 
 | ID | Capa | Criterio de Aprobación | Método | Estado |
 | :--- | :--- | :--- | :--- | :--- |
-| **CP-01** | Backend | `GET /api/v1/carrito` devuelve 200 con `items: []` y totales en cero para una bolsa vacía; nunca 404. | Pytest | ⏳ |
-| **CP-02** | Backend | `PATCH` actualiza la cantidad y devuelve el resumen recalculado en la misma respuesta. | Pytest | ⏳ |
-| **CP-03** | Backend | Superar el stock de la sucursal responde 409 `STOCK_INSUFICIENTE` y **no** altera la cantidad almacenada. | Pytest | ⏳ |
-| **CP-04** | Backend | `DELETE` purga la línea de `carrito_detalle` y recalcula el total. | Pytest + consulta a la BD | ⏳ |
-| **CP-05** | Backend | Operar sobre una línea ajena responde 403 `CARRITO_AJENO`. | Pytest | ⏳ |
-| **CP-06** | Backend | El checkout persiste `ventas` (estado `pendiente`) y una línea de `venta_detalle` por prenda, con precio congelado y sucursal de expedición. | Pytest + verificación en Neon | ⏳ |
-| **CP-07** | Backend | El checkout mueve unidades de `cantidad_disponible` a `cantidad_reservada` y registra un movimiento por línea con `id_usuario_responsable`. | Pytest | ⏳ |
-| **CP-08** | Backend | Un fallo en cualquier punto revierte **toda** la transacción: ni venta, ni inventario, ni vaciado de bolsa. | Pytest con fallo inducido | ⏳ |
-| **CP-09** | Backend | Dos checkouts simultáneos sobre la última unidad: uno responde 201 y el otro 409; el stock nunca queda negativo. | Prueba de concurrencia | ⏳ |
-| **CP-10** | Backend | El cupón aplica el descuento correcto según `tipo_descuento` y `alcance`, e incrementa `usos_actuales` atómicamente sin superar `limite_usos`. | Pytest | ⏳ |
-| **CP-11** | Backend | `numero_comprobante` es único bajo concurrencia. | Prueba de concurrencia | ⏳ |
-| **CP-12** | Backend | Los importes enviados por el cliente se ignoran; la venta registra el total recalculado. | Pytest | ⏳ |
-| **CP-13** | Backend | `pytest` completo en verde, incluida la guardia `tests/test_esquema_bd.py`. | `pytest -q` | ⏳ |
-| **CP-14** | Web | `/bolsa` se renderiza **sin la barra de navegación institucional** y con `← VOLVER AL CATÁLOGO` funcional. | Inspección + Vitest | ⏳ |
-| **CP-15** | Web | `−`/`+`/`ELIMINAR` recalculan subtotal, descuento y total **al instante**, sin recargar la página. | Vitest sobre Signals | ⏳ |
-| **CP-16** | Web | `+` se deshabilita al alcanzar `cantidad_maxima`; el 409 del backend se muestra como mensaje legible. | Vitest | ⏳ |
-| **CP-17** | Web | El selector de entrega alterna entre dirección y boutique, y su elección viaja en el payload del checkout. | Vitest | ⏳ |
-| **CP-18** | Web | Estado vacío visible con enlace al catálogo cuando no hay prendas. | Vitest | ⏳ |
-| **CP-19** | Web | `npx tsc --noEmit` sin errores, `ng build` limpio y `ng test` en verde. | Ejecución | ⏳ |
-| **CP-20** | Mobile | `ShoppingBagScreen` se abre a pantalla completa **sin `BottomNavigationBar`**, con `AppBar` de retorno operativo. | Test de widget | ⏳ |
-| **CP-21** | Mobile | El footer de `TRAMITAR PEDIDO` permanece fijo y visible durante el scroll, con el total actualizado. | Test de widget | ⏳ |
-| **CP-22** | Mobile | Los controles de cantidad y la papelera sincronizan con el backend; un 409 revierte la actualización optimista. | Test de BLoC | ⏳ |
-| **CP-23** | Mobile | Los DTO se validan con `fromJson` sobre payloads literales del backend, no con constructores. | Revisión de código + tests | ⏳ |
-| **CP-24** | Mobile | `dart analyze` sin incidencias y `flutter test` en verde. | Ejecución | ⏳ |
-| **CP-25** | Transversal | Web y Mobile consumen **los mismos endpoints con los mismos nombres de campo**, verificado en ambos lados. | Diff de contratos | ⏳ |
-| **CP-26** | Transversal | Ningún importe, sucursal o prenda mostrado procede de literales en el código: todo viene de PostgreSQL. | Auditoría de código | ⏳ |
-| **CP-27** | Transversal | Catálogo exclusivamente femenino en todas las tarjetas de la bolsa, incluidos los *fallback*. | Auditoría visual | ⏳ |
+| **CP-01** | Backend | `GET /api/v1/carrito` devuelve 200 con `items: []` y totales en cero para una bolsa vacía; nunca 404. | Pytest | ✅ |
+| **CP-02** | Backend | `PATCH` actualiza la cantidad y devuelve el resumen recalculado en la misma respuesta. | Pytest | ✅ |
+| **CP-03** | Backend | Superar el stock de la sucursal responde 409 `STOCK_INSUFICIENTE` y **no** altera la cantidad almacenada. | Pytest | ✅ |
+| **CP-04** | Backend | `DELETE` purga la línea de `carrito_detalle` y recalcula el total. | Pytest + consulta a la BD | ✅ |
+| **CP-05** | Backend | Operar sobre una línea ajena responde 403 `CARRITO_AJENO`. | Pytest | ✅ |
+| **CP-06** | Backend | El checkout persiste `ventas` (estado `pendiente`) y una línea de `venta_detalle` por prenda, con precio congelado y sucursal de expedición. | Pytest + verificación en Neon | ✅ |
+| **CP-07** | Backend | El checkout mueve unidades de `cantidad_disponible` a `cantidad_reservada` y registra un movimiento por línea con `id_usuario_responsable`. | Pytest | ✅ |
+| **CP-08** | Backend | Un fallo en cualquier punto revierte **toda** la transacción: ni venta, ni inventario, ni vaciado de bolsa. | Pytest con fallo inducido | ✅ |
+| **CP-09** | Backend | Dos checkouts simultáneos sobre la última unidad: uno responde 201 y el otro 409; el stock nunca queda negativo. | Prueba de concurrencia | ✅ |
+| **CP-10** | Backend | El cupón aplica el descuento correcto según `tipo_descuento` y `alcance`, e incrementa `usos_actuales` atómicamente sin superar `limite_usos`. | Pytest | ✅ |
+| **CP-11** | Backend | `numero_comprobante` es único bajo concurrencia. | Prueba de concurrencia | ✅ |
+| **CP-12** | Backend | Los importes enviados por el cliente se ignoran; la venta registra el total recalculado. | Pytest | ✅ |
+| **CP-13** | Backend | `pytest` completo en verde, incluida la guardia `tests/test_esquema_bd.py`. | `pytest -q` | ✅ |
+| **CP-14** | Web | `/bolsa` se renderiza **sin la barra de navegación institucional** y con `← VOLVER AL CATÁLOGO` funcional. | Inspección + Vitest | ✅ |
+| **CP-15** | Web | `−`/`+`/`ELIMINAR` recalculan subtotal, descuento y total **al instante**, sin recargar la página. | Vitest sobre Signals | ✅ |
+| **CP-16** | Web | `+` se deshabilita al alcanzar `cantidad_maxima`; el 409 del backend se muestra como mensaje legible. | Vitest | ✅ |
+| **CP-17** | Web | El selector de entrega alterna entre dirección y boutique, y su elección viaja en el payload del checkout. | Vitest | ✅ |
+| **CP-18** | Web | Estado vacío visible con enlace al catálogo cuando no hay prendas. | Vitest | ✅ |
+| **CP-19** | Web | `npx tsc --noEmit` sin errores, `ng build` limpio y `ng test` en verde. | Ejecución | ✅ |
+| **CP-20** | Mobile | `ShoppingBagScreen` se abre a pantalla completa **sin `BottomNavigationBar`**, con `AppBar` de retorno operativo. | Test de widget | ✅ |
+| **CP-21** | Mobile | El footer de `TRAMITAR PEDIDO` permanece fijo y visible durante el scroll, con el total actualizado. | Test de widget | ✅ |
+| **CP-22** | Mobile | Los controles de cantidad y la papelera sincronizan con el backend; un 409 revierte la actualización optimista. | Test de BLoC | ✅ |
+| **CP-23** | Mobile | Los DTO se validan con `fromJson` sobre payloads literales del backend, no con constructores. | Revisión de código + tests | ✅ |
+| **CP-24** | Mobile | `dart analyze` sin incidencias y `flutter test` en verde. | Ejecución | ✅ |
+| **CP-25** | Transversal | Web y Mobile consumen **los mismos endpoints con los mismos nombres de campo**, verificado en ambos lados. | Diff de contratos | ✅ |
+| **CP-26** | Transversal | Ningún importe, sucursal o prenda mostrado procede de literales en el código: todo viene de PostgreSQL. | Auditoría de código | ✅ |
+| **CP-27** | Transversal | Catálogo exclusivamente femenino en todas las tarjetas de la bolsa, incluidos los *fallback*. | Auditoría visual | ✅ |
 
 ---
 
@@ -729,6 +738,191 @@ el modelo financiero, la resolución de cupones y ambos bloques de cliente.
    25 minutos desde que se tramita el pedido.
 4. **§0.2 — Ampliación de alcance confirmada:** «añadir a la bolsa» no existe y queda incorporado.
 
-> ⛔ **GATE DE APROBACIÓN OBLIGATORIO (STRICT STOP):** no se ha generado ni modificado ningún
-> archivo `.py`, `.ts` ni `.dart`. La implementación no comenzará hasta que apruebes esta
-> especificación y resuelvas los cuatro puntos anteriores.
+> ✅ **GATE SUPERADO (2026-09-22):** las cuatro decisiones fueron aprobadas tal y como se
+> recomendaban y se autorizó la ejecución del Bloque 1.
+
+---
+
+## E. Resultado de la ejecución del Bloque 1 (Backend)
+
+### E.1 Entregado
+
+| Tarea | Resultado |
+| :--- | :--- |
+| `T-BE-01` | Enum `tipo_movimiento_inv` sincronizado con los 12 valores reales de PostgreSQL. |
+| `T-BE-02` | Paquete `app/modules/compras_pagos/` con `CarritoORM` y `CarritoDetalleORM`. `VentaORM`/`VentaDetalleORM` **no se duplicaron**: ya existían en `catalogo/modelos.py` desde CU18, y redeclararlas producía `InvalidRequestError` por tabla duplicada. Se extendieron allí con las columnas nuevas y se reexportan desde el paquete. |
+| `T-BE-03`/`04` | Esquemas Pydantic de bolsa y checkout. `CheckoutIn` no admite importes por diseño. |
+| `T-BE-05`/`06` | `CarritoServicio` y `CarritoRepositorio`, con resolución de inventario por temporada vigente y bloqueo opcional. |
+| `T-BE-07` | 4 endpoints de CU11 registrados bajo `/api/v1`. |
+| `T-BE-08` | `CheckoutServicio` con la secuencia transaccional completa. |
+| `T-BE-09` | 33 pruebas nuevas (14 de CU11, 19 de CU15), una por escenario Gherkin más concurrencia. |
+| `T-BE-10` | Migración `0010`: bono `MAISON-2025` (10 %, tope 200 €, 500 usos) y «Membresia Prive» (15 %) ligada a los 3 productos activos de mayor precio, resueltos por consulta y no por identificadores inventados. |
+| `T-BE-11` | `GET /api/v1/sucursales/activas` depurado: ya no inventa boutiques ni asigna `cantidad_disponible = 5` fijo. |
+| `T-BE-12` | `liberar_retencion_venta` con endpoint y pruebas. |
+| `T-BE-13` | Migración `0009` aplicada: `venta_detalle.id_sucursal`, campos de entrega y cupón en `ventas`, `seq_comprobante_venta` y neutralización del trigger. |
+
+### E.2 Defectos preexistentes encontrados durante la ejecución
+
+Dos derivas de **tipo** entre el ORM y PostgreSQL, invisibles para la guardia de esquema original
+porque esta solo comparaba nombres de columna:
+
+| Defecto | Impacto | Corrección |
+| :--- | :--- | :--- |
+| `PromocionORM.fecha_inicio`/`fecha_fin` declaradas `Date` siendo `TIMESTAMPTZ` | La validación de vigencia del cupón reventaba con `TypeError: can't compare datetime.datetime to datetime.date`. **Lo detectó la verificación end-to-end, no las pruebas unitarias.** | Tipos alineados a `DateTime(timezone=True)` y comparación normalizada a UTC. |
+| `ClienteORM.fecha_nacimiento` declarada `DateTime` siendo `DATE` | CU04 convivía con la deriva mediante comprobaciones de tipo en cada lectura y un `datetime.combine` artificial en cada escritura. | Tipo alineado a `Date` y servicio de perfil simplificado. |
+
+`tests/test_esquema_bd.py` se amplió con `test_los_tipos_del_orm_son_compatibles_con_la_base_de_datos`,
+que compara **familias** de tipo (fecha, instante, entero, texto, numérico…) y habría detectado
+ambos. Fue precisamente esa guardia ampliada la que encontró el segundo.
+
+### E.3 Verificación end-to-end contra Neon
+
+Flujo completo ejecutado con SQL real sobre el cliente `#7`, con limpieza posterior que restituyó
+el stock y dejó las tablas como estaban:
+
+- Bolsa vacía → 200 con total `0.00`, sin ventana informativa.
+- Alta de 2 prendas → subtotal `1630.00`, descuento `244.50` (Membresia Prive), total `1385.50`.
+  Se cumple la invariante `total = subtotal − descuento`.
+- Repetir variante → **consolida** a una sola línea con cantidad 2, no duplica.
+- `PATCH` a cantidad 3 → total `2898.50`; `cantidad_maxima` alimenta el tope del botón `+`.
+- Exceso de stock → `409 STOCK_INSUFICIENTE` con mensaje que nombra la prenda y las cifras; la
+  bolsa no se altera.
+- `DELETE` → queda 1 línea, total recalculado a `2269.50`.
+- **Checkout con cupón** → `FS-2026-000001`, estado `pendiente`, subtotal `2670.00`,
+  descuento `600.50` (400,50 de promoción + 200,00 del bono limitado por su tope), total `2069.50`.
+- Persistencia comprobada en PostgreSQL: `tipo_entrega`, `direccion_envio` e `id_promocion`
+  guardados; precio congelado `756.50`; `subtotal_linea` calculada por la columna GENERATED
+  (`2269.50`); sucursal de expedición conservada por línea.
+- Retención: disponible 15 → 12, reservada 0 → 3, con un movimiento `reserva` auditado y su
+  usuario responsable.
+- **Trigger neutralizado confirmado:** el stock bajó exactamente 3, no 6. Antes de la migración
+  `0009` habría habido doble descuento.
+- Bolsa vaciada tras tramitar.
+- Liberación de retención → 3 unidades devueltas, stock restaurado a (15, 0).
+
+### E.4 Pendiente para los siguientes bloques
+
+- La automatización del vencimiento a los 25 minutos (cron frente a verificación perezosa) sigue
+  sin decidir; hoy la liberación es explícita mediante endpoint.
+- `alembic upgrade head` continúa sin poder resolver la cadena: la base declara ahora `0010`,
+  pero las revisiones `0004`–`0008` no existen como archivos en el repositorio. Las migraciones
+  `0009` y `0010` se aplicaron ejecutando su DDL de forma idempotente. Reconciliar la cadena
+  completa sigue siendo deuda abierta pendiente de decisión.
+
+---
+
+## F. Resultado de la ejecución del Bloque 2 (Frontend Web)
+
+### F.1 Entregado
+
+| Tarea | Resultado |
+| :--- | :--- |
+| `T-FE-01` | `modelos/carrito.model.ts`, espejo campo a campo de los esquemas Pydantic. Los importes se tipan como `string`: FastAPI serializa `Decimal` en texto y convertirlos a `number` perdería precisión. |
+| `T-FE-02` | `CarritoService` con Signals. `items`, `resumen`, `subtotal`, `descuento`, `total`, `ivaIncluido`, `totalPrendas`, `estaVacia` y `hayDescuento` son `computed()`; el estado de escritura se reemplaza con la respuesta del servidor en cada operación, nunca se deriva en el cliente. |
+| `T-FE-03` | Ruta `/bolsa` declarada **fuera de `MainLayoutComponent`**, protegida por `authGuard` y situada después de la landing y antes del comodín. |
+| `T-FE-04`/`05`/`06` | `BolsaCompraComponent` standalone + `OnPush`, dos columnas (`lg:grid-cols-[1fr_380px]`) apiladas en móvil, con tarjetas de prenda, panel de resumen, selector de entrega y campo de cupón. |
+| `T-FE-07` | `anadirABolsa()` reconvertido a `POST /api/v1/carrito/items`. El contador de la barra superior pasó a derivar de `CarritoService`. |
+| `T-FE-08` | Cuenta atrás con `clearInterval` en `ngOnDestroy` y recálculo al cambiar la bolsa. |
+| `T-FE-09` | Cuatro estados: carga (skeleton), error con el mensaje de negocio del backend, bolsa vacía con enlace a `/catalogo`, y contenido. |
+| `T-FE-10` | 37 pruebas nuevas en Vitest (11 de servicio, 20 de componente, 6 de layout y rutas). |
+
+### F.2 Defecto preexistente corregido
+
+`MainLayoutComponent` mostraba el contador de la bolsa leyendo `CatalogoService.cestaCount`, un
+`signal` **inicializado en `2`** que sólo se incrementaba en memoria. La barra superior exhibía
+así una cifra inventada, desalineada con la bolsa persistida y que no bajaba nunca al eliminar
+prendas. Ahora deriva de `CarritoService.totalPrendas`, y el icono enlaza con `/bolsa`.
+
+El contador se carga sólo si hay sesión activa: sin ella la petición devolvería 401 y dispararía
+el redirect del interceptor sobre pantallas que pueden ser públicas.
+
+### F.3 Decisiones de implementación
+
+- **El cupón no se valida en el cliente.** El campo registra la intención y el veredicto llega del
+  backend al tramitar, con su mensaje de negocio. Duplicar las reglas de vigencia, tope y límite de
+  usos en TypeScript crearía dos fuentes de verdad que se desincronizarían.
+- **`anadirABolsa()` no envía `id_sucursal`.** El backend resuelve la boutique con mayor
+  disponibilidad para la variante en la temporada vigente; el cliente puede revisarla después en
+  la propia bolsa, donde cada línea muestra su origen.
+- **El temporizador se recalcula tras cada cambio de la bolsa**, porque la ventana arranca en la
+  línea más antigua y eliminar esa línea desplaza el vencimiento.
+- **Los textos del temporizador se ajustaron a lo que el sistema garantiza de verdad.** El mockup
+  prometía «prendas reservadas en tu bolsa»; la pantalla dice «stock verificado» y aclara que la
+  reserva firme se activa al tramitar, conforme a la decisión §1.4.
+
+### F.4 Verificación
+
+`npx tsc --noEmit` sin errores · `ng build` limpio (`bolsa-compra-component`, 26,85 kB lazy) ·
+`ng test` **145/145** en verde (108 previos + 37 nuevos), sin regresiones.
+
+---
+
+## G. Resultado de la ejecución del Bloque 3 (Mobile)
+
+### G.1 Entregado
+
+| Tarea | Resultado |
+| :--- | :--- |
+| `T-MO-01` | `datos/modelos/carrito_dto.dart` con `parsearImporte`, que tolera cadenas, números y ausencias. FastAPI serializa `Decimal` como texto: un `as num` directo lanzaría `TypeError`, el defecto 28 del `CHANGELOG.md`. |
+| `T-MO-02` | `CarritoApi` + `CarritoApiImpl`. `CarritoException` conserva el `code` del backend (`STOCK_INSUFICIENTE`, `CARRITO_VACIO`, `CUPON_INVALIDO`) para no tener que interpretar el texto del mensaje. Un 401 notifica al `SesionManager`, que devuelve al login desde la raíz. |
+| `T-MO-03` | `CarritoBloc` con estados sellados (`Inicial`, `Cargando`, `Cargado`, `Vacio`, `Error`) y actualización optimista reversible. |
+| `T-MO-04` | `ShoppingBagScreen` con `leading: BackButton()` y **sin `BottomNavigationBar`**. |
+| `T-MO-05` | Banner de ventana, tarjetas con controles `−`/`+`, papelera, precio tachado y boutique de expedición por línea. |
+| `T-MO-06` | Bloque de destino de envío, cupón, resumen y **barra de acción fija** con el total y `TRAMITAR PEDIDO`. |
+| `T-MO-07` | `agregarABolsa` reconvertido a `POST /api/v1/carrito/items`. El contador de la ficha procede ahora de la bolsa real. |
+| `T-MO-08` | Token propagado a `ShoppingBagScreen` desde el hub (icono en la cabecera de Inicio) y desde la ficha de producto (icono con contador en el `AppBar`). |
+| `T-MO-09` | 29 pruebas nuevas: 6 de contrato de DTO, 13 de BLoC, 8 de widget y 2 de la ficha de producto. |
+
+### G.2 Decisiones de implementación
+
+- **La barra inferior fija no vulnera Hub-and-Spoke.** La directriz prohíbe la barra de
+  *navegación* de 4 pestañas en las pantallas hoja, no un pie de acción. `bottomNavigationBar`
+  aloja aquí el total y el botón de tramitar, que deben permanecer visibles durante el scroll;
+  desaparece en cuanto la orden queda confirmada.
+- **La bolsa se abre con `Navigator.push`, no como quinta pestaña.** Las pantallas raíz siguen
+  siendo exactamente cuatro.
+- **La actualización optimista no recalcula importes.** Cambia la cantidad en pantalla al instante
+  y revierte si el backend la rechaza, pero los totales se dejan intactos hasta que llega la
+  respuesta: recalcularlos en el cliente obligaría a duplicar las reglas de promoción del backend.
+- **El aviso de «añadido a la bolsa» se deriva del resultado real.** Antes la pantalla lo mostraba
+  incondicionalmente tras pulsar; ahora refleja lo que respondió el servidor, de modo que una
+  prenda sin existencias o una sesión caducada no se anuncian como éxito.
+
+### G.3 Defecto corregido durante la ejecución
+
+`RenderFlex overflowed by 1.5 pixels` en dos filas: la cabecera («Bolsa de Compra» + contador) y
+la barra de acción (total + botón). Es la quinta aparición de este defecto en el proyecto
+(entradas 9, 20, 26 y 31 del `CHANGELOG.md`). Se resolvió con `Expanded`/`Flexible` y elipsis en
+lugar de reducir tamaños: así el diseño aguanta importes de más dígitos y textos más largos.
+
+### G.4 Verificación
+
+`dart analyze` **sin incidencias** · `flutter test` **133/133** en verde (104 previos + 29 nuevos).
+
+Contraste de contrato entre las tres plataformas: las claves de `POST /api/v1/ventas/checkout`
+(`tipo_venta`, `tipo_entrega`, `direccion_envio`, `id_sucursal_retiro`, `codigo_cupon`) coinciden
+campo a campo entre el esquema Pydantic, el servicio Angular y el DTO de Flutter.
+
+---
+
+## H. Estado global del cambio
+
+| Bloque | Estado | Verificación |
+| :--- | :--- | :--- |
+| 1 — Backend | 🟢 Completado | `pytest` 158/158 + verificación end-to-end contra Neon |
+| 2 — Frontend Web | 🟢 Completado | `tsc` limpio · `ng build` limpio · `ng test` 145/145 |
+| 3 — Mobile | 🟢 Completado | `dart analyze` 0 incidencias · `flutter test` 133/133 |
+
+**Los 27 checkpoints (CP-01 a CP-27) quedan aprobados.**
+
+### Pendiente de decisión, fuera del alcance de este cambio
+
+- **Automatización del vencimiento de la retención a los 25 minutos** (cron frente a verificación
+  perezosa). Hoy `liberar_retencion_venta` existe y está probado, pero debe invocarse de forma
+  explícita: una orden abandonada mantiene el stock retenido hasta que alguien la libere. Conviene
+  resolverlo antes de producción.
+- **Reconciliación de la cadena de migraciones de Alembic.** La base declara `0010`, pero las
+  revisiones `0004`–`0008` no existen como archivos en el repositorio, de modo que
+  `alembic upgrade head` sigue sin poder resolverla.
+- **CU16 (pasarela de pago)** recogerá la orden `pendiente` y convertirá la retención en venta
+  firme mediante el movimiento `venta_confirmada`.

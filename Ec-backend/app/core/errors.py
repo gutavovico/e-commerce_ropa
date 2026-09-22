@@ -42,9 +42,22 @@ class AuthorizationError(DomainError):
         super().__init__(message, code=code)
 
 
+<<<<<<< Updated upstream
 class UnprocessableEntityError(DomainError):
     """Entidad no procesable o regla semantica violada (HTTP 422)."""
 
     def __init__(self, message: str = "Entidad no procesable", code: str = "UNPROCESSABLE_ENTITY"):
         super().__init__(message, code=code)
 
+=======
+class PaymentRequiredError(DomainError):
+    """La pasarela denegó el cargo (HTTP 402).
+
+    Se distingue de `ConflictError` a propósito: un 409 dice que la orden no admite pago, y un
+    402 que el sistema está bien pero el cobro fue rechazado. El cliente necesita esa diferencia,
+    porque solo la segunda situación permite reintentar con otro método.
+    """
+
+    def __init__(self, message: str = "Pago rechazado", code: str = "PAGO_RECHAZADO"):
+        super().__init__(message, code=code)
+>>>>>>> Stashed changes

@@ -83,6 +83,12 @@ class ClienteORM(Base):
         ForeignKey("fashionstore.usuarios.id_usuario", ondelete="CASCADE"),
         primary_key=True,
     )
+<<<<<<< Updated upstream
+=======
+    # En PostgreSQL la columna es DATE, no TIMESTAMP. Declararla como `DateTime` obligaba al
+    # servicio de CU04 a comprobar el tipo en cada lectura y a componer un `datetime` artificial
+    # en cada escritura.
+>>>>>>> Stashed changes
     fecha_nacimiento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     genero: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     talla_preferida: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)

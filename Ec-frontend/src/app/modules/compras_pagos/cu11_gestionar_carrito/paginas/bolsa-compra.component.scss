@@ -1,0 +1,20 @@
+/**
+ * Bolsa de Compra (CU11 + CU15).
+ *
+ * La maquetación vive en utilidades de Tailwind dentro de la plantilla. Aquí sólo quedan los
+ * ajustes que Tailwind no cubre de forma directa.
+ */
+
+:host {
+  display: block;
+
+  /* Evita el salto horizontal del contenido cuando aparece o desaparece la barra de scroll
+     al alternar entre estados (carga, bolsa vacía, contenido). */
+  scrollbar-gutter: stable;
+}
+
+/* Cifras monetarias y de cantidad alineadas verticalmente: sin esto los importes «bailan»
+   al recalcularse tras cada cambio de cantidad. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

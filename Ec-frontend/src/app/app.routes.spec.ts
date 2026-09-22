@@ -68,6 +68,27 @@ describe('app.routes', () => {
     );
   });
 
+  it('declara /bolsa como pantalla secundaria, fuera del layout principal', () => {
+    // Patrón Hub-and-Spoke: sólo las 4 pantallas raíz cuelgan de MainLayoutComponent y muestran
+    // la barra de navegación institucional. La bolsa es una hoja y debe carecer de ella.
+    const layout = routes.find(
+      (ruta) => ruta.path === '' && ruta.component === MainLayoutComponent
+    );
+    const hijasDelLayout = (layout?.children ?? []).map((hija) => hija.path);
+    expect(hijasDelLayout).not.toContain('bolsa');
+
+    const bolsa = routes.find((ruta) => ruta.path === 'bolsa');
+    expect(bolsa).toBeDefined();
+    expect(bolsa?.loadComponent).toBeDefined();
+  });
+
+  it('protege /bolsa con el guard de autenticación', () => {
+    // La bolsa es de cada cliente: sin sesión no hay carrito que mostrar.
+    const bolsa = routes.find((ruta) => ruta.path === 'bolsa');
+    expect(bolsa?.canActivate).toBeDefined();
+    expect(bolsa?.canActivate?.length).toBeGreaterThan(0);
+  });
+
   it('existe una ruta comodín que evita la pantalla en blanco ante una URL desconocida', () => {
     const comodin = routes.find((ruta) => ruta.path === '**');
 
