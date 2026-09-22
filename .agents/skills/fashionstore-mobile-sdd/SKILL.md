@@ -59,6 +59,12 @@ Antes de alterar o generar código dentro de `Ec-mobile/`, se debe ejecutar el s
 
 ## 3. Mapeo de Diseño y Centralización de Tokens (`AppTheme`)
 
+### 3.0 REGLA DE NEGOCIO GLOBAL INQUEBRANTABLE: E-COMMERCE EXCLUSIVO PARA MUJERES
+* **Exclusividad Femenina:** FashionStore es una boutique y probador virtual (AR) **EXCLUSIVAMENTE PARA MUJERES**.
+* **Prohibición de Contenido Masculino:** Queda estrictamente prohibido utilizar modelos masculinos, prendas para hombre o fotografía de ropa masculina. Toda la experiencia móvil debe enfocarse en alta costura femenina.
+* **Integridad de Datos Reales (Cero Productos Inventados):** Todas las prendas provienen estrictamente de la base de datos PostgreSQL (`fashionstore.productos`). Jamás inventar o quemar en código productos inexistentes en base de datos.
+* **Jerarquía de Dominio Canónica:** Una **temporada** contiene una o más **colecciones**, y una **colección** contiene múltiples **prendas de ropa** (productos).
+
 La estética de FASHION STORE exige coherencia milimétrica con la versión web.
 
 ### 3.1 Prohibición de Instanciación Arbitraria (Hard Constraint)

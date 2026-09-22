@@ -1,0 +1,246 @@
+<div class="page-wrapper">
+
+  <!-- TOP BAR / HEADER EDITORIAL -->
+  <header class="top-header">
+    <div class="header-container">
+      <!-- Botón Volver -->
+      <a routerLink="/inicio" class="back-link">
+        <span class="arrow">←</span>
+        <span>VOLVER</span>
+      </a>
+
+      <!-- Brand Logo Centrado -->
+      <a routerLink="/inicio" class="brand-title">
+        FASHION STORE
+      </a>
+
+      <!-- Espaciador simétrico para alineación perfecta -->
+      <div class="header-spacer"></div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="main-content">
+
+    <!-- CABECERA PRINCIPAL: TÍTULO Y DESCRIPCIÓN -->
+    <header class="editorial-hero-header">
+      <h1 class="main-title">
+        Colecciones
+      </h1>
+      <p class="main-subtitle">
+        Explora y visualiza todas las colecciones disponibles de la firma, desde la colección en curso hasta piezas selectas de archivo.
+      </p>
+    </header>
+
+    <!-- ESTADO DE CARGA (SKELETON) -->
+    @if (cargando()) {
+      <div class="loading-skeleton">
+        <div class="cards-grid">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="editorial-card">
+              <div class="skeleton-box"></div>
+              <div class="skeleton-line" style="width: 70%;"></div>
+              <div class="skeleton-line" style="width: 45%;"></div>
+            </div>
+          }
+        </div>
+      </div>
+    } @else if (error()) {
+      <!-- ESTADO DE ERROR -->
+      <div class="error-container">
+        <p class="error-text">{{ error() }}</p>
+        <button
+          type="button"
+          (click)="reintentar()"
+          class="retry-btn">
+          REINTENTAR
+        </button>
+      </div>
+    } @else {
+
+      <!-- SECCIÓN 1: COLECCIÓN DESTACADA (HERO CON 4 PIEZAS CLAVE) -->
+      @if (coleccionDestacada(); as destacada) {
+        <section class="editorial-section featured-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              {{ destacada.nombre }}
+            </h2>
+            <p class="section-subtitle">
+              {{ destacada.descripcion || 'Cortes fluidos y armaduras arquitectónicas concebidas con tejidos de molinos históricos de Biella y Lyon. Confección de precisión diseñada para una cadencia eterna.' }}
+            </p>
+          </div>
+
+          <!-- GRID 4 PIEZAS CLAVE -->
+          <div class="cards-grid">
+            @for (item of destacada.piezas_clave; track item.id_producto) {
+              <article
+                class="editorial-card"
+                (click)="irACatalogo(item)"
+                tabindex="0"
+                (keydown.enter)="irACatalogo(item)"
+                role="button"
+                [attr.aria-label]="'Explorar prenda ' + item.nombre">
+                <!-- Contenedor Imagen con Badges Superpuestos -->
+                <div class="image-box">
+                  <img
+                    [src]="item.imagen_url || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop'"
+                    [alt]="item.nombre"
+                    class="card-image"
+                    loading="lazy"
+                    (error)="onImgError($event)"
+                  />
+
+                  <!-- Badges superiores apilados -->
+                  <div class="badges-container">
+                    <span class="badge-editorial-tag">
+                      {{ item.badge_editorial || 'COLECCIÓN 07' }}
+                    </span>
+                    <span class="badge-disponible-tag">
+                      DISPONIBLE
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Metadatos de la prenda -->
+                <div class="card-details">
+                  <div class="top-meta-row">
+                    <span class="atelier-subtext">{{ item.subtitulo_atelier || 'SEDA LYON · ALTA COSTURA' }}</span>
+                    <span class="price-tag">{{ item.precio_base }} €</span>
+                  </div>
+
+                  <h3 class="product-title">
+                    {{ item.nombre }}
+                  </h3>
+
+                  <p class="product-description">
+                    {{ item.descripcion || 'Confección artesanal de sastrería con acabados a mano y caída impecable.' }}
+                  </p>
+
+                  <!-- Swatches de color circulares -->
+                  <div class="card-footer-row">
+                    <div class="swatches-group">
+                      @for (color of (item.colores || []); track color.nombre) {
+                        <span
+                          class="swatch-dot"
+                          [style.backgroundColor]="color.hex"
+                          [title]="color.nombre">
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- SECCIÓN 2: OTRAS COLECCIONES (GRILLA EDITORIAL DE 4 CARDS) -->
+      <section class="editorial-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            Otras colecciones
+          </h2>
+          <p class="section-subtitle">
+            Explora las colecciones históricas de la firma que aún cuentan con piezas disponibles en archivo.
+          </p>
+        </div>
+
+        <!-- GRID DE OTRAS COLECCIONES -->
+        <div class="cards-grid">
+          @for (col of otrasColecciones(); track col.id_coleccion) {
+            <article
+              class="editorial-card"
+              (click)="irAColeccion(col)"
+              tabindex="0"
+              (keydown.enter)="irAColeccion(col)"
+              role="button"
+              [attr.aria-label]="'Explorar colección ' + col.nombre">
+              <!-- Contenedor Imagen Colección con Badges -->
+              <div class="image-box">
+                <img
+                  [src]="col.imagen_portada || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'"
+                  [alt]="col.nombre"
+                  class="card-image"
+                  loading="lazy"
+                  (error)="onImgError($event)"
+                />
+
+                <!-- Badges superiores apilados -->
+                <div class="badges-container">
+                  <span class="badge-editorial-tag">
+                    {{ col.badge_edicion || ('EDICIÓN ' + col.temporada_nombre) }}
+                  </span>
+                  @if (col.estado_disponibilidad === 'ÚLTIMAS UNIDADES' || (col.total_prendas <= 2 && col.total_prendas > 0)) {
+                    <span class="badge-ultimas-tag">
+                      ÚLTIMAS UNIDADES
+                    </span>
+                  } @else {
+                    <span class="badge-disponible-tag">
+                      {{ col.estado_disponibilidad || 'DISPONIBLE' }}
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Metadata Colección -->
+              <div class="card-details">
+                <div class="top-meta-row">
+                  <span class="atelier-subtext">{{ col.temporada_nombre }}</span>
+                  <span class="price-tag">Desde {{ col.precio_desde }} €</span>
+                </div>
+
+                <h3 class="collection-title">
+                  {{ col.nombre }}
+                </h3>
+
+                <p class="collection-description">
+                  {{ col.descripcion || 'Hilados seleccionados y cortes atemporales preservados en el archivo histórico.' }}
+                </p>
+
+                <!-- Pie de Card: Taller / Swatches + Botón Acción -->
+                <div class="card-footer-row">
+                  <div class="swatches-group">
+                    <span class="swatch-dot" style="background-color: #C19A6B;" title="Camel"></span>
+                    <span class="swatch-dot" style="background-color: #1F1F1F;" title="Ébano"></span>
+                  </div>
+
+                  <span class="ver-link">
+                    <span>VER COLECCIÓN</span>
+                    <span class="arrow-icon">→</span>
+                  </span>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+    }
+
+  </main>
+
+  <!-- FOOTER CORPORATIVO EDITORIAL -->
+  <footer class="editorial-footer">
+    <div class="footer-inner">
+      <div class="brand-block">
+        <span class="brand-name">
+          FASHION STORE
+        </span>
+        <span class="brand-tagline">
+          Curated Editorial & Modern Garments
+        </span>
+      </div>
+
+      <nav class="footer-nav">
+        <a routerLink="/colecciones">EDITORIAL</a>
+        <a routerLink="/inicio">ATELIER</a>
+        <a routerLink="/perfil">CONCIERGE</a>
+      </nav>
+
+      <div class="copyright-block">
+        © 2025 Fashion Store Flagship. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+</div>

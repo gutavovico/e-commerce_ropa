@@ -221,119 +221,141 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 - **Solucion:** Validacion Pydantic v2 en `InventarioAjusteIn` exigiendo minimo 5 caracteres no vacios en el motivo, verificacion en servicio de que decrementos no superen `cantidad_disponible` (HTTP 409 `STOCK_INSUFICIENTE`), y reflejo reactivo en interfaz mediante validadores reactivos y Luxury Banners sin perdida de datos.
 
 ---
-
 ## [1.9.0] - 2026-09-21
 
-### Promocion a Baseline Permanente
-- **CU20 - Gestionar Usuarios y Roles (RBAC) (Gobernanza Corporativa y Control de Accesos):** Promovido oficialmente a especificacion permanente del sistema en [`.specs/modules/autenticacion_seguridad/CU20-gestionar-usuarios-roles.md`](.specs/modules/autenticacion_seguridad/CU20-gestionar-usuarios-roles.md).
-- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU20/` (`spec.md`, `design.md`, `tasks.md`) y limpiado el directorio de cambios temporales `.specs/changes/`.
-- **Exclusion Formal Justificada de Ec-mobile:** Ratificada formalmente la exclusion de la aplicacion movil (`Ec-mobile`). La gobernanza de cuentas corporativas, creacion de accesos para colaboradores, reseteo administrativo de claves y asignacion de roles RBAC constituyen facultades exclusivas de trastienda y administracion general ejecutadas en el panel web. La aplicacion movil Flutter participa estrictamente como plataforma comercial de cara al cliente final (autenticacion, perfil, catalogo, pedidos y vestidor AR).
-- **Validacion Completa:**
-  - Backend: 186/186 tests en verde en `pytest` para toda la suite acumulada (24/24 especificos de CU20); modelo ORM en esquema `fashionstore` (`UsuarioORM`) con soporte exhaustivo para 4 roles ('administrador', 'encargado_sucursal', 'cajero', 'cliente'), clave foranea nullable `id_sucursal` indexada con relacion `joinedload` hacia `fashionstore.sucursales`, esquemas Pydantic v2 con `@model_validator` para validacion condicional territorial (sucursal obligatoria para roles operativos de boutique y forzada a `None` para administrador y cliente), hashing criptografico robusto con Argon2/bcrypt (`get_password_hash()`), servicio de dominio con salvaguarda transaccional anti-bloqueo del ultimo administrador activo (`ULTIMO_ADMINISTRADOR_ACTIVO`), proteccion anti auto-bloqueo del administrador en sesion (`AUTO_MODIFICACION_ADMIN_BLOQUEADA`), bloqueo HTTP 409 con forzado a baja logica (`activo = False`) ante intentos de borrado fisico con transacciones dependientes (`USUARIO_CON_DEPENDENCIAS_ACTIVAS`), y router administrativo bajo `/api/v1/admin/usuarios` blindado con dependencia `require_roles(["administrador"])`.
-  - Frontend Web: Compilacion limpia en Angular CLI (`ng build`, 0 errores), 143/143 tests en verde en Vitest / Angular CLI (10/10 en `usuarios-admin.component.spec.ts`, 7/7 en `usuarios-admin.service.spec.ts`, 7/7 en `admin-dashboard.component.spec.ts`, 4/4 en `role.guard.spec.ts`); componente Standalone `UsuariosAdminComponent` con `ChangeDetectionStrategy.OnPush`, estado reactivo 100% gobernado por Angular Signals (`usuarios`, `totalUsuarios`, `usuarioSeleccionado`, `cargando`, `guardando`, `error`, `mensajeExito`), actualizacion de `AdminDashboardComponent` a cuatro columnas (`grid-cols-1 md:grid-cols-2 lg:grid-cols-4`) incorporando la 4ta tarjeta boutique "Usuarios y Privilegios", segmentacion dinamica RBAC (ocultamiento reactivo estricto de CU20 y CU21 cuando el rol es `encargado_sucursal`), boton superior editorial `"<- Volver al Panel Principal"` con `routerLink="/admin"`, tabla maestra con monogramas circulares, badges cromaticos de rol y estado, conmutador directo de activacion/suspension, modal reactivo de alta/edicion con `NonNullableFormBuilder` y reactividad condicional de sucursal, modal de reseteo de contrasena, guard funcional `roleGuard(['administrador'])` para blindaje de rutas y captura de conflictos 409 y 422 con Luxury Banners preservando los datos digitados por el usuario.
+### Auditoría Transversal y Corrección de Defectos de Contrato
 
----
+Diagnóstico completo de `Ec-backend`, `Ec-frontend` y `Ec-mobile` contra la documentación de
+`.agents/` y `.specs/`. El hallazgo estructural es que **las tres suites reportaban verde mientras
+CU12 (Reservar Prendas) era imposible de completar desde la aplicación móvil**: el backend mockea
+la sesión de base de datos en sus tests y el móvil construía sus DTO con constructores sin
+ejercitar nunca `fromJson`, de modo que ningún desajuste de nombres de campo era observable.
 
-### Errores Corregidos y Soluciones Tecnicas Aplicadas
+- **Blindaje de las pruebas contra el contrato real:** los mocks de reserva del web y del móvil se
+  reescribieron a partir de payloads literales de `POST /api/v1/reservas`, y se añadió un grupo de
+  pruebas de contrato en `test/pantalla_producto_detalle_test.dart` que valida `toJson`/`fromJson`
+  frente a los esquemas Pydantic. Se añadieron `registro.component.spec.ts` y una prueba de
+  supervivencia del listener de sesión en `widget_test.dart`, los dos archivos con más cambio de
+  comportamiento y sin cobertura previa.
+- **Reconciliación documental:** actualizada la directriz Hub-and-Spoke (declaraba CU05 pendiente y
+  CU36 «en migración de layout en Web»), cerrados los gates de aprobación de
+  `change-detalle-producto-reservas.md` y `change-landing-page-publica.md` (afirmaban que no se
+  había generado código con 18 y 13 tareas ya marcadas), resuelto el conflicto de rutas de
+  `/inicio` y `/colecciones` a favor del enrutamiento vigente, y marcado el Bloque 3 (Mobile) de
+  CU07/CU08/CU09/CU12 según el estado real del repositorio.
+- **Deriva de esquema entre el ORM y PostgreSQL (2026-09-22):** una segunda pasada, motivada por
+  errores HTTP 500 reproducidos en la aplicación en ejecución, reveló que tres modelos mapeaban
+  columnas inexistentes en la base de datos real. La trampa de fondo es que
+  `alembic/versions/0001_base_ddl.py` **no refleja el esquema desplegado en Neon**: ORM y migración
+  coincidían entre sí y discrepaban de la realidad. Se alinearon los modelos con la base de datos
+  —sin tocar el esquema— y se añadió `Ec-backend/tests/test_esquema_bd.py` como guardia permanente.
+- **Verificación:** `pytest` 123/123 (incluye la guardia de esquema contra Neon) · `ng test`
+  108/108 y `ng build` 0 errores · `dart analyze` 0 issues y `flutter test` 104/104. Además,
+  verificación end-to-end contra la base real: `/api/v1/catalogo`, `/api/v1/colecciones/activas`,
+  `/api/v1/catalogo/filtros-disponibles`, `/api/v1/catalogo/recomendaciones/personalizadas`,
+  `/api/v1/sucursales/activas` y `/api/v1/productos` devuelven HTTP 200 con datos de Neon.
 
-#### 35. Salvaguarda Transaccional Anti-Bloqueo del Ultimo Administrador Activo (`_verificar_salvaguarda_ultimo_administrador` y `_verificar_auto_modificacion_admin`)
-- **Causa:** La suspension o degradacion inadvertida del unico administrador activo del sistema o de la propia cuenta en sesion provocaria la perdida irrecuperable de la capacidad de gestion y gobernanza del sistema.
-- **Solucion:** Implementacion de validaciones atomicas en `ServicioGestionUsuarios` previas a la conmutacion de estado o actualizacion de rol, consultando el conteo de administradores activos y verificando el ID del usuario en sesion, emitiendo excepciones tipadas HTTP 409 Conflict ante cualquier intento de desproteccion corporativa.
+### Deuda Técnica Registrada
+- **`alembic/versions/0001_base_ddl.py` no describe la base de datos real.** Declara `activa`,
+  `activo` y `nit` donde PostgreSQL tiene `estado_activo` y `nit_rut`, y omite columnas que sí
+  existen (`actualizado_en`, `anio`, `codigo_cupon`, `alcance`, `limite_usos`, `direccion`,
+  `ciudad`, `rubro`, entre otras). Mientras siga así, cualquiera que consulte la migración para
+  saber cómo es una tabla obtendrá la respuesta incorrecta, y `alembic revision --autogenerate`
+  propondrá cambios destructivos. Reconciliarla implica una decisión sobre el esquema y queda
+  pendiente de autorización explícita.
 
-#### 36. Validacion Condicional Pydantic y Asignacion Territorial Obligatoria para Roles Operativos
-- **Causa:** La asignacion de roles operativos ('encargado_sucursal', 'cajero') sin asociacion a una sucursal fisica, o vinculados a boutiques inexistentes o inactivas, violaba la integridad territorial del punto de venta y de la custodia de inventario.
-- **Solucion:** Implementacion de `@model_validator(mode="after")` en `UsuarioCrearEsquema` y `UsuarioActualizarEsquema` validando que `id_sucursal` este presente y no sea nulo para roles de tienda, comprobando en base de datos que la sucursal exista y tenga `activa = True`, forzando `id_sucursal = None` para los roles corporativos (`administrador`, `cliente`).
+### Registro de Errores Corregidos y Soluciones Aplicadas
+34. **HTTP 500 en Catálogo, Búsqueda y Colecciones por Deriva entre el ORM y el Esquema Real de PostgreSQL**:
+    - *Causa:* `TemporadaORM`, `PromocionORM` y `ProveedorORM` mapeaban columnas llamadas `activa`, `activo` y `nit`, mientras que en la base de datos de Neon esas columnas se llaman `estado_activo` y `nit_rut`. SQLAlchemy emitía `SELECT temporadas.activa …` y PostgreSQL respondía `UndefinedColumn`, tumbando `GET /api/v1/catalogo` (vía `PromocionORM`), `GET /api/v1/catalogo/filtros-disponibles` y `GET /api/v1/colecciones/activas` (ambos vía `TemporadaORM`).
+    - *Agravante que impidió diagnosticarlo:* la migración `alembic/versions/0001_base_ddl.py` **no describe la base de datos realmente desplegada** —declara los nombres antiguos—, de modo que ORM y migración se confirmaban mutuamente mientras producción fallaba. Sumado a que todos los tests mockean la sesión, no existía ningún punto del proyecto donde el desajuste fuese observable.
+    - *Solución:* Se pasó el nombre real como primer argumento de `mapped_column("estado_activo", …)` / `mapped_column("nit_rut", …)` en `Ec-backend/app/modules/catalogo/modelos.py`, conservando los atributos de dominio (`activa`, `activo`, `nit`) para no alterar ninguna consulta. No se modificó el esquema de la base de datos. Se añadió `tests/test_esquema_bd.py`, que contrasta `Base.metadata` contra `information_schema` y falla ante cualquier columna mapeada inexistente.
+    - *Nota de corrección:* una revisión anterior de este mismo changelog atribuyó el fallo a «un renombrado a `nit_rut`/`estado_activo` sin migración de respaldo» y lo revirtió. El diagnóstico estaba invertido: esos eran los nombres correctos y el revert reintrodujo el error. La fuente de verdad es la base de datos desplegada, no la migración.
+35. **HTTP 500 al Reservar la Misma Variante Dos Veces en una Cita**:
+    - *Causa:* El servicio de CU12 recorría `payload.items` sin consolidar, descontando el inventario tantas veces como líneas repetidas e insertando detalles duplicados que violaban el `UNIQUE (id_reserva, id_variante)` de `reserva_detalle`. El `IntegrityError` resultante no pertenece al árbol `DomainError`, por lo que escapaba del manejador de errores como un 500. La restricción tampoco estaba declarada en el ORM.
+    - *Solución:* Consolidación de líneas por `id_variante` antes de tocar inventario, validación del tope de 5 unidades sobre el total agrupado (`CANTIDAD_MAXIMA_EXCEDIDA`, HTTP 400) y declaración del `UniqueConstraint` en `ReservaDetalleORM`.
+36. **HTTP 500 Latente por Consulta de Inventario sobre una Clave No Única**:
+    - *Causa:* El repositorio de reservas resolvía el inventario con `scalar_one_or_none()` filtrando por `(id_variante, id_sucursal)`, pero la clave única real de `inventario_sucursal` incluye `id_temporada`. Bastaba con que una variante tuviera existencias de una segunda temporada en la misma boutique para que toda reserva de esa prenda lanzara `MultipleResultsFound`. Permanecía latente solo porque el seed siembra una única temporada.
+    - *Solución:* Selección determinista de la fila que cubre la cantidad solicitada (temporada más reciente primero), con fallback a la de mayor stock para que el mensaje de existencias insuficientes informe la disponibilidad real.
+37. **HTTP 422 Sistemático al Reservar Cita desde la Aplicación Móvil**:
+    - *Causa:* `ReservaCrearInDto.toJson` serializaba `fecha_reserva`, `notas_cliente` y `lineas`, mientras que `ReservaCrearIn` exige `fecha_hora_atencion`, `observacion` e `items` (este último obligatorio). Tres de las cuatro claves eran incorrectas, por lo que CU12 nunca llegó a funcionar en móvil. El DTO de respuesta presentaba el mismo problema, de modo que todos los campos caían en sus valores por defecto y el diálogo de confirmación mostraba datos inventados.
+    - *Solución:* Alineación campo a campo de la petición y la respuesta con los esquemas Pydantic, envío explícito de `canal_origen: 'movil'` y derivación de `totalPrendas` a partir de las líneas devueltas.
+38. **Listener de Sesión Móvil Autodesactivado tras el Login**:
+    - *Causa:* La suscripción a `SesionManager` vivía en el widget montado como ruta `home`. Al navegar al hub mediante `pushReplacement` desde el contexto de ese mismo estado, la ruta se reemplazaba a sí misma, el estado se desmontaba y `dispose()` cancelaba la suscripción. El auto-redirect por HTTP 401 solo escuchaba mientras el usuario permanecía en el login —justo cuando un 401 no puede producirse— y, al cerrar sesión, los callbacks del nuevo login apuntaban a un estado destruido, de modo que volver a autenticarse dejaba la aplicación en el formulario sin mensaje alguno.
+    - *Solución:* Reestructuración de `main.dart` para que la gestión de sesión resida por encima del `Navigator`, actuando mediante `navigatorKey` y `scaffoldMessengerKey` globales, y liberación del flag anti-duplicados de `SesionManager` en cada retorno al login.
+39. **Ficha de Producto Móvil sin Fotografía Principal ni Galería Multiángulo**:
+    - *Causa:* `ProductoDetalleDto.fromJson` leía `imagen_url` y `galeria_angulos`, mientras que `ProductoDetalleOut` emite `imagen_principal` y `galeria`. Ambos resolvían a `null` y lista vacía.
+    - *Solución:* Corrección puntual de ambas claves, preservando `imagen_url` en los DTO de listado, donde sí es el nombre correcto.
+40. **HTTP 401 al Reservar desde las Pestañas Catálogo y Buscar**:
+    - *Causa:* `PantallaCatalogo` y `PantallaBuscarProductos` no declaraban campo `token` ni lo propagaban a `PantallaProductoDetalle`, por lo que la petición de reserva salía sin cabecera `Authorization` aun con el usuario autenticado.
+    - *Solución:* Añadido el campo `token` a ambas pantallas y a las de colecciones, propagado desde `PantallaPrincipalHub`.
+41. **Confirmación de Reserva Web con Campos en Blanco**:
+    - *Causa:* La interfaz `ReservaConfirmacion` declaraba `codigo_confirmacion`, `total_prendas` y `mensaje_cortesia`, campos que `ReservaCreadaOut` no envía. El modal imprimía «CÓDIGO: » sin contenido y la notificación mostraba `Cita confirmada (undefined)`. El spec mockeaba la interfaz del propio frontend, dando por válido un contrato que el servidor nunca produce.
+    - *Solución:* Modelo alineado con `ReservaCreadaOut`, total derivado de las líneas mediante `computed()`, y spec reescrito sobre un payload real del backend.
+42. **Sesión Anónima tras Completar el Registro en Web**:
+    - *Causa:* `RegistroComponent` persistía la sesión con claves propias (`fs_token_acceso`, `fs_usuario`) que ningún servicio consulta, ya que `LoginService`, `PerfilService` e `InicioService` leen `fashionstore_token` y `fashionstore_user`. El usuario recién registrado quedaba sin autenticar, el interceptor no adjuntaba el token y `/perfil` rebotaba a `/login`.
+    - *Solución:* El registro delega la persistencia en el nuevo método `LoginService.establecerSesion()`, dejando las claves de almacenamiento bajo un único propietario.
+43. **Todo Fallo Interno del Backend Llegaba al Navegador como «Failed to fetch»**:
+    - *Causa:* Ante una excepción no controlada, la respuesta 500 la generaba el `ServerErrorMiddleware` de Starlette, que envuelve a todos los middlewares de usuario, incluido el `CORSMiddleware`. La respuesta salía sin `Access-Control-Allow-Origin` y el navegador la descartaba, de modo que la web y la app Flutter mostraban un error de red genérico en lugar del error real. Añadir un `@app.exception_handler(Exception)` no lo resuelve: Starlette monta ese manejador precisamente en el `ServerErrorMiddleware`.
+    - *Solución:* Middleware `capturar_errores_no_controlados` registrado **antes** del `CORSMiddleware` (`add_middleware` antepone, así que el primero declarado queda por dentro), que devuelve un 500 JSON estructurado y atraviesa CORS. El traceback se registra en el log del servidor y nunca se envía al cliente. Se conserva el manejador de excepción externo como último recurso para fallos del propio CORSMiddleware.
+44. **Landing Page Pública Inalcanzable en la URL Raíz**:
+    - *Causa:* La ruta `{ path: '', component: MainLayoutComponent, children: [...] }` introducida con CU05 quedó declarada por delante de `{ path: '', loadComponent: landing, pathMatch: 'full' }`. Angular resuelve las rutas en orden: la URL raíz entraba en el layout y, al no existir ningún hijo con `path: ''`, la landing dejaba de mostrarse. El proyecto seguía compilando sin errores.
+    - *Solución:* La landing se declara primero en `app.routes.ts`; su `pathMatch: 'full'` garantiza que solo capture la URL vacía exacta. Se añadió además la ruta comodín `{ path: '**' }` que faltaba —sin ella, cualquier URL desconocida producía un `NG04002` y una pantalla en blanco, agravado porque `vercel.json` reescribe todo a `index.html`— y el guard `src/app/app.routes.spec.ts`, que navega a `/` y verifica el orden de declaración.
 
-#### 37. Blindaje de Rutas y Segmentacion RBAC Dinamica en Angular (`roleGuard` y `AdminDashboardComponent`)
-- **Causa:** El acceso irrestricto por URL a vistas operativas privilegiadas y la exposicion de tarjetas de administracion de usuarios o sucursales a encargados de boutique contravenia el principio de menor privilegio.
-- **Solucion:** Implementacion del guard funcional `roleGuard(rolesPermitidos)` y `adminOnlyGuard` redirigiendo a `/admin` ante accesos no autorizados, actualizacion del layout del panel a 4 columnas responsivas (`grid-cols-1 md:grid-cols-2 lg:grid-cols-4`), y evaluacion computada en el dashboard para ocultar completamente las tarjetas de CU20 y CU21 al rol `encargado_sucursal`.
-
----
-
-## [1.8.0] - 2026-09-20
-
-### Promocion a Baseline Permanente
-- **CU22 - Gestionar Prendas, Productos y Variantes (SKUs) (Catalogo Maestro de Articulos y Matriz Comercial):** Promovido oficialmente a especificacion permanente del sistema en [`.specs/modules/gestion_operativa/CU22-gestionar-productos.md`](.specs/modules/gestion_operativa/CU22-gestionar-productos.md).
-- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU22/` (`spec.md`, `design.md`, `tasks.md`) y limpiado el directorio de cambios temporales `.specs/changes/`.
-- **Exclusion Formal Justificada de Ec-mobile:** Ratificada la exclusion tecnica de la aplicacion movil (`Ec-mobile`). La creacion editorial de prendas, fijacion de precios base y parametrizacion de matrices de variantes constituyen operaciones exclusivas de administracion corporativa y trastienda ejecutadas en el panel web. La aplicacion movil participa en modo solo lectura (`Read-Only`) mediante los endpoints publicos del catalogo (`GET /api/v1/productos`, `GET /api/v1/productos/{id_producto}`).
-- **Validacion Completa:**
-  - Backend: 156/156 tests en verde en `pytest` para toda la suite acumulada (23/23 especificos de CU22); modelos ORM en esquema `fashionstore` (`ProductoORM`, `VarianteProductoORM`), restriccion de unicidad compuesta `uq_variante_producto_talla_color`, algoritmo determinista de SKU corporativo `FS-[PROD]-[TALLA]-[COLOR]`, esquemas Pydantic v2 con validacion estricta de nombres y precios > 0, jerarquia de excepciones de dominio (`ProductoDuplicadoError`, `SkuDuplicadoError`, `VarianteDuplicadaError`, `ProductoConDependenciasError`, `VarianteConDependenciasError`), servicios de dominio con generador de producto cartesiano en lote y bloqueo de eliminacion fisica HTTP 409 ante dependencias de inventario, kardex, pedidos, carritos o reservas forzando baja logica (`activo = False`), y endpoints publicos y administrativos protegidos por rol `administrador`.
-  - Frontend Web: Compilacion limpia en Angular CLI (`ng build`, 0 errores), 110/110 tests en verde en Vitest / Angular CLI (16/16 especificos de CU22); componente Standalone `ProductosAdminComponent` con `ChangeDetectionStrategy.OnPush`, estado reactivo 100% gobernado por Angular Signals (`signal()`, `computed()`), actualizacion de `AdminDashboardComponent` a tres columnas (`grid-cols-1 md:grid-cols-3`) con la 3ra tarjeta boutique "Prendas y Variantes (SKUs)", boton editorial de navegacion `"<- Volver al Panel Principal"` con `routerLink="/admin"`, modal de prenda con selector jerarquico de categorias integrado con `AtributosAdminService` (CU23), generador reactivo de matriz de variantes con seleccion multiple de chips de talla y muestras cromaticas (#HEX), calculo reactivo de combinaciones con previsualizacion de SKU y precio final (`precio_base + precio_extra`), y captura de conflictos 409 y 422 con Luxury Banners preservando intacto el estado del formulario.
-
----
-
-### Errores Corregidos y Soluciones Tecnicas Aplicadas
-
-#### 32. Generador Determinista de SKU Corporativo sin Colisiones ni Caracteres Especiales (`slugify_text` y `generar_sku_corporativo`)
-- **Causa:** La generacion manual o no normalizada de codigos de inventario para prendas de alta costura con tildes, espacios o simbolos generaba identificadores inconsistentes o propensos a colisiones globales.
-- **Solucion:** Implementacion de normalizacion con descomposicion canonica Unicode (NFD), purga de diacriticos, saneamiento alfanumerico con guiones y patron riguroso `FS-[SLUG_PROD]-[COD_TALLA]-[SLUG_COLOR]` truncado a 64 caracteres maximo.
-
-#### 33. Blindaje de Integridad Relacional ante Borrado Fisico de Prendas y SKUs en Uso
-- **Causa:** Intentar eliminar prendas o variantes que cuentan con existencias en bodegas, ventas historicas o reservas generaba caidas de base de datos o perdida de trazabilidad contable.
-- **Solucion:** Verificacion transversal en `ServicioGestionProductos` y `ServicioGestionVariantes` comprobando existencias previas en `inventario_sucursal`, `detalles_pedido`, `items_carrito`, `reservas_probador` y `movimientos_inventario`, rechazando con HTTP 409 e instruyendo la desactivacion mediante baja logica (`activo = False`).
-
-#### 34. Computo Cartesiano Reactivo de Variantes y Sobreescritura Dinamica de Precio en Angular Signals
-- **Causa:** La definicion manual de decenas de variantes por talla y color resultaba lenta y propensa a errores de digitacion en trastienda.
-- **Solucion:** Generador matricial interactivo en Angular que computa el producto cartesiano en vivo a partir de chips y swatches `#HEX`, ofreciendo campo editable de `precio_extra` que recalcula inmediatamente `precio_final = precio_base + precio_extra` antes de la persistencia masiva en lote.
-
----
-
-## [1.7.0] - 2026-09-20
-
-### Promocion a Baseline Permanente
-- **CU23 - Gestionar Categorias, Tallas y Colores (Taxonomia Maestros y Atributos Textiles):** Promovido oficialmente a especificacion permanente del sistema en [`.specs/modules/gestion_operativa/CU23-gestionar-atributos.md`](.specs/modules/gestion_operativa/CU23-gestionar-atributos.md).
-- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU23/` (`spec.md`, `design.md`, `tasks.md`) y limpiado el directorio de cambios temporales `.specs/changes/`.
-- **Exclusion Formal Justificada de Ec-mobile:** Ratificada la exclusion tecnica de la aplicacion movil (`Ec-mobile`). La configuracion taxonomica, ordenacion de tallas y codificacion cromatica constituyen operaciones editoriales exclusivas de back-office ejecutadas en el panel administrativo web. La aplicacion movil participa exclusivamente como consumidor de solo lectura (`Read-Only`) mediante los endpoints publicos existentes.
-- **Validacion Completa:**
-  - Backend: 133/133 tests en verde en `pytest` para toda la suite acumulada (30/30 especificos de CU23); modelos ORM en esquema `fashionstore` (`CategoriaORM`, `TallaORM`, `ColorORM`), soporte de jerarquia auto-referencial (`id_categoria_padre`), restriccion de orden numerico en tallas y codificacion `#HEX` en colores; esquemas Pydantic v2 con validacion estricta y normalizacion; jerarquia de excepciones tipadas con codigos de error semanticos; servicio de dominio con algoritmo de deteccion de ciclos aciclicos (DAG) en categorias (`_verificar_ciclo_jerarquico`) y validacion de dependencias relacionales previo a eliminacion (`CategoriaConDependenciasError`, `TallaEnUsoError`, `ColorEnUsoError`); endpoints publicos `/api/v1/categorias`, `/api/v1/tallas` y `/api/v1/colores`, y endpoints administrativos `/api/v1/admin/*` protegidos por rol `administrador`.
-  - Frontend Web: Compilacion limpia en Angular CLI (`ng build`, 0 errores), 81/81 tests en verde en Vitest / Angular CLI (19/19 especificos de CU23); componente Standalone `CategoriasTallasColoresAdminComponent` con `ChangeDetectionStrategy.OnPush`, reactividad 100% gobernada por Angular Signals (`signal()`, `computed()`), panel de 3 pestanas independientes ('Categorias', 'Tallas', 'Colores'), modales interactivos con `NonNullableFormBuilder`, exclusion automatica de la categoria propia en el selector de padre para prevenir ciclos jerarquicos en la interfaz, sincronizacion bidireccional reactiva entre `<input type="color">` y el campo de texto `#HEX`, y captura de errores 409 y 422 con Luxury Banners preservando intactos los datos del formulario.
-
----
-
-### Errores Corregidos y Soluciones Tecnicas Aplicadas
-
-#### 29. Deteccion Ascendente de Ciclos Jerarquicos en Arbol de Categorias (`_verificar_ciclo_jerarquico`)
-- **Causa:** En modelos auto-referenciales, la asignacion de un descendiente como padre o la auto-referencia directa genera un bucle infinito que rompe la navegacion taxonomica y las consultas recursivas.
-- **Solucion:** Implementacion del algoritmo `_verificar_ciclo_jerarquico` en `ServicioGestionAtributos` que recorre la cadena de ancestros del nuevo padre propuesto hacia la raiz, verificando que no coincida con el identificador de la categoria a modificar y emitiendo `ReferenciaCircularError` (HTTP 422, `REFERENCIA_CIRCULAR_NO_PERMITIDA`).
-
-#### 30. Blindaje de Integridad Relacional Previo a Eliminaciones Fisicas
-- **Causa:** La eliminacion accidental de una categoria con productos asociados o de una talla/color asignados a variantes de producto activas ocasionaria inconsistencias criticas en el catalogo e inventario de boutiques.
-- **Solucion:** Comprobacion proactiva de claves foraneas en `ServicioGestionAtributos` consultando `fashionstore.productos` y `fashionstore.variantes_producto` previo a la emision de la sentencia `DELETE`, bloqueando la transaccion y emitiendo excepciones tipadas de conflicto (HTTP 409) acompañadas de mensajes explicativos.
-
-#### 31. Sincronizacion Bidireccional de Muestras Cromaticas (#HEX y Color Picker) en Angular
-- **Causa:** La integracion de `<input type="color">` con formularios reactivos de Angular puede generar discordancia si el usuario escribe manualmente un codigo hexadecimal o si el valor no incluye el prefijo '#'.
-- **Solucion:** Implementacion de manejadores reactivos bidireccionales `actualizarHexDesdePicker` y `onHexTextInput`, asegurando anteposicion automatica del caracter '#', transformacion a mayusculas y actualizacion sincronizada de la muestra visual swatch.
-
----
-
-## [1.6.0] - 2026-09-20
-
+## [1.8.0] - 2026-09-21
 
 ### Promoción a Baseline Permanente
-- **CU21 - Gestionar Sucursales y Ciudades (Gestión Operativa y Administración Territorial):** Promovido oficialmente a especificación permanente del sistema en [`.specs/modules/gestion_operativa/CU21-gestionar-sucursales.md`](.specs/modules/gestion_operativa/CU21-gestionar-sucursales.md).
-- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU21/` y limpiado el directorio de cambios activos `.specs/changes/`.
-- **Validación Completa:** 
-  - Backend: 103/103 tests en verde en `pytest` para toda la suite acumulada (20/20 específicos de gestión operativa y territorial); modelos ORM en esquema `fashionstore` (`CiudadORM`, `SucursalORM`), restricción de unicidad relacional `UniqueConstraint("id_ciudad", "nombre")`, schemas Pydantic v2 con validación cronológica (`horario_cierre > horario_apertura`), servicio de dominio con protección de dependencias (`CIUDAD_CON_DEPENDENCIAS_ACTIVAS`) y prevención de desactivación ante inventario cautivo o reservas pendientes (`SUCURSAL_CON_OPERACIONES_PENDIENTES`), y endpoints administrativos bajo `/api/v1/admin/ciudades` y `/api/v1/admin/sucursales`, junto con endpoints públicos `/api/v1/ciudades` y `/api/v1/sucursales`.
-  - Frontend Web: Compilación limpia en Angular CLI (`npm run build`, 0 errores), 62/62 tests pasando en Vitest / Angular CLI (21/21 de sucursales y ciudades), componente `SucursalesAdminComponent` Standalone con `ChangeDetectionStrategy.OnPush`, estado reactivo 100% gobernado con Angular Signals (`signal()`, `computed()`), pestañas de trabajo 'Boutiques' y 'Ciudades', filtros en tiempo real por ciudad y término de búsqueda, formularios fuertemente tipados con validación síncrona de horas, modales accesibles y Luxury Alerts con auto-dismiss.
-  - Mobile: 73/73 tests en verde en `flutter test` (17/17 de gestión operativa), 0 incidencias en `flutter analyze`, arquitectura Feature-First en `lib/src/features/gestion_operativa/cu21_sucursales_ciudades/` (`datos/`, `dominio/`, `presentacion/`), `SucursalesBloc` gobernado por estados sellados inmutables (`SucursalesInicial`, `SucursalesCargando`, `SucursalesCargado`, `SucursalesError`, `SucursalOperacionExitosa`), pantalla `SucursalesAdminPantalla` con cabecera editorial Atelier, carrusel horizontal de chips de ciudad, tarjetas de boutique con toggle Switch interactivo con diálogo de confirmación, y formulario modal BottomSheet con selectores nativos de hora en formato 24h.
+- **CU05 - Consultar Catálogo de Productos (Colección General, Atelier & Sastrería Femenina):** Promovido oficialmente a especificación técnica permanente del sistema en [`.specs/modules/catalogo_productos/CU05-consultar-catalogo.md`](.specs/modules/catalogo_productos/CU05-consultar-catalogo.md).
+- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU05-consultar-catalogo/` y limpiado el directorio de cambios activos `.specs/changes/`.
+- **Validación Completa en los 3 Bloques:**
+  - **Backend (`Ec-backend`):** 107/107 tests en verde en `pytest` (7/7 específicos de catálogo general); modelos ORM `ProductoORM`, `CategoriaORM`, `VarianteProductoORM`, `PromocionORM` y `PromocionProductoORM`; endpoint `GET /api/v1/catalogo` con paginación, filtros de categoría y ordenamiento; cálculo agregado de conteo por categoría sin queries N+1; cálculo dinámico de promociones vigentes y asignación de subtítulos y badges de alta costura.
+  - **Frontend Web (`Ec-frontend`):** 86/86 tests pasando en Vitest / Angular CLI (8/8 de catálogo), compilación de producción limpia (`npm run build`, 0 errores); vista `CatalogoComponent` implementada como Pantalla Raíz (Hub) bajo `MainLayoutComponent` (navbar superior visible, sin botón `← Volver`, pestaña activa destacada); carrusel horizontal de chips con unidades; grilla editorial de 4 columnas con selector de densidad (4 vs 2 columnas); tarjetas con badges de atelier, tallas, dots de color y wishlist; paginación editorial y bloque de Conserjería Privada de Fitting.
+  - **Mobile Multiplataforma (`Ec-mobile`):** 86/86 tests pasando en `flutter test` (9/9 específicos de CU05), 0 incidencias en `flutter analyze`; `PantallaCatalogo` integrada en el Índice 2 (`Catálogo`) de `PantallaPrincipalHub` con `BottomNavigationBar` visible y `AppBar` con `automaticallyImplyLeading: false`; carrusel horizontal de chips con conteo; selector de 1 o 2 columnas; cuadrícula con `childAspectRatio: 0.58` libre de desbordamientos `RenderFlex`; paginación con botón expansor y sello institucional "ATELIER FLAGSHIP MADRID · PARÍS".
 
----
+### Registro de Errores Corregidos y Soluciones Aplicadas
+31. **Desbordamiento de RenderFlex y Huecos Excesivos en Tarjetas Móviles de Catálogo**:
+    - *Causa:* En pantallas móviles de resolución estándar, la proporción de aspecto 0.50 dejaba un espacio inferior desmedido, mientras que proporciones mayores a 0.65 comprimían el bloque de tallas provocando overflow vertical en tarjetas con títulos de 2 líneas.
+    - *Solución:* Calibración precisa a `childAspectRatio: 0.58` en `PantallaCatalogo`, asegurando un ajuste armónico de imagen 3:4, badges, títulos, precio, tallas y selector cromático con cero desbordamientos.
+32. **Regresión en Expectativa de Placeholder en Suite de Pruebas de Navegación Móvil (`pantalla_principal_hub_test.dart`)**:
+    - *Causa:* El test de navegación original comprobaba la presencia de `PantallaCatalogoPlaceholder` en el índice 2, fallando tras la sustitución por la implementación real de CU05.
+    - *Solución:* Actualización del test para validar la presencia de `PantallaCatalogo`, garantizando que la navegación bidireccional entre las 4 pestañas raíz mantenga el 100% de aprobación.
+33. **Alineación con Linter Dart 3 (`unnecessary_underscores` y `dangling_library_doc_comments`)**:
+    - *Causa:* El uso de identificadores múltiples no utilizados (`__`, `___`) en callbacks de constructores y comentarios de librería no vinculados activaron advertencias en `flutter analyze`.
+    - *Solución:* Sustitución por comodines simples `_` compatibles con Dart 3 y enlace de la directiva `library;` en modelos DTO, logrando 0 issues en el análisis estático.
 
-### Errores Corregidos y Soluciones Técnicas Aplicadas
+## [1.7.0] - 2026-09-21
 
-#### 26. Resolución Estática de Módulos para Analizador de Lenguaje en Antigravity IDE (`fashionstore_paths.pth`)
-- **Causa:** El analizador estático Pyrefly/Pylance señalaba 26 errores de resolución de importaciones relativas a la carpeta `Ec-backend/app` debido a que la raíz del espacio de trabajo es el directorio contenedor del monorepo.
-- **Solución:** Inclusión del archivo `fashionstore_paths.pth` en `Ec-backend/.venv/Lib/site-packages/` conteniendo las rutas absolutas normalizadas al backend y a la subcarpeta app, complementado con `extraPaths` en `.vscode/settings.json`, resolviendo limpiamente la resolución estática sin modificar el código fuente.
+### Promoción a Baseline Permanente
+- **CU36 - Consultar Colecciones (Colecciones Activas y Exploración de Prendas por Colección):** Promovido oficialmente a especificación técnica permanente del sistema en [`.specs/modules/catalogo_productos/CU36-consultar-colecciones.md`](.specs/modules/catalogo_productos/CU36-consultar-colecciones.md).
+- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU36-consultar-colecciones/` y limpiado el directorio de cambios activos `.specs/changes/`.
+- **Validación Completa en los 3 Bloques:**
+  - **Backend (`Ec-backend`):** 100/100 tests en verde en `pytest` (17/17 específicos de colecciones y prendas); modelos ORM `ColeccionORM`, `TemporadaORM`, `ProductoORM`; endpoints `GET /api/v1/colecciones/activas` y `GET /api/v1/colecciones/{id}/productos` (con alias `/api/v1/catalogo/colecciones/...`); resolución de temporada comercial activa por rango de fechas (`CURRENT_DATE`) y fallback a `activa = true`; cálculo dinámico de `precio_desde` (`MIN(precio_base)`) y `total_prendas` sin queries N+1.
+  - **Frontend Web (`Ec-frontend`):** 78/78 tests pasando en Vitest / Angular CLI, compilación de producción limpia (`npm run build`, 0 errores); vistas `ColeccionesComponent` y `ColeccionDetalleComponent` estructuradas como pantallas secundarias fuera de `MainLayoutComponent` (sin barra de navegación superior institucional, maximizando inmersión editorial, con botón de retorno obligatorio `← Volver` hacia `/inicio` o `/colecciones`); card completa de "Otras colecciones" interactiva como botón de enlace.
+  - **Mobile Multiplataforma (`Ec-mobile`):** 77/77 tests pasando en `flutter test`, 0 incidencias en `flutter analyze`; vistas `ColeccionesScreen` y `DetalleColeccionScreen` ejecutadas a pantalla completa sin `BottomNavigationBar` y con `leading: BackButton()`; calibración visual de tarjetas con `childAspectRatio: 0.65`, contenedores elásticos en `Expanded` y fotos en `Positioned.fill` (eliminando espacios blancos excesivos y previniendo `RenderFlex overflowed`); deserialización tolerante de tipos `num` y `Decimal` (`"310.00"`); tipografía corporativa unificada en `Outfit`; y orquestación del Hub raíz con `PantallaPrincipalHub` (`IndexedStack` de 4 posiciones: Inicio, Buscar, Catálogo en blanco para CU05, Perfil) con saludo dinámico para el usuario autenticado (ej. "Joaquinita Chumacero").
 
-#### 27. Sincronización Reactiva de BLoC en Alternancia de Estado Operativo de Sucursal Móvil
-- **Causa:** Al confirmar el cambio de estado operativo en el diálogo modal de la aplicación Flutter, la llamada a `cambiarEstado` emitía un nuevo estado cargado pero la vista local requería actualización explícita del estado de montaje para reflejar de inmediato la animación del Switch.
-- **Solución:** Implementación de callback de sincronización con refresco de montaje tras la confirmación del diálogo, garantizando reactividad visual inmediata sin retrasos de renderizado.
+### Registro de Errores Corregidos y Soluciones Aplicadas
+26. **Espacio en Blanco Excesivo y Desproporción Fotográfica en Tarjetas Móviles (`ColeccionesScreen`)**:
+    - *Causa:* El contenedor de la tarjeta forzaba una altura fija con márgenes rígidos que dejaban un área blanca desproporcionada debajo de la fotografía de la colección.
+    - *Solución:* Ajuste de `childAspectRatio: 0.65`, integración de imagen fotográfica en `Expanded` con `Positioned.fill` y `fit: BoxFit.cover`, logrando un encuadre editorial compacto y equilibrado.
+27. **Discrepancia Tipográfica en Tarjetas de Colección Móviles**:
+    - *Causa:* Ciertas etiquetas y badges utilizaban estilos o fuentes por defecto de Flutter sin aplicar los tokens normativos del Design System.
+    - *Solución:* Unificación tipográfica atómica bajo la familia `Outfit`, tracking normativo (`letterSpacing: 0.8-1.1`), pesos `FontWeight.w600/w700` y paleta Obsidian/Camel de `fashionstore-tokens.md`.
+28. **Incompatibilidad de Tipos en Deserialización de Precios Monetarios (`TypeError: String is not a subtype of num`)**:
+    - *Causa:* FastAPI serializa campos `Decimal` de SQLAlchemy como cadenas JSON (ej. `"310.00"`), produciendo un fallo de conversión directa a `num` en Dart.
+    - *Solución:* Implementación de parsing tolerante y robusto mediante `double.tryParse(json['precio_base'].toString()) ?? 0.0`.
+29. **Navegación Circular y Corrupción de Pila entre Pestañas Raíz en Flutter**:
+    - *Causa:* Cada pantalla (`Inicio`, `Buscar`, `Perfil`) creaba su propio `Scaffold` con `BottomNavigationBar` local y utilizaba `Navigator.push` entre sí, provocando apilamiento de rutas y callbacks desalineados (ej. pulsar Inicio desde Perfil solo ejecutaba un `setState` local).
+    - *Solución:* Creación de `PantallaPrincipalHub` con un único `Scaffold` raíz e `IndexedStack` de 4 pestañas (`Inicio`, `Buscar`, `Catálogo`, `Perfil`), permitiendo alternar instantáneamente entre vistas por índice sin duplicar rutas y reservando `Navigator.push` exclusivamente para pantallas secundarias como `ColeccionesScreen`.
+30. **Nombre de Usuario Estático en Saludo de Bienvenida en Móvil**:
+    - *Causa:* `InicioBloc` inicializaba con `'Ana Valenzuela'` quemado y `main.dart` no transfería los datos del usuario autenticado tras el inicio de sesión.
+    - *Solución:* Propagación de `LoginRespuestaDto` desde `PantallaLogin` hacia `PantallaPrincipalHub` y `PantallaInicio`, y consulta asíncrona de perfil con el token activo, mostrando dinámicamente el nombre real (ej. "Joaquinita Chumacero").
 
-#### 28. Validación Cruzada Síncrona de Invariantes Horarias en Formularios Web y Mobile
-- **Causa:** La captura manual de horarios de boutique permitía introducir combinaciones inconsistentes donde la hora de cierre precedía a la de apertura, delegando la detección únicamente al backend.
-- **Solución:** Incorporación de validadores síncronos cruzados en Angular (`validarHorarios`) y en Flutter (`_validarHorarios`), bloqueando la confirmación de formularios en el cliente y desplegando mensajes contextuales antes de efectuar la petición de red.
+## [1.6.0] - 2026-09-21
 
----
+### Directriz Arquitectónica Global de Navegación y Jerarquía de Vistas (Hub-and-Spoke)
+- **Definición Canónica:** Establecimiento formal de la directriz en [`.specs/architecture/directriz-navegacion-hub-and-spoke.md`](.specs/architecture/directriz-navegacion-hub-and-spoke.md).
+- **Las 4 Pantallas Principales (Raíz / Hub):** Únicamente `/inicio`, `/buscar`, `/catalogo` y `/perfil` disponen de barra de navegación principal (navbar Web / BottomNavigationBar Mobile) permanentemente visible. Prohibido incluir botón de retroceso (`← Volver`).
+- **Pantallas Secundarias (Hojas / Spoke):** Cualquier caso de uso derivado (incluyendo `CU36 Colecciones` y su vista de detalle) debe ocultar la barra de navegación principal y disponer de un botón de regreso obligatorio (`← Volver` / `leading: BackButton()`) hacia la pantalla previa desde la que se accedió.
+- **Alineación de CU36:** Actualizadas las especificaciones activas de `CU36` (`spec.md`, `plan.md`, `tasks.md`, `checkpoint.md`, `change-consultar-colecciones.md`) para cumplir estrictamente con el patrón Hub-and-Spoke.
 
 ## [1.5.0] - 2026-09-20
 

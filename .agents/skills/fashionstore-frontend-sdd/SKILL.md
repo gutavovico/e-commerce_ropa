@@ -59,6 +59,12 @@ Antes de crear o modificar cualquier archivo en `Ec-frontend/`, debes ejecutar s
 
 ## 3. Principios de Código Angular (Constitución Frontend)
 
+### 3.0 REGLA DE NEGOCIO GLOBAL INQUEBRANTABLE: E-COMMERCE EXCLUSIVO PARA MUJERES
+* **Exclusividad Femenina:** FashionStore es una boutique y galería digital de alta costura **EXCLUSIVAMENTE PARA MUJERES**.
+* **Prohibición de Contenido Masculino:** Queda estrictamente prohibido el uso de prendas masculinas, modelos masculinos, trajes de hombre o calzado/accesorios masculinos en cualquier pantalla, carrusel, card o fallback. Todo contenido gráfico debe representar moda femenina elegante.
+* **Integridad de Datos Reales (Cero Productos Inventados):** Todas las prendas de ropa mostradas en el frontend provienen exclusivamente de la base de datos PostgreSQL (`fashionstore.productos`). Jamás inventar o quemar en código productos ficticios que no existan en la base de datos.
+* **Jerarquía de Dominio Canónica:** Una **temporada** puede contener una o más **colecciones**, y una **colección** contiene múltiples **prendas de ropa** (productos).
+
 ### 3.1 Componentes Standalone Exclusivos
 * Prohibido crear o utilizar `NgModule`. Todos los componentes, directivas y pipes deben declarar `standalone: true`.
 * Todo componente debe configurar explícitamente `changeDetection: ChangeDetectionStrategy.OnPush`.

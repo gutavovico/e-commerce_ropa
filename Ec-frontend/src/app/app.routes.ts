@@ -1,8 +1,106 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminOnlyGuard, roleGuard } from './core/guards/role.guard';
+import { MainLayoutComponent } from './core/layouts/main-layout/main-layout.component';
 
 export const routes: Routes = [
+  // =========================================================================
+  // 0. LANDING PAGE INSTITUCIONAL PÚBLICA
+  // =========================================================================
+  {
+    path: '',
+    loadComponent: () =>
+      import('./public/landing/landing.component').then(
+        (m) => m.LandingPageComponent
+      ),
+    pathMatch: 'full',
+    title: 'FASHION STORE | Alta Costura y Sastrería Digital',
+  },
+
+  // =========================================================================
+  // 1. PANTALLAS RAÍZ (HUB) BAJO MAIN LAYOUT CON NAVBAR PERSISTENTE
+  // =========================================================================
+  {
+    path: '',
+    component: MainLayoutComponent,
+    children: [
+      {
+        path: 'inicio',
+        loadComponent: () =>
+          import('./modules/inicio/paginas/inicio.component').then(
+            (m) => m.InicioComponent
+          ),
+        title: 'FASHION STORE | Inicio & Atelier Exclusivo',
+      },
+      {
+        path: 'home',
+        redirectTo: 'inicio',
+        pathMatch: 'full',
+      },
+      {
+        path: 'buscar',
+        loadComponent: () =>
+          import(
+            './modules/catalogo/cu06_buscar_filtrar/paginas/buscar-productos.component'
+          ).then((m) => m.BuscarProductosComponent),
+        title: 'FASHION STORE | Búsqueda & Catálogo Atelier',
+      },
+      {
+        path: 'catalogo',
+        loadComponent: () =>
+          import(
+            './modules/catalogo/cu05_consultar_catalogo/paginas/catalogo.component'
+          ).then((m) => m.CatalogoComponent),
+        title: 'FASHION STORE | Catálogo & Exploración Atelier',
+      },
+      {
+        path: 'perfil',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import(
+            './modules/autenticacion_seguridad/cu04_gestionar_perfil/paginas/perfil.component'
+          ).then((m) => m.PerfilComponent),
+        title: 'FASHION STORE | Perfil de Cliente Atelier',
+      },
+      {
+        path: 'mi-cuenta',
+        redirectTo: 'perfil',
+        pathMatch: 'full',
+      },
+    ],
+  },
+
+  // =========================================================================
+  // 2. PANTALLAS SECUNDARIAS (HOJAS / SPOKE) FUERA DEL MAIN LAYOUT
+  // =========================================================================
+  {
+    path: 'colecciones',
+    loadComponent: () =>
+      import(
+        './modules/colecciones/paginas/colecciones/colecciones.component'
+      ).then((m) => m.ColeccionesComponent),
+    title: 'FASHION STORE | Colecciones & Archivo de Sastrería',
+  },
+  {
+    path: 'colecciones/:id',
+    loadComponent: () =>
+      import(
+        './modules/colecciones/paginas/coleccion-detalle/coleccion-detalle.component'
+      ).then((m) => m.ColeccionDetalleComponent),
+    title: 'FASHION STORE | Detalle de Colección',
+  },
+  {
+    path: 'productos/:id',
+    loadComponent: () =>
+      import(
+        './modules/catalogo/cu07_detalle_producto/paginas/producto-detalle.component'
+      ).then((m) => m.ProductoDetalleComponent),
+    title: 'FASHION STORE | Detalle de Prenda de Alta Costura',
+  },
+
+  // =========================================================================
+  // 3. FLUJOS DE AUTENTICACIÓN Y SEGURIDAD
+  // =========================================================================
   {
     path: 'login',
     loadComponent: () =>
@@ -34,31 +132,10 @@ export const routes: Routes = [
     redirectTo: 'recuperar-password',
     pathMatch: 'full',
   },
-  {
-    path: 'perfil',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import(
-        './modules/autenticacion_seguridad/cu04_gestionar_perfil/paginas/perfil.component'
-      ).then((m) => m.PerfilComponent),
-  },
-  {
-    path: 'mi-cuenta',
-    redirectTo: 'perfil',
-    pathMatch: 'full',
-  },
-  {
-    path: 'buscar',
-    loadComponent: () =>
-      import(
-        './modules/catalogo/cu06_buscar_filtrar/paginas/buscar-productos.component'
-      ).then((m) => m.BuscarProductosComponent),
-  },
-  {
-    path: 'catalogo',
-    redirectTo: 'buscar',
-    pathMatch: 'full',
-  },
+
+  // =========================================================================
+  // 4. PANEL DE CONTROL Y MÓDULOS ADMINISTRATIVOS CORPORATIVOS
+  // =========================================================================
   {
     path: 'admin',
     canActivate: [authGuard],
@@ -163,9 +240,12 @@ export const routes: Routes = [
         './modules/seguridad/cu30_bitacora/paginas/bitacora-admin.component'
       ).then((m) => m.BitacoraAdminComponent),
   },
+
+  // =========================================================================
+  // 5. RUTA COMODÍN (404)
+  // =========================================================================
   {
-    path: '',
-    redirectTo: 'buscar',
-    pathMatch: 'full',
+    path: '**',
+    redirectTo: '',
   },
 ];

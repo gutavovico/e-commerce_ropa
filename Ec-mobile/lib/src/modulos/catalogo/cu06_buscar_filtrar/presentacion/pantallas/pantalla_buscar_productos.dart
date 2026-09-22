@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../datos/modelos/producto_item_dto.dart';
+import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/catalogo_bloc.dart';
 
 /// Paleta de 16 colores textiles de confección para el catálogo de FashionStore.
@@ -32,17 +33,25 @@ const List<SwatchColorTextil> kColoresTextiles = [
 ];
 
 class PantallaBuscarProductos extends StatefulWidget {
+  /// JWT de la sesión activa. Se propaga a la ficha de producto porque CU12 (reservar cita
+  /// en boutique) exige `Authorization`; sin él la reserva respondía 401 aun estando logueado.
+  final String? token;
   final CatalogoBloc? bloc;
   final VoidCallback? alIrAPerfil;
   final VoidCallback? alIrAInicio;
   final VoidCallback? alIrACatalogo;
+  final bool mostrarBottomNav;
+  final bool habilitarImagenesRed;
 
   const PantallaBuscarProductos({
     super.key,
+    this.token,
     this.bloc,
     this.alIrAPerfil,
     this.alIrAInicio,
     this.alIrACatalogo,
+    this.mostrarBottomNav = true,
+    this.habilitarImagenesRed = true,
   });
 
   @override
@@ -286,7 +295,7 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
           backgroundColor: Colors.white,
           appBar: _construirAppBar(),
           body: _construirCuerpo(),
-          bottomNavigationBar: _construirBottomNav(),
+          bottomNavigationBar: widget.mostrarBottomNav ? _construirBottomNav() : null,
         );
       },
     );
@@ -294,6 +303,7 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
 
   PreferredSizeWidget _construirAppBar() {
     return AppBar(
+      automaticallyImplyLeading: false,
       elevation: 0,
       backgroundColor: Colors.white,
       foregroundColor: Colors.black,
@@ -340,11 +350,13 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
                 border: Border.all(color: const Color(0xFFD5D2CD)),
               ),
               child: ClipOval(
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 20),
-                ),
+                child: widget.habilitarImagenesRed
+                    ? Image.network(
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 20),
+                      )
+                    : const Icon(Icons.person, size: 20),
               ),
             ),
           ),
@@ -946,7 +958,19 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
   Widget _construirTarjetaProducto(ProductoItemDto item) {
     final esFav = _bloc.favoritosIds.contains(item.idProducto);
 
-    return Column(
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PantallaProductoDetalle(
+              idProducto: item.idProducto,
+              token: widget.token,
+              habilitarImagenesRed: widget.habilitarImagenesRed,
+            ),
+          ),
+        );
+      },
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Contenedor de Fotografía con Badges y Corazón
@@ -1112,8 +1136,9 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
           ],
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _construirBusquedasFrecuentes() {
     final busquedas = _bloc.busquedasFrecuentes;
@@ -1189,8 +1214,12 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
       selectedLabelStyle: const TextStyle(fontFamily: 'Outfit', fontSize: 10, fontWeight: FontWeight.bold),
       unselectedLabelStyle: const TextStyle(fontFamily: 'Outfit', fontSize: 10),
       onTap: (index) {
-        if (index == 0 && widget.alIrAInicio != null) {
-          widget.alIrAInicio!();
+        if (index == 0) {
+          if (widget.alIrAInicio != null) {
+            widget.alIrAInicio!();
+          } else if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
         } else if (index == 2 && widget.alIrACatalogo != null) {
           widget.alIrACatalogo!();
         } else if (index == 3 && widget.alIrAPerfil != null) {

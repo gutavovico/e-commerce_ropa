@@ -1,0 +1,461 @@
+<div class="min-h-screen bg-[#FFFFFF] text-[#111111] flex flex-col font-sans selection:bg-black selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- 1. NOTIFICACIÓN TOAST EFÍMERA                                             -->
+  <!-- ========================================================================= -->
+  @if (prendaAgregadaMensaje()) {
+    <div class="fixed bottom-6 right-6 z-50 bg-[#111111] text-white px-6 py-4 rounded-xl shadow-2xl flex items-center space-x-3 border border-[#333333] animate-fadeIn">
+      <svg class="w-5 h-5 text-[#C5A880]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      <span class="text-xs tracking-wider uppercase font-medium">{{ prendaAgregadaMensaje() }}</span>
+    </div>
+  }
+
+
+
+  <!-- ========================================================================= -->
+  <!-- 3. BARRA DE SALUDO ATELIER & BOUTIQUE HABITUAL                           -->
+  <!-- ========================================================================= -->
+  <section class="max-w-[1440px] w-full mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between border-b border-[#F0EFEB] gap-3">
+    <div>
+      <div class="flex items-center space-x-2">
+        <span class="w-2 h-2 rounded-full bg-[#A88B64]"></span>
+        <span class="text-[11px] font-semibold tracking-[0.2em] text-[#777777] uppercase">BIENVENIDA DE NUEVO</span>
+      </div>
+      <h2 class="text-xl md:text-2xl font-serif text-[#111111] font-normal tracking-tight mt-0.5">
+        Bienvenida, {{ nombreUsuario() }}
+      </h2>
+      <p class="text-[12px] text-[#666666] tracking-wide mt-1 hidden sm:block">
+        Novedades seleccionadas y colecciones cápsula curadas exclusivamente para tu silueta y estilo personal.
+      </p>
+    </div>
+
+    <!-- Chip Boutique Habitual -->
+    <div class="self-start md:self-auto flex items-center space-x-2.5 bg-[#FAF9F6] border border-[#E8E6E1] rounded-full px-4 py-2 text-[11px] tracking-[0.15em] text-[#444444] uppercase">
+      <svg class="w-3.5 h-3.5 text-[#A88B64]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+      </svg>
+      <span class="font-medium text-[#777777]">ATELIER HABITUAL:</span>
+      <span class="font-semibold text-black">{{ boutiqueReferencia() }}</span>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 4. BANNER HERO EDITORIAL (CU36: CONSULTAR COLECCIONES)                   -->
+  <!-- ========================================================================= -->
+  <section class="max-w-[1440px] w-full mx-auto px-6 pt-6 pb-4">
+    <div class="relative w-full rounded-2xl overflow-hidden min-h-[380px] md:min-h-[460px] flex items-center bg-[#1F1E1C] shadow-lg">
+      <!-- Imagen de Fondo Atelier -->
+      <img
+        src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1600&auto=format&fit=crop&q=85"
+        alt="Boutique y Atelier Haute Couture"
+        class="absolute inset-0 w-full h-full object-cover object-center opacity-45 transform scale-105 hover:scale-100 transition-transform duration-1000"
+      />
+      <div class="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-transparent"></div>
+
+      <!-- Contenido Hero -->
+      <div class="relative z-10 max-w-2xl px-8 md:px-14 py-12 text-white">
+        <!-- Tag Pill Temporada -->
+        <div class="inline-flex items-center space-x-2 bg-white/20 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/30 text-[10px] font-semibold tracking-[0.25em] uppercase">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#E8C59A]"></span>
+          <span>NUEVA TEMPORADA</span>
+        </div>
+
+        <!-- Título Hero -->
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-serif font-normal tracking-tight text-white mt-4 leading-tight">
+          Visita nuestra colección más reciente
+        </h1>
+
+        <!-- Subtítulo -->
+        <p class="text-sm md:text-base text-[#E5E5E5] font-light mt-3 leading-relaxed max-w-xl">
+          Líneas puras, patronaje contemporáneo y tejidos nobles seleccionados en Biella y Lyon para una silueta atemporal sin concesiones.
+        </p>
+
+        <!-- Botón de Acción Principal (CTA CU36) -->
+        <div class="mt-8">
+          <a
+            routerLink="/colecciones"
+            class="inline-flex items-center space-x-3 bg-white text-black hover:bg-[#F2EFE9] px-7 py-3.5 rounded-full text-xs font-semibold tracking-[0.2em] uppercase transition-all shadow-md hover:shadow-xl group"
+          >
+            <span>EXPLORAR COLECCIÓN</span>
+            <span class="text-sm transform group-hover:translate-x-1 transition-transform">→</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 5. MÓDULO "RECOMENDADO PARA TI" (CU18)                                    -->
+  <!-- ========================================================================= -->
+  <section class="max-w-[1440px] w-full mx-auto px-6 py-10">
+
+    <!-- Cabecera de la Sección -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between border-b border-[#F0EFEB] pb-5 gap-3">
+      <div>
+        <span class="text-[10px] font-bold tracking-[0.25em] text-[#8C6D46] uppercase">
+          SELECCIÓN A MEDIDA • ATELIER RECOMMENDS
+        </span>
+        <h2 class="text-2xl md:text-3xl font-serif text-[#111111] font-normal tracking-tight mt-1">
+          Recomendado para ti
+        </h2>
+        @if (tieneHistorial() && motivoGeneral()) {
+          <p class="text-xs text-[#555555] tracking-wide mt-1 italic">
+            {{ motivoGeneral() }}
+          </p>
+        }
+      </div>
+
+      @if (tieneHistorial() && recomendaciones().length > 0) {
+        <a
+          routerLink="/catalogo"
+          class="inline-flex items-center space-x-2 text-xs font-semibold tracking-[0.18em] text-[#111111] hover:text-[#8C6D46] uppercase transition-colors"
+        >
+          <span>VER CATÁLOGO COMPLETO ({{ totalRecomendados() }})</span>
+          <span class="text-sm">→</span>
+        </a>
+      }
+    </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- ESTADO 1: CARGA (SKELETON LOADER)                                     -->
+    <!-- --------------------------------------------------------------------- -->
+    @if (cargando()) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8 animate-pulse">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="border border-[#ECEAE6] rounded-xl overflow-hidden bg-white p-4 space-y-4">
+            <div class="w-full aspect-[3/4] bg-[#F2EFEB] rounded-lg"></div>
+            <div class="h-3 w-1/3 bg-[#E5E2DC] rounded"></div>
+            <div class="h-5 w-3/4 bg-[#D8D4CC] rounded"></div>
+            <div class="h-3 w-full bg-[#E5E2DC] rounded"></div>
+            <div class="flex justify-between pt-2">
+              <div class="h-10 w-24 bg-[#E5E2DC] rounded-lg"></div>
+              <div class="h-10 w-28 bg-[#111111]/20 rounded-lg"></div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- ESTADO 2: CON COMPRAS PREVIAS (GRID DE PRENDAS SUGERIDAS)             -->
+    <!-- --------------------------------------------------------------------- -->
+    @if (!cargando() && tieneHistorial() && recomendaciones().length > 0) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+        @for (item of recomendaciones(); track item.id_producto) {
+          <article class="group relative flex flex-col justify-between border border-[#ECEAE6] rounded-xl overflow-hidden bg-white hover:border-[#CCCCCC] hover:shadow-xl transition-all duration-300 p-4">
+
+            <!-- Contenedor Visual de Prenda -->
+            <div class="relative w-full aspect-[3/4] overflow-hidden rounded-lg bg-[#F8F7F5]">
+              <!-- Badge Editorial Superior -->
+              <div class="absolute top-3 left-3 z-10">
+                <span class="inline-block bg-black/80 backdrop-blur-sm text-white text-[9px] font-bold tracking-[0.2em] px-2.5 py-1 rounded uppercase">
+                  {{ item.badge_editorial || 'ALTA COSTURA' }}
+                </span>
+              </div>
+
+              <!-- Botón Favoritos (Wishlist) -->
+              <button
+                type="button"
+                (click)="onToggleFavorito(item.id_producto, $event)"
+                class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#333333] hover:text-black hover:bg-white shadow-sm transition-all"
+                [attr.aria-label]="esFavorito(item.id_producto) ? 'Quitar de favoritos' : 'Añadir a favoritos'"
+              >
+                <svg
+                  class="w-4 h-4"
+                  [class.text-[#991B1B]]="esFavorito(item.id_producto)"
+                  [attr.fill]="esFavorito(item.id_producto) ? 'currentColor' : 'none'"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
+
+              <!-- Fotografía de Prenda -->
+              <img
+                [src]="item.imagen_url || 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=800&q=80'"
+                [alt]="item.nombre"
+                class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+              />
+            </div>
+
+            <!-- Detalles del Producto -->
+            <div class="pt-4 flex flex-col flex-1 justify-between">
+              <div>
+                <!-- Subtítulo Textil y Precio -->
+                <div class="flex items-center justify-between text-[11px] tracking-[0.15em] uppercase">
+                  <span class="font-semibold text-[#8C6D46]">{{ item.subtitulo_atelier || item.categoria }}</span>
+                  <span class="text-base font-serif font-bold text-[#111111]">{{ item.precio_base }} €</span>
+                </div>
+
+                <!-- Nombre -->
+                <h3 class="font-serif text-lg font-normal text-[#111111] mt-1 line-clamp-1 group-hover:text-[#8C6D46] transition-colors">
+                  {{ item.nombre }}
+                </h3>
+
+                <!-- Descripción Corta -->
+                <p class="text-xs text-[#666666] font-light mt-1.5 line-clamp-2 leading-relaxed">
+                  {{ item.descripcion || 'Caída etérea con patronaje artesanal contemporáneo y selección textil de alta costura.' }}
+                </p>
+
+                <!-- Tonalidad y Origen Textil -->
+                <div class="mt-3 flex items-center justify-between text-[10px] tracking-[0.15em] text-[#777777] uppercase border-t border-[#F2EFEB] pt-2.5">
+                  <div class="flex items-center space-x-1.5">
+                    <span>TONO:</span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#E5DFD5] border border-[#CCCCCC]"></span>
+                    <span class="font-medium text-[#222222]">{{ item.tono_principal || 'Marfil Puro' }}</span>
+                  </div>
+                  <span class="font-semibold text-[#8C6D46]">{{ item.subtitulo_atelier || 'SEDA DE LYON' }}</span>
+                </div>
+              </div>
+
+              <!-- Botones de Acción -->
+              <div class="mt-4 pt-3 flex items-center space-x-2">
+                <button
+                  type="button"
+                  (click)="onVerPieza(item.id_producto)"
+                  class="flex-1 py-2.5 px-3 bg-[#FAF9F6] hover:bg-[#EFECE6] text-black border border-[#E0DCD3] rounded-lg text-[10px] font-semibold tracking-[0.2em] uppercase transition-colors text-center"
+                >
+                  VER PIEZA
+                </button>
+                <button
+                  type="button"
+                  (click)="onAgregarACesta(item, $event)"
+                  class="flex-1 py-2.5 px-3 bg-[#111111] hover:bg-[#333333] text-white rounded-lg text-[10px] font-semibold tracking-[0.2em] uppercase transition-colors text-center flex items-center justify-center space-x-1.5"
+                >
+                  <span>+ AÑADIR</span>
+                </button>
+              </div>
+            </div>
+
+          </article>
+        }
+      </div>
+    }
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- ESTADO 3: SIN COMPRAS PREVIAS / VISITANTE NUEVO (EMPTY STATE SOBRIO)  -->
+    <!-- --------------------------------------------------------------------- -->
+    @if (!cargando() && (!tieneHistorial() || recomendaciones().length === 0)) {
+      <div class="mt-8 border border-[#E5E0D8] rounded-2xl bg-[#FCFBF9] p-8 md:p-14 text-center max-w-3xl mx-auto shadow-sm">
+        <div class="w-14 h-14 mx-auto rounded-full bg-[#F4EFE6] border border-[#DDD6C8] flex items-center justify-center text-[#8C6D46] mb-5">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+        </div>
+
+        <span class="text-[10px] font-bold tracking-[0.25em] text-[#8C6D46] uppercase">
+          CURADURÍA PERSONALIZADA EN PREPARACIÓN
+        </span>
+
+        <h3 class="text-2xl font-serif text-[#111111] font-normal tracking-tight mt-2">
+          Personalización Atelier
+        </h3>
+
+        <!-- Mensaje Normativo Obligatorio (CU18) -->
+        <p class="text-sm text-[#555555] font-light max-w-xl mx-auto mt-3 leading-relaxed">
+          {{ mensajeEmptyState() || 'Aún no contamos con suficientes interacciones o compras previas para personalizar tu selección. Explora nuestras colecciones activas para descubrir piezas afines a tu estilo' }}
+        </p>
+
+        <!-- Botón de Redirección hacia Catálogo / Colecciones -->
+        <div class="mt-7">
+          <a
+            routerLink="/catalogo"
+            class="inline-flex items-center space-x-3 bg-[#111111] hover:bg-[#333333] text-white px-8 py-3.5 rounded-full text-xs font-semibold tracking-[0.2em] uppercase transition-all shadow-md hover:shadow-lg"
+          >
+            <span>EXPLORAR CATÁLOGO COMPLETO</span>
+            <span class="text-sm">→</span>
+          </a>
+        </div>
+      </div>
+    }
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- ESTADO 4: ERROR DE CONEXIÓN O SERVICIO (FALLBACK VISUAL)              -->
+    <!-- --------------------------------------------------------------------- -->
+    @if (!cargando() && error()) {
+      <div class="mt-6 border border-[#F3C4C4] rounded-xl bg-[#FFF8F8] p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center space-x-3 text-xs text-[#991B1B]">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <span>{{ error() }}</span>
+        </div>
+        <button
+          type="button"
+          (click)="onReintentar()"
+          class="px-5 py-2 bg-black text-white rounded-lg text-[10px] font-semibold tracking-[0.2em] uppercase hover:bg-[#333333] transition-colors"
+        >
+          REINTENTAR
+        </button>
+      </div>
+    }
+
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 6. SECCIÓN "EXPERIENCIA ATELIER" (SERVICIOS Y GARANTÍAS EXCLUSIVAS)      -->
+  <!-- ========================================================================= -->
+  <section class="max-w-[1440px] w-full mx-auto px-6 py-10 border-t border-[#F0EFEB]">
+    <span class="text-[10px] font-bold tracking-[0.25em] text-[#777777] uppercase">
+      GARANTÍA Y SERVICIOS EXCLUSIVOS
+    </span>
+    <h3 class="text-2xl md:text-3xl font-serif text-[#111111] font-normal tracking-tight mt-1 mb-8">
+      Experiencia Atelier
+    </h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Tarjeta 1: Patronaje a Medida -->
+      <div class="border border-[#ECEAE6] bg-[#FAF9F6] p-6 rounded-2xl flex items-start space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-white border border-[#E5E2DC] flex items-center justify-center flex-shrink-0 text-[#8C6D46]">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14.25l6-6m4.5-3.75l-1.5-1.5a2.121 2.121 0 00-3 0L3 15v6h6L21 9a2.121 2.121 0 000-3z"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-serif text-base font-semibold text-[#111111]">Patronaje a Medida en Serrano</h4>
+          <p class="text-xs text-[#666666] font-light mt-1.5 leading-relaxed">
+            Ajuste de sastrería gratuito en nuestra Flagship de Madrid con sastre personal asignado para cada adquisición.
+          </p>
+        </div>
+      </div>
+
+      <!-- Tarjeta 2: Entrega con Guante Blanco -->
+      <div class="border border-[#ECEAE6] bg-[#FAF9F6] p-6 rounded-2xl flex items-start space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-white border border-[#E5E2DC] flex items-center justify-center flex-shrink-0 text-[#8C6D46]">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.25V3.75A1.125 1.125 0 0013.125 2.625h-7.5A1.125 1.125 0 004.5 3.75v10.5"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-serif text-base font-semibold text-[#111111]">Entrega con Guante Blanco</h4>
+          <p class="text-xs text-[#666666] font-light mt-1.5 leading-relaxed">
+            Envío exprés en 2 horas en Madrid capital o entrega personalizada con servicio de prueba privada a domicilio.
+          </p>
+        </div>
+      </div>
+
+      <!-- Tarjeta 3: Trazabilidad de Tejidos -->
+      <div class="border border-[#ECEAE6] bg-[#FAF9F6] p-6 rounded-2xl flex items-start space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-white border border-[#E5E2DC] flex items-center justify-center flex-shrink-0 text-[#8C6D46]">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-serif text-base font-semibold text-[#111111]">Trazabilidad Integral de Tejidos</h4>
+          <p class="text-xs text-[#666666] font-light mt-1.5 leading-relaxed">
+            Certificación artesanal de lana virgen de Biella y seda orgánica pura trazada en origen con pasaporte digital.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 7. FOOTER EDITORIAL DE ALTA COSTURA                                       -->
+  <!-- ========================================================================= -->
+  <footer class="w-full bg-[#FAF9F6] border-t border-[#E8E6E1] mt-auto">
+    <div class="max-w-[1440px] mx-auto px-6 py-14">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+
+        <!-- Columna 1: Marca y Manifiesto -->
+        <div class="space-y-4">
+          <span class="text-sm font-semibold tracking-[0.25em] text-[#111111] uppercase">FASHION STORE</span>
+          <p class="text-xs text-[#666666] leading-relaxed font-light">
+            Arquitectura de prendas atemporales. Un compromiso continuo hacia la sobriedad formal, el patronaje escultórico y la trazabilidad responsable de cada fibra textil.
+          </p>
+          <div class="pt-2">
+            <span class="text-[10px] font-bold tracking-[0.2em] text-[#8C6D46] uppercase">MANIFIESTO DE SOSTENIBILIDAD</span>
+            <p class="text-[11px] text-[#777777] mt-1 font-light">
+              Producción en series limitadas con hilaturas orgánicas certificadas.
+            </p>
+          </div>
+        </div>
+
+        <!-- Columna 2: Flagship Madrid -->
+        <div class="space-y-2 text-xs text-[#555555]">
+          <span class="text-[11px] font-semibold tracking-[0.2em] text-black uppercase block mb-3">MADRID FLAGSHIP</span>
+          <p class="font-medium text-black">Calle Serrano, 48</p>
+          <p>28001 Salamanca, Madrid</p>
+          <p class="text-[#777777] pt-1">Lunes a Sábado — 10:30 a 20:30</p>
+          <p class="text-[#8C6D46] font-medium">+34 914 220 180</p>
+        </div>
+
+        <!-- Columna 3: Flagship París -->
+        <div class="space-y-2 text-xs text-[#555555]">
+          <span class="text-[11px] font-semibold tracking-[0.2em] text-black uppercase block mb-3">PARIS ATELIER</span>
+          <p class="font-medium text-black">Rue du Faubourg Saint-Honoré, 22</p>
+          <p>75008 Madeleine, Paris</p>
+          <p class="text-[#777777] pt-1">Lundi à Samedi — 10:00 à 19:30</p>
+          <p class="text-[#8C6D46] font-medium">+33 1 42 68 55 00</p>
+        </div>
+
+        <!-- Columna 4: Newsletter Exclusiva -->
+        <div class="space-y-3">
+          <span class="text-[11px] font-semibold tracking-[0.2em] text-black uppercase block">ACCESO EN PRIMICIA</span>
+          <p class="text-xs text-[#666666] font-light leading-relaxed">
+            Acceda a nuestras presentaciones estacionales, aperturas privadas y ediciones limitadas.
+          </p>
+          <div class="flex items-center space-x-2 pt-1">
+            <input
+              type="email"
+              placeholder="Correo electrónico"
+              class="flex-1 bg-white border border-[#D5D2CD] px-3.5 py-2.5 rounded-lg text-xs text-black placeholder-[#999999] focus:outline-none focus:border-black"
+            />
+            <button class="px-4 py-2.5 bg-black text-white text-[10px] font-semibold tracking-[0.2em] uppercase rounded-lg hover:bg-[#333333] transition-colors">
+              SUSCRIBIR
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Barra Inferior de Copyright y Legal -->
+      <div class="mt-12 pt-6 border-t border-[#E8E6E1] flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#777777] tracking-wider uppercase gap-3">
+        <span>© 2025 FASHION STORE. TODOS LOS DERECHOS RESERVADOS.</span>
+        <div class="flex items-center space-x-6">
+          <a href="#" class="hover:text-black transition-colors">Aviso Legal</a>
+          <a href="#" class="hover:text-black transition-colors">Política de Privacidad</a>
+          <a href="#" class="hover:text-black transition-colors">Términos y Condiciones</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- 8. NAVEGACIÓN MÓVIL INFERIOR (TAB BAR)                                    -->
+  <!-- ========================================================================= -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEAE6] h-16 flex items-center justify-around px-2">
+    <a routerLink="/inicio" class="flex flex-col items-center justify-center text-black font-semibold space-y-1">
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+      </svg>
+      <span class="text-[9px] tracking-wider uppercase">Inicio</span>
+    </a>
+
+    <a routerLink="/buscar" class="flex flex-col items-center justify-center text-[#777777] hover:text-black space-y-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <span class="text-[9px] tracking-wider uppercase">Buscar</span>
+    </a>
+
+    <a routerLink="/catalogo" class="flex flex-col items-center justify-center text-[#777777] hover:text-black space-y-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+      </svg>
+      <span class="text-[9px] tracking-wider uppercase">Catálogo</span>
+    </a>
+
+    <a routerLink="/perfil" class="flex flex-col items-center justify-center text-[#777777] hover:text-black space-y-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+      <span class="text-[9px] tracking-wider uppercase">Perfil</span>
+    </a>
+  </nav>
+
+</div>

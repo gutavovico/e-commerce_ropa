@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ec_mobile/main.dart';
+import 'package:ec_mobile/src/core/sesion_manager.dart';
 
 void main() {
   testWidgets('EcMobileApp inicia correctamente con PantallaLogin como pantalla principal', (WidgetTester tester) async {
@@ -52,5 +53,42 @@ void main() {
     // Verificar que regresó a PantallaLogin
     expect(find.text('INICIAR SESIÓN'), findsOneWidget);
     expect(find.text('— BIENVENIDO DE VUELTA —'), findsOneWidget);
+  });
+
+  testWidgets(
+      'el listener de sesión sigue activo tras abandonar el login y redirige ante un 401',
+      (WidgetTester tester) async {
+    // Cuando la suscripción a SesionManager vivía en el widget montado como ruta `home`,
+    // navegar al hub reemplazaba esa ruta y cancelaba la suscripción: el auto-redirect por
+    // 401 quedaba muerto justo después del login, que es cuando puede ocurrir un 401.
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    SesionManager.instancia.reiniciar();
+
+    await tester.pumpWidget(const EcMobileApp());
+    await tester.pump();
+
+    // Simular la salida del login limpiando la pila, igual que hace _abrirHub.
+    final navegador = tester.state<NavigatorState>(find.byType(Navigator).first);
+    navegador.pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const Scaffold(body: Center(child: Text('HUB SIMULADO'))),
+      ),
+      (route) => false,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('HUB SIMULADO'), findsOneWidget);
+
+    // Un 401 emitido por cualquier datasource debe devolver al login.
+    SesionManager.instancia.notificarSesionExpirada();
+    await tester.pumpAndSettle();
+
+    expect(find.text('HUB SIMULADO'), findsNothing);
+    expect(find.text('— BIENVENIDO DE VUELTA —'), findsOneWidget);
+
+    // Y el flag anti-duplicados debe quedar liberado para el siguiente ciclo de sesión.
+    SesionManager.instancia.reiniciar();
   });
 }

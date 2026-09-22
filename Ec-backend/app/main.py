@@ -17,6 +17,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
+logger = logging.getLogger("fashionstore.api")
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -38,6 +40,34 @@ app = FastAPI(
     description="Backend API del e-commerce omnicanal de FashionStore",
     version="0.1.0",
 )
+
+RESPUESTA_ERROR_INTERNO = {
+    "detail": "Ha ocurrido un error interno en el servidor. El equipo ha sido notificado.",
+    "code": "ERROR_INTERNO",
+}
+
+
+# --- Captura de errores no controlados ---
+# IMPORTANTE: debe registrarse ANTES que el CORSMiddleware. `add_middleware` antepone cada
+# middleware, así que el último en registrarse queda por fuera; declarando este primero, CORS
+# acaba envolviéndolo y la respuesta 500 que genera sí recibe `Access-Control-Allow-Origin`.
+#
+# No basta con `@app.exception_handler(Exception)`: Starlette monta ese manejador en el
+# `ServerErrorMiddleware`, que envuelve a todos los middlewares de usuario (CORS incluido). Su
+# respuesta sale sin cabeceras CORS y el navegador la reporta como un genérico "Failed to fetch",
+# indistinguible de un backend caído. Ese fue precisamente el síntoma que ocultó, en la web y en
+# la app Flutter, un simple desajuste de nombres de columna contra PostgreSQL.
+@app.middleware("http")
+async def capturar_errores_no_controlados(request: Request, call_next):
+    """Traduce cualquier excepción imprevista a un 500 JSON que atraviesa el CORSMiddleware."""
+    try:
+        return await call_next(request)
+    except Exception as exc:  # noqa: BLE001 - red de seguridad deliberada
+        logger.exception(
+            "Error no controlado en %s %s", request.method, request.url.path, exc_info=exc
+        )
+        return JSONResponse(status_code=500, content=RESPUESTA_ERROR_INTERNO)
+
 
 # --- CORS ---
 app.add_middleware(
@@ -90,6 +120,24 @@ async def domain_error_handler(_request: Request, exc: DomainError) -> JSONRespo
     return _domain_error_response(400, exc)
 
 
+@app.exception_handler(Exception)
+async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Último recurso para fallos ocurridos por encima de `capturar_errores_no_controlados`.
+
+    Starlette monta este manejador en el `ServerErrorMiddleware`, la capa más externa, así que su
+    respuesta no lleva cabeceras CORS. Sirve únicamente para errores del propio CORSMiddleware,
+    que el middleware interno no puede interceptar; el caso normal lo cubre aquel. Su valor aquí
+    es garantizar que jamás se filtre un traceback al cliente.
+    """
+    logger.exception(
+        "Error no controlado (capa externa) en %s %s",
+        request.method,
+        request.url.path,
+        exc_info=exc,
+    )
+    return JSONResponse(status_code=500, content=RESPUESTA_ERROR_INTERNO)
+
+
 # --- Schemas ---
 
 
@@ -109,9 +157,10 @@ from modules.autenticacion_seguridad.cu20_usuarios_roles.router import (
     router as router_usuarios_admin,
 )
 from modules.autenticacion_seguridad.router import router as router_autenticacion
-from modules.catalogo.router import router as router_catalogo
 from modules.comercial.router import router as router_comercial
+from modules.compras_pagos.router import router as router_compras_pagos
 from modules.gestion_operativa.router import router as router_gestion_operativa
+from modules.reservas.router import router as router_reservas
 from modules.seguridad.cu30_bitacora.router import router as router_bitacora
 
 app.include_router(router_autenticacion, prefix="/api/v1")
@@ -120,6 +169,8 @@ app.include_router(router_catalogo, prefix="/api/v1")
 app.include_router(router_comercial, prefix="/api/v1")
 app.include_router(router_gestion_operativa, prefix="/api/v1")
 app.include_router(router_usuarios_admin, prefix="/api/v1")
+app.include_router(router_reservas, prefix="/api/v1")
+app.include_router(router_compras_pagos, prefix="/api/v1")
 app.include_router(router_bitacora, prefix="/api/v1")
 
 # --- Almacenamiento Estatico Local ---

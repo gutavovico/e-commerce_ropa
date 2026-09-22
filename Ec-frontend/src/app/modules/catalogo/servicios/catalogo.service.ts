@@ -8,6 +8,10 @@ import {
   ProductoPaginado,
   PaginacionMeta,
 } from '../modelos/catalogo.modelos';
+import {
+  CatalogoRespuesta,
+  ParametrosConsultaCatalogo,
+} from '../cu05_consultar_catalogo/modelos/catalogo.model';
 
 @Injectable({
   providedIn: 'root',
@@ -41,6 +45,49 @@ export class CatalogoService {
     'Colección Cápsula FW24',
     'Trajes sastre fluídos',
   ]);
+
+  /**
+   * CU05: Consulta el catálogo general de alta costura paginado con resumen de categorías.
+   */
+  consultarCatalogo(paramsConsulta: ParametrosConsultaCatalogo = {}): Observable<CatalogoRespuesta> {
+    this.cargando.set(true);
+    this.error.set(null);
+
+    let params = new HttpParams();
+
+    if (paramsConsulta.categoria_id !== undefined && paramsConsulta.categoria_id !== null) {
+      params = params.set('categoria_id', paramsConsulta.categoria_id.toString());
+    }
+    if (paramsConsulta.ordenar_por) {
+      params = params.set('ordenar_por', paramsConsulta.ordenar_por);
+    }
+    if (paramsConsulta.pagina) {
+      params = params.set('pagina', paramsConsulta.pagina.toString());
+    }
+    if (paramsConsulta.limite) {
+      params = params.set('limite', paramsConsulta.limite.toString());
+    }
+
+    return this.http.get<CatalogoRespuesta>(`${this.baseUrl}/catalogo`, { params }).pipe(
+      tap((res) => {
+        // Enriquecer items con estado local de favoritos
+        const favs = this.favoritos();
+        res.items = res.items.map((item) => ({
+          ...item,
+          es_favorito: favs.has(item.id_producto),
+        }));
+        this.cargando.set(false);
+      }),
+      catchError((err) => {
+        this.cargando.set(false);
+        const mensaje =
+          err?.error?.detail ||
+          'No fue posible cargar el catálogo de prendas. Por favor, intente nuevamente.';
+        this.error.set(mensaje);
+        return throwError(() => err);
+      })
+    );
+  }
 
   /**
    * Consulta el catálogo de productos con parámetros dinámicos.

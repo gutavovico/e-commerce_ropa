@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { Observable, catchError, finalize, map, of, tap, throwError } from 'rxjs';
 import {
   LoginPeticion,
@@ -12,6 +13,7 @@ import {
 })
 export class LoginService {
   private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
   private readonly endpoint = '/api/v1/autenticacion/login';
   private readonly logoutEndpoint = '/api/v1/autenticacion/logout';
 
@@ -59,17 +61,29 @@ export class LoginService {
   /**
    * Persiste el token y los datos de sesión en el almacenamiento correspondiente.
    */
-  private guardarSesion(respuesta: LoginRespuesta, recordar: boolean): void {
-    const sesion: UsuarioSesion = {
-      id_usuario: respuesta.id_usuario,
-      email: respuesta.email,
-      nombres: respuesta.nombres,
-      apellidos: respuesta.apellidos,
-      rol: respuesta.rol,
-      token: respuesta.access_token,
-      id_sucursal: respuesta.id_sucursal ?? null,
-    };
+    this.establecerSesion(
+      {
+        id_usuario: respuesta.id_usuario,
+        email: respuesta.email,
+        nombres: respuesta.nombres,
+        apellidos: respuesta.apellidos,
+        rol: respuesta.rol,
+        token: respuesta.access_token,
+        id_sucursal: respuesta.id_sucursal ?? null,
+      },
+      recordar
+    );
+  }
 
+  /**
+   * Establece una sesión activa emitida por un flujo distinto al login (por ejemplo, el alta
+   * de cliente de CU01, que devuelve el token en `token_acceso`).
+   *
+   * Existe para que las claves de almacenamiento vivan en un único lugar: cuando el registro
+   * persistía la sesión con claves propias (`fs_token_acceso`), el usuario quedaba autenticado
+   * a ojos del componente pero anónimo para el resto de la aplicación y para el interceptor.
+   */
+  establecerSesion(sesion: UsuarioSesion, recordar = true): void {
     this.usuarioActual.set(sesion);
 
     try {
@@ -79,7 +93,7 @@ export class LoginService {
         (recordar ? sessionStorage : localStorage).removeItem(this.TOKEN_KEY);
         (recordar ? sessionStorage : localStorage).removeItem(this.USER_KEY);
 
-        storage.setItem(this.TOKEN_KEY, respuesta.access_token);
+        storage.setItem(this.TOKEN_KEY, sesion.token);
         storage.setItem(this.USER_KEY, JSON.stringify(sesion));
       }
     } catch {
@@ -88,7 +102,26 @@ export class LoginService {
   }
 
   /**
-   * Recupera la sesión persistida al iniciar la aplicación.
+   * Determina si una cadena de token JWT se encuentra expirada según su claim 'exp'.
+   */
+  esTokenExpirado(token?: string | null): boolean {
+    if (!token) return true;
+    try {
+      const partes = token.split('.');
+      if (partes.length < 2) return false;
+      const payloadStr = atob(partes[1]);
+      const payload = JSON.parse(payloadStr);
+      if (payload && typeof payload.exp === 'number' && Date.now() >= payload.exp * 1000) {
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Recupera la sesión persistida al iniciar la aplicación, validando expiración.
    */
   private recuperarSesionInicial(): UsuarioSesion | null {
     try {
@@ -96,7 +129,12 @@ export class LoginService {
         const userJson =
           localStorage.getItem(this.USER_KEY) || sessionStorage.getItem(this.USER_KEY);
         if (userJson) {
-          return JSON.parse(userJson) as UsuarioSesion;
+          const sesion = JSON.parse(userJson) as UsuarioSesion;
+          if (this.esTokenExpirado(sesion.token)) {
+            this.limpiarStorage();
+            return null;
+          }
+          return sesion;
         }
       }
     } catch {
@@ -106,31 +144,28 @@ export class LoginService {
   }
 
   /**
-   * Obtiene el token JWT activo de la sesión actual.
+   * Obtiene el token JWT activo si no está expirado. Si ha expirado, purga y redirige a login.
    */
   obtenerToken(): string | null {
     const sesion = this.usuarioActual();
-    if (sesion?.token) {
-      return sesion.token;
-    }
-    try {
-      if (typeof window !== 'undefined') {
-        return (
-          localStorage.getItem(this.TOKEN_KEY) ||
-          sessionStorage.getItem(this.TOKEN_KEY)
-        );
-      }
-    } catch {
+    const token =
+      sesion?.token ||
+      (typeof window !== 'undefined'
+        ? localStorage.getItem(this.TOKEN_KEY) || sessionStorage.getItem(this.TOKEN_KEY)
+        : null);
+
+    if (token && this.esTokenExpirado(token)) {
+      this.purgarSesionLocal(true);
       return null;
     }
-    return null;
+    return token;
   }
 
   /**
    * Cierra la sesión activa:
    * 1. Notifica al backend en POST /api/v1/autenticacion/logout para revocar el token en el servidor.
    * 2. Purga las credenciales y tokens de localStorage y sessionStorage de forma garantizada.
-   * 3. Resetea el signal reactivo usuarioActual (estaAutenticado -> false).
+   * 3. Redirige automáticamente al usuario a /login.
    */
   cerrarSesion(): Observable<void> {
     const token = this.obtenerToken();
@@ -141,17 +176,25 @@ export class LoginService {
     return this.http.post(this.logoutEndpoint, {}, { headers }).pipe(
       catchError(() => of(null)), // Resiliencia: si falla la red, continuar con la purga
       finalize(() => {
-        this.purgarSesionLocal();
+        this.purgarSesionLocal(true);
       }),
       map(() => void 0)
     );
   }
 
   /**
-   * Limpia inmediatamente el almacenamiento local y resetea las señales reactivas.
+   * Limpia inmediatamente el almacenamiento local, resetea las señales reactivas y redirige a /login.
+   * @param redirigir Si es true, navega automáticamente a ['/login'].
    */
-  purgarSesionLocal(): void {
+  purgarSesionLocal(redirigir: boolean = true): void {
     this.usuarioActual.set(null);
+    this.limpiarStorage();
+    if (redirigir) {
+      this.router.navigate(['/login']);
+    }
+  }
+
+  private limpiarStorage(): void {
     try {
       if (typeof window !== 'undefined') {
         localStorage.removeItem(this.TOKEN_KEY);

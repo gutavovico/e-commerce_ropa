@@ -73,6 +73,48 @@ def get_current_user(
     return usuario
 
 
+def get_optional_current_user(
+    token: str | None = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> UsuarioORM | None:
+    """Extrae el usuario autenticado si existe un token Bearer válido; de lo contrario retorna None.
+
+    No lanza excepciones si no se provee token o si el token es inválido/expirado,
+    permitiendo la navegación elegante a visitantes o clientes no autenticados.
+    """
+    if not token:
+        return None
+
+    if token_blacklist.esta_revocado(token):
+        return None
+
+    try:
+        payload = decode_access_token(token)
+    except Exception:
+        return None
+
+    sub = payload.get("sub")
+    if not sub:
+        return None
+
+    try:
+        id_usuario = int(sub)
+    except (ValueError, TypeError):
+        return None
+
+    stmt = (
+        select(UsuarioORM)
+        .options(joinedload(UsuarioORM.cliente))
+        .where(UsuarioORM.id_usuario == id_usuario)
+    )
+    usuario = db.execute(stmt).scalar_one_or_none()
+    if not usuario or not usuario.activo:
+        return None
+
+    return usuario
+
+
+
 def require_roles(roles_permitidos: list[str]) -> Callable[..., UsuarioORM]:
     """Fabrica de dependencias para verificar que el usuario posea uno de los roles permitidos."""
 

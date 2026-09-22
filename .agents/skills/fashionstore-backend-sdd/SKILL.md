@@ -49,6 +49,11 @@ Especificar de más es tan malo como no especificar. Clasifica antes de empezar 
 
 ## Constitución del backend (principios que no se negocian en una tarea)
 
+0. **E-COMMERCE EXCLUSIVO PARA MUJERES Y JERARQUÍA CANÓNICA:**
+   - FashionStore es una plataforma **EXCLUSIVAMENTE DE MODA FEMENINA**. Todos los productos (`fashionstore.productos`), categorías, variantes y fotografías de catálogo pertenecen al segmento de alta costura para mujer. Prohibido registrar o asociar prendas masculinas.
+   - Jerarquía relacional obligatoria: una **temporada** contiene una o más **colecciones** (`colecciones.id_temporada -> temporadas.id_temporada`), y una **colección** contiene múltiples **prendas de ropa** (`productos.id_coleccion -> colecciones.id_coleccion`).
+   - Toda información provista a clientes web y móviles proviene estrictamente de la base de datos PostgreSQL real.
+
 1. **Monolito modular en capas**: `Router → Service → ORM/Model`, un paquete por dominio (6 paquetes). No microservicios, no capas nuevas sin decisión explícita.
 2. **Router delgado**: solo HTTP (validación con Pydantic, dependencia de auth, traducción de excepciones de dominio a códigos HTTP). Sin lógica de negocio y sin consultas ORM directas.
 3. **Service = negocio + transacción**: cada caso de uso es una unidad de trabajo. No importa `Request`/`HTTPException`; lanza excepciones de dominio (`StockInsuficiente`, `ReservaNoCancelable`…) que el router traduce. Así la lógica se prueba sin levantar HTTP.

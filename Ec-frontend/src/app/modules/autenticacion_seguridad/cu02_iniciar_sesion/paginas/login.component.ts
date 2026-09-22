@@ -91,13 +91,13 @@ export class LoginComponent implements OnInit {
     this.loginService.iniciarSesion(peticion).subscribe({
       next: (resp) => {
         this.cargando.set(false);
-        this.exito.set(true);
         // Redirigir segun el rol del usuario autenticado
         setTimeout(() => {
-          if (resp.rol === 'administrador') {
+          const rol = String(resp.rol || '').toLowerCase().trim();
+          if (rol === 'administrador' || rol === 'admin' || rol === 'encargado_sucursal') {
             this.router.navigate(['/admin']);
           } else {
-            this.router.navigate(['/perfil']);
+            this.router.navigate(['/inicio']);
           }
         }, 600);
       },
