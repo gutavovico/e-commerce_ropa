@@ -129,6 +129,8 @@ class ReservaServicio:
             # Movimiento de auditoría física inmutable
             ref_doc = f"RESERVA-{reserva.id_reserva}"
             obs_mov = f"Apartado para cita privada de fitting en {sucursal.nombre} ({fecha_cita.strftime('%d/%m/%Y %H:%M')})"
+            saldo_ant = inventario.cantidad_disponible + cant
+            saldo_nue = inventario.cantidad_disponible
             ReservaRepositorio.registrar_movimiento_inventario(
                 db=db,
                 id_inventario=inventario.id_inventario,
@@ -136,6 +138,8 @@ class ReservaServicio:
                 id_usuario=usuario.id_usuario,
                 referencia=ref_doc,
                 observacion=obs_mov,
+                saldo_anterior=saldo_ant,
+                saldo_nuevo=saldo_nue,
                 saldo_anterior=saldo_anterior,
                 saldo_nuevo=inventario.cantidad_disponible,
             )
