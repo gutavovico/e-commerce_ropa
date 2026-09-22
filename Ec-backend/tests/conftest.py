@@ -18,11 +18,10 @@ os.environ.setdefault(
     "test-secret-key-for-bootstrap-tests-only-min-32-chars-long",
 )
 
-from app.main import app
+from main import app
 
 
 @pytest.fixture
 def client():
     """Cliente de pruebas para interactuar con la aplicacion FastAPI."""
-    with TestClient(app) as test_client:
-        yield test_client
+    return TestClient(app)

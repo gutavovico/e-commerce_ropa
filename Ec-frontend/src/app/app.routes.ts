@@ -1,15 +1,11 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { adminOnlyGuard, roleGuard } from './core/guards/role.guard';
 import { MainLayoutComponent } from './core/layouts/main-layout/main-layout.component';
 
 export const routes: Routes = [
   // =========================================================================
   // 0. LANDING PAGE INSTITUCIONAL PÚBLICA
-  // Debe declararse ANTES del bloque de MainLayoutComponent: ambos usan `path: ''`
-  // y Angular resuelve las rutas en orden. Con el layout por delante, la URL raíz
-  // entraba en él y, al no existir ningún hijo con `path: ''`, la landing quedaba
-  // inalcanzable. Su `pathMatch: 'full'` garantiza que solo capture la URL vacía
-  // exacta, sin interferir con /inicio, /catalogo ni el resto de secciones.
   // =========================================================================
   {
     path: '',
@@ -23,8 +19,6 @@ export const routes: Routes = [
 
   // =========================================================================
   // 1. PANTALLAS RAÍZ (HUB) BAJO MAIN LAYOUT CON NAVBAR PERSISTENTE
-  // Únicamente estas 4 secciones tienen la barra de navegación institucional
-  // y carecen estrictamente de botón volver (←).
   // =========================================================================
   {
     path: '',
@@ -78,8 +72,6 @@ export const routes: Routes = [
 
   // =========================================================================
   // 2. PANTALLAS SECUNDARIAS (HOJAS / SPOKE) FUERA DEL MAIN LAYOUT
-  // Barra de navegación global oculta / no disponible.
-  // Botón funcional de regreso (← Volver) estrictamente obligatorio.
   // =========================================================================
   {
     path: 'colecciones',
@@ -142,9 +134,124 @@ export const routes: Routes = [
   },
 
   // =========================================================================
-  // 4. RUTA COMODÍN (404)
-  // `vercel.json` reescribe cualquier URL a index.html, así que sin este comodín
-  // un enlace obsoleto provocaba un NG04002 y una pantalla en blanco.
+  // 4. PANEL DE CONTROL Y MÓDULOS ADMINISTRATIVOS CORPORATIVOS
+  // =========================================================================
+  {
+    path: 'admin',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import(
+        './modules/admin/dashboard/admin-dashboard.component'
+      ).then((m) => m.AdminDashboardComponent),
+  },
+  {
+    path: 'admin/usuarios',
+    canActivate: [authGuard, adminOnlyGuard],
+    loadComponent: () =>
+      import(
+        './modules/autenticacion_seguridad/cu20_usuarios_roles/paginas/usuarios-admin.component'
+      ).then((m) => m.UsuariosAdminComponent),
+  },
+  {
+    path: 'admin/sucursales',
+    canActivate: [authGuard, adminOnlyGuard],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu21_sucursales_ciudades/paginas/sucursales-admin.component'
+      ).then((m) => m.SucursalesAdminComponent),
+  },
+  {
+    path: 'admin/atributos',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu23_categorias_tallas_colores/paginas/categorias-tallas-colores-admin.component'
+      ).then((m) => m.CategoriasTallasColoresAdminComponent),
+  },
+  {
+    path: 'admin/productos',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu22_prendas_productos/paginas/productos-admin.component'
+      ).then((m) => m.ProductosAdminComponent),
+  },
+  {
+    path: 'admin/inventario',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu24_inventario_stock/paginas/inventario-admin.component'
+      ).then((m) => m.InventarioAdminComponent),
+  },
+  {
+    path: 'admin/proveedores',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu25_proveedores/paginas/proveedores-admin.component'
+      ).then((m) => m.ProveedoresAdminComponent),
+  },
+  {
+    path: 'admin/inventario-global',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu26_inventario_global/paginas/inventario-global-admin.component'
+      ).then((m) => m.InventarioGlobalAdminComponent),
+  },
+  {
+    path: 'admin/temporadas-colecciones',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/catalogo/cu24_temporadas_colecciones/paginas/temporadas-colecciones-admin.component'
+      ).then((m) => m.TemporadasColeccionesAdminComponent),
+  },
+  {
+    path: 'admin/promociones',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/cu27_promociones/paginas/promociones-admin.component'
+      ).then((m) => m.PromocionesAdminComponent),
+  },
+  {
+    path: 'admin/ventas-reservas',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/cu28_ventas_reservas/paginas/ventas-reservas-admin.component'
+      ).then((m) => m.VentasReservasAdminComponent),
+  },
+  {
+    path: 'admin/indicadores',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/cu29_indicadores/paginas/indicadores-admin.component'
+      ).then((m) => m.IndicadoresAdminComponent),
+  },
+  {
+    path: 'admin/bitacora',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin'])],
+    loadComponent: () =>
+      import(
+        './modules/seguridad/cu30_bitacora/paginas/bitacora-admin.component'
+      ).then((m) => m.BitacoraAdminComponent),
+  },
+  {
+    path: 'admin/perfil',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/autenticacion_seguridad/cu04_gestionar_perfil/paginas/perfil.component'
+      ).then((m) => m.PerfilComponent),
+    title: 'FASHION STORE | Perfil Institucional Administrador',
+  },
+
+  // =========================================================================
+  // 5. RUTA COMODÍN (404)
   // =========================================================================
   {
     path: '**',

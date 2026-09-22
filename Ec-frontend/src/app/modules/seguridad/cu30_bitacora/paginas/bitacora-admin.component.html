@@ -1,0 +1,430 @@
+<div class="min-h-screen bg-[#FCFBF9] text-[#1E293B]">
+
+  <!-- Encabezado y Navegacion Superior -->
+  <header class="bg-white border-b border-[#E2E8F0] sticky top-0 z-30 shadow-xs">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <nav class="flex items-center gap-2 text-xs text-[#64748B] mb-1">
+          <a routerLink="/admin" class="hover:text-[#0F172A] transition-colors">Panel Corporativo</a>
+          <span>/</span>
+          <span class="text-[#0F172A] font-semibold">Gobernanza y Accesos</span>
+          <span>/</span>
+          <span class="text-[#AD8C63] font-semibold">Consultar bitacora</span>
+        </nav>
+        <h1 class="text-2xl font-bold tracking-tight text-[#0F172A]">
+          Consultar bitacora
+        </h1>
+        <p class="text-xs text-[#64748B] mt-0.5">
+          Registro inmutable de trazabilidad, mutaciones de datos y auditoria de seguridad corporativa.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a
+          id="btn-volver-panel"
+          routerLink="/admin"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#CBD5E1] hover:border-[#94A3B8] text-[#334155] hover:text-[#0F172A] text-xs font-semibold rounded-xl transition-all shadow-xs"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Volver al Panel Principal</span>
+        </a>
+
+        <button
+          id="btn-recargar-bitacora"
+          type="button"
+          (click)="cargarDatos()"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-[#0F172A] hover:bg-black text-white text-xs font-semibold rounded-xl transition-all shadow-xs cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Actualizar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Tarjetas de KPIs y Metricas Consolidadas -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+      <!-- KPI 1: Total de Eventos -->
+      <div class="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Total Eventos</span>
+          <h2 id="kpi-total-eventos" class="text-2xl font-bold text-[#0F172A] mt-1">
+            {{ metricas().total_eventos | number }}
+          </h2>
+          <span class="text-[11px] text-[#64748B] mt-0.5 block">Historial consolidado</span>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-800">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- KPI 2: Eventos Criticos -->
+      <div class="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-red-600">Mutaciones Criticas</span>
+          <h2 id="kpi-eventos-criticos" class="text-2xl font-bold text-red-700 mt-1">
+            {{ metricas().eventos_criticos | number }}
+          </h2>
+          <span class="text-[11px] text-[#64748B] mt-0.5 block">Severidad CRITICAL</span>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-red-50 text-red-700 flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- KPI 3: Advertencias y Errores -->
+      <div class="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-amber-700">Alertas / Errores</span>
+          <h2 id="kpi-advertencias-errores" class="text-2xl font-bold text-amber-800 mt-1">
+            {{ metricas().advertencias_errores | number }}
+          </h2>
+          <span class="text-[11px] text-[#64748B] mt-0.5 block">Severidad WARN y ERROR</span>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- KPI 4: Operadores Activos -->
+      <div class="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-[#AD8C63]">Operadores Activos</span>
+          <h2 id="kpi-usuarios-activos" class="text-2xl font-bold text-[#0F172A] mt-1">
+            {{ metricas().usuarios_activos | number }}
+          </h2>
+          <span class="text-[11px] text-[#64748B] mt-0.5 block">Usuarios unicos registrados</span>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-[#FAF7F2] text-[#AD8C63] flex items-center justify-center border border-[#ECE4D8]">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Barra Reactiva de Filtros Multicriterio -->
+    <section class="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-xs space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-[#0F172A]">
+          Filtros de Trazabilidad y Auditoria
+        </h3>
+        <button
+          id="btn-limpiar-filtros"
+          type="button"
+          (click)="limpiarFiltros()"
+          class="text-xs font-semibold text-[#AD8C63] hover:text-[#8C6D46] transition-colors cursor-pointer"
+        >
+          Limpiar todos los filtros
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <!-- Buscador general -->
+        <div class="lg:col-span-2">
+          <label class="block text-[11px] font-semibold text-[#64748B] mb-1">Buscar</label>
+          <input
+            id="filtro-q"
+            type="text"
+            [ngModel]="terminoBusqueda()"
+            (ngModelChange)="onFiltroTextoChange($event)"
+            placeholder="Operador, accion, IP o modulo..."
+            class="w-full px-3 py-2 bg-slate-50 border border-[#CBD5E1] rounded-xl text-xs focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+          />
+        </div>
+
+        <!-- Severidad -->
+        <div>
+          <label class="block text-[11px] font-semibold text-[#64748B] mb-1">Severidad</label>
+          <select
+            id="filtro-severidad"
+            [ngModel]="severidadSeleccionada()"
+            (ngModelChange)="severidadSeleccionada.set($event); onFiltroSelectChange()"
+            class="w-full px-3 py-2 bg-slate-50 border border-[#CBD5E1] rounded-xl text-xs focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+          >
+            <option value="">Todas las severidades</option>
+            <option value="INFO">INFO</option>
+            <option value="WARN">WARN</option>
+            <option value="ERROR">ERROR</option>
+            <option value="CRITICAL">CRITICAL</option>
+          </select>
+        </div>
+
+        <!-- Fecha Desde -->
+        <div>
+          <label class="block text-[11px] font-semibold text-[#64748B] mb-1">Desde</label>
+          <input
+            id="filtro-fecha-inicio"
+            type="date"
+            [ngModel]="fechaInicio()"
+            (ngModelChange)="fechaInicio.set($event); onFiltroSelectChange()"
+            class="w-full px-3 py-2 bg-slate-50 border border-[#CBD5E1] rounded-xl text-xs focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+          />
+        </div>
+
+        <!-- Fecha Hasta -->
+        <div>
+          <label class="block text-[11px] font-semibold text-[#64748B] mb-1">Hasta</label>
+          <input
+            id="filtro-fecha-fin"
+            type="date"
+            [ngModel]="fechaFin()"
+            (ngModelChange)="fechaFin.set($event); onFiltroSelectChange()"
+            class="w-full px-3 py-2 bg-slate-50 border border-[#CBD5E1] rounded-xl text-xs focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+          />
+        </div>
+
+        <!-- Ordenacion -->
+        <div>
+          <label class="block text-[11px] font-semibold text-[#64748B] mb-1">Orden</label>
+          <select
+            id="filtro-orden"
+            [ngModel]="ordenSeleccionado()"
+            (ngModelChange)="ordenSeleccionado.set($event); onFiltroSelectChange()"
+            class="w-full px-3 py-2 bg-slate-50 border border-[#CBD5E1] rounded-xl text-xs focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+          >
+            <option value="creado_en_desc">Fecha (Mas reciente)</option>
+            <option value="creado_en_asc">Fecha (Mas antigua)</option>
+            <option value="severidad_desc">Severidad</option>
+            <option value="accion_asc">Accion (A-Z)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alertas y Estado de Error -->
+    @if (errorServicio()) {
+      <div class="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-xs flex items-center gap-3">
+        <svg class="w-5 h-5 shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ errorServicio() }}</span>
+      </div>
+    }
+
+    <!-- Tabla Cronologica de Auditoria -->
+    <section class="bg-white border border-[#E2E8F0] rounded-2xl shadow-xs overflow-hidden">
+      <div class="overflow-x-auto">
+        <table id="tabla-bitacora" class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
+              <th class="py-3.5 px-4">Fecha y Hora (UTC)</th>
+              <th class="py-3.5 px-4">Severidad</th>
+              <th class="py-3.5 px-4">Modulo</th>
+              <th class="py-3.5 px-4">Accion</th>
+              <th class="py-3.5 px-4">Operador</th>
+              <th class="py-3.5 px-4">Direccion IP</th>
+              <th class="py-3.5 px-4 text-right">Detalle</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#E2E8F0] text-xs">
+            @if (cargando()) {
+              <tr>
+                <td colspan="7" class="py-12 text-center text-[#64748B]">
+                  <div class="flex flex-col items-center gap-2">
+                    <div class="w-6 h-6 border-2 border-[#AD8C63] border-t-transparent rounded-full animate-spin"></div>
+                    <span class="text-xs">Consultando bitacora de auditoria...</span>
+                  </div>
+                </td>
+              </tr>
+            } @else if (eventos().length === 0) {
+              <tr>
+                <td colspan="7" class="py-12 text-center text-[#64748B]">
+                  <p class="font-semibold text-slate-800">No se encontraron eventos coincidentes.</p>
+                  <p class="text-xs text-slate-500 mt-1">Ajuste los criterios o limpie los filtros para ampliar el rango de busqueda.</p>
+                </td>
+              </tr>
+            } @else {
+              @for (evento of eventos(); track evento.id_bitacora) {
+                <tr class="hover:bg-slate-50/70 transition-colors">
+                  <!-- Fecha y hora monoespaciada -->
+                  <td class="py-3 px-4 font-mono text-[11px] text-slate-700 whitespace-nowrap">
+                    {{ evento.creado_en | date:'yyyy-MM-dd HH:mm:ss' }}
+                  </td>
+
+                  <!-- Severidad badge -->
+                  <td class="py-3 px-4 whitespace-nowrap">
+                    <span
+                      class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase border"
+                      [ngClass]="getBadgeSeveridad(evento.severidad)"
+                    >
+                      {{ evento.severidad }}
+                    </span>
+                  </td>
+
+                  <!-- Modulo -->
+                  <td class="py-3 px-4 font-semibold text-[#0F172A] whitespace-nowrap">
+                    {{ evento.tabla_modulo }}
+                  </td>
+
+                  <!-- Accion -->
+                  <td class="py-3 px-4 text-slate-700 whitespace-nowrap font-mono text-[11px]">
+                    {{ evento.accion }}
+                  </td>
+
+                  <!-- Operador -->
+                  <td class="py-3 px-4 text-slate-600 whitespace-nowrap">
+                    {{ evento.usuario_nombre || 'Sistema / Anonimo' }}
+                  </td>
+
+                  <!-- Direccion IP -->
+                  <td class="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                    {{ evento.direccion_ip || '-' }}
+                  </td>
+
+                  <!-- Boton Ver Payload -->
+                  <td class="py-3 px-4 text-right whitespace-nowrap">
+                    @if (evento.tiene_payload) {
+                      <button
+                        [id]="'btn-ver-payload-' + evento.id_bitacora"
+                        type="button"
+                        (click)="abrirModalPayload(evento.id_bitacora)"
+                        class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#AD8C63] hover:text-[#8C6D46] transition-colors cursor-pointer"
+                      >
+                        <span>Ver Payload</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                    } @else {
+                      <span class="text-[11px] text-slate-400 italic">Sin payload</span>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginador Inferior -->
+      <div class="px-4 py-3 bg-[#F8FAFC] border-t border-[#E2E8F0] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#64748B]">
+        <div>
+          Mostrando pagina <span class="font-bold text-[#0F172A]">{{ paginaActual() }}</span> de
+          <span class="font-bold text-[#0F172A]">{{ totalPaginas() }}</span> (Total: {{ totalEventos() | number }} registros)
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            id="btn-pagina-anterior"
+            type="button"
+            [disabled]="paginaActual() <= 1"
+            (click)="cambiarPagina(paginaActual() - 1)"
+            class="px-3 py-1.5 bg-white border border-[#CBD5E1] rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 text-[#334155] font-semibold transition-colors cursor-pointer"
+          >
+            Anterior
+          </button>
+          <button
+            id="btn-pagina-siguiente"
+            type="button"
+            [disabled]="paginaActual() >= totalPaginas()"
+            (click)="cambiarPagina(paginaActual() + 1)"
+            class="px-3 py-1.5 bg-white border border-[#CBD5E1] rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 text-[#334155] font-semibold transition-colors cursor-pointer"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Accesible para Inspeccion de Payloads JSON -->
+  @if (eventoSeleccionado()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      (click)="cerrarModalPayload()"
+    >
+      <div
+        class="bg-white rounded-2xl max-w-4xl w-full border border-[#CBD5E1] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Modal Header -->
+        <div class="px-6 py-4 bg-[#F8FAFC] border-b border-[#E2E8F0] flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border" [ngClass]="getBadgeSeveridad(eventoSeleccionado()!.severidad)">
+                {{ eventoSeleccionado()!.severidad }}
+              </span>
+              <span class="text-xs font-mono text-slate-500">
+                Evento #{{ eventoSeleccionado()!.id_bitacora }}
+              </span>
+            </div>
+            <h3 class="text-lg font-bold text-[#0F172A]">
+              {{ eventoSeleccionado()!.tabla_modulo }} - {{ eventoSeleccionado()!.accion }}
+            </h3>
+            <p class="text-xs text-slate-500">
+              Operador: {{ eventoSeleccionado()!.usuario_nombre || 'Sistema' }} | IP: {{ eventoSeleccionado()!.direccion_ip || '-' }} |
+              {{ eventoSeleccionado()!.creado_en | date:'yyyy-MM-dd HH:mm:ss' }}
+            </p>
+          </div>
+
+          <button
+            id="btn-cerrar-modal-payload"
+            type="button"
+            (click)="cerrarModalPayload()"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Body: JSON Payloads -->
+        <div class="p-6 overflow-y-auto space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Payload Anterior -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Payload Anterior (Estado Previo)
+                </span>
+                <span class="text-[10px] text-slate-400">JSON snapshot</span>
+              </div>
+              <pre class="bg-slate-900 text-slate-100 p-4 rounded-xl text-[11px] font-mono overflow-x-auto max-h-80 border border-slate-800"><code>{{ formatearJson(eventoSeleccionado()!.payload_anterior) }}</code></pre>
+            </div>
+
+            <!-- Payload Nuevo -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Payload Nuevo (Estado Resultante)
+                </span>
+                <span class="text-[10px] text-[#AD8C63] font-semibold">JSON snapshot</span>
+              </div>
+              <pre class="bg-slate-900 text-amber-200 p-4 rounded-xl text-[11px] font-mono overflow-x-auto max-h-80 border border-slate-800"><code>{{ formatearJson(eventoSeleccionado()!.payload_nuevo) }}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-3 bg-[#F8FAFC] border-t border-[#E2E8F0] flex justify-end">
+          <button
+            type="button"
+            (click)="cerrarModalPayload()"
+            class="px-4 py-2 bg-[#0F172A] hover:bg-black text-white text-xs font-semibold rounded-xl transition-all shadow-xs cursor-pointer"
+          >
+            Cerrar Inspeccion
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

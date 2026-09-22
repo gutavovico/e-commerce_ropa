@@ -16,6 +16,7 @@ export interface LoginRespuesta {
   nombres: string;
   apellidos: string;
   rol: string;
+  id_sucursal?: number | null;
 }
 
 export interface UsuarioSesion {
@@ -25,6 +26,7 @@ export interface UsuarioSesion {
   apellidos: string;
   rol: string;
   token: string;
+  id_sucursal?: number | null;
 }
 
 export interface ErrorApiLogin {

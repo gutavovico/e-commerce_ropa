@@ -40,3 +40,11 @@ class AuthorizationError(DomainError):
 
     def __init__(self, message: str = "Sin permiso", code: str = "FORBIDDEN"):
         super().__init__(message, code=code)
+
+
+class UnprocessableEntityError(DomainError):
+    """Entidad no procesable o regla semantica violada (HTTP 422)."""
+
+    def __init__(self, message: str = "Entidad no procesable", code: str = "UNPROCESSABLE_ENTITY"):
+        super().__init__(message, code=code)
+

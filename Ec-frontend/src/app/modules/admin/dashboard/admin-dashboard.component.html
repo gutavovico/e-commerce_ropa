@@ -1,0 +1,857 @@
+<!-- Hub Central de Administracion: Fashion Store -->
+<div class="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-slate-900 selection:text-white">
+
+  <!-- 1. Cabecera Institucional del Panel -->
+  <header class="w-full border-b border-slate-200 bg-white sticky top-0 z-30 shadow-sm">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <a routerLink="/admin" class="text-sm font-semibold tracking-widest text-slate-900 uppercase hover:opacity-80 transition-opacity">
+          FASHION STORE
+        </a>
+        <span class="text-slate-300">/</span>
+        <a routerLink="/admin" class="text-xs font-medium tracking-wider text-[#AD8C63] uppercase hover:underline">
+          ADMINISTRACION CORPORATIVA
+        </a>
+      </div>
+
+      <nav class="flex items-center space-x-6 text-xs font-medium tracking-wider uppercase">
+        <a
+          routerLink="/admin"
+          routerLinkActive="text-slate-900 font-semibold border-b-2 border-[#AD8C63] pb-1"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          PANEL PRINCIPAL
+        </a>
+        <a
+          routerLink="/admin/perfil"
+          routerLinkActive="text-slate-900 font-semibold border-b-2 border-[#AD8C63] pb-1"
+          class="text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          MI CUENTA
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 2. Contenido Principal: Hub de Administracion -->
+  <main class="max-w-[1440px] px-6 py-10 mx-auto w-full flex-grow flex flex-col">
+
+    <!-- Encabezado Institucional -->
+    <div class="pb-8 border-b border-slate-200">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold tracking-widest text-[#AD8C63] uppercase">
+            CONSOLA DE GESTION CORPORATIVA
+          </span>
+          <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 mt-1">
+            Panel de Control Corporativo
+          </h1>
+          <p class="text-sm text-slate-500 mt-2 leading-relaxed">
+            Bienvenido, <span class="font-semibold text-slate-800">{{ usuarioNombre() }}</span>.
+            Sesion activa con rol <span class="inline-block px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-mono text-xs uppercase font-bold">{{ rolLabel() }}</span>
+            asociada a la cuenta <span class="font-medium text-slate-700 underline">{{ usuarioEmail() }}</span>.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-xs text-right">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Modulos Habilitados</p>
+            <p class="text-xl font-bold text-slate-900">{{ totalModulosActivos() }}</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-xs text-right">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nivel de Acceso</p>
+            <p class="text-xs font-bold text-emerald-700 uppercase tracking-wider mt-1">{{ nivelAccesoLabel() }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Rejilla de Modulos (Tarjetas Boutique en 4 Columnas Responsivas) -->
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+      <!-- Tarjeta 1: Gestion Territorial y Operaciones (CU21) - Exclusivo Administrador -->
+      @if (esAdmin()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gestion Territorial
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Sedes y Plazas
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Gestionar sucursales y ciudades
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Supervision y parametrizacion de sedes fisicas, horarios de atencion y plazas comerciales.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Ateliers y puntos de venta fisicos</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Cobertura por ciudades metropolitanas</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-gestionar-sucursales"
+              routerLink="/admin/sucursales"
+              (click)="navegar('/admin/sucursales')"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Gestionar sucursales y ciudades</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 2: Taxonomia Comercial y Maestros (CU23) -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+              Taxonomia Comercial
+            </span>
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+              Atributos Base
+            </span>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+              <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                Gestionar categorias, tallas y colores
+              </h2>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                Parametrizacion de tallas comerciales, swatches cromáticos #HEX y categorias.
+              </p>
+            </div>
+          </div>
+
+          <!-- Puntos Clave del Modulo -->
+          <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+            <div class="flex items-center text-xs text-slate-600 gap-2">
+              <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Categorias raiz y subcategorias</span>
+            </div>
+            <div class="flex items-center text-xs text-slate-600 gap-2">
+              <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Escala de tallas y swatches #HEX</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-3">
+          <a
+            id="btn-gestionar-atributos"
+            routerLink="/admin/atributos"
+            (click)="navegar('/admin/atributos')"
+            class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+          >
+            <span>Gestionar categorias, tallas y colores</span>
+            <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Tarjeta 2b: Temporadas y Colecciones (CU24) -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Taxonomia Comercial
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Calendario Editorial
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Gestionar temporadas y colecciones
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Programacion de temporadas de moda, colecciones capsula y ciclos comerciales.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Temporadas anuales y rangos de fechas</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Colecciones capsula y conteo de prendas</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-gestionar-temporadas-colecciones"
+              routerLink="/admin/temporadas-colecciones"
+              (click)="navegar('/admin/temporadas-colecciones', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Gestionar temporadas y colecciones</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 3: Prendas y Variantes (CU22) -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+              Catalogo y SKUs
+            </span>
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+              Matriz Comercial
+            </span>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+              <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                Gestionar productos
+              </h2>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                Alta editorial de prendas, parametrizacion de precios y generacion de matrices SKU.
+              </p>
+            </div>
+          </div>
+
+          <!-- Puntos Clave del Modulo -->
+          <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+            <div class="flex items-center text-xs text-slate-600 gap-2">
+              <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Modelos, descripciones y precios</span>
+            </div>
+            <div class="flex items-center text-xs text-slate-600 gap-2">
+              <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Matriz de variantes por talla y color</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-3">
+          <a
+            id="btn-gestionar-prendas"
+            routerLink="/admin/productos"
+            (click)="navegar('/admin/productos')"
+            class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+          >
+            <span>Gestionar productos</span>
+            <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Tarjeta 4: Usuarios y Privilegios (CU20) - Exclusivo Administrador -->
+      @if (esAdmin()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gobernanza y Accesos
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                Seguridad y RBAC
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Gestionar usuarios y roles
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Alta de cuentas corporativas, asignacion de credenciales y gobierno de roles RBAC.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Administracion de 4 roles corporativos</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Asignacion de sucursales a personal operativo</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-gestionar-usuarios"
+              routerLink="/admin/usuarios"
+              (click)="navegar('/admin/usuarios')"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Gestionar usuarios y roles</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 5: Inventario y Existencias (CU24) - Visible para Administrador y Encargado de Sucursal -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gestion Operativa
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Control de Stock
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Inventario y Existencias
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Control fisico de existencias por boutique, recepcion de mercaderia, ajustes y transferencias inter-sucursales.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Stock disponible y reservas en tiempo real</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Ajustes fisicos, transferencias y kardex</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-gestionar-inventario"
+              routerLink="/admin/inventario"
+              (click)="navegar('/admin/inventario')"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Gestionar Inventario</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 6: Proveedores y Fabricantes (CU25) - Visible para Administrador y Encargado de Sucursal -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gestion de Abastecimiento
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Cadena de Suministro
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Gestionar proveedores
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Directorio de talleres textiles, distribuidores mayoristas y condiciones comerciales de abastecimiento.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Talleres textiles y distribuidores mayoristas</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>NIT/RUT, rubros y contactos comerciales</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-gestionar-proveedores"
+              routerLink="/admin/proveedores"
+              (click)="navegar('/admin/proveedores')"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Gestionar proveedores</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 7: Consultar inventario global (CU26) - Visible para Administrador y Encargado de Sucursal -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gestion Operativa
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Consolidado Multi-Sede
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Consultar inventario global
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Consolidado multi-sucursal de existencias, balances de red comercial y alertas de stock bajo.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Monitoreo transversal de existencias</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Desglose logistico y derivacion inter-tiendas</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-consultar-inventario-global"
+              routerLink="/admin/inventario-global"
+              (click)="navegar('/admin/inventario-global')"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Consultar inventario global</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 8: Gestionar promociones (CU27) - Visible para Administrador y Encargado de Sucursal -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gestion Comercial
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Marketing y Descuentos
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Gestionar promociones
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Parametrizacion de campanas comerciales, descuentos porcentuales, cupones y limites de canje.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Campanas porcentuales, montos fijos y topes</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Cupones promocionales y control de vigencia</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-gestionar-promociones"
+              routerLink="/admin/promociones"
+              (click)="navegar('/admin/promociones', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Gestionar promociones</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 9: Consultar ventas y reservas (CU28) - Visible para Administrador y Encargado de Sucursal -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gestion Comercial
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Auditoria y Ventas
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Consultar ventas y reservas
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Consulta consolidada de comprobantes, reservas, metricas transaccionales y auditoria de la red comercial.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Comprobantes de venta y ordenes de reserva</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>KPIs de facturacion y ticket promedio</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-consultar-ventas-reservas"
+              routerLink="/admin/ventas-reservas"
+              (click)="navegar('/admin/ventas-reservas', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Consultar ventas y reservas</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 10: Visualizar indicadores empresariales (CU29) - Visible para Administrador y Encargado de Sucursal -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Analitica y Reportes
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Business Intelligence
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Visualizar indicadores empresariales
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Monitoreo analitico de ingresos, tendencias comerciales, ranking de productos y rendimiento multi-sucursal.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Resumen ejecutivo y serie temporal de ingresos</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Ranking de prendas y comparativa de sucursales</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-visualizar-indicadores-empresariales"
+              routerLink="/admin/indicadores"
+              (click)="navegar('/admin/indicadores', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Visualizar indicadores empresariales</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta 12: Consultar bitacora (CU30) -->
+      @if (esAdmin()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Gobernanza y Accesos
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Seguridad y Auditoria
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Consultar bitacora
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Registro cronologico inmutable de operaciones, cambios de datos y auditoria de seguridad.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Trazabilidad de cambios y filtros multicriterio</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Inspeccion JSON diff de payloads anteriores y nuevos</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-consultar-bitacora"
+              routerLink="/admin/bitacora"
+              (click)="navegar('/admin/bitacora', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Consultar bitacora</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
+    </div>
+
+    <!-- 4. Resumen Informativo de Seguridad del Sistema -->
+    <div class="mt-12 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+      <div class="flex items-center space-x-4">
+        <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">
+            Seguridad y Gobernanza de Datos
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Las operaciones ejecutadas en estos modulos impactan directamente en la disponibilidad del catalogo omnicanal y las boutiques.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a
+          routerLink="/perfil"
+          class="text-xs font-semibold text-slate-700 hover:text-black border border-slate-200 hover:border-slate-300 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+        >
+          Gestionar Perfil y Sesion
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+</div>

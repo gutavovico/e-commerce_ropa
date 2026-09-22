@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnInit,
   inject,
   signal,
 } from '@angular/core';
@@ -23,10 +24,21 @@ import { LoginPeticion } from '../modelos/login.dto';
   styleUrls: ['./login.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
+
+  ngOnInit(): void {
+    const usuario = typeof this.loginService.usuarioActual === 'function' ? this.loginService.usuarioActual() : null;
+    if (usuario) {
+      if (usuario.rol === 'administrador') {
+        this.router.navigate(['/admin']);
+      } else {
+        this.router.navigate(['/inicio']);
+      }
+    }
+  }
 
   // Estados reactivos con Signals
   readonly cargando = signal<boolean>(false);
@@ -77,12 +89,17 @@ export class LoginComponent {
     };
 
     this.loginService.iniciarSesion(peticion).subscribe({
-      next: () => {
+      next: (resp) => {
         this.cargando.set(false);
         this.exito.set(true);
-        // Redirigir tras autenticación exitosa a la página de inicio
+        // Redirigir segun el rol del usuario autenticado
         setTimeout(() => {
-          this.router.navigate(['/inicio']);
+          const rol = String(resp.rol || '').toLowerCase().trim();
+          if (rol === 'administrador' || rol === 'admin' || rol === 'encargado_sucursal') {
+            this.router.navigate(['/admin']);
+          } else {
+            this.router.navigate(['/inicio']);
+          }
         }, 600);
       },
       error: (err: Error) => {

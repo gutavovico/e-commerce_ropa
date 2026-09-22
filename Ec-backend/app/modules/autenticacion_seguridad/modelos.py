@@ -4,14 +4,15 @@ Mapea las tablas `fashionstore.usuarios` y `fashionstore.clientes` con fidelidad
 al esquema de base de datos definido en SI2-Parcial1.md.
 """
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
+from modules.gestion_operativa.modelos import SucursalORM
 
 rol_usuario_enum = PG_ENUM(
     "cliente",
@@ -38,7 +39,12 @@ class UsuarioORM(Base):
     apellidos: Mapped[str] = mapped_column(String(100), nullable=False)
     telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     rol: Mapped[str] = mapped_column(rol_usuario_enum, nullable=False, default="cliente", index=True)
-    id_sucursal: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    id_sucursal: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("fashionstore.sucursales.id_sucursal"),
+        nullable=True,
+        index=True,
+    )
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     fecha_registro: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -58,6 +64,13 @@ class UsuarioORM(Base):
         lazy="joined",
     )
 
+    # Relacion N:1 con SucursalORM
+    sucursal: Mapped[Optional["SucursalORM"]] = relationship(
+        "SucursalORM",
+        foreign_keys=[id_sucursal],
+        lazy="joined",
+    )
+
 
 class ClienteORM(Base):
     """Entidad ORM que mapea la tabla `fashionstore.clientes`."""
@@ -70,7 +83,7 @@ class ClienteORM(Base):
         ForeignKey("fashionstore.usuarios.id_usuario", ondelete="CASCADE"),
         primary_key=True,
     )
-    fecha_nacimiento: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    fecha_nacimiento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     genero: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     talla_preferida: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     ciudad_preferida: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
