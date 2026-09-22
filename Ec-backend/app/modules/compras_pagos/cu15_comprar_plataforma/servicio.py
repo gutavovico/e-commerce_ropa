@@ -180,6 +180,18 @@ class CheckoutServicio:
                 code="VENTA_NO_LIBERABLE",
             )
 
+        return CheckoutServicio.liberar_existencias_de_venta(db, venta, usuario)
+
+    @staticmethod
+    def liberar_existencias_de_venta(
+        db: Session, venta: VentaORM, usuario: UsuarioORM
+    ) -> RetencionLiberadaOut:
+        """Devuelve las existencias retenidas de una venta ya cargada.
+
+        Se separa de `liberar_retencion_venta` para que quien ya tenga la venta cargada y
+        bloqueada —como CU16 al detectar una ventana vencida— pueda reutilizar esta lógica sin
+        volver a consultarla, lo que además evitaría leer fuera del alcance de ese bloqueo.
+        """
         unidades = 0
         for detalle in venta.detalles:
             inventario = CarritoRepositorio.obtener_inventario(
@@ -192,6 +204,7 @@ class CheckoutServicio:
             if not inventario:
                 continue
 
+            saldo_anterior = inventario.cantidad_disponible
             inventario.cantidad_reservada = max(
                 0, inventario.cantidad_reservada - detalle.cantidad
             )
@@ -209,6 +222,8 @@ class CheckoutServicio:
                         f"Liberación de existencias por cancelación o vencimiento de la orden "
                         f"{venta.numero_comprobante}"
                     ),
+                    saldo_anterior=saldo_anterior,
+                    saldo_nuevo=inventario.cantidad_disponible,
                 )
             )
 
@@ -448,6 +463,7 @@ class CheckoutServicio:
             db.flush()
 
             inventario = inventarios[linea.id_carrito_detalle]
+            saldo_anterior = inventario.cantidad_disponible
             inventario.cantidad_disponible -= linea.cantidad
             inventario.cantidad_reservada += linea.cantidad
 
@@ -462,6 +478,8 @@ class CheckoutServicio:
                         f"Retención por tramitación del pedido {venta.numero_comprobante} "
                         f"desde {item.nombre_sucursal}"
                     ),
+                    saldo_anterior=saldo_anterior,
+                    saldo_nuevo=inventario.cantidad_disponible,
                 )
             )
 

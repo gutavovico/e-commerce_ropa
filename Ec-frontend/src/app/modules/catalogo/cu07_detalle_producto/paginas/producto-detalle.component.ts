@@ -19,6 +19,7 @@ import {
 } from '../modelos/producto-detalle.model';
 import { ModalReservaBoutiqueComponent } from '../componentes/modal-reserva-boutique/modal-reserva-boutique.component';
 import { CatalogoService } from '../../servicios/catalogo.service';
+import { CarritoService } from '../../../compras_pagos/cu11_gestionar_carrito/servicios/carrito.service';
 
 @Component({
   selector: 'app-producto-detalle',
@@ -34,10 +35,13 @@ export class ProductoDetalleComponent implements OnInit {
   private readonly location = inject(Location);
   private readonly detalleService = inject(ProductoDetalleService);
   private readonly catalogoService = inject(CatalogoService);
+  private readonly carritoService = inject(CarritoService);
 
   // --- Signals de Estado de Ficha ---
   protected readonly cargando = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
+  /** Evita dobles altas si el cliente pulsa «añadir» repetidamente. */
+  protected readonly anadiendoABolsa = signal<boolean>(false);
 
   protected readonly producto = signal<ProductoDetalle | null>(null);
   protected readonly varianteActiva = signal<VarianteDetalle | null>(null);
@@ -287,16 +291,48 @@ export class ProductoDetalleComponent implements OnInit {
   }
 
   /**
-   * Añadir prenda a la bolsa de compras.
+   * Añade la prenda seleccionada a la bolsa de compras (CU11).
+   *
+   * Hasta el 2026-09-22 esto solo mostraba un aviso: la prenda nunca llegaba a persistirse, de
+   * modo que la pantalla de Bolsa de Compra jamás habría tenido contenido que mostrar. Ahora
+   * escribe en `carrito_detalle` mediante `POST /api/v1/carrito/items`.
    */
   anadirABolsa(): void {
     const prod = this.producto();
     const variante = this.varianteActiva();
-    if (!prod || !variante) return;
+    if (!prod || !variante || this.anadiendoABolsa()) return;
 
-    this.mostrarNotificacion(
-      `✓ Añadido a la bolsa: ${prod.nombre} (Talla ${variante.talla_codigo})`
-    );
+    // No se envía `id_sucursal`: el backend resuelve la boutique con mayor disponibilidad para
+    // esa variante en la temporada vigente. El cliente puede revisarla después en la bolsa.
+    this.anadiendoABolsa.set(true);
+    this.carritoService
+      .agregarItem({ id_variante: variante.id_variante, cantidad: 1 })
+      .subscribe({
+        next: () => {
+          this.anadiendoABolsa.set(false);
+          this.mostrarNotificacion(
+            `✓ Añadido a la bolsa: ${prod.nombre} (Talla ${variante.talla_codigo})`
+          );
+        },
+        error: (err) => {
+          this.anadiendoABolsa.set(false);
+          if (err?.status === 401) {
+            this.mostrarNotificacion(
+              'Inicia sesión para guardar prendas en tu bolsa de compra.'
+            );
+            return;
+          }
+          this.mostrarNotificacion(
+            this.carritoService.error() ??
+              'No fue posible añadir la prenda a tu bolsa. Inténtalo de nuevo.'
+          );
+        },
+      });
+  }
+
+  /** Navega a la Bolsa de Compra desde la ficha de producto. */
+  irABolsa(): void {
+    this.router.navigate(['/bolsa']);
   }
 
   /**

@@ -94,10 +94,14 @@ class ReservaServicio:
                     code="STOCK_INSUFICIENTE_RESERVA",
                 )
 
-            # Apartado de inventario
+            # Apartado de inventario. El saldo previo se captura ANTES del descuento: en el
+            # paso 7, donde se escribe la bitácora, `cantidad_disponible` ya vale el nuevo.
+            saldo_anterior = inventario.cantidad_disponible
             inventario.cantidad_disponible -= cantidad_total
             inventario.cantidad_reservada += cantidad_total
-            inventarios_afectados.append((inventario, variante, cantidad_total))
+            inventarios_afectados.append(
+                (inventario, variante, cantidad_total, saldo_anterior)
+            )
 
         # 6. Crear Cabecera de Reserva
         canal = payload.canal_origen.lower()
@@ -114,7 +118,7 @@ class ReservaServicio:
         )
 
         # 7. Crear Líneas de Detalle y Movimientos de Inventario
-        for inventario, variante, cant in inventarios_afectados:
+        for inventario, variante, cant, saldo_anterior in inventarios_afectados:
             detalle = ReservaRepositorio.crear_detalle_reserva(
                 db=db,
                 id_reserva=reserva.id_reserva,
@@ -125,8 +129,6 @@ class ReservaServicio:
             # Movimiento de auditoría física inmutable
             ref_doc = f"RESERVA-{reserva.id_reserva}"
             obs_mov = f"Apartado para cita privada de fitting en {sucursal.nombre} ({fecha_cita.strftime('%d/%m/%Y %H:%M')})"
-            saldo_ant = inventario.cantidad_disponible + cant
-            saldo_nue = inventario.cantidad_disponible
             ReservaRepositorio.registrar_movimiento_inventario(
                 db=db,
                 id_inventario=inventario.id_inventario,
@@ -134,8 +136,8 @@ class ReservaServicio:
                 id_usuario=usuario.id_usuario,
                 referencia=ref_doc,
                 observacion=obs_mov,
-                saldo_anterior=saldo_ant,
-                saldo_nuevo=saldo_nue,
+                saldo_anterior=saldo_anterior,
+                saldo_nuevo=inventario.cantidad_disponible,
             )
 
             precio_unit = variante.producto.precio_base + (variante.precio_extra or Decimal("0.00"))

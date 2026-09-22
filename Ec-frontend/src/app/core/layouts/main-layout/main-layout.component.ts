@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { CatalogoService } from '../../../modules/catalogo/servicios/catalogo.service';
+import { CarritoService } from '../../../modules/compras_pagos/cu11_gestionar_carrito/servicios/carrito.service';
 import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 
 @Component({
@@ -84,10 +84,10 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
             </button>
 
             <!-- Cesta con Contador -->
-            <button
-              type="button"
+            <a
+              routerLink="/bolsa"
               class="relative flex items-center text-[#333333] hover:text-black transition-colors"
-              title="Cesta de compras"
+              title="Bolsa de compra"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -102,7 +102,7 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
               >
                 {{ cestaCount() }}
               </span>
-            </button>
+            </a>
 
             <!-- Avatar Circular -->
             <a
@@ -128,9 +128,31 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MainLayoutComponent {
-  private readonly catalogoService = inject(CatalogoService);
+
+export class MainLayoutComponent implements OnInit {
+  private readonly carritoService = inject(CarritoService);
   private readonly loginService = inject(LoginService);
-  protected readonly cestaCount = this.catalogoService.cestaCount;
+
   protected readonly esAdmin = this.loginService.esAdmin;
+
+  /**
+   * Contador real de prendas en la bolsa.
+   *
+   * Antes leía un `signal` de `CatalogoService` inicializado en 2 y que sólo se incrementaba en
+   * memoria, de modo que mostraba una cifra inventada y desalineada con la bolsa persistida.
+   * Ahora deriva del estado de `CarritoService`, único origen de verdad del carrito.
+   */
+  protected readonly cestaCount = this.carritoService.totalPrendas;
+
+  ngOnInit(): void {
+    // La bolsa es de cada cliente: sin sesión no hay nada que pedir al backend y la petición
+    // devolvería 401, disparando el redirect del interceptor sobre una pantalla pública.
+    if (this.loginService.estaAutenticado()) {
+      this.carritoService.cargarCarrito().subscribe({
+        error: () => {
+          /* El contador queda en cero; el error ya se publicó en la señal del servicio. */
+        },
+      });
+    }
+  }
 }

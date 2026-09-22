@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../datos/modelos/producto_detalle_dto.dart';
+import '../../../../compras_pagos/cu11_gestionar_carrito/presentacion/pantallas/shopping_bag_screen.dart';
 import '../bloc/producto_detalle_bloc.dart';
 
 /// Pantalla Completa de Detalle de Prenda de Alta Costura (CU07, CU08, CU09, CU12, CU10)
@@ -255,8 +256,77 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
             );
           },
         ),
+        // Acceso a la Bolsa de Compra con el contador real de prendas.
+        AnimatedBuilder(
+          animation: _bloc,
+          builder: (context, _) {
+            final estado = _bloc.estado;
+            final total =
+                estado is ProductoDetalleCargado ? estado.bolsaContador : 0;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_bag_outlined,
+                      size: 20, color: Colors.black),
+                  onPressed: _abrirBolsa,
+                  tooltip: 'Bolsa de compra',
+                ),
+                if (total > 0)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$total',
+                        style: const TextStyle(
+                          fontFamily: 'Outfit',
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
         const SizedBox(width: 8),
       ],
+    );
+  }
+
+  /// Añade la prenda a la bolsa y comunica el resultado real de la operación.
+  ///
+  /// El aviso se deriva de la respuesta del backend, no se da por hecho: si la prenda se
+  /// rechaza por falta de existencias o de sesión, el mensaje lo refleja en vez de afirmar un
+  /// éxito que no ocurrió.
+  Future<void> _anadirABolsa() async {
+    await _bloc.agregarABolsa(token: widget.token);
+
+    final estado = _bloc.estado;
+    if (estado is ProductoDetalleCargado && estado.mensajeNotificacion != null) {
+      _mostrarSnackBar(estado.mensajeNotificacion!);
+    }
+  }
+
+  /// Abre la Bolsa de Compra como pantalla hoja, propagando el JWT de la sesión.
+  void _abrirBolsa() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ShoppingBagScreen(
+          token: widget.token ?? '',
+          habilitarImagenesRed: widget.habilitarImagenesRed,
+        ),
+      ),
     );
   }
 
@@ -1265,10 +1335,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
               child: SizedBox(
                 height: 44,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    _bloc.agregarABolsa();
-                    _mostrarSnackBar('Prenda añadida a la bolsa de compras');
-                  },
+                  onPressed: _anadirABolsa,
                   icon: const Icon(Icons.shopping_bag_outlined, size: 16),
                   label: Text(
                     'AÑADIR A LA BOLSA · ${precio.toStringAsFixed(0)} €',

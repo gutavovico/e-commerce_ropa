@@ -4,6 +4,8 @@ import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/datos/datas
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/datos/modelos/producto_detalle_dto.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/bloc/producto_detalle_bloc.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
+import 'package:ec_mobile/src/modulos/compras_pagos/cu11_gestionar_carrito/datos/datasources/carrito_api.dart';
+import 'mocks/mock_carrito_api.dart';
 
 class MockProductoDetalleApi implements ProductoDetalleApi {
   final ProductoDetalleDto mockDetalle;
@@ -380,7 +382,10 @@ void main() {
     });
 
     test('toggleFavorito y agregarABolsa notifican reactivamente', () async {
-      final bloc = ProductoDetalleBloc(api: MockProductoDetalleApi());
+      final bloc = ProductoDetalleBloc(
+        api: MockProductoDetalleApi(),
+        carritoApi: MockCarritoApi(),
+      );
       await bloc.cargarDetalle(1);
 
       bloc.toggleFavorito();
@@ -388,10 +393,50 @@ void main() {
       expect(estado.esFavorito, true);
       expect(estado.mensajeNotificacion, contains('Deseos Atelier'));
 
-      bloc.agregarABolsa();
+      // `agregarABolsa` dejó de ser un contador en memoria: ahora persiste en el backend y el
+      // contador procede de la bolsa real devuelta por `POST /api/v1/carrito/items`.
+      await bloc.agregarABolsa(token: 'jwt-de-prueba');
       estado = bloc.estado as ProductoDetalleCargado;
-      expect(estado.bolsaContador, 1);
+      expect(estado.bolsaContador, 2);
       expect(estado.mensajeNotificacion, contains('bolsa de compras'));
+    });
+
+    test('agregarABolsa exige sesión activa antes de llamar al backend', () async {
+      final carritoApi = MockCarritoApi();
+      final bloc = ProductoDetalleBloc(
+        api: MockProductoDetalleApi(),
+        carritoApi: carritoApi,
+      );
+      await bloc.cargarDetalle(1);
+
+      final exito = await bloc.agregarABolsa(token: null);
+
+      expect(exito, false);
+      expect(carritoApi.llamadasAgregar, 0);
+      final estado = bloc.estado as ProductoDetalleCargado;
+      expect(estado.mensajeNotificacion, contains('Inicia sesión'));
+    });
+
+    test('agregarABolsa propaga el mensaje de negocio cuando el backend rechaza', () async {
+      final carritoApi = MockCarritoApi(
+        excepcion: const CarritoException(
+          'No hay existencias suficientes de esta prenda.',
+          codigoHttp: 409,
+          codigo: 'STOCK_INSUFICIENTE',
+        ),
+      );
+      final bloc = ProductoDetalleBloc(
+        api: MockProductoDetalleApi(),
+        carritoApi: carritoApi,
+      );
+      await bloc.cargarDetalle(1);
+
+      final exito = await bloc.agregarABolsa(token: 'jwt-de-prueba');
+
+      expect(exito, false);
+      final estado = bloc.estado as ProductoDetalleCargado;
+      // El aviso no puede afirmar un éxito que no ocurrió.
+      expect(estado.mensajeNotificacion, contains('existencias suficientes'));
     });
 
     test('confirmarReserva coordina cita privada en boutique', () async {
@@ -416,8 +461,15 @@ void main() {
         theme: ThemeData(fontFamily: 'Outfit'),
         home: PantallaProductoDetalle(
           idProducto: 1,
+          // `agregarABolsa` persiste de verdad en el backend, así que la pantalla necesita una
+          // sesión activa y un doble del API de carrito.
+          token: 'jwt-de-prueba',
           habilitarImagenesRed: false,
-          bloc: bloc ?? ProductoDetalleBloc(api: MockProductoDetalleApi()),
+          bloc: bloc ??
+              ProductoDetalleBloc(
+                api: MockProductoDetalleApi(),
+                carritoApi: MockCarritoApi(),
+              ),
         ),
       );
     }
@@ -591,7 +643,8 @@ void main() {
       expect(botonBolsa, findsOneWidget);
 
       await tester.tap(botonBolsa);
-      await tester.pump();
+      // La adición ahora viaja al backend: hay que dejar resolver el Future antes de aseverar.
+      await tester.pumpAndSettle();
 
       expect(find.text('Prenda añadida a la bolsa de compras'), findsOneWidget);
     });

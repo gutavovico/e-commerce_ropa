@@ -90,6 +90,15 @@ export const routes: Routes = [
     title: 'FASHION STORE | Detalle de Colección',
   },
   {
+    path: 'bolsa',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import(
+        './modules/compras_pagos/cu11_gestionar_carrito/paginas/bolsa-compra.component'
+      ).then((m) => m.BolsaCompraComponent),
+    title: 'FASHION STORE | Bolsa de Compra & Checkout',
+  },
+  {
     path: 'productos/:id',
     loadComponent: () =>
       import(

@@ -1,0 +1,633 @@
+<div class="min-h-screen bg-white text-[#111111] font-sans flex flex-col">
+  <!-- ===================================================================
+       CABECERA DE PANTALLA SECUNDARIA (SPOKE)
+       Sin barra de navegación institucional; retorno contextual obligatorio.
+       =================================================================== -->
+  <header class="w-full border-b border-[#ECEAE6] bg-white sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between gap-4">
+      <button
+        type="button"
+        (click)="volver()"
+        class="flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-[#666666] hover:text-black transition-colors"
+      >
+        <span aria-hidden="true">&larr;</span>
+        <span class="hidden sm:inline">Volver al catálogo</span>
+        <span class="sm:hidden">Volver</span>
+      </button>
+
+      <a
+        routerLink="/inicio"
+        class="text-sm font-semibold tracking-[0.25em] uppercase hover:opacity-80 transition-opacity"
+      >
+        FASHION STORE
+      </a>
+
+      <div class="flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-[#666666]">
+        <span class="hidden md:inline">Atelier Assistance</span>
+        <span class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-semibold">
+          {{ resumen().total_prendas }}
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full max-w-[1440px] mx-auto px-6 py-10">
+    <!-- ===================================================================
+         TÍTULO E INDICADOR DE INVENTARIO
+         =================================================================== -->
+    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-10">
+      <div class="space-y-2">
+        <p class="text-[10px] tracking-[0.22em] uppercase text-[#8A8A8A]">
+          Atelier Digital · Gestión de Orden
+        </p>
+        <h1 class="text-3xl md:text-4xl font-light tracking-tight">
+          Bolsa de Compra
+          @if (!estaVacia()) {
+            <span class="text-base md:text-lg text-[#8A8A8A] font-light">
+              ({{ resumen().total_prendas }}
+              {{ resumen().total_prendas === 1 ? 'prenda seleccionada' : 'prendas seleccionadas' }})
+            </span>
+          }
+        </h1>
+        <p class="text-sm text-[#666666] max-w-xl">
+          Revisa los artículos de tu orden, variantes y sucursales de preparación antes de
+          confirmar el pedido.
+        </p>
+      </div>
+
+      @if (!estaVacia() && tiempoRestante()) {
+        <div class="bg-[#F7F6F4] border border-[#ECEAE6] rounded-md p-4 max-w-sm">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-2 h-2 rounded-full bg-[#AD8C63]" aria-hidden="true"></span>
+            <p class="text-[10px] tracking-[0.18em] uppercase text-[#333333] font-medium">
+              Inventario activo · Stock verificado
+            </p>
+          </div>
+          <p class="text-[11px] text-[#666666] leading-relaxed">
+            Stock sincronizado en tiempo real. Estás dentro de la ventana de cortesía del atelier:
+            <strong class="text-black font-mono">{{ tiempoRestante() }} min</strong>
+          </p>
+          <p class="text-[10px] text-[#8A8A8A] mt-1 italic">
+            La reserva firme de existencias se activa al tramitar el pedido.
+          </p>
+        </div>
+      } @else if (ventanaExpirada()) {
+        <div class="bg-[#FFFBEB] border border-[#F5E3B8] rounded-md p-4 max-w-sm">
+          <p class="text-[11px] text-[#7A5B15] leading-relaxed">
+            La ventana de cortesía ha concluido. Las existencias se revalidan al tramitar el
+            pedido.
+          </p>
+        </div>
+      }
+    </div>
+
+    <!-- ===================================================================
+         ESTADO: ORDEN CONFIRMADA
+         =================================================================== -->
+    @if (ordenConfirmada(); as orden) {
+      <section class="max-w-2xl mx-auto text-center py-16 space-y-6">
+        <div class="w-16 h-16 rounded-full bg-[#F0FDF4] text-[#16A34A] flex items-center justify-center mx-auto text-2xl">
+          &#10003;
+        </div>
+        <div class="space-y-2">
+          <p class="text-[10px] tracking-[0.22em] uppercase text-[#8A8A8A]">
+            Orden registrada
+          </p>
+          <h2 class="text-2xl md:text-3xl font-light tracking-tight">
+            {{ orden.mensaje_confirmacion }}
+          </h2>
+          <p class="inline-block text-xs font-mono text-[#7A5B15] bg-[#FFFBEB] py-1 px-3 rounded">
+            COMPROBANTE: {{ orden.numero_comprobante }}
+          </p>
+        </div>
+
+        <div class="bg-[#F7F6F4] border border-[#ECEAE6] rounded-md p-5 text-left text-sm space-y-2">
+          <p class="flex justify-between">
+            <span class="text-[#666666]">Prendas</span>
+            <strong>{{ orden.total_prendas }}</strong>
+          </p>
+          <p class="flex justify-between">
+            <span class="text-[#666666]">Total</span>
+            <strong>{{ orden.total }} €</strong>
+          </p>
+          <p class="flex justify-between">
+            <span class="text-[#666666]">Entrega</span>
+            <strong>
+              {{ orden.tipo_entrega === 'domicilio' ? 'A domicilio' : 'Recogida en boutique' }}
+            </strong>
+          </p>
+          @if (orden.nombre_sucursal_retiro) {
+            <p class="flex justify-between">
+              <span class="text-[#666666]">Boutique</span>
+              <strong>{{ orden.nombre_sucursal_retiro }}</strong>
+            </p>
+          }
+        </div>
+
+        <button
+          type="button"
+          (click)="irACatalogo()"
+          class="w-full sm:w-auto px-8 py-3 bg-black text-white text-[11px] font-medium tracking-[0.18em] uppercase rounded hover:bg-[#222222] transition-colors"
+        >
+          Continuar explorando
+        </button>
+      </section>
+    }
+
+    <!-- ===================================================================
+         ESTADO: CARGA (SKELETON)
+         =================================================================== -->
+    @else if (cargando()) {
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
+        <div class="space-y-4">
+          @for (marcador of [1, 2, 3]; track marcador) {
+            <div class="border border-[#ECEAE6] rounded-md p-4 flex gap-4 animate-pulse">
+              <div class="w-32 h-40 bg-[#F0EEEB] rounded"></div>
+              <div class="flex-1 space-y-3 py-2">
+                <div class="h-3 bg-[#F0EEEB] rounded w-1/3"></div>
+                <div class="h-5 bg-[#F0EEEB] rounded w-2/3"></div>
+                <div class="h-3 bg-[#F0EEEB] rounded w-1/2"></div>
+                <div class="h-9 bg-[#F0EEEB] rounded w-32 mt-6"></div>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="border border-[#ECEAE6] rounded-md p-6 space-y-4 animate-pulse h-fit">
+          <div class="h-5 bg-[#F0EEEB] rounded w-1/2"></div>
+          <div class="h-3 bg-[#F0EEEB] rounded"></div>
+          <div class="h-3 bg-[#F0EEEB] rounded w-3/4"></div>
+          <div class="h-12 bg-[#F0EEEB] rounded mt-8"></div>
+        </div>
+      </div>
+    }
+
+    <!-- ===================================================================
+         ESTADO: BOLSA VACÍA
+         =================================================================== -->
+    @else if (estaVacia()) {
+      <section class="max-w-lg mx-auto text-center py-20 space-y-5">
+        <div class="w-16 h-16 rounded-full border border-[#ECEAE6] flex items-center justify-center mx-auto">
+          <svg class="w-7 h-7 text-[#8A8A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+            />
+          </svg>
+        </div>
+        <div class="space-y-2">
+          <h2 class="text-xl font-light tracking-tight">Tu bolsa está vacía</h2>
+          <p class="text-sm text-[#666666]">
+            Aún no has seleccionado ninguna pieza. Explora el catálogo de alta costura y añade
+            las prendas que desees probar.
+          </p>
+        </div>
+        <a
+          routerLink="/catalogo"
+          class="inline-block px-8 py-3 bg-black text-white text-[11px] font-medium tracking-[0.18em] uppercase rounded hover:bg-[#222222] transition-colors"
+        >
+          Explorar el catálogo
+        </a>
+      </section>
+    }
+
+    <!-- ===================================================================
+         CONTENIDO PRINCIPAL A DOS COLUMNAS
+         =================================================================== -->
+    @else {
+      @if (error()) {
+        <div
+          role="alert"
+          class="mb-6 p-4 bg-[#FEF2F2] border border-[#F5C2C2] rounded text-sm text-[#991B1B]"
+        >
+          {{ error() }}
+        </div>
+      }
+
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+        <!-- ---------------------------------------------------------------
+             COLUMNA IZQUIERDA: PRENDAS DE LA ORDEN
+             --------------------------------------------------------------- -->
+        <section class="space-y-4">
+          @for (item of items(); track item.id_carrito_detalle) {
+            <article
+              class="border border-[#ECEAE6] rounded-md p-4 flex flex-col sm:flex-row gap-4 bg-white transition-opacity"
+              [class.opacity-50]="lineaEnCurso() === item.id_carrito_detalle"
+            >
+              <!-- Fotografía -->
+              <div class="relative w-full sm:w-32 shrink-0">
+                <div class="aspect-[3/4] bg-[#F7F6F4] rounded overflow-hidden">
+                  @if (item.imagen_url) {
+                    <img
+                      [src]="item.imagen_url"
+                      [alt]="item.nombre_producto"
+                      class="w-full h-full object-cover"
+                    />
+                  }
+                </div>
+                @if (item.motivo_descuento) {
+                  <span
+                    class="absolute top-2 left-2 bg-white/90 text-[9px] tracking-[0.14em] uppercase px-2 py-0.5 rounded font-medium"
+                  >
+                    Privé
+                  </span>
+                }
+              </div>
+
+              <!-- Datos de la prenda -->
+              <div class="flex-1 min-w-0 space-y-2">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0">
+                    <p class="text-[10px] tracking-[0.18em] uppercase text-[#8A8A8A] truncate">
+                      {{ item.linea_confeccion || 'Alta Costura' }} · SKU: {{ item.sku }}
+                    </p>
+                    <h3 class="text-base md:text-lg font-light tracking-tight mt-1">
+                      {{ item.nombre_producto }}
+                    </h3>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <p class="text-base font-medium">{{ item.precio_unitario }} €</p>
+                    @if (item.descuento_linea !== '0.00') {
+                      <p class="text-xs text-[#8A8A8A] line-through">
+                        {{ item.precio_lista }} €
+                      </p>
+                    }
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#666666]">
+                  <span>Talla: <strong class="text-black">{{ item.talla_codigo }}</strong></span>
+                  <span class="flex items-center gap-1.5">
+                    Color:
+                    @if (item.color_hex) {
+                      <span
+                        class="w-3 h-3 rounded-full border border-[#D5D2CD] inline-block"
+                        [style.background-color]="item.color_hex"
+                        aria-hidden="true"
+                      ></span>
+                    }
+                    <strong class="text-black">{{ item.color_nombre }}</strong>
+                  </span>
+                </div>
+
+                @if (item.descuento_linea !== '0.00' && item.motivo_descuento) {
+                  <p class="text-xs text-[#7A5B15]">
+                    Ahorro {{ item.descuento_linea }} € por {{ item.motivo_descuento }}
+                  </p>
+                }
+
+                <!-- Sucursal de expedición -->
+                <div
+                  class="flex items-center justify-between gap-3 bg-[#F7F6F4] border border-[#ECEAE6] rounded px-3 py-2 text-xs"
+                >
+                  <span class="text-[#666666] truncate">
+                    Expedición desde: <strong class="text-black">{{ item.nombre_sucursal }}</strong>
+                  </span>
+                  <span class="text-[#8A8A8A] shrink-0 whitespace-nowrap">
+                    {{ item.stock_disponible }}
+                    {{ item.stock_disponible === 1 ? 'unidad' : 'unidades' }}
+                  </span>
+                </div>
+
+                <!-- Controles de cantidad y eliminación -->
+                <div class="flex flex-wrap items-center gap-4 pt-1">
+                  <div class="flex items-center border border-[#D5D2CD] rounded">
+                    <button
+                      type="button"
+                      (click)="decrementar(item)"
+                      [disabled]="item.cantidad <= 1 || procesando()"
+                      class="w-9 h-9 flex items-center justify-center text-[#333333] hover:bg-[#F7F6F4] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      [attr.aria-label]="'Reducir cantidad de ' + item.nombre_producto"
+                    >
+                      &minus;
+                    </button>
+                    <span
+                      class="w-10 text-center text-sm font-medium tabular-nums"
+                      [attr.data-cantidad]="item.cantidad"
+                    >
+                      {{ item.cantidad }}
+                    </span>
+                    <button
+                      type="button"
+                      (click)="incrementar(item)"
+                      [disabled]="!puedeIncrementar(item)"
+                      class="w-9 h-9 flex items-center justify-center text-[#333333] hover:bg-[#F7F6F4] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      [attr.aria-label]="'Aumentar cantidad de ' + item.nombre_producto"
+                      [attr.title]="
+                        item.cantidad >= item.cantidad_maxima
+                          ? 'Has alcanzado las existencias disponibles en esta boutique'
+                          : null
+                      "
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  @if (item.cantidad >= item.cantidad_maxima) {
+                    <span class="text-[11px] text-[#7A5B15]">
+                      Máximo disponible en esta boutique
+                    </span>
+                  }
+
+                  <button
+                    type="button"
+                    (click)="eliminar(item)"
+                    [disabled]="procesando()"
+                    class="ml-auto text-[11px] tracking-[0.14em] uppercase text-[#991B1B] hover:text-[#7A1010] disabled:opacity-40 transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </article>
+          }
+
+          <!-- Nota de verificación de inventario -->
+          <div class="bg-[#F7F6F4] border border-[#ECEAE6] rounded-md p-5 mt-6">
+            <h4 class="text-sm font-medium mb-2">Verificación de disponibilidad de inventario</h4>
+            <p class="text-xs text-[#666666] leading-relaxed">
+              Todas las unidades se confirman contra el inventario real de cada boutique antes de
+              tramitar la orden. Cada prenda es inspeccionada individualmente por nuestros maestros
+              sastres antes de su embalaje.
+            </p>
+            @if (haySucursalesMultiples()) {
+              <p class="text-xs text-[#7A5B15] mt-2">
+                Tu orden se expide desde varias boutiques; la preparación se coordina entre ellas.
+              </p>
+            }
+          </div>
+
+          <button
+            type="button"
+            (click)="volver()"
+            class="flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-[#666666] hover:text-black transition-colors pt-2"
+          >
+            <span aria-hidden="true">&larr;</span>
+            Continuar explorando colecciones
+          </button>
+        </section>
+
+        <!-- ---------------------------------------------------------------
+             COLUMNA DERECHA: RESUMEN Y CHECKOUT
+             --------------------------------------------------------------- -->
+        <aside class="border border-[#ECEAE6] rounded-md p-6 space-y-6 lg:sticky lg:top-24">
+          <div class="flex items-start justify-between gap-3">
+            <h2 class="text-lg font-light tracking-tight">Resumen de la Orden</h2>
+            @if (hayDescuento()) {
+              <span
+                class="text-[9px] tracking-[0.14em] uppercase bg-[#F5EFE4] text-[#7A5B15] px-2 py-1 rounded font-medium"
+              >
+                Atelier Privé
+              </span>
+            }
+          </div>
+
+          <!-- Desglose financiero -->
+          <dl class="space-y-2.5 text-sm">
+            <div class="flex justify-between gap-3">
+              <dt class="text-[#666666]">
+                Subtotal artículos ({{ resumen().total_prendas }}
+                {{ resumen().total_prendas === 1 ? 'prenda' : 'prendas' }})
+              </dt>
+              <dd class="tabular-nums">{{ resumen().subtotal }} €</dd>
+            </div>
+
+            @if (hayDescuento()) {
+              <div class="flex justify-between gap-3 text-[#7A5B15]">
+                <dt>Beneficios y promociones</dt>
+                <dd class="tabular-nums">&minus;{{ resumen().descuento }} €</dd>
+              </div>
+            }
+
+            <div class="flex justify-between gap-3">
+              <dt class="text-[#666666]">
+                Envío asegurado con guante blanco
+                <span class="block text-[11px] text-[#8A8A8A]">Boutique Express 24-48h</span>
+              </dt>
+              <dd class="text-[11px] tracking-[0.14em] uppercase text-[#16A34A]">Gratuito</dd>
+            </div>
+
+            <div class="flex justify-between gap-3 pt-2 border-t border-[#ECEAE6] text-[#8A8A8A] text-xs">
+              <dt>Impuestos estimados (IVA incluido)</dt>
+              <dd class="tabular-nums">{{ resumen().iva_incluido }} €</dd>
+            </div>
+          </dl>
+
+          <!-- Destino del envío -->
+          <div class="space-y-3 pt-2 border-t border-[#ECEAE6]">
+            <p class="text-[10px] tracking-[0.18em] uppercase text-[#333333] font-medium">
+              Destino del envío
+            </p>
+
+            <!-- Opción: domicilio -->
+            <label
+              class="block border rounded-md p-3 cursor-pointer transition-all"
+              [class.border-black]="tipoEntrega() === 'domicilio'"
+              [class.bg-[#FAFAF9]]="tipoEntrega() === 'domicilio'"
+              [class.border-[#ECEAE6]]="tipoEntrega() !== 'domicilio'"
+            >
+              <span class="flex items-start gap-3">
+                <input
+                  type="radio"
+                  name="tipoEntrega"
+                  value="domicilio"
+                  [checked]="tipoEntrega() === 'domicilio'"
+                  (change)="seleccionarEntrega('domicilio')"
+                  class="mt-1 accent-black"
+                />
+                <span class="flex-1 min-w-0">
+                  <span class="flex items-center justify-between gap-2">
+                    <strong class="text-sm font-medium">Entrega a Domicilio</strong>
+                    <span class="text-[10px] tracking-[0.14em] uppercase text-[#16A34A]">
+                      Gratuito
+                    </span>
+                  </span>
+                  <span class="block text-[11px] text-[#8A8A8A] mt-0.5">
+                    Entrega estimada: 24-48h con guante blanco
+                  </span>
+                </span>
+              </span>
+            </label>
+
+            @if (tipoEntrega() === 'domicilio') {
+              <div class="pl-3">
+                <label
+                  for="direccionEnvio"
+                  class="block text-[10px] tracking-[0.14em] uppercase text-[#666666] mb-1"
+                >
+                  Dirección de entrega
+                </label>
+                <textarea
+                  id="direccionEnvio"
+                  rows="2"
+                  [value]="direccionEnvio()"
+                  (input)="actualizarDireccion($any($event.target).value)"
+                  placeholder="Calle, número, piso, código postal y ciudad"
+                  class="w-full border border-[#D5D2CD] rounded px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors resize-none"
+                ></textarea>
+              </div>
+            }
+
+            <!-- Opción: recogida en boutique -->
+            <label
+              class="block border rounded-md p-3 cursor-pointer transition-all"
+              [class.border-black]="tipoEntrega() === 'recogida_boutique'"
+              [class.bg-[#FAFAF9]]="tipoEntrega() === 'recogida_boutique'"
+              [class.border-[#ECEAE6]]="tipoEntrega() !== 'recogida_boutique'"
+            >
+              <span class="flex items-start gap-3">
+                <input
+                  type="radio"
+                  name="tipoEntrega"
+                  value="recogida_boutique"
+                  [checked]="tipoEntrega() === 'recogida_boutique'"
+                  (change)="seleccionarEntrega('recogida_boutique')"
+                  class="mt-1 accent-black"
+                />
+                <span class="flex-1 min-w-0">
+                  <span class="flex items-center justify-between gap-2">
+                    <strong class="text-sm font-medium">Recogida en Boutique Insignia</strong>
+                    <span class="text-[10px] tracking-[0.14em] uppercase text-[#16A34A]">
+                      Gratuito
+                    </span>
+                  </span>
+                  <span class="block text-[11px] text-[#8A8A8A] mt-0.5">
+                    Preparación prioritaria lista en 2 horas
+                  </span>
+                </span>
+              </span>
+            </label>
+
+            @if (tipoEntrega() === 'recogida_boutique') {
+              <div class="pl-3 space-y-2">
+                @if (boutiques().length === 0) {
+                  <p class="text-[11px] text-[#7A5B15]">
+                    No hay boutiques disponibles para recogida en este momento.
+                  </p>
+                } @else {
+                  @for (boutique of boutiques(); track boutique.id_sucursal) {
+                    <button
+                      type="button"
+                      (click)="seleccionarBoutique(boutique.id_sucursal)"
+                      class="w-full text-left border rounded px-3 py-2 transition-all"
+                      [class.border-black]="sucursalRetiro() === boutique.id_sucursal"
+                      [class.border-[#ECEAE6]]="sucursalRetiro() !== boutique.id_sucursal"
+                    >
+                      <span class="block text-xs font-medium">{{ boutique.nombre }}</span>
+                      <span class="block text-[11px] text-[#8A8A8A]">
+                        {{ boutique.direccion }}
+                      </span>
+                    </button>
+                  }
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Total -->
+          <div class="bg-[#F7F6F4] border border-[#ECEAE6] rounded-md p-4">
+            <div class="flex items-baseline justify-between gap-3">
+              <span class="text-sm text-[#333333]">Total Estimado</span>
+              <strong class="text-2xl font-light tabular-nums">{{ resumen().total }} €</strong>
+            </div>
+            <p class="text-[11px] text-[#8A8A8A] mt-1">IVA incluido · Sin gastos de envío</p>
+          </div>
+
+          <!-- Código de invitación -->
+          <div class="space-y-2">
+            <label
+              for="codigoCupon"
+              class="block text-[10px] tracking-[0.18em] uppercase text-[#333333] font-medium"
+            >
+              Código de invitación o bono atelier
+            </label>
+
+            @if (cuponAplicado(); as cupon) {
+              <div
+                class="flex items-center justify-between gap-2 bg-[#F5EFE4] border border-[#E4D9C4] rounded px-3 py-2"
+              >
+                <span class="text-xs font-mono text-[#7A5B15] truncate">{{ cupon }}</span>
+                <button
+                  type="button"
+                  (click)="retirarCupon()"
+                  class="text-[10px] tracking-[0.14em] uppercase text-[#991B1B] hover:underline shrink-0"
+                >
+                  Retirar
+                </button>
+              </div>
+              <p class="text-[11px] text-[#8A8A8A]">
+                El beneficio se validará y aplicará al tramitar el pedido.
+              </p>
+            } @else {
+              <div class="flex gap-2">
+                <input
+                  id="codigoCupon"
+                  type="text"
+                  [value]="codigoCupon()"
+                  (input)="codigoCupon.set($any($event.target).value)"
+                  placeholder="Ej. MAISON-2025"
+                  class="flex-1 min-w-0 border border-[#D5D2CD] rounded px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors"
+                />
+                <button
+                  type="button"
+                  (click)="aplicarCupon()"
+                  [disabled]="!codigoCupon().trim()"
+                  class="px-4 py-2 border border-black text-[11px] tracking-[0.14em] uppercase font-medium hover:bg-black hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded"
+                >
+                  Aplicar
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Acción principal -->
+          <button
+            type="button"
+            (click)="tramitarPedido()"
+            [disabled]="!puedeTramitar()"
+            class="w-full py-4 bg-black text-white text-[11px] font-medium tracking-[0.18em] uppercase rounded hover:bg-[#222222] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-3"
+          >
+            @if (procesando()) {
+              <span class="animate-spin" aria-hidden="true">&#9696;</span>
+              <span>Tramitando…</span>
+            } @else {
+              <span>Tramitar pedido</span>
+              <span class="tabular-nums">{{ resumen().total }} €</span>
+              <span aria-hidden="true">&rarr;</span>
+            }
+          </button>
+
+          @if (!puedeTramitar() && !procesando() && !estaVacia()) {
+            <p class="text-[11px] text-[#8A8A8A] text-center -mt-3">
+              @if (tipoEntrega() === 'domicilio') {
+                Indica la dirección de entrega para continuar.
+              } @else {
+                Selecciona la boutique donde recogerás tu pedido.
+              }
+            </p>
+          }
+
+          <!-- Garantías -->
+          <ul class="space-y-2 pt-2 border-t border-[#ECEAE6] text-[11px] text-[#666666]">
+            <li>Confección y embalaje en funda de algodón transpirable y percha artesanal.</li>
+            <li>Garantía de devolución durante 30 días con recogida privada a domicilio.</li>
+            <li>Ajuste de sastrería de cortesía en boutiques Serrano y Saint-Honoré.</li>
+          </ul>
+        </aside>
+      </div>
+    }
+  </main>
+
+  <!-- ===================================================================
+       PIE INSTITUCIONAL
+       =================================================================== -->
+  <footer class="border-t border-[#ECEAE6] mt-12">
+    <div
+      class="max-w-[1440px] mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] tracking-[0.14em] uppercase text-[#8A8A8A]"
+    >
+      <span>Encriptación SSL de 256 bits · Pago seguro garantizado</span>
+      <span>&copy; 2026 Fashion Store</span>
+    </div>
+  </footer>
+</div>

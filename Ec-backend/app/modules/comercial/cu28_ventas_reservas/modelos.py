@@ -11,7 +11,10 @@ Mapea con precision las tablas del esquema `fashionstore`:
 
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
+
+if TYPE_CHECKING:
+    from modules.catalogo.modelos import VarianteProductoORM
 
 from sqlalchemy import (
     BigInteger,
@@ -28,7 +31,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
 from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
-from modules.catalogo.modelos import VarianteProductoORM
 from modules.gestion_operativa.modelos import CiudadORM, SucursalORM
 
 # Enums existentes en la base de datos PostgreSQL
@@ -236,7 +238,12 @@ class VentaDetalleORM(Base):
 
 
 class PagoORM(Base):
-    """Mapeo de la tabla `fashionstore.pagos`."""
+    """Mapeo de la tabla `fashionstore.pagos` (CU16 y CU28).
+
+    `id_venta` NO es único a propósito: la tabla acumula todos los intentos de cobro de una
+    misma orden, de modo que un rechazo seguido de un reintento exitoso deja ambos registros y
+    el historial financiero queda completo.
+    """
 
     __tablename__ = "pagos"
     __table_args__ = {"schema": "fashionstore", "extend_existing": True}
@@ -247,7 +254,7 @@ class PagoORM(Base):
     )
     metodo_pago: Mapped[str] = mapped_column(metodo_pago_enum, nullable=False)
     monto: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    estado: Mapped[str] = mapped_column(estado_pago_enum, nullable=False, default="pendiente")
+    estado: Mapped[str] = mapped_column(estado_pago_enum, nullable=False, default="pendiente", index=True)
     referencia_pasarela: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
     payload_respuesta: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     creado_en: Mapped[datetime] = mapped_column(

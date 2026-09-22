@@ -1,15 +1,13 @@
-"""Modelos ORM de SQLAlchemy 2.0 para el paquete de Compras y Pagos (CU11 y CU15).
+"""Modelos ORM de SQLAlchemy 2.0 para el paquete de Compras y Pagos (CU11, CU15 y CU16).
 
 Mapea las tablas del esquema `fashionstore`:
 - carritos
 - carrito_detalle
 
-`VentaORM` y `VentaDetalleORM` NO se declaran aquí: ya existían en
-`modules/catalogo/modelos.py`, donde las introdujo CU18 para el cálculo de afinidad. Declararlas
-de nuevo produciría un `InvalidRequestError` por tabla duplicada en el mismo `MetaData`. Se
-reexportan al final del módulo para que el paquete disponga de ellas con un único origen de
-verdad; las columnas de entrega y de expedición por línea que necesita CU15 se añadieron sobre
-aquellas definiciones.
+`VentaORM`, `VentaDetalleORM` y `PagoORM` NO se declaran aquí: ya existen en
+`modules/comercial/cu28_ventas_reservas/modelos.py`. Declararlas de nuevo produciría un
+`InvalidRequestError` por tabla duplicada en el mismo `MetaData`. Se reexportan al final del
+módulo para que el paquete disponga de ellas con un único origen de verdad.
 
 Los nombres de columna se verificaron por introspección directa contra PostgreSQL el 2026-09-22.
 La migración `alembic/versions/0001_base_ddl.py` NO describe el esquema desplegado y no debe
@@ -32,8 +30,13 @@ from core.database import Base
 from modules.catalogo.modelos import (
     SucursalORM,
     VarianteProductoORM,
+)
+from modules.comercial.cu28_ventas_reservas.modelos import (
+    PagoORM,
     VentaDetalleORM,
     VentaORM,
+    estado_pago_enum,
+    metodo_pago_enum,
 )
 
 # Modalidades de entrega admitidas, alineadas con el CHECK `ck_ventas_tipo_entrega`
@@ -133,13 +136,19 @@ class CarritoDetalleORM(Base):
     sucursal: Mapped["SucursalORM"] = relationship("SucursalORM")
 
 
+
+
+
 __all__ = [
     "CarritoORM",
     "CarritoDetalleORM",
+    "PagoORM",
     "VentaORM",
     "VentaDetalleORM",
     "TIPO_ENTREGA_DOMICILIO",
     "TIPO_ENTREGA_RECOGIDA",
     "TIPOS_ENTREGA_VALIDOS",
     "MINUTOS_RETENCION_VENTA",
+    "estado_pago_enum",
+    "metodo_pago_enum",
 ]

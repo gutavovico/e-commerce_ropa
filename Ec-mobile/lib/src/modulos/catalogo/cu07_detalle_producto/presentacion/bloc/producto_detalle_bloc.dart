@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import '../../../../compras_pagos/cu11_gestionar_carrito/datos/datasources/carrito_api.dart';
+import '../../../../compras_pagos/cu11_gestionar_carrito/datos/modelos/carrito_dto.dart';
 import '../../datos/datasources/producto_detalle_api.dart';
 import '../../datos/modelos/producto_detalle_dto.dart';
 
@@ -168,10 +170,12 @@ class ProductoDetalleCargado extends ProductoDetalleEstado {
 
 class ProductoDetalleBloc extends ChangeNotifier {
   final ProductoDetalleApi _api;
+  final CarritoApi _carritoApi;
   ProductoDetalleEstado _estado = const ProductoDetalleInicial();
 
-  ProductoDetalleBloc({ProductoDetalleApi? api})
-      : _api = api ?? ProductoDetalleApiImpl();
+  ProductoDetalleBloc({ProductoDetalleApi? api, CarritoApi? carritoApi})
+      : _api = api ?? ProductoDetalleApiImpl(),
+        _carritoApi = carritoApi ?? CarritoApiImpl();
 
   ProductoDetalleEstado get estado => _estado;
 
@@ -373,16 +377,54 @@ class ProductoDetalleBloc extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Añadir a la bolsa de alta costura
-  void agregarABolsa() {
-    if (_estado is! ProductoDetalleCargado) return;
+  /// Añade la prenda seleccionada a la bolsa de compras (CU11).
+  ///
+  /// Hasta el 2026-09-22 esto sólo incrementaba un contador en memoria y mostraba un aviso: la
+  /// prenda nunca llegaba a persistirse, de modo que la Bolsa de Compra jamás habría tenido
+  /// contenido que mostrar. Ahora escribe en `carrito_detalle` mediante
+  /// `POST /api/v1/carrito/items`.
+  ///
+  /// No se envía `id_sucursal`: el backend resuelve la boutique con mayor disponibilidad para
+  /// esa variante en la temporada vigente, y el cliente puede revisarla después en la bolsa.
+  Future<bool> agregarABolsa({required String? token}) async {
+    if (_estado is! ProductoDetalleCargado) return false;
     final actual = _estado as ProductoDetalleCargado;
-    final nuevaBolsa = actual.bolsaContador + 1;
-    _estado = actual.copyWith(
-      bolsaContador: nuevaBolsa,
-      mensajeNotificacion: 'Prenda añadida a la bolsa de compras',
-    );
-    notifyListeners();
+
+    final variante = actual.varianteActiva;
+    if (variante == null) {
+      _estado = actual.copyWith(
+        mensajeNotificacion: 'Selecciona una talla antes de añadir la prenda a tu bolsa.',
+      );
+      notifyListeners();
+      return false;
+    }
+
+    if (token == null || token.isEmpty) {
+      _estado = actual.copyWith(
+        mensajeNotificacion: 'Inicia sesión para guardar prendas en tu bolsa de compra.',
+      );
+      notifyListeners();
+      return false;
+    }
+
+    try {
+      final carrito = await _carritoApi.agregarItem(
+        ItemAgregarInDto(idVariante: variante.idVariante, cantidad: 1),
+        token: token,
+      );
+
+      _estado = actual.copyWith(
+        // El contador procede ahora de la bolsa real, no de un acumulador local.
+        bolsaContador: carrito.resumen.totalPrendas,
+        mensajeNotificacion: 'Prenda añadida a la bolsa de compras',
+      );
+      notifyListeners();
+      return true;
+    } on CarritoException catch (e) {
+      _estado = actual.copyWith(mensajeNotificacion: e.mensaje);
+      notifyListeners();
+      return false;
+    }
   }
 
   /// Confirmación de cita presencial en boutique (CU12)
