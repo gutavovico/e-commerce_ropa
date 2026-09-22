@@ -101,7 +101,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin/inventario',
-    canActivate: [authGuard, roleGuard(['administrador', 'encargado_sucursal'])],
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
     loadComponent: () =>
       import(
         './modules/gestion_operativa/cu24_inventario_stock/paginas/inventario-admin.component'
@@ -109,11 +109,59 @@ export const routes: Routes = [
   },
   {
     path: 'admin/proveedores',
-    canActivate: [authGuard, roleGuard(['administrador', 'encargado_sucursal'])],
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
     loadComponent: () =>
       import(
         './modules/gestion_operativa/cu25_proveedores/paginas/proveedores-admin.component'
       ).then((m) => m.ProveedoresAdminComponent),
+  },
+  {
+    path: 'admin/inventario-global',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/gestion_operativa/cu26_inventario_global/paginas/inventario-global-admin.component'
+      ).then((m) => m.InventarioGlobalAdminComponent),
+  },
+  {
+    path: 'admin/temporadas-colecciones',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/catalogo/cu24_temporadas_colecciones/paginas/temporadas-colecciones-admin.component'
+      ).then((m) => m.TemporadasColeccionesAdminComponent),
+  },
+  {
+    path: 'admin/promociones',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/cu27_promociones/paginas/promociones-admin.component'
+      ).then((m) => m.PromocionesAdminComponent),
+  },
+  {
+    path: 'admin/ventas-reservas',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/cu28_ventas_reservas/paginas/ventas-reservas-admin.component'
+      ).then((m) => m.VentasReservasAdminComponent),
+  },
+  {
+    path: 'admin/indicadores',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/cu29_indicadores/paginas/indicadores-admin.component'
+      ).then((m) => m.IndicadoresAdminComponent),
+  },
+  {
+    path: 'admin/bitacora',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin'])],
+    loadComponent: () =>
+      import(
+        './modules/seguridad/cu30_bitacora/paginas/bitacora-admin.component'
+      ).then((m) => m.BitacoraAdminComponent),
   },
   {
     path: '',

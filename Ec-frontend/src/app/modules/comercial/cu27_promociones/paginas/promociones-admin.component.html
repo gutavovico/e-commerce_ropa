@@ -1,0 +1,738 @@
+<div class="min-h-screen bg-slate-50 text-slate-900 font-['Outfit',sans-serif]">
+
+  <!-- Contenedor Editorial Central -->
+  <main class="max-w-[1440px] px-6 py-8 mx-auto space-y-8">
+
+    <!-- 1. Cabecera Institucional y Migas de Pan -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200">
+      <div>
+        <nav class="flex items-center gap-2 text-[11px] font-semibold tracking-widest text-[#AD8C63] uppercase mb-2" aria-label="Breadcrumb">
+          <a routerLink="/admin" class="hover:text-black transition-colors">INICIO</a>
+          <span>/</span>
+          <span>ADMINISTRACION</span>
+          <span>/</span>
+          <span class="text-slate-800">GESTIONAR PROMOCIONES</span>
+        </nav>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+            Gestionar promociones
+          </h1>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+            Marketing y Descuentos
+          </span>
+        </div>
+        <p class="text-xs md:text-sm text-slate-500 mt-1 max-w-2xl">
+          Parametrizacion de campanas comerciales, descuentos porcentuales, cupones y limites de canje.
+        </p>
+      </div>
+
+      <!-- Acciones Superiores -->
+      <div class="flex items-center gap-3 shrink-0">
+        <a
+          routerLink="/admin"
+          id="btn-volver-dashboard"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold tracking-wider transition-colors shadow-xs"
+        >
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Volver al Panel Principal</span>
+        </a>
+
+        @if (esAdmin()) {
+          <button
+            id="btn-abrir-crear-promocion"
+            (click)="abrirModalCrear()"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider transition-all shadow-xs cursor-pointer"
+          >
+            <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Nueva Promocion</span>
+          </button>
+        }
+      </div>
+    </header>
+
+    <!-- 2. Luxury Banners Contextuales (No destructivos) -->
+    @if (errorBanner() || errorServicio()) {
+      <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start justify-between gap-3 text-rose-800 animate-fadeIn">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider">Aviso de Excepcion Semantica</h4>
+            <p class="text-xs mt-0.5 leading-relaxed">{{ errorBanner() || errorServicio() }}</p>
+          </div>
+        </div>
+        <button (click)="limpiarBanners()" class="text-rose-400 hover:text-rose-700 transition-colors p-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    @if (mensajeExitoBanner() || mensajeExitoServicio()) {
+      <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start justify-between gap-3 text-emerald-800 animate-fadeIn">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider">Operacion Exitosa</h4>
+            <p class="text-xs mt-0.5 leading-relaxed">{{ mensajeExitoBanner() || mensajeExitoServicio() }}</p>
+          </div>
+        </div>
+        <button (click)="limpiarBanners()" class="text-emerald-400 hover:text-emerald-700 transition-colors p-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- 3. Grid de Metricas Cuantitativas Superiores (4 KPIs) -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" aria-label="Metricas Cuantitativas">
+      <!-- KPI 1: Promociones Activas -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span>Promociones Activas</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        </div>
+        <div class="mt-4 flex items-baseline justify-between">
+          <span class="text-3xl font-bold tracking-tight text-slate-900">
+            {{ metricas()?.promociones_activas ?? 0 }}
+          </span>
+          <span class="text-xs text-slate-400">campanas activas</span>
+        </div>
+      </div>
+
+      <!-- KPI 2: Cupones Vigentes -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span>Cupones Vigentes</span>
+          <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+        </div>
+        <div class="mt-4 flex items-baseline justify-between">
+          <span class="text-3xl font-bold tracking-tight text-slate-900">
+            {{ metricas()?.cupones_vigentes ?? 0 }}
+          </span>
+          <span class="text-xs text-slate-400">codigos habilitados</span>
+        </div>
+      </div>
+
+      <!-- KPI 3: Descuento Promedio -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span>Descuento Promedio</span>
+          <span class="w-2 h-2 rounded-full bg-[#AD8C63]"></span>
+        </div>
+        <div class="mt-4 flex items-baseline justify-between">
+          <span class="text-3xl font-bold tracking-tight text-[#AD8C63]">
+            {{ metricas()?.descuento_promedio ? (metricas()?.descuento_promedio | number:'1.1-1') + '%' : '0.0%' }}
+          </span>
+          <span class="text-xs text-slate-400">promedio ponderado</span>
+        </div>
+      </div>
+
+      <!-- KPI 4: Usos Totales -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span>Usos Acumulados</span>
+          <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+        </div>
+        <div class="mt-4 flex items-baseline justify-between">
+          <span class="text-3xl font-bold tracking-tight text-slate-900">
+            {{ metricas()?.usos_totales ?? 0 }}
+          </span>
+          <span class="text-xs text-slate-400">canjes registrados</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Barra de Herramientas Reactiva (Filtros con Debounce) -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3" aria-label="Barra de Filtros">
+      <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <!-- Buscador Reactivo -->
+        <div class="relative flex-1">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            id="input-filtro-busqueda"
+            [value]="busquedaTexto()"
+            (input)="onBusquedaInput($event)"
+            placeholder="Buscar por nombre de campana o codigo de cupon..."
+            class="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] focus:border-transparent text-slate-800 placeholder-slate-400 transition-all"
+          />
+        </div>
+
+        <!-- Selectores Multicriterio -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- Tipo Descuento -->
+          <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+            <span class="text-[11px] font-semibold text-slate-500">Tipo:</span>
+            <select
+              id="select-filtro-tipo"
+              [value]="filtroTipoDescuento()"
+              (change)="onFiltroTipoChange($event)"
+              class="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              <option value="todos">Todos los tipos</option>
+              <option value="porcentaje">Porcentaje (%)</option>
+              <option value="monto_fijo">Monto Fijo ($)</option>
+            </select>
+          </div>
+
+          <!-- Estado -->
+          <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+            <span class="text-[11px] font-semibold text-slate-500">Estado:</span>
+            <select
+              id="select-filtro-estado"
+              [value]="filtroEstado()"
+              (change)="onFiltroEstadoChange($event)"
+              class="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              <option value="todos">Todos</option>
+              <option value="activas">Activas</option>
+              <option value="inactivas">Inactivas</option>
+            </select>
+          </div>
+
+          <!-- Alcance -->
+          <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+            <span class="text-[11px] font-semibold text-slate-500">Alcance:</span>
+            <select
+              id="select-filtro-alcance"
+              [value]="filtroAlcance()"
+              (change)="onFiltroAlcanceChange($event)"
+              class="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              <option value="todos">Todos los alcances</option>
+              <option value="global">Global (Todo el catalogo)</option>
+              <option value="categoria">Por Categoria</option>
+              <option value="producto">Por Producto</option>
+            </select>
+          </div>
+
+          <!-- Boton Reset -->
+          <button
+            id="btn-resetear-filtros"
+            (click)="resetearFiltros()"
+            class="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 text-xs font-semibold transition-colors cursor-pointer"
+            title="Restablecer filtros"
+          >
+            Limpiar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Tabla Maestra de Promociones -->
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden" aria-label="Tabla de Promociones">
+      @if (cargando()) {
+        <div class="p-12 text-center text-slate-500 space-y-3">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-slate-300 border-t-[#AD8C63]"></div>
+          <p class="text-xs font-medium">Sincronizando campanas comerciales...</p>
+        </div>
+      } @else if (promociones().length === 0) {
+        <div class="p-16 text-center text-slate-500 space-y-4">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+          </div>
+          <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">No se encontraron promociones</h3>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto">
+            No existen registros que coincidan con los criterios de busqueda o filtros seleccionados.
+          </p>
+          @if (esAdmin()) {
+            <button
+              (click)="abrirModalCrear()"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider transition-all"
+            >
+              <span>Crear Primera Promocion</span>
+            </button>
+          }
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse" id="tabla-promociones">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <th class="py-3.5 px-4">Campana / Promocion</th>
+                <th class="py-3.5 px-4">Descuento</th>
+                <th class="py-3.5 px-4">Cupon</th>
+                <th class="py-3.5 px-4">Alcance</th>
+                <th class="py-3.5 px-4">Vigencia</th>
+                <th class="py-3.5 px-4">Canjes</th>
+                <th class="py-3.5 px-4">Estado</th>
+                <th class="py-3.5 px-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+              @for (promo of promociones(); track promo.id_promocion) {
+                <tr class="hover:bg-slate-50/75 transition-colors group">
+                  <!-- Campana / Nombre -->
+                  <td class="py-4 px-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                        <svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span class="font-bold text-slate-900 group-hover:text-black transition-colors block">
+                          {{ promo.nombre }}
+                        </span>
+                        @if (promo.descripcion) {
+                          <span class="text-[11px] text-slate-400 block truncate max-w-xs" [title]="promo.descripcion">
+                            {{ promo.descripcion }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Descuento -->
+                  <td class="py-4 px-4">
+                    <div class="font-bold text-slate-900">
+                      @if (promo.tipo_descuento === 'porcentaje') {
+                        <span class="text-[#AD8C63]">{{ promo.valor_descuento }}% OFF</span>
+                        @if (promo.tope_descuento) {
+                          <span class="block text-[10px] text-slate-400 font-normal">Tope: ${{ promo.tope_descuento | number:'1.2-2' }}</span>
+                        }
+                      } @else {
+                        <span class="text-emerald-700">${{ promo.valor_descuento | number:'1.2-2' }}</span>
+                      }
+                    </div>
+                  </td>
+
+                  <!-- Cupon Promocional -->
+                  <td class="py-4 px-4">
+                    @if (promo.codigo_cupon) {
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-slate-100 text-slate-800 border border-slate-200 tracking-wider">
+                        {{ promo.codigo_cupon }}
+                      </span>
+                    } @else {
+                      <span class="text-[11px] text-slate-400 italic">Automatico</span>
+                    }
+                  </td>
+
+                  <!-- Alcance -->
+                  <td class="py-4 px-4">
+                    <span class="capitalize px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">
+                      {{ promo.alcance }}
+                    </span>
+                  </td>
+
+                  <!-- Vigencia Fechas -->
+                  <td class="py-4 px-4">
+                    <div class="text-[11px] leading-tight space-y-0.5">
+                      <span class="block text-slate-700">{{ promo.fecha_inicio | date:'dd/MM/yyyy' }}</span>
+                      <span class="block text-slate-400">al {{ promo.fecha_fin | date:'dd/MM/yyyy' }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Canjes / Limite -->
+                  <td class="py-4 px-4">
+                    <div class="text-[11px]">
+                      <span class="font-semibold text-slate-900">{{ promo.usos_actuales }}</span>
+                      <span class="text-slate-400"> / {{ promo.limite_usos ? promo.limite_usos : 'Inf' }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Estado y Badge de Vigencia -->
+                  <td class="py-4 px-4">
+                    <div class="flex flex-col gap-1 items-start">
+                      <!-- Badge de Vigencia -->
+                      @switch (calcularVigencia(promo)) {
+                        @case ('vigente') {
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                            Vigente
+                          </span>
+                        }
+                        @case ('proxima') {
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                            <span class="w-1 h-1 rounded-full bg-amber-500"></span>
+                            Proxima
+                          </span>
+                        }
+                        @case ('expirada') {
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            <span class="w-1 h-1 rounded-full bg-slate-400"></span>
+                            Expirada
+                          </span>
+                        }
+                      }
+
+                      <!-- Estado Activo/Inactivo -->
+                      @if (!promo.estado_activo) {
+                        <span class="text-[10px] font-semibold text-rose-600">(Inactiva)</span>
+                      }
+                    </div>
+                  </td>
+
+                  <!-- Acciones Operativas -->
+                  <td class="py-4 px-4 text-right">
+                    <div class="inline-flex items-center gap-1.5">
+                      @if (esAdmin()) {
+                        <!-- Boton Editar -->
+                        <button
+                          [id]="'btn-editar-promocion-' + promo.id_promocion"
+                          (click)="abrirModalEditar(promo)"
+                          class="p-1.5 rounded-lg text-slate-500 hover:text-black hover:bg-slate-100 transition-colors"
+                          title="Editar promocion"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+
+                        <!-- Boton Conmutar Estado -->
+                        <button
+                          [id]="'btn-conmutar-promocion-' + promo.id_promocion"
+                          (click)="abrirModalConmutar(promo)"
+                          class="p-1.5 rounded-lg transition-colors"
+                          [ngClass]="promo.estado_activo ? 'text-rose-500 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'"
+                          [title]="promo.estado_activo ? 'Desactivar promocion' : 'Reactivar promocion'"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            @if (promo.estado_activo) {
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            } @else {
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            }
+                          </svg>
+                        </button>
+                      } @else {
+                        <span class="text-[11px] text-slate-400 italic">Solo Lectura</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginador Maestro -->
+        @if (totalPaginas() > 1) {
+          <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
+            <span class="text-slate-500">
+              Mostrando pagina <span class="font-bold text-slate-900">{{ paginaActual() }}</span> de <span class="font-bold text-slate-900">{{ totalPaginas() }}</span> ({{ totalPromociones() }} registros totales)
+            </span>
+            <div class="flex items-center gap-2">
+              <button
+                id="btn-pagina-anterior"
+                [disabled]="paginaActual() <= 1"
+                (click)="cambiarPagina(paginaActual() - 1)"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Anterior
+              </button>
+              <button
+                id="btn-pagina-siguiente"
+                [disabled]="paginaActual() >= totalPaginas()"
+                (click)="cambiarPagina(paginaActual() + 1)"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </section>
+
+    <!-- 6. Modal Reactivo de Creacion / Edicion -->
+    @if (modalAbierto()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-fadeIn">
+        <div class="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden my-8" (click)="$event.stopPropagation()">
+          
+          <!-- Encabezado del Modal -->
+          <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div>
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                {{ modoEdicion() ? 'Edicion Editorial' : 'Parametrizacion Comercial' }}
+              </span>
+              <h3 class="text-lg font-bold text-slate-900 mt-0.5">
+                {{ modoEdicion() ? 'Editar Promocion' : 'Nueva Promocion' }}
+              </h3>
+            </div>
+            <button
+              (click)="cerrarModal()"
+              class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Formulario Reactivo -->
+          <form [formGroup]="formPromocion" (ngSubmit)="guardarPromocion()" class="p-6 space-y-4">
+            
+            <!-- Fila 1: Nombre y Codigo Cupon -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="input-nombre-promocion" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Nombre de la Campana *
+                </label>
+                <input
+                  type="text"
+                  id="input-nombre-promocion"
+                  formControlName="nombre"
+                  placeholder="Ej. Black Velvet VIP"
+                  class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900"
+                />
+                @if (formPromocion.get('nombre')?.touched && formPromocion.get('nombre')?.invalid) {
+                  <span class="text-[11px] text-rose-600 mt-1 block">El nombre es obligatorio (min. 3 caracteres).</span>
+                }
+              </div>
+
+              <div>
+                <label for="input-codigo-cupon" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Codigo de Cupon (Opcional)
+                </label>
+                <input
+                  type="text"
+                  id="input-codigo-cupon"
+                  formControlName="codigo_cupon"
+                  placeholder="Ej. VELVET25"
+                  class="w-full px-3.5 py-2.5 text-xs font-mono uppercase bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900"
+                />
+                <span class="text-[10px] text-slate-400 block mt-1">Si se omite, la promocion aplicara automaticamente.</span>
+              </div>
+            </div>
+
+            <!-- Fila 2: Descripcion -->
+            <div>
+              <label for="input-descripcion-promocion" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Descripcion Comercial
+              </label>
+              <textarea
+                id="input-descripcion-promocion"
+                formControlName="descripcion"
+                rows="2"
+                placeholder="Detalle o condiciones de aplicacion de la promocion..."
+                class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900"
+              ></textarea>
+            </div>
+
+            <!-- Fila 3: Tipo Descuento y Valor -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label for="select-tipo-descuento" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Tipo de Descuento *
+                </label>
+                <select
+                  id="select-tipo-descuento"
+                  formControlName="tipo_descuento"
+                  class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900"
+                >
+                  <option value="porcentaje">Porcentaje (%)</option>
+                  <option value="monto_fijo">Monto Fijo ($)</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="input-valor-descuento" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Valor Descuento *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  id="input-valor-descuento"
+                  formControlName="valor_descuento"
+                  placeholder="15.00"
+                  class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label for="input-tope-descuento" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Tope Descuento ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  id="input-tope-descuento"
+                  formControlName="tope_descuento"
+                  [disabled]="formPromocion.get('tipo_descuento')?.value !== 'porcentaje'"
+                  placeholder="Opcional"
+                  class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900 disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            <!-- Fila 4: Alcance y Seleccion Condicional -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="select-alcance" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Alcance Promocional *
+                </label>
+                <select
+                  id="select-alcance"
+                  formControlName="alcance"
+                  class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900"
+                >
+                  <option value="global">Global (Todo el catalogo)</option>
+                  <option value="categoria">Por Categoria</option>
+                  <option value="producto">Por Producto</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="input-limite-usos" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Limite de Usos (Canjes)
+                </label>
+                <input
+                  type="number"
+                  id="input-limite-usos"
+                  formControlName="limite_usos"
+                  placeholder="Ilimitado si se omite"
+                  class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900"
+                />
+              </div>
+            </div>
+
+            <!-- Fila 5: Fechas de Inicio y Fin -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="input-fecha-inicio" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Fecha y Hora Inicio *
+                </label>
+                <input
+                  type="datetime-local"
+                  id="input-fecha-inicio"
+                  formControlName="fecha_inicio"
+                  class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label for="input-fecha-fin" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Fecha y Hora Fin *
+                </label>
+                <input
+                  type="datetime-local"
+                  id="input-fecha-fin"
+                  formControlName="fecha_fin"
+                  class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#AD8C63] text-slate-900"
+                />
+              </div>
+            </div>
+
+            <!-- Validaciones sincronicas en bloque -->
+            @if (formPromocion.errors) {
+              <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs space-y-1">
+                @if (formPromocion.errors['fechasInvalidas']) {
+                  <p>{{ formPromocion.errors['fechasInvalidas'] }}</p>
+                }
+                @if (formPromocion.errors['porcentajeInvalido']) {
+                  <p>{{ formPromocion.errors['porcentajeInvalido'] }}</p>
+                }
+                @if (formPromocion.errors['montoInvalido']) {
+                  <p>{{ formPromocion.errors['montoInvalido'] }}</p>
+                }
+                @if (formPromocion.errors['categoriaRequerida']) {
+                  <p>{{ formPromocion.errors['categoriaRequerida'] }}</p>
+                }
+                @if (formPromocion.errors['productoRequerido']) {
+                  <p>{{ formPromocion.errors['productoRequerido'] }}</p>
+                }
+              </div>
+            }
+
+            <!-- Switch Estado Activo -->
+            <div class="flex items-center gap-2 pt-2">
+              <input
+                type="checkbox"
+                id="check-estado-activo"
+                formControlName="estado_activo"
+                class="w-4 h-4 text-[#AD8C63] border-slate-300 rounded-sm focus:ring-[#AD8C63]"
+              />
+              <label for="check-estado-activo" class="text-xs font-semibold text-slate-700 cursor-pointer">
+                Promocion habilitada inmediatamente
+              </label>
+            </div>
+
+            <!-- Botones de Accion del Modal -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                id="btn-cancelar-modal"
+                (click)="cerrarModal()"
+                class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                id="btn-guardar-promocion"
+                [disabled]="formPromocion.invalid || guardando()"
+                class="px-5 py-2.5 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+              >
+                {{ guardando() ? 'Guardando...' : (modoEdicion() ? 'Actualizar Promocion' : 'Crear Promocion') }}
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    }
+
+    <!-- 7. Modal de Confirmacion de Conmutacion de Estado (Baja Logica) -->
+    @if (modalConfirmarEstadoAbierto() && promocionParaConmutar()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
+        <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4" (click)="$event.stopPropagation()">
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" [ngClass]="promocionParaConmutar()?.estado_activo ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                {{ promocionParaConmutar()?.estado_activo ? 'Confirmar Desactivacion' : 'Confirmar Reactivacion' }}
+              </h3>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                ¿Esta seguro de que desea {{ promocionParaConmutar()?.estado_activo ? 'desactivar' : 'reactivar' }} la promocion
+                <span class="font-bold text-slate-800">"{{ promocionParaConmutar()?.nombre }}"</span>?
+                Esta operacion es reversible y no destruye datos de canjes historicos.
+              </p>
+            </div>
+          </div>
+
+          <div class="pt-2 flex items-center justify-end gap-3">
+            <button
+              id="btn-cancelar-conmutacion"
+              (click)="cerrarModalConmutar()"
+              class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              id="btn-confirmar-conmutacion"
+              (click)="confirmarConmutacion()"
+              [disabled]="guardando()"
+              class="px-4 py-2 rounded-xl text-white text-xs font-bold uppercase tracking-wider transition-all"
+              [ngClass]="promocionParaConmutar()?.estado_activo ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'"
+            >
+              {{ guardando() ? 'Procesando...' : (promocionParaConmutar()?.estado_activo ? 'Desactivar' : 'Reactivar') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+  </main>
+
+</div>

@@ -110,13 +110,17 @@ from modules.autenticacion_seguridad.cu20_usuarios_roles.router import (
 )
 from modules.autenticacion_seguridad.router import router as router_autenticacion
 from modules.catalogo.router import router as router_catalogo
+from modules.comercial.router import router as router_comercial
 from modules.gestion_operativa.router import router as router_gestion_operativa
+from modules.seguridad.cu30_bitacora.router import router as router_bitacora
 
 app.include_router(router_autenticacion, prefix="/api/v1")
 app.include_router(router_perfil, prefix="/api/v1")
 app.include_router(router_catalogo, prefix="/api/v1")
+app.include_router(router_comercial, prefix="/api/v1")
 app.include_router(router_gestion_operativa, prefix="/api/v1")
 app.include_router(router_usuarios_admin, prefix="/api/v1")
+app.include_router(router_bitacora, prefix="/api/v1")
 
 # --- Almacenamiento Estatico Local ---
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

@@ -5,13 +5,13 @@ import {
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterModule } from '@angular/router';
 import { LoginService } from '../../autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterModule, RouterLink, RouterLinkActive],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,7 +24,9 @@ export class AdminDashboardComponent {
   readonly rolUsuario = computed(() =>
     String(this.usuario()?.rol || 'administrador').toLowerCase().trim()
   );
-  readonly esAdmin = computed(() => this.rolUsuario() === 'administrador');
+  readonly esAdmin = computed(
+    () => this.rolUsuario() === 'administrador' || this.rolUsuario() === 'admin'
+  );
   readonly esEncargado = computed(() => this.rolUsuario() === 'encargado_sucursal');
 
   readonly usuarioEmail = computed(
@@ -42,6 +44,7 @@ export class AdminDashboardComponent {
   readonly rolLabel = computed(() => {
     switch (this.rolUsuario()) {
       case 'administrador':
+      case 'admin':
         return 'Administrador';
       case 'encargado_sucursal':
         return 'Encargado de Sucursal';
@@ -53,8 +56,8 @@ export class AdminDashboardComponent {
   });
 
   readonly totalModulosActivos = computed(() => {
-    if (this.esAdmin()) return '6 Activos';
-    if (this.esEncargado()) return '4 Activos';
+    if (this.esAdmin()) return '12 Activos';
+    if (this.esEncargado()) return '9 Activos';
     return '0 Activos';
   });
 
@@ -62,7 +65,18 @@ export class AdminDashboardComponent {
     this.esAdmin() ? 'Superusuario' : 'Encargado de Sede'
   );
 
-  navegar(ruta: string): void {
-    this.router.navigate([ruta]);
+  navegar(ruta: string, event?: Event): void {
+    if (event) {
+      event.preventDefault();
+    }
+    this.router.navigateByUrl(ruta).then((exito) => {
+      if (!exito) {
+        console.error('[ROUTER] Navegacion rechazada o fallida hacia:', ruta);
+        // Intento forzado de navegacion por comandos relativos/absolutos
+        this.router.navigate([ruta]);
+      }
+    }).catch((err) => {
+      console.error('[ROUTER] Error al cargar modulo o resolver ruta:', err);
+    });
   }
 }

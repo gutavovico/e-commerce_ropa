@@ -17,6 +17,9 @@ from modules.gestion_operativa.cu24_inventario_stock.router import (
 from modules.gestion_operativa.cu25_proveedores.router import (
     router as router_proveedores,
 )
+from modules.gestion_operativa.cu26_inventario_global.router import (
+    router as router_inventario_global,
+)
 
 router = APIRouter()
 router.include_router(router_sucursales)
@@ -24,6 +27,7 @@ router.include_router(router_productos)
 router.include_router(router_atributos)
 router.include_router(router_inventario)
 router.include_router(router_proveedores)
+router.include_router(router_inventario_global)
 
 
 

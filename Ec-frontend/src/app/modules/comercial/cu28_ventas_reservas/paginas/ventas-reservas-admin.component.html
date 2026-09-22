@@ -1,0 +1,713 @@
+<div class="min-h-screen bg-slate-50 text-slate-900 font-['Outfit',sans-serif]">
+
+  <!-- Contenedor Editorial Central -->
+  <main class="max-w-[1440px] px-6 py-8 mx-auto space-y-8">
+
+    <!-- 1. Cabecera Institucional y Migas de Pan -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200">
+      <div>
+        <nav class="flex items-center gap-2 text-[11px] font-semibold tracking-widest text-[#AD8C63] uppercase mb-2" aria-label="Breadcrumb">
+          <a routerLink="/admin" class="hover:text-black transition-colors">INICIO</a>
+          <span>/</span>
+          <span>ADMINISTRACION</span>
+          <span>/</span>
+          <span class="text-slate-800">CONSULTAR VENTAS Y RESERVAS</span>
+        </nav>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+            Consultar ventas y reservas
+          </h1>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+            Auditoria y Ventas
+          </span>
+        </div>
+        <p class="text-xs md:text-sm text-slate-500 mt-1 max-w-2xl">
+          Consulta consolidada de ventas, reservas, comprobantes y metricas transaccionales de la red comercial.
+        </p>
+      </div>
+
+      <!-- Acciones Superiores -->
+      <div class="flex items-center gap-3 shrink-0">
+        <a
+          routerLink="/admin"
+          id="btn-volver-dashboard-ventas-reservas"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold tracking-wider transition-colors shadow-xs"
+        >
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Volver al Panel Principal</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- 2. Luxury Banners Contextuales (No destructivos) -->
+    @if (errorBanner() || errorServicio()) {
+      <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start justify-between gap-3 text-rose-800 animate-fadeIn">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider">Aviso de Excepcion Semantica</h4>
+            <p class="text-xs mt-0.5 leading-relaxed">{{ errorBanner() || errorServicio() }}</p>
+          </div>
+        </div>
+        <button (click)="limpiarBanners()" class="text-rose-400 hover:text-rose-700 transition-colors p-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- 3. Grid de Metricas Cuantitativas Superiores (4 KPIs) -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" aria-label="Metricas Transaccionales">
+      <!-- KPI 1: Monto Total Facturado -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span>Monto Facturado</span>
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+            <svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-900 mt-3" id="kpi-monto-facturado">
+          {{ formatearMonto(metricas().monto_total_facturado) }}
+        </p>
+        <p class="text-[11px] text-slate-400 mt-1 uppercase tracking-wider">Ventas pagadas registradas</p>
+      </div>
+
+      <!-- KPI 2: Ventas Concluidas -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span>Ventas Concluidas</span>
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+            <svg class="w-4 h-4 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-900 mt-3" id="kpi-ventas-concluidas">
+          {{ metricas().total_ventas_concluidas }}
+        </p>
+        <p class="text-[11px] text-slate-400 mt-1 uppercase tracking-wider">Transacciones cerradas</p>
+      </div>
+
+      <!-- KPI 3: Reservas Activas -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span>Reservas Activas</span>
+          <div class="w-8 h-8 rounded-lg bg-violet-50 border border-violet-200 flex items-center justify-center">
+            <svg class="w-4 h-4 text-violet-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-900 mt-3" id="kpi-reservas-activas">
+          {{ metricas().reservas_activas }}
+        </p>
+        <p class="text-[11px] text-slate-400 mt-1 uppercase tracking-wider">Pendientes / Confirmadas</p>
+      </div>
+
+      <!-- KPI 4: Ticket Promedio -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span>Ticket Promedio</span>
+          <div class="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center">
+            <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-900 mt-3" id="kpi-ticket-promedio">
+          {{ formatearMonto(metricas().ticket_promedio) }}
+        </p>
+        <p class="text-[11px] text-slate-400 mt-1 uppercase tracking-wider">Promedio por venta concluida</p>
+      </div>
+    </section>
+
+    <!-- 4. Barra Reactiva de Filtros Multicriterio -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4" aria-label="Filtros de Consulta">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-slate-500">Filtros de Consulta</h2>
+        <button
+          id="btn-resetear-filtros"
+          (click)="resetearFiltros()"
+          class="text-[11px] font-semibold text-[#AD8C63] hover:text-black uppercase tracking-wider transition-colors cursor-pointer"
+        >
+          Restablecer filtros
+        </button>
+      </div>
+
+      <!-- Primera fila de filtros -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Busqueda textual -->
+        <div>
+          <label for="filtro-busqueda" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Busqueda</label>
+          <input
+            id="filtro-busqueda"
+            type="text"
+            [value]="busquedaTexto()"
+            (input)="onBusquedaInput($event)"
+            placeholder="Comprobante, cliente, SKU..."
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#AD8C63] focus:border-transparent transition-all"
+          />
+        </div>
+
+        <!-- Tipo de operacion -->
+        <div>
+          <label for="filtro-tipo-operacion" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Tipo de operacion</label>
+          <select
+            id="filtro-tipo-operacion"
+            [value]="filtroTipoOperacion()"
+            (change)="onFiltroTipoOperacionChange($event)"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#AD8C63] focus:border-transparent transition-all cursor-pointer"
+          >
+            <option value="todas">Todas las operaciones</option>
+            <option value="venta">Solo ventas</option>
+            <option value="reserva">Solo reservas</option>
+          </select>
+        </div>
+
+        <!-- Estado -->
+        <div>
+          <label for="filtro-estado" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Estado</label>
+          <select
+            id="filtro-estado"
+            [value]="filtroEstado()"
+            (change)="onFiltroEstadoChange($event)"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#AD8C63] focus:border-transparent transition-all cursor-pointer"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="pagada">Pagada</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="en_atencion">En atencion</option>
+            <option value="atendida">Atendida</option>
+            <option value="anulada">Anulada</option>
+            <option value="cancelada">Cancelada</option>
+            <option value="vencida">Vencida</option>
+            <option value="devuelta">Devuelta</option>
+          </select>
+        </div>
+
+        <!-- Canal de origen -->
+        <div>
+          <label for="filtro-canal" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Canal de origen</label>
+          <select
+            id="filtro-canal"
+            [value]="filtroCanalOrigen()"
+            (change)="onFiltroCanalChange($event)"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#AD8C63] focus:border-transparent transition-all cursor-pointer"
+          >
+            <option value="todos">Todos los canales</option>
+            <option value="web">Web</option>
+            <option value="movil">Movil</option>
+            <option value="sucursal">Sucursal</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Segunda fila de filtros -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Sucursal (solo para admin) -->
+        @if (esAdmin()) {
+          <div>
+            <label for="filtro-sucursal" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sucursal</label>
+            <select
+              id="filtro-sucursal"
+              (change)="onFiltroSucursalChange($event)"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#AD8C63] focus:border-transparent transition-all cursor-pointer"
+            >
+              <option value="">Todas las sucursales</option>
+              @for (suc of sucursalesDisponibles(); track suc.id_sucursal) {
+                <option [value]="suc.id_sucursal">{{ suc.nombre }} - {{ suc.ciudad }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        <!-- Fecha desde -->
+        <div>
+          <label for="filtro-fecha-desde" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Fecha desde</label>
+          <input
+            id="filtro-fecha-desde"
+            type="datetime-local"
+            (change)="onFiltroFechaDesdeChange($event)"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#AD8C63] focus:border-transparent transition-all"
+          />
+        </div>
+
+        <!-- Fecha hasta -->
+        <div>
+          <label for="filtro-fecha-hasta" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Fecha hasta</label>
+          <input
+            id="filtro-fecha-hasta"
+            type="datetime-local"
+            (change)="onFiltroFechaHastaChange($event)"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#AD8C63] focus:border-transparent transition-all"
+          />
+        </div>
+
+        <!-- Ordenar por -->
+        <div>
+          <label for="filtro-orden" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Ordenar por</label>
+          <select
+            id="filtro-orden"
+            [value]="filtroOrden()"
+            (change)="onFiltroOrdenChange($event)"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#AD8C63] focus:border-transparent transition-all cursor-pointer"
+          >
+            <option value="creado_en_desc">Mas recientes primero</option>
+            <option value="creado_en_asc">Mas antiguos primero</option>
+            <option value="total_desc">Mayor monto primero</option>
+            <option value="total_asc">Menor monto primero</option>
+            <option value="fecha_desc">Fecha descendente</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Tabla Maestra Consolidada de Transacciones -->
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden" aria-label="Tabla de Transacciones">
+
+      <!-- Encabezado de la tabla -->
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Registro de Transacciones</h2>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+            {{ totalTransacciones() }} registros
+          </span>
+        </div>
+      </div>
+
+      <!-- Indicador de carga -->
+      @if (cargando()) {
+        <div class="flex items-center justify-center py-12">
+          <div class="flex flex-col items-center gap-3">
+            <div class="w-8 h-8 border-2 border-slate-200 border-t-[#AD8C63] rounded-full animate-spin"></div>
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Cargando transacciones...</p>
+          </div>
+        </div>
+      }
+
+      <!-- Tabla -->
+      @if (!cargando()) {
+        @if (transacciones().length === 0) {
+          <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+            <svg class="w-12 h-12 mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-sm font-semibold">No se encontraron transacciones</p>
+            <p class="text-xs mt-1">Ajuste los filtros de consulta para ampliar los resultados.</p>
+          </div>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-100 bg-slate-50/50">
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Comprobante</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cliente</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sucursal</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Canal</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Estado</th>
+                  <th class="px-4 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider">Monto</th>
+                  <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">Items</th>
+                  <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">Accion</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (item of transacciones(); track item.id_transaccion) {
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="px-4 py-3">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border {{ badgeClaseTipo(item.tipo_operacion) }}">
+                        {{ item.tipo_operacion }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="font-mono text-xs font-semibold text-slate-800">{{ item.codigo_comprobante }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-slate-600">{{ formatearFecha(item.fecha) }}</td>
+                    <td class="px-4 py-3">
+                      <div class="flex flex-col">
+                        <span class="text-xs font-semibold text-slate-800">{{ item.nombre_cliente }}</span>
+                        @if (item.email_cliente) {
+                          <span class="text-[10px] text-slate-400">{{ item.email_cliente }}</span>
+                        }
+                      </div>
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="flex flex-col">
+                        <span class="text-xs font-semibold text-slate-700">{{ item.nombre_sucursal }}</span>
+                        <span class="text-[10px] text-slate-400">{{ item.ciudad_sucursal }}</span>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-slate-600 capitalize">{{ item.canal }}</td>
+                    <td class="px-4 py-3">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border {{ badgeClaseEstado(item.estado) }}">
+                        {{ formatearEstado(item.estado) }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <span class="text-sm font-bold text-slate-900">{{ formatearMonto(item.total_monto) }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                      <span class="text-xs font-semibold text-slate-600">{{ item.cantidad_items }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                      <button
+                        (click)="verDetalle(item)"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-[#0F172A] hover:text-white text-slate-700 text-[11px] font-semibold uppercase tracking-wider transition-all cursor-pointer border border-slate-200 hover:border-transparent"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Detalle
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 6. Controles de Paginacion -->
+          @if (totalPaginas() > 1) {
+            <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between">
+              <p class="text-xs text-slate-500">
+                Pagina {{ paginaActual() }} de {{ totalPaginas() }} ({{ totalTransacciones() }} transacciones)
+              </p>
+              <div class="flex items-center gap-1.5">
+                <button
+                  (click)="cambiarPagina(paginaActual() - 1)"
+                  [disabled]="paginaActual() <= 1"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  [class]="paginaActual() <= 1 ? 'border-slate-200 text-slate-400 bg-white' : 'border-slate-200 text-slate-700 bg-white hover:bg-slate-100'"
+                >
+                  Anterior
+                </button>
+
+                @for (pagina of rangosPaginas(); track pagina) {
+                  <button
+                    (click)="cambiarPagina(pagina)"
+                    class="w-8 h-8 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
+                    [class]="pagina === paginaActual() ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'"
+                  >
+                    {{ pagina }}
+                  </button>
+                }
+
+                <button
+                  (click)="cambiarPagina(paginaActual() + 1)"
+                  [disabled]="paginaActual() >= totalPaginas()"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  [class]="paginaActual() >= totalPaginas() ? 'border-slate-200 text-slate-400 bg-white' : 'border-slate-200 text-slate-700 bg-white hover:bg-slate-100'"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </section>
+
+    <!-- 7. Modal de Detalle Transaccional (Accesible) -->
+    @if (modalDetalleAbierto()) {
+      <div
+        class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Detalle de transaccion"
+        (click)="onOverlayClick($event)"
+        (keydown)="onKeydown($event)"
+        tabindex="-1"
+      >
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto mx-4 border border-slate-200">
+
+          <!-- Encabezado del Modal -->
+          <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
+            <div>
+              <h3 class="text-lg font-bold text-slate-900">
+                @if (tipoDetalleActual() === 'venta') {
+                  Comprobante de Venta
+                } @else {
+                  Detalle de Reserva
+                }
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">
+                @if (tipoDetalleActual() === 'venta' && detalleVenta()) {
+                  {{ detalleVenta()!.numero_comprobante }}
+                }
+                @if (tipoDetalleActual() === 'reserva' && detalleReserva()) {
+                  {{ detalleReserva()!.codigo_reserva }}
+                }
+              </p>
+            </div>
+            <button
+              id="btn-cerrar-modal-detalle"
+              (click)="cerrarModal()"
+              class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Cerrar modal"
+            >
+              <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Cuerpo del Modal: Detalle de Venta -->
+          @if (tipoDetalleActual() === 'venta' && detalleVenta()) {
+            <div class="px-6 py-5 space-y-6">
+              <!-- Informacion General de la Venta -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-3">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Comprobante</p>
+                    <p class="text-sm font-mono font-semibold text-slate-800">{{ detalleVenta()!.numero_comprobante }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fecha de Venta</p>
+                    <p class="text-sm text-slate-700">{{ formatearFecha(detalleVenta()!.fecha_venta) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tipo de Venta</p>
+                    <p class="text-sm text-slate-700 capitalize">{{ detalleVenta()!.tipo_venta.replace('_', ' ') }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estado</p>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border {{ badgeClaseEstado(detalleVenta()!.estado) }}">
+                      {{ formatearEstado(detalleVenta()!.estado) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="space-y-3">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cliente</p>
+                    <p class="text-sm font-semibold text-slate-800">{{ detalleVenta()!.nombre_cliente }}</p>
+                    @if (detalleVenta()!.email_cliente) {
+                      <p class="text-xs text-slate-500">{{ detalleVenta()!.email_cliente }}</p>
+                    }
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sucursal</p>
+                    <p class="text-sm text-slate-700">{{ detalleVenta()!.nombre_sucursal }} - {{ detalleVenta()!.ciudad_sucursal }}</p>
+                  </div>
+                  @if (detalleVenta()!.cajero_nombre) {
+                    <div>
+                      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cajero</p>
+                      <p class="text-sm text-slate-700">{{ detalleVenta()!.cajero_nombre }}</p>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Resumen Monetario -->
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Resumen Monetario</h4>
+                <div class="grid grid-cols-3 gap-4">
+                  <div>
+                    <p class="text-[11px] text-slate-400 uppercase tracking-wider">Subtotal</p>
+                    <p class="text-sm font-semibold text-slate-800">{{ formatearMonto(detalleVenta()!.subtotal) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] text-slate-400 uppercase tracking-wider">Descuento</p>
+                    <p class="text-sm font-semibold text-rose-600">-{{ formatearMonto(detalleVenta()!.descuento) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] text-slate-400 uppercase tracking-wider">Total</p>
+                    <p class="text-lg font-bold text-slate-900">{{ formatearMonto(detalleVenta()!.total) }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lineas de Detalle -->
+              @if (detalleVenta()!.lineas.length > 0) {
+                <div>
+                  <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Prendas ({{ detalleVenta()!.lineas.length }})</h4>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead>
+                        <tr class="border-b border-slate-100 bg-slate-50/50">
+                          <th class="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">SKU</th>
+                          <th class="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Producto</th>
+                          <th class="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Talla</th>
+                          <th class="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Color</th>
+                          <th class="px-3 py-2 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cant.</th>
+                          <th class="px-3 py-2 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">P. Unit.</th>
+                          <th class="px-3 py-2 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-50">
+                        @for (linea of detalleVenta()!.lineas; track linea.id_detalle) {
+                          <tr class="hover:bg-slate-50/50">
+                            <td class="px-3 py-2 font-mono text-xs text-slate-600">{{ linea.sku }}</td>
+                            <td class="px-3 py-2 text-xs font-semibold text-slate-800">{{ linea.nombre_producto }}</td>
+                            <td class="px-3 py-2 text-xs text-slate-600">{{ linea.talla }}</td>
+                            <td class="px-3 py-2">
+                              <div class="flex items-center gap-1.5">
+                                @if (linea.codigo_hex) {
+                                  <span class="w-3 h-3 rounded-full border border-slate-200" [style.background-color]="linea.codigo_hex"></span>
+                                }
+                                <span class="text-xs text-slate-600">{{ linea.color }}</span>
+                              </div>
+                            </td>
+                            <td class="px-3 py-2 text-right text-xs font-semibold text-slate-700">{{ linea.cantidad }}</td>
+                            <td class="px-3 py-2 text-right text-xs text-slate-600">{{ formatearMonto(linea.precio_unitario) }}</td>
+                            <td class="px-3 py-2 text-right text-xs font-semibold text-slate-800">{{ formatearMonto(linea.subtotal_linea) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+
+              <!-- Pagos -->
+              @if (detalleVenta()!.pagos.length > 0) {
+                <div>
+                  <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Pagos ({{ detalleVenta()!.pagos.length }})</h4>
+                  <div class="space-y-2">
+                    @for (pago of detalleVenta()!.pagos; track pago.id_pago) {
+                      <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p class="text-xs font-semibold text-slate-800 capitalize">{{ pago.metodo_pago.replace('_', ' ') }}</p>
+                            <p class="text-[10px] text-slate-400">{{ formatearFecha(pago.creado_en) }}</p>
+                          </div>
+                        </div>
+                        <div class="text-right">
+                          <p class="text-sm font-bold text-slate-900">{{ formatearMonto(pago.monto) }}</p>
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border {{ badgeClaseEstado(pago.estado) }}">
+                            {{ formatearEstado(pago.estado) }}
+                          </span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Cuerpo del Modal: Detalle de Reserva -->
+          @if (tipoDetalleActual() === 'reserva' && detalleReserva()) {
+            <div class="px-6 py-5 space-y-6">
+              <!-- Informacion General de la Reserva -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-3">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Codigo de Reserva</p>
+                    <p class="text-sm font-mono font-semibold text-slate-800">{{ detalleReserva()!.codigo_reserva }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fecha de Atencion</p>
+                    <p class="text-sm text-slate-700">{{ formatearFecha(detalleReserva()!.fecha_hora_atencion) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Registrada en</p>
+                    <p class="text-sm text-slate-700">{{ formatearFecha(detalleReserva()!.creado_en) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estado</p>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border {{ badgeClaseEstado(detalleReserva()!.estado) }}">
+                      {{ formatearEstado(detalleReserva()!.estado) }}
+                    </span>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Canal de Origen</p>
+                    <p class="text-sm text-slate-700 capitalize">{{ detalleReserva()!.canal_origen }}</p>
+                  </div>
+                </div>
+                <div class="space-y-3">
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cliente</p>
+                    <p class="text-sm font-semibold text-slate-800">{{ detalleReserva()!.nombre_cliente }}</p>
+                    @if (detalleReserva()!.email_cliente) {
+                      <p class="text-xs text-slate-500">{{ detalleReserva()!.email_cliente }}</p>
+                    }
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sucursal</p>
+                    <p class="text-sm text-slate-700">{{ detalleReserva()!.nombre_sucursal }} - {{ detalleReserva()!.ciudad_sucursal }}</p>
+                  </div>
+                  @if (detalleReserva()!.atendido_por_nombre) {
+                    <div>
+                      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Atendido por</p>
+                      <p class="text-sm text-slate-700">{{ detalleReserva()!.atendido_por_nombre }}</p>
+                    </div>
+                  }
+                  @if (detalleReserva()!.observacion) {
+                    <div>
+                      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Observacion</p>
+                      <p class="text-sm text-slate-700 italic">{{ detalleReserva()!.observacion }}</p>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Lineas de Reserva -->
+              @if (detalleReserva()!.lineas.length > 0) {
+                <div>
+                  <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Prendas Reservadas ({{ detalleReserva()!.lineas.length }})</h4>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead>
+                        <tr class="border-b border-slate-100 bg-slate-50/50">
+                          <th class="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">SKU</th>
+                          <th class="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Producto</th>
+                          <th class="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Talla</th>
+                          <th class="px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Color</th>
+                          <th class="px-3 py-2 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cant.</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-50">
+                        @for (linea of detalleReserva()!.lineas; track linea.id_detalle) {
+                          <tr class="hover:bg-slate-50/50">
+                            <td class="px-3 py-2 font-mono text-xs text-slate-600">{{ linea.sku }}</td>
+                            <td class="px-3 py-2 text-xs font-semibold text-slate-800">{{ linea.nombre_producto }}</td>
+                            <td class="px-3 py-2 text-xs text-slate-600">{{ linea.talla }}</td>
+                            <td class="px-3 py-2">
+                              <div class="flex items-center gap-1.5">
+                                @if (linea.codigo_hex) {
+                                  <span class="w-3 h-3 rounded-full border border-slate-200" [style.background-color]="linea.codigo_hex"></span>
+                                }
+                                <span class="text-xs text-slate-600">{{ linea.color }}</span>
+                              </div>
+                            </td>
+                            <td class="px-3 py-2 text-right text-xs font-semibold text-slate-700">{{ linea.cantidad }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Pie del Modal -->
+          <div class="border-t border-slate-200 px-6 py-4 flex justify-end">
+            <button
+              (click)="cerrarModal()"
+              class="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold tracking-wider transition-colors cursor-pointer"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+  </main>
+</div>

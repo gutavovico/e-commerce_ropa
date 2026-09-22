@@ -1,137 +1,173 @@
-# Diseno Tecnico: CU24 - Gestionar Inventario, Stock y Existencias por Sucursal
+# Diseno Tecnico y Contratos de Arquitectura: [CU24] Gestionar temporadas y colecciones
 
-**ID del Caso de Uso:** CU24  
-**Nombre:** Gestionar Inventario, Stock y Existencias por Sucursal  
-**Paquete Arquitectonico:** `gestion_operativa` / `inventario`  
-**Modulo Backend:** `app/modules/gestion_operativa/cu24_inventario_stock`  
-**Modulo Frontend Web:** `src/app/modules/gestion_operativa/cu24_inventario_stock`  
-**Referencia de Requisitos:** `.specs/changes/CU24/spec.md`  
-**Estado:** En Revision Tecnica (Fase 2 - Diseno)  
-
----
-
-## 1. Arquitectura General y Enfoque
-
-El caso de uso CU24 establece la infraestructura transaccional, contable y operativa para la administracion y trazabilidad de existencias fisicas en la red omnicanal de **FashionStore**. Modela de forma atomica el balance de prendas por boutique y variante, controlando umbrales de seguridad y registrando de manera inmutable cada operacion que altere el stock fisico mediante un libro de movimientos tipo Kardex.
-
-```mermaid
-graph TD
-    subgraph Frontend ["Ec-frontend (Angular 19+ Standalone)"]
-        AdminDash["AdminDashboardComponent (/admin)"]
-        InvComp["InventarioAdminComponent (/admin/inventario)"]
-        InvServ["InventarioAdminService (Signals)"]
-        SucServ["SucursalesAdminService (CU21)"]
-        AtrServ["AtributosAdminService (CU23)"]
-        RoleGrd["RoleGuard (RBAC Guard)"]
-        
-        AdminDash -->|Navegacion RBAC| InvComp
-        InvComp --> InvServ
-        InvComp --> SucServ
-        InvComp --> AtrServ
-        RoleGrd -->|Proteccion de Ruta| InvComp
-    end
-
-    subgraph Backend ["Ec-backend (FastAPI + SQLAlchemy 2.0)"]
-        RouterInvAdmin["RouterInventarioAdmin (/api/v1/admin/inventario)"]
-        RouterInvPub["RouterInventarioPublico (/api/v1/inventario)"]
-        ServInv["ServicioGestionInventario"]
-        Security["Core Security / Session User"]
-        Deps["Core Deps (require_roles)"]
-        
-        RouterInvAdmin --> ServInv
-        RouterInvAdmin --> Deps
-        RouterInvPub --> ServInv
-        ServInv --> Security
-    end
-
-    subgraph Database ["PostgreSQL Neon (Esquema fashionstore)"]
-        T_Inv["fashionstore.inventario_sucursal"]
-        T_Mov["fashionstore.movimientos_inventario"]
-        T_Suc["fashionstore.sucursales (CU21)"]
-        T_Var["fashionstore.variantes_producto (CU22)"]
-        T_User["fashionstore.usuarios (CU20)"]
-        
-        T_Inv -->|FK id_sucursal| T_Suc
-        T_Inv -->|FK id_variante| T_Var
-        T_Mov -->|FK id_inventario| T_Inv
-        T_Mov -->|FK id_usuario_responsable| T_User
-    end
-
-    InvServ -->|HTTP Bearer JWT| RouterInvAdmin
-    InvServ -->|HTTP Publico| RouterInvPub
-```
-
-### 1.1 Diagrama de Secuencia: Transferencia Inter-Sucursal ACID con Doble Kardex
-
-La transferencia de mercaderia entre dos boutiques fisicas exige una ejecucion atomica en base de datos para garantizar que nunca se extravien prendas ni se dupliquen saldos:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Usuario as Administrador / Encargado
-    participant UI as InventarioAdminComponent
-    participant Service as InventarioAdminService
-    participant Router as RouterInventarioAdmin
-    participant Domain as ServicioGestionInventario
-    participant DB as PostgreSQL (Session)
-
-    Usuario->>UI: Solicita transferencia (origen, destino, variante, cantidad, motivo)
-    UI->>Service: transferirMercaderia(payload)
-    Service->>Router: POST /api/v1/admin/inventario/transferencia
-    Router->>Domain: transferir_mercaderia(db, payload, usuario_sesion)
-    
-    activate Domain
-    Domain->>Domain: Validar id_sucursal_origen != id_sucursal_destino
-    Domain->>Domain: Validar permisos (si es encargado, origen == usuario.id_sucursal)
-    Domain->>DB: Iniciar transaccion atomica (BEGIN)
-    Domain->>DB: Consultar inventario origen (SELECT ... FOR UPDATE)
-    alt Stock insuficiente en origen (disponible < cantidad)
-        Domain->>Router: Lanzar StockInsuficienteError (409)
-        Router-->>UI: HTTP 409 Conflict (Luxury Banner)
-    else Stock suficiente
-        Domain->>DB: UPDATE inventario_sucursal origen (disponible -= cantidad)
-        Domain->>DB: INSERT movimientos_inventario (tipo: 'transferencia_salida', -cantidad)
-        Domain->>DB: Consultar o crear inventario destino (SELECT / INSERT)
-        Domain->>DB: UPDATE inventario_sucursal destino (disponible += cantidad)
-        Domain->>DB: INSERT movimientos_inventario (tipo: 'transferencia_entrada', +cantidad)
-        Domain->>DB: Confirmar transaccion (COMMIT)
-        Domain-->>Router: ComprobanteTransferenciaOut
-        Router-->>Service: HTTP 200 OK
-        Service-->>UI: Actualizacion reactiva de Signals
-        UI-->>Usuario: Cierre de modal y notificacion de exito
-    end
-    deactivate Domain
-```
-
-### 1.2 Principios de Diseno Arquitectonico
-1. **Consistencia Transaccional ACID Innegociable:**
-   - Ninguna variacion de existencias puede ocurrir de manera aislada. Toda mutacion sobre `cantidad_disponible` va indisolublemente acompanada de una insercion en `movimientos_inventario` dentro del mismo bloque transaccional (`session.commit()`).
-2. **Principio de Minimo Privilegio (PoLP) y Segregacion Territorial:**
-   - Los encargados de sucursal (`encargado_sucursal`) solo tienen visibilidad y potestad de mutacion sobre su propia sede (`usuario_sesion.id_sucursal`). El backend rechaza proactivamente con HTTP 403 (`SUCURSAL_NO_AUTORIZADA`) cualquier intento de acceder a inventarios de sedes ajenas.
-   - El administrador corporativo (`administrador`) cuenta con potestad transversal sobre todas las sedes.
-3. **Invariante de No Negatividad y Proteccion Financiera:**
-   - La base de datos y la capa de dominio protegen que `cantidad_disponible >= 0` mediante CHECK constraints y validaciones de servicio. Cualquier operacion de merma o traslado que vulnere esta regla se aborta con HTTP 409 Conflict.
-4. **Trazabilidad Inmutable (Kardex):**
-   - La tabla `movimientos_inventario` es un registro de append-only (solo inserciones). No se permiten operaciones de `UPDATE` o `DELETE` sobre movimientos historicos, garantizando auditoria forense.
-5. **Ratificacion Formal de Exclusion de Ec-mobile:**
-   - Las operaciones de administracion de inventario, ajustes fisicos y transferencias quedan formalmente restringidas a la plataforma web (`Ec-frontend`). La aplicacion movil unicamente accede en modo lectura al endpoint de disponibilidad publica de prendas.
+**Codigo del Caso de Uso:** CU24  
+**Denominacion Oficial:** Gestionar temporadas y colecciones  
+**Modulo de Arquitectura:** Catalogo / Taxonomia Comercial (`catalogo_productos`)  
+**Metodologia:** Spec-Driven Development (SDD) & Proceso Unificado de Desarrollo de Software (PUDS)  
+**Alcance Tecnico:**  
+- Backend: Python 3.13 + FastAPI + SQLAlchemy 2.0 + PostgreSQL Neon  
+- Frontend Web: Angular 19+ (Standalone Components, Signals, OnPush y Tailwind CSS)  
+- Aplicacion Movil: **Excluida formalmente (0 modelos, 0 servicios, 0 pantallas en Flutter)**  
 
 ---
 
-## 2. Diseno Backend (`Ec-backend` - FastAPI + SQLAlchemy 2.0 + PostgreSQL Neon)
+## 1. Arquitectura General y Exclusion de Plataforma
 
-### 2.1 Modelos ORM en Esquema `fashionstore`
+### 1.1 Diagrama de Arquitectura del Sistema
 
-Los modelos se implementan en `app/modules/gestion_operativa/cu24_inventario_stock/modelos.py` extendiendo `Base` de SQLAlchemy 2.0:
+```
++-----------------------------------------------------------------------------------+
+|                            Ec-frontend (Angular 19+)                             |
+|                                                                                   |
+|  AdminDashboardComponent                                                          |
+|    └─ Tarjeta Boutique "Gestionar temporadas y colecciones" [RBAC Admin/Encargado] |
+|                                                                                   |
+|  TemporadasColeccionesAdminComponent (/admin/temporadas-colecciones)              |
+|    ├─ Pestana 1: Temporadas Comerciales (Tabla Maestra + Modales + Signals)       |
+|    └─ Pestana 2: Colecciones y Capsulas (Tabla Maestra + Modales + Signals)       |
+|                                                                                   |
+|  TemporadasColeccionesAdminService (Angular Signals + HttpClient)                 |
++------------------------------------------+----------------------------------------+
+                                           | HTTP REST / JSON (JWT Bearer)
+                                           v
++-----------------------------------------------------------------------------------+
+|                             Ec-backend (FastAPI)                                 |
+|                                                                                   |
+|  app/modules/catalogo/cu24_temporadas_colecciones/                                |
+|    ├─ router.py (GET, POST, PUT, PATCH /api/v1/admin/temporadas y /colecciones)  |
+|    ├─ esquemas.py (Pydantic v2 DTOs con validacion cronologica de fechas)        |
+|    ├─ errores.py (Jerarquia de Excepciones Semanticas de Dominio)                 |
+|    └─ servicio.py (ServicioGestionTemporadas & ServicioGestionColecciones)        |
+|                                                                                   |
+|  SQLAlchemy 2.0 ORM:                                                              |
+|    ├─ TemporadaORM (fashionstore.temporadas)                                      |
+|    └─ ColeccionORM (fashionstore.colecciones)                                     |
++------------------------------------------+----------------------------------------+
+                                           | Conectividad Transaccional Neon
+                                           v
++-----------------------------------------------------------------------------------+
+|                        Base de Datos PostgreSQL (Neon Cloud)                      |
+|                                                                                   |
+|  Esquema `fashionstore`:                                                          |
+|    ├─ fashionstore.temporadas (id_temporada PK, nombre UNIQUE, anio, fechas...)   |
+|    ├─ fashionstore.colecciones (id_coleccion PK, id_temporada FK, nombre...)     |
+|    └─ fashionstore.productos (id_producto PK, id_coleccion FK...)                 |
++-----------------------------------------------------------------------------------+
+```
+
+### 1.2 Justificacion Formal de Exclusion de la Aplicacion Movil (`Ec-mobile`)
+La aplicacion movil de FashionStore (`Ec-mobile`), desarrollada en Flutter 3.x, esta concebida de forma exclusiva para la experiencia B2C del cliente final (exploracion editorial, vestidor virtual con Realidad Aumentada, bolsa de compras y pago digital).  
+La parametrizacion del calendario estacional de la moda, el establecimiento de vigencias formales de apertura y cierre de temporadas, y la curaduria de colecciones capsula constituyen labores analiticas y de planificacion de mercadeo que competen con exclusividad al personal directivo y de administracion en el panel web (`Ec-frontend`).  
+Por consiguiente, se ratifica la total exclusion de `Ec-mobile` de este caso de uso: no existen modelos Dart, servicios HTTP ni vistas en Flutter asociados a la administracion de temporadas y colecciones.
+
+---
+
+## 2. Modelo Relacional de Base de Datos y Migracion Alembic
+
+### 2.1 Esquema Relacional de Base de Datos (`fashionstore`)
+
+```mermaid
+erDiagram
+    TEMPORADAS ||--o{ COLECCIONES : "agrupa"
+    COLECCIONES ||--o{ PRODUCTOS : "contiene"
+
+    TEMPORADAS {
+        int id_temporada PK
+        string nombre UK "UNIQUE"
+        int anio ">= 2020"
+        date fecha_inicio "NOT NULL"
+        date fecha_fin "NOT NULL"
+        boolean estado_activo "DEFAULT true"
+        timestamptz creado_en
+        timestamptz actualizado_en
+    }
+
+    COLECCIONES {
+        int id_coleccion PK
+        int id_temporada FK "NOT NULL"
+        int id_proveedor FK "NULL"
+        string nombre "NOT NULL"
+        text descripcion "NULL"
+        boolean estado_activo "DEFAULT true"
+        timestamptz creado_en
+        timestamptz actualizado_en
+    }
+
+    PRODUCTOS {
+        bigint id_producto PK
+        int id_categoria FK
+        int id_coleccion FK "NULL"
+        string nombre
+        decimal precio_base
+        boolean activo
+    }
+```
+
+### 2.2 Estrategia DDL y Migracion Alembic Idempotente
+
+El esquema base de PostgreSQL cuenta con las tablas `fashionstore.temporadas` y `fashionstore.colecciones`. Para soportar las directivas de negocio de este caso de uso, se disenara una migracion Alembic (`alembic/versions/0007_cu24_temporadas_colecciones.py`) idempotente:
+
+```sql
+-- 1. Actualizacion de tabla fashionstore.temporadas
+ALTER TABLE fashionstore.temporadas 
+    ADD COLUMN IF NOT EXISTS anio INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM CURRENT_DATE);
+
+ALTER TABLE fashionstore.temporadas 
+    ADD COLUMN IF NOT EXISTS estado_activo BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE fashionstore.temporadas 
+    ADD COLUMN IF NOT EXISTS creado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE fashionstore.temporadas 
+    ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+-- Restricciones e indices unicos
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_temporadas_fechas_orden'
+    ) THEN
+        ALTER TABLE fashionstore.temporadas 
+            ADD CONSTRAINT chk_temporadas_fechas_orden CHECK (fecha_fin > fecha_inicio);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_temporadas_anio_valido'
+    ) THEN
+        ALTER TABLE fashionstore.temporadas 
+            ADD CONSTRAINT chk_temporadas_anio_valido CHECK (anio >= 2020);
+    END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_temporadas_nombre_lower 
+    ON fashionstore.temporadas (LOWER(TRIM(nombre)));
+
+-- 2. Actualizacion de tabla fashionstore.colecciones
+ALTER TABLE fashionstore.colecciones 
+    ADD COLUMN IF NOT EXISTS estado_activo BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE fashionstore.colecciones 
+    ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_colecciones_temporada_nombre_lower 
+    ON fashionstore.colecciones (id_temporada, LOWER(TRIM(nombre)));
+```
+
+---
+
+## 3. Diseno del Backend (`Ec-backend` - FastAPI + SQLAlchemy 2.0)
+
+### 3.1 Modelos ORM (`modelos.py`)
+
+Ubicacion: `app/modules/catalogo/cu24_temporadas_colecciones/modelos.py` (reutilizando y extendiendo las clases de `app/modules/catalogo/modelos.py`):
 
 ```python
-# app/modules/gestion_operativa/cu24_inventario_stock/modelos.py
-
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import date, datetime, timezone
+from typing import List, Optional
 from sqlalchemy import (
-    BigInteger,
+    Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -139,1112 +175,418 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from core.database import Base
 
-from app.core.database import Base
-
-
-# Tipos Enumerados PostgreSQL mapeados en esquema fashionstore
-estado_prenda_stock_enum = PG_ENUM(
-    "disponible",
-    "reservada",
-    "vendida",
-    "agotada",
-    "proxima_ingreso",
-    "devuelta",
-    name="estado_prenda_stock",
-    schema="fashionstore",
-    create_type=False,
-)
-
-tipo_movimiento_inv_enum = PG_ENUM(
-    "ingreso_proveedor",
-    "ajuste_positivo",
-    "ajuste_negativo",
-    "transferencia_salida",
-    "transferencia_entrada",
-    "venta_confirmada",
-    "cancelacion_pedido",
-    name="tipo_movimiento_inv",
-    schema="fashionstore",
-    create_type=False,
-)
-
-
-class InventarioSucursalORM(Base):
-    """Mapeo formal de existencias fisicas de variantes por sucursal."""
-
-    __tablename__ = "inventario_sucursal"
+class TemporadaORM(Base):
+    __tablename__ = "temporadas"
     __table_args__ = (
-        UniqueConstraint("id_sucursal", "id_variante", name="uq_inventario_sucursal_variante"),
-        CheckConstraint("cantidad_disponible >= 0", name="chk_inventario_disponible_positivo"),
-        CheckConstraint("cantidad_reservada >= 0", name="chk_inventario_reservada_positivo"),
-        CheckConstraint("stock_minimo >= 0", name="chk_inventario_stock_minimo_positivo"),
-        CheckConstraint("stock_alerta >= 0", name="chk_inventario_stock_alerta_positivo"),
-        {"schema": "fashionstore", "extend_existing": True},
+        CheckConstraint("fecha_fin > fecha_inicio", name="chk_temporadas_fechas_orden"),
+        CheckConstraint("anio >= 2020", name="chk_temporadas_anio_valido"),
+        {"schema": "fashionstore"},
     )
 
-    id_inventario: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    id_sucursal: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("fashionstore.sucursales.id_sucursal"),
-        nullable=False,
-        index=True,
-    )
-    id_variante: Mapped[int] = mapped_column(
-        BigInteger,
-        ForeignKey("fashionstore.variantes_producto.id_variante"),
-        nullable=False,
-        index=True,
-    )
-    id_temporada: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("fashionstore.temporadas.id_temporada"),
-        nullable=False,
-        default=1,
-    )
-    cantidad_disponible: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    cantidad_reservada: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    stock_minimo: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    stock_alerta: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
-    estado: Mapped[str] = mapped_column(
-        estado_prenda_stock_enum,
-        nullable=False,
-        default="disponible",
-        index=True,
+    id_temporada: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
+    anio: Mapped[int] = mapped_column(Integer, nullable=False, default=2026)
+    fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
+    fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
+    estado_activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     actualizado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        nullable=False,
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    # Relaciones relacionales tipadas
-    sucursal = relationship(
-        "app.modules.gestion_operativa.modelos.SucursalORM",
-        foreign_keys=[id_sucursal],
-        lazy="joined",
-    )
-    variante = relationship(
-        "app.modules.catalogo.modelos.VarianteProductoORM",
-        foreign_keys=[id_variante],
-        lazy="joined",
-    )
-    movimientos = relationship(
-        "MovimientoInventarioORM",
-        back_populates="inventario",
-        cascade="all, delete-orphan",
-        order_by="desc(MovimientoInventarioORM.creado_en)",
+    colecciones: Mapped[List["ColeccionORM"]] = relationship(
+        "ColeccionORM", back_populates="temporada", cascade="all, delete-orphan"
     )
 
 
-class MovimientoInventarioORM(Base):
-    """Registro inmutable de trazabilidad contable y operativa (Kardex)."""
-
-    __tablename__ = "movimientos_inventario"
+class ColeccionORM(Base):
+    __tablename__ = "colecciones"
     __table_args__ = (
-        CheckConstraint("cantidad <> 0", name="chk_movimiento_cantidad_no_cero"),
-        {"schema": "fashionstore", "extend_existing": True},
+        UniqueConstraint("id_temporada", "nombre", name="uq_colecciones_temporada_nombre"),
+        {"schema": "fashionstore"},
     )
 
-    id_movimiento: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    id_inventario: Mapped[int] = mapped_column(
-        BigInteger,
-        ForeignKey("fashionstore.inventario_sucursal.id_inventario"),
-        nullable=False,
-        index=True,
+    id_coleccion: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_temporada: Mapped[int] = mapped_column(
+        Integer, ForeignKey("fashionstore.temporadas.id_temporada"), nullable=False, index=True
     )
-    tipo_movimiento: Mapped[str] = mapped_column(
-        tipo_movimiento_inv_enum,
-        nullable=False,
-        index=True,
-    )
-    cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
-    saldo_anterior: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    saldo_nuevo: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    motivo: Mapped[str] = mapped_column(Text, nullable=False)
-    id_usuario: Mapped[Optional[int]] = mapped_column(
-        BigInteger,
-        ForeignKey("fashionstore.usuarios.id_usuario"),
-        nullable=True,
-        index=True,
-    )
-    referencia_documento: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    id_proveedor: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
+    descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    estado_activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    actualizado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        nullable=False,
         default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    inventario = relationship("InventarioSucursalORM", back_populates="movimientos")
-    usuario_responsable = relationship(
-        "app.modules.autenticacion_seguridad.modelos.UsuarioORM",
-        foreign_keys=[id_usuario],
-        lazy="joined",
-    )
+    temporada: Mapped["TemporadaORM"] = relationship("TemporadaORM", back_populates="colecciones")
 ```
 
----
+### 3.2 Jerarquia de Excepciones Semanticas de Dominio (`errores.py`)
 
-### 2.2 Esquemas Pydantic v2
-
-Declarados en `app/modules/gestion_operativa/cu24_inventario_stock/esquemas.py`:
+Ubicacion: `app/modules/catalogo/cu24_temporadas_colecciones/errores.py`:
 
 ```python
-# app/modules/gestion_operativa/cu24_inventario_stock/esquemas.py
+from fastapi import HTTPException, status
 
-from datetime import datetime
-from enum import Enum
+class TemporadaError(HTTPException):
+    def __init__(self, status_code: int, codigo: str, mensaje: str):
+        super().__init__(status_code=status_code, detail={"codigo": codigo, "mensaje": mensaje})
+
+class TemporadaNoEncontradaError(TemporadaError):
+    def __init__(self, id_temporada: int):
+        super().__init__(
+            status.HTTP_404_NOT_FOUND,
+            "TEMPORADA_NO_ENCONTRADA",
+            f"La temporada con ID {id_temporada} no existe en el sistema.",
+        )
+
+class TemporadaDuplicadaError(TemporadaError):
+    def __init__(self, nombre: str):
+        super().__init__(
+            status.HTTP_409_CONFLICT,
+            "TEMPORADA_NOMBRE_DUPLICADO",
+            f"Ya existe una temporada registrada con el nombre '{nombre}'.",
+        )
+
+class TemporadaFechasInvalidasError(TemporadaError):
+    def __init__(self, mensaje: str = "La fecha de finalizacion debe ser posterior a la fecha de inicio."):
+        super().__init__(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "FECHAS_TEMPORADA_INVALIDAS",
+            mensaje,
+        )
+
+class ColeccionNoEncontradaError(TemporadaError):
+    def __init__(self, id_coleccion: int):
+        super().__init__(
+            status.HTTP_404_NOT_FOUND,
+            "COLECCION_NO_ENCONTRADA",
+            f"La coleccion con ID {id_coleccion} no existe en el sistema.",
+        )
+
+class ColeccionDuplicadaError(TemporadaError):
+    def __init__(self, nombre: str, temporada_nombre: str):
+        super().__init__(
+            status.HTTP_409_CONFLICT,
+            "COLECCION_NOMBRE_DUPLICADO",
+            f"Ya existe una coleccion '{nombre}' registrada en la temporada '{temporada_nombre}'.",
+        )
+
+class TemporadaInactivaParaColeccionError(TemporadaError):
+    def __init__(self):
+        super().__init__(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "TEMPORADA_INACTIVA_NO_PERMITE_COLECCIONES",
+            "No es posible registrar o asociar colecciones a una temporada en estado inactivo.",
+        )
+```
+
+### 3.3 Esquemas Pydantic v2 (`esquemas.py`)
+
+Ubicacion: `app/modules/catalogo/cu24_temporadas_colecciones/esquemas.py`:
+
+```python
+from datetime import date, datetime
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+# --- Esquemas de Temporada ---
+class TemporadaCrearIn(BaseModel):
+    nombre: str = Field(..., min_length=3, max_length=100)
+    anio: int = Field(..., ge=2020, le=2100)
+    fecha_inicio: date
+    fecha_fin: date
 
-class TipoMovimientoEnum(str, Enum):
-    INGRESO_PROVEEDOR = "ingreso_proveedor"
-    AJUSTE_POSITIVO = "ajuste_positivo"
-    AJUSTE_NEGATIVO = "ajuste_negativo"
-    TRANSFERENCIA_SALIDA = "transferencia_salida"
-    TRANSFERENCIA_ENTRADA = "transferencia_entrada"
-    VENTA_CONFIRMADA = "venta_confirmada"
-    CANCELACION_PEDIDO = "cancelacion_pedido"
-
-
-class EstadoStockCalculadoEnum(str, Enum):
-    OPTIMO = "optimo"
-    ALERTA_BAJA = "alerta_baja"
-    AGOTADO = "agotado"
-
-
-class TipoAjusteManualEnum(str, Enum):
-    INCREMENTO = "incremento"
-    DECREMENTO = "decremento"
-
-
-# --- Esquemas de Entrada (Requests) ---
-
-class InventarioCrearIn(BaseModel):
-    """Payload para registro inicial de existencias para una variante."""
-    id_sucursal: int = Field(..., gt=0, description="Identificador de la boutique fisica")
-    id_variante: int = Field(..., gt=0, description="Identificador de la variante de producto")
-    id_temporada: int = Field(default=1, gt=0, description="Identificador de temporada comercial")
-    cantidad_inicial: int = Field(..., ge=0, description="Existencias fisicas iniciales")
-    stock_minimo: int = Field(default=0, ge=0, description="Nivel minimo de seguridad")
-    stock_alerta: int = Field(default=5, ge=0, description="Umbral para alerta de reposicion")
-    referencia_documento: Optional[str] = Field(None, max_length=100, description="Guia o comprobante")
-    observacion: Optional[str] = Field(None, max_length=500, description="Nota de ingreso")
-
-
-class InventarioAjusteIn(BaseModel):
-    """Payload para ajuste manual por merma, rotura o sobrante fisico."""
-    tipo_ajuste: TipoAjusteManualEnum = Field(..., description="Direccion del ajuste: incremento o decremento")
-    cantidad: int = Field(..., gt=0, description="Numero de unidades a ajustar")
-    motivo: str = Field(..., min_length=5, max_length=500, description="Justificacion obligatoria del ajuste")
-    referencia_documento: Optional[str] = Field(None, max_length=100, description="Numero de acta o resolucion")
-
-    @field_validator("motivo")
+    @field_validator("nombre")
     @classmethod
-    def validar_motivo(cls, valor: str) -> str:
-        saneado = valor.strip()
-        if len(saneado) < 5:
-            raise ValueError("El motivo del ajuste debe tener al menos 5 caracteres significativos.")
-        return saneado
-
-
-class TransferenciaInterSucursalIn(BaseModel):
-    """Payload para transferencia atomica entre dos sucursales."""
-    id_sucursal_origen: int = Field(..., gt=0, description="Sede que remite la mercaderia")
-    id_sucursal_destino: int = Field(..., gt=0, description="Sede receptora de la mercaderia")
-    id_variante: int = Field(..., gt=0, description="Variante fisica a transferir")
-    cantidad: int = Field(..., gt=0, description="Numero de prendas a trasladar")
-    motivo: str = Field(..., min_length=5, max_length=500, description="Motivo del traslado inter-sedes")
+    def sanitizar_nombre(cls, v: str) -> str:
+        s = v.strip()
+        if len(s) < 3:
+            raise ValueError("El nombre de la temporada debe contener al menos 3 caracteres validos.")
+        return s
 
     @model_validator(mode="after")
-    def validar_sedes_distintas(self) -> "TransferenciaInterSucursalIn":
-        if self.id_sucursal_origen == self.id_sucursal_destino:
-            raise ValueError("La sucursal de origen y la de destino deben ser distintas.")
+    def validar_rango_fechas(self) -> "TemporadaCrearIn":
+        if self.fecha_fin <= self.fecha_inicio:
+            raise ValueError("La fecha de finalizacion debe ser estrictamente posterior a la fecha de inicio.")
         return self
 
 
-class InventarioFiltrosIn(BaseModel):
-    """Parametros de consulta y filtrado multicriterio."""
-    id_sucursal: Optional[int] = Field(None, gt=0)
-    id_categoria: Optional[int] = Field(None, gt=0)
-    estado_stock: Optional[str] = Field(None, description="optimo, alerta_baja, agotado")
-    q: Optional[str] = Field(None, max_length=100, description="Busqueda por prenda o SKU")
-    pagina: int = Field(default=1, ge=1)
-    limite: int = Field(default=20, ge=1, le=100)
+class TemporadaActualizarIn(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=3, max_length=100)
+    anio: Optional[int] = Field(None, ge=2020, le=2100)
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
+
+    @field_validator("nombre")
+    @classmethod
+    def sanitizar_nombre(cls, v: Optional[str]) -> Optional[str]:
+        return v.strip() if v else None
 
 
-# --- Esquemas de Salida (Responses) ---
-
-class DatosVarianteInventarioOut(BaseModel):
+class TemporadaItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id_variante: int
-    id_producto: int
-    nombre_prenda: str
-    sku: str
-    talla: str
-    color_nombre: str
-    color_hex: str
-    precio_base: float
-    precio_final: float
-    imagen_url: Optional[str] = None
-    categoria_nombre: str
 
-
-class DatosSucursalInventarioOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id_sucursal: int
+    id_temporada: int
     nombre: str
-    ciudad: str
-
-
-class InventarioItemOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id_inventario: int
-    id_sucursal: int
-    id_variante: int
-    cantidad_disponible: int
-    cantidad_reservada: int
-    stock_total: int
-    stock_minimo: int
-    stock_alerta: int
-    estado: str
-    estado_calculado: EstadoStockCalculadoEnum
+    anio: int
+    fecha_inicio: date
+    fecha_fin: date
+    estado_activo: bool
+    total_colecciones: int = 0
+    creado_en: datetime
     actualizado_en: datetime
-    sucursal: DatosSucursalInventarioOut
-    variante: DatosVarianteInventarioOut
 
 
-class ListaPaginadaInventarioOut(BaseModel):
-    items: List[InventarioItemOut]
+class ListaPaginadaTemporadasOut(BaseModel):
+    items: List[TemporadaItemOut]
     total: int
     pagina: int
     limite: int
     total_paginas: int
 
 
-class KardexItemOut(BaseModel):
+# --- Esquemas de Coleccion ---
+class ColeccionCrearIn(BaseModel):
+    id_temporada: int = Field(..., gt=0)
+    nombre: str = Field(..., min_length=3, max_length=150)
+    descripcion: Optional[str] = Field(None, max_length=1000)
+
+    @field_validator("nombre")
+    @classmethod
+    def sanitizar_nombre(cls, v: str) -> str:
+        s = v.strip()
+        if len(s) < 3:
+            raise ValueError("El nombre de la coleccion debe contener al menos 3 caracteres validos.")
+        return s
+
+
+class ColeccionActualizarIn(BaseModel):
+    id_temporada: Optional[int] = Field(None, gt=0)
+    nombre: Optional[str] = Field(None, min_length=3, max_length=150)
+    descripcion: Optional[str] = Field(None, max_length=1000)
+
+    @field_validator("nombre")
+    @classmethod
+    def sanitizar_nombre(cls, v: Optional[str]) -> Optional[str]:
+        return v.strip() if v else None
+
+
+class ColeccionItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id_movimiento: int
-    id_inventario: int
-    tipo_movimiento: str
-    cantidad: int
-    saldo_anterior: int
-    saldo_nuevo: int
-    motivo: str
-    referencia_documento: Optional[str] = None
-    id_usuario: Optional[int] = None
-    usuario_nombre: Optional[str] = None
+
+    id_coleccion: int
+    id_temporada: int
+    temporada_nombre: str
+    temporada_anio: int
+    nombre: str
+    descripcion: Optional[str]
+    estado_activo: bool
+    total_productos: int = 0
     creado_en: datetime
+    actualizado_en: datetime
 
 
-class HistorialKardexOut(BaseModel):
-    id_inventario: int
-    prenda_sku: str
-    sucursal_nombre: str
-    saldo_actual: int
-    movimientos: List[KardexItemOut]
+class ListaPaginadaColeccionesOut(BaseModel):
+    items: List[ColeccionItemOut]
+    total: int
+    pagina: int
+    limite: int
+    total_paginas: int
 
 
-class ComprobanteTransferenciaOut(BaseModel):
-    mensaje: str
-    id_sucursal_origen: int
-    id_sucursal_destino: int
-    id_variante: int
-    sku: str
-    cantidad_transferida: int
-    saldo_origen_nuevo: int
-    saldo_destino_nuevo: int
-    fecha: datetime
-
-
-class DisponibilidadSucursalOut(BaseModel):
-    id_sucursal: int
-    nombre_sucursal: str
-    ciudad: str
-    direccion: str
-    cantidad_disponible: int
-    estado: str
-
-
-class DisponibilidadPublicaOut(BaseModel):
-    id_variante: int
-    sku: str
-    nombre_prenda: str
-    sucursales: List[DisponibilidadSucursalOut]
+class EstadoConmutarIn(BaseModel):
+    estado_activo: bool
 ```
 
----
+### 3.4 Capa de Servicio Transaccional (`servicio.py`)
 
-### 2.3 Jerarquia de Excepciones Semanticas de Dominio
-
-Implementadas en `app/modules/gestion_operativa/cu24_inventario_stock/errores.py`:
+Ubicacion: `app/modules/catalogo/cu24_temporadas_colecciones/servicio.py`:
 
 ```python
-# app/modules/gestion_operativa/cu24_inventario_stock/errores.py
+from sqlalchemy.orm import Session
+from sqlalchemy import func, select
 
-from app.core.errors import AppError
+# Metodos principales:
+# ServicioGestionTemporadas:
+# - listar_temporadas(db, q, anio, estado_activo, ordenar_por, pagina, limite)
+# - obtener_temporada_por_id(db, id_temporada)
+# - crear_temporada(db, payload)
+# - actualizar_temporada(db, id_temporada, payload)
+# - conmutar_estado_temporada(db, id_temporada, estado_activo)
 
-
-class InventarioError(AppError):
-    """Excepcion base para errores del modulo de inventario."""
-    pass
-
-
-class InventarioNoEncontradoError(InventarioError):
-    def __init__(self, id_inventario: int):
-        super().__init__(
-            f"El registro de inventario con ID {id_inventario} no fue encontrado.",
-            codigo="INVENTARIO_NO_ENCONTRADO",
-            status_code=404,
-        )
-
-
-class InventarioDuplicadoError(InventarioError):
-    def __init__(self, id_sucursal: int, id_variante: int):
-        super().__init__(
-            f"Ya existe un inventario registrado para la variante {id_variante} en la sucursal {id_sucursal}. Utilice la funcion de ajuste.",
-            codigo="INVENTARIO_DUPLICADO",
-            status_code=409,
-        )
-
-
-class StockInsuficienteError(InventarioError):
-    def __init__(self, disponible: int, solicitado: int):
-        super().__init__(
-            f"Stock insuficiente para completar la operacion. Disponible: {disponible}, Solicitado: {solicitado}.",
-            codigo="STOCK_INSUFICIENTE",
-            status_code=409,
-        )
-
-
-class AutoTransferenciaError(InventarioError):
-    def __init__(self):
-        super().__init__(
-            "No se puede transferir mercaderia a la misma sucursal de origen.",
-            codigo="TRANSFERENCIA_MISMA_SUCURSAL",
-            status_code=422,
-        )
-
-
-class MotivoInvalidoError(InventarioError):
-    def __init__(self, detalle: str):
-        super().__init__(
-            f"Motivo de operacion invalido: {detalle}.",
-            codigo="MOTIVO_OPERACION_INVALIDO",
-            status_code=422,
-        )
-
-
-class SucursalNoAutorizadaError(InventarioError):
-    def __init__(self, id_sucursal_solicitada: int, id_sucursal_usuario: int):
-        super().__init__(
-            f"Acceso denegado: Su perfil solo le permite gestionar la sucursal {id_sucursal_usuario}, no la sucursal {id_sucursal_solicitada}.",
-            codigo="SUCURSAL_NO_AUTORIZADA",
-            status_code=403,
-        )
-
-
-class EntidadInactivaError(InventarioError):
-    def __init__(self, entidad: str):
-        super().__init__(
-            f"No se puede operar inventario sobre una entidad inactiva o descontinuada: {entidad}.",
-            codigo="ENTIDAD_INACTIVA_PARA_INVENTARIO",
-            status_code=422,
-        )
+# ServicioGestionColecciones:
+# - listar_colecciones(db, q, id_temporada, estado_activo, pagina, limite)
+# - obtener_coleccion_por_id(db, id_coleccion)
+# - crear_coleccion(db, payload)
+# - actualizar_coleccion(db, id_coleccion, payload)
+# - conmutar_estado_coleccion(db, id_coleccion, estado_activo)
 ```
 
----
+### 3.5 Definicion de Contratos REST (`router.py`)
 
-### 2.4 Servicio de Dominio Transaccional (`ServicioGestionInventario`)
+Ubicacion: `app/modules/catalogo/cu24_temporadas_colecciones/router.py`:
 
-Implementado en `app/modules/gestion_operativa/cu24_inventario_stock/servicio.py`:
-
-```python
-# app/modules/gestion_operativa/cu24_inventario_stock/servicio.py
-
-from datetime import datetime, timezone
-import math
-from typing import Optional
-from sqlalchemy import and_, func, or_, select
-from sqlalchemy.orm import Session, joinedload
-
-from app.modules.autenticacion_seguridad.modelos import UsuarioORM
-from app.modules.catalogo.modelos import ProductoORM, VarianteProductoORM
-from app.modules.gestion_operativa.modelos import SucursalORM
-from .modelos import InventarioSucursalORM, MovimientoInventarioORM
-from .esquemas import (
-    ComprobanteTransferenciaOut,
-    DisponibilidadPublicaOut,
-    DisponibilidadSucursalOut,
-    EstadoStockCalculadoEnum,
-    HistorialKardexOut,
-    InventarioAjusteIn,
-    InventarioCrearIn,
-    InventarioFiltrosIn,
-    InventarioItemOut,
-    KardexItemOut,
-    ListaPaginadaInventarioOut,
-    TipoAjusteManualEnum,
-    TipoMovimientoEnum,
-    TransferenciaInterSucursalIn,
-)
-from .errores import (
-    AutoTransferenciaError,
-    EntidadInactivaError,
-    InventarioDuplicadoError,
-    InventarioNoEncontradoError,
-    StockInsuficienteError,
-    SucursalNoAutorizadaError,
-)
-
-
-class ServicioGestionInventario:
-    """Logica de negocio transaccional para la gestion de existencias y kardex."""
-
-    @staticmethod
-    def _calcular_estado_stock(disponible: int, alerta: int) -> EstadoStockCalculadoEnum:
-        if disponible <= 0:
-            return EstadoStockCalculadoEnum.AGOTADO
-        if disponible <= alerta:
-            return EstadoStockCalculadoEnum.ALERTA_BAJA
-        return EstadoStockCalculadoEnum.OPTIMO
-
-    @staticmethod
-    def _validar_acceso_sucursal(usuario_sesion: UsuarioORM, id_sucursal_solicitada: int) -> None:
-        """Aplica la regla de segregacion territorial estricta para encargados."""
-        if usuario_sesion.rol == "encargado_sucursal":
-            if usuario_sesion.id_sucursal != id_sucursal_solicitada:
-                raise SucursalNoAutorizadaError(
-                    id_sucursal_solicitada, usuario_sesion.id_sucursal or 0
-                )
-
-    def listar_inventario(
-        self, db: Session, filtros: InventarioFiltrosIn, usuario_sesion: UsuarioORM
-    ) -> ListaPaginadaInventarioOut:
-        # Segregacion forzada para encargado_sucursal
-        id_sucursal_consulta = filtros.id_sucursal
-        if usuario_sesion.rol == "encargado_sucursal":
-            id_sucursal_consulta = usuario_sesion.id_sucursal
-        elif id_sucursal_consulta:
-            self._validar_acceso_sucursal(usuario_sesion, id_sucursal_consulta)
-
-        condiciones = []
-        if id_sucursal_consulta:
-            condiciones.append(InventarioSucursalORM.id_sucursal == id_sucursal_consulta)
-
-        stmt = (
-            select(InventarioSucursalORM)
-            .join(InventarioSucursalORM.variante)
-            .join(VarianteProductoORM.producto)
-            .options(
-                joinedload(InventarioSucursalORM.sucursal),
-                joinedload(InventarioSucursalORM.variante)
-                .joinedload(VarianteProductoORM.producto),
-                joinedload(InventarioSucursalORM.variante)
-                .joinedload(VarianteProductoORM.talla),
-                joinedload(InventarioSucursalORM.variante)
-                .joinedload(VarianteProductoORM.color),
-            )
-        )
-
-        if filtros.id_categoria:
-            condiciones.append(ProductoORM.id_categoria == filtros.id_categoria)
-
-        if filtros.q:
-            termino = f"%{filtros.q.strip()}%"
-            condiciones.append(
-                or_(
-                    ProductoORM.nombre.ilike(termino),
-                    VarianteProductoORM.sku.ilike(termino),
-                )
-            )
-
-        if filtros.estado_stock == "agotado":
-            condiciones.append(InventarioSucursalORM.cantidad_disponible <= 0)
-        elif filtros.estado_stock == "alerta_baja":
-            condiciones.append(
-                and_(
-                    InventarioSucursalORM.cantidad_disponible > 0,
-                    InventarioSucursalORM.cantidad_disponible <= InventarioSucursalORM.stock_alerta,
-                )
-            )
-        elif filtros.estado_stock == "optimo":
-            condiciones.append(
-                InventarioSucursalORM.cantidad_disponible > InventarioSucursalORM.stock_alerta
-            )
-
-        if condiciones:
-            stmt = stmt.where(and_(*condiciones))
-
-        # Conteo total
-        stmt_count = select(func.count(InventarioSucursalORM.id_inventario))
-        if condiciones:
-            stmt_count = stmt_count.select_from(InventarioSucursalORM).join(
-                InventarioSucursalORM.variante
-            ).join(VarianteProductoORM.producto).where(and_(*condiciones))
-        total = db.scalar(stmt_count) or 0
-
-        # Paginacion
-        offset = (filtros.pagina - 1) * filtros.limite
-        stmt = stmt.order_by(InventarioSucursalORM.id_inventario.desc()).offset(offset).limit(filtros.limite)
-        registros = db.scalars(stmt).unique().all()
-
-        items_out = []
-        for inv in registros:
-            estado_calc = self._calcular_estado_stock(inv.cantidad_disponible, inv.stock_alerta)
-            items_out.append(
-                self._to_inventario_item_out(inv, estado_calc)
-            )
-
-        total_paginas = math.ceil(total / filtros.limite) if total > 0 else 1
-        return ListaPaginadaInventarioOut(
-            items=items_out,
-            total=total,
-            pagina=filtros.pagina,
-            limite=filtros.limite,
-            total_paginas=total_paginas,
-        )
-
-    def crear_inventario_inicial(
-        self, db: Session, payload: InventarioCrearIn, usuario_sesion: UsuarioORM
-    ) -> InventarioItemOut:
-        self._validar_acceso_sucursal(usuario_sesion, payload.id_sucursal)
-
-        # 1. Validar sucursal activa
-        sucursal = db.get(SucursalORM, payload.id_sucursal)
-        if not sucursal or not sucursal.activa:
-            raise EntidadInactivaError(f"Sucursal ID {payload.id_sucursal}")
-
-        # 2. Validar variante y prenda activa
-        variante = db.get(VarianteProductoORM, payload.id_variante)
-        if not variante or not variante.activo or not variante.producto.activo:
-            raise EntidadInactivaError(f"Variante ID {payload.id_variante}")
-
-        # 3. Comprobar no duplicidad
-        existente = db.scalar(
-            select(InventarioSucursalORM).where(
-                and_(
-                    InventarioSucursalORM.id_sucursal == payload.id_sucursal,
-                    InventarioSucursalORM.id_variante == payload.id_variante,
-                )
-            )
-        )
-        if existente:
-            raise InventarioDuplicadoError(payload.id_sucursal, payload.id_variante)
-
-        # 4. Crear entidad de inventario
-        nuevo_inv = InventarioSucursalORM(
-            id_sucursal=payload.id_sucursal,
-            id_variante=payload.id_variante,
-            id_temporada=payload.id_temporada,
-            cantidad_disponible=payload.cantidad_inicial,
-            cantidad_reservada=0,
-            stock_minimo=payload.stock_minimo,
-            stock_alerta=payload.stock_alerta,
-            estado="disponible" if payload.cantidad_inicial > 0 else "agotada",
-        )
-        db.add(nuevo_inv)
-        db.flush()
-
-        # 5. Generar movimiento inicial en Kardex si hubo carga inicial
-        if payload.cantidad_inicial > 0:
-            mov = MovimientoInventarioORM(
-                id_inventario=nuevo_inv.id_inventario,
-                tipo_movimiento=TipoMovimientoEnum.INGRESO_PROVEEDOR.value,
-                cantidad=payload.cantidad_inicial,
-                saldo_anterior=0,
-                saldo_nuevo=payload.cantidad_inicial,
-                motivo=payload.observacion or "Carga inicial de existencias",
-                id_usuario=usuario_sesion.id_usuario,
-                referencia_documento=payload.referencia_documento,
-            )
-            db.add(mov)
-
-        db.commit()
-        db.refresh(nuevo_inv)
-        estado_calc = self._calcular_estado_stock(nuevo_inv.cantidad_disponible, nuevo_inv.stock_alerta)
-        return self._to_inventario_item_out(nuevo_inv, estado_calc)
-
-    def ajustar_inventario(
-        self, db: Session, id_inventario: int, payload: InventarioAjusteIn, usuario_sesion: UsuarioORM
-    ) -> InventarioItemOut:
-        inv = db.get(InventarioSucursalORM, id_inventario)
-        if not inv:
-            raise InventarioNoEncontradoError(id_inventario)
-
-        self._validar_acceso_sucursal(usuario_sesion, inv.id_sucursal)
-
-        saldo_anterior = inv.cantidad_disponible
-        if payload.tipo_ajuste == TipoAjusteManualEnum.INCREMENTO:
-            saldo_nuevo = saldo_anterior + payload.cantidad
-            tipo_mov = TipoMovimientoEnum.AJUSTE_POSITIVO.value
-            delta = payload.cantidad
-        else:
-            if saldo_anterior < payload.cantidad:
-                raise StockInsuficienteError(disponible=saldo_anterior, solicitado=payload.cantidad)
-            saldo_nuevo = saldo_anterior - payload.cantidad
-            tipo_mov = TipoMovimientoEnum.AJUSTE_NEGATIVO.value
-            delta = -payload.cantidad
-
-        inv.cantidad_disponible = saldo_nuevo
-        inv.estado = "disponible" if saldo_nuevo > 0 else "agotada"
-        inv.actualizado_en = datetime.now(timezone.utc)
-
-        # Registro inmutable en Kardex
-        mov = MovimientoInventarioORM(
-            id_inventario=inv.id_inventario,
-            tipo_movimiento=tipo_mov,
-            cantidad=delta,
-            saldo_anterior=saldo_anterior,
-            saldo_nuevo=saldo_nuevo,
-            motivo=payload.motivo,
-            id_usuario=usuario_sesion.id_usuario,
-            referencia_documento=payload.referencia_documento,
-        )
-        db.add(mov)
-        db.commit()
-        db.refresh(inv)
-
-        estado_calc = self._calcular_estado_stock(inv.cantidad_disponible, inv.stock_alerta)
-        return self._to_inventario_item_out(inv, estado_calc)
-
-    def transferir_mercaderia(
-        self, db: Session, payload: TransferenciaInterSucursalIn, usuario_sesion: UsuarioORM
-    ) -> ComprobanteTransferenciaOut:
-        if payload.id_sucursal_origen == payload.id_sucursal_destino:
-            raise AutoTransferenciaError()
-
-        self._validar_acceso_sucursal(usuario_sesion, payload.id_sucursal_origen)
-
-        # 1. Validar sedes activas
-        origen_suc = db.get(SucursalORM, payload.id_sucursal_origen)
-        destino_suc = db.get(SucursalORM, payload.id_sucursal_destino)
-        if not origen_suc or not origen_suc.activa:
-            raise EntidadInactivaError(f"Sucursal Origen ID {payload.id_sucursal_origen}")
-        if not destino_suc or not destino_suc.activa:
-            raise EntidadInactivaError(f"Sucursal Destino ID {payload.id_sucursal_destino}")
-
-        # 2. Localizar y bloquear inventario origen
-        inv_origen = db.scalar(
-            select(InventarioSucursalORM).where(
-                and_(
-                    InventarioSucursalORM.id_sucursal == payload.id_sucursal_origen,
-                    InventarioSucursalORM.id_variante == payload.id_variante,
-                )
-            ).with_for_update()
-        )
-        if not inv_origen or inv_origen.cantidad_disponible < payload.cantidad:
-            disponible = inv_origen.cantidad_disponible if inv_origen else 0
-            raise StockInsuficienteError(disponible=disponible, solicitado=payload.cantidad)
-
-        # 3. Localizar o instanciar inventario destino
-        inv_destino = db.scalar(
-            select(InventarioSucursalORM).where(
-                and_(
-                    InventarioSucursalORM.id_sucursal == payload.id_sucursal_destino,
-                    InventarioSucursalORM.id_variante == payload.id_variante,
-                )
-            ).with_for_update()
-        )
-
-        saldo_origen_ant = inv_origen.cantidad_disponible
-        inv_origen.cantidad_disponible -= payload.cantidad
-        inv_origen.estado = "disponible" if inv_origen.cantidad_disponible > 0 else "agotada"
-        inv_origen.actualizado_en = datetime.now(timezone.utc)
-
-        if not inv_destino:
-            inv_destino = InventarioSucursalORM(
-                id_sucursal=payload.id_sucursal_destino,
-                id_variante=payload.id_variante,
-                id_temporada=inv_origen.id_temporada,
-                cantidad_disponible=payload.cantidad,
-                cantidad_reservada=0,
-                stock_minimo=inv_origen.stock_minimo,
-                stock_alerta=inv_origen.stock_alerta,
-                estado="disponible",
-            )
-            db.add(inv_destino)
-            db.flush()
-            saldo_destino_ant = 0
-            saldo_destino_nuevo = payload.cantidad
-        else:
-            saldo_destino_ant = inv_destino.cantidad_disponible
-            inv_destino.cantidad_disponible += payload.cantidad
-            saldo_destino_nuevo = inv_destino.cantidad_disponible
-            inv_destino.estado = "disponible"
-            inv_destino.actualizado_en = datetime.now(timezone.utc)
-
-        # Insercion de movimientos espejo en Kardex
-        mov_salida = MovimientoInventarioORM(
-            id_inventario=inv_origen.id_inventario,
-            tipo_movimiento=TipoMovimientoEnum.TRANSFERENCIA_SALIDA.value,
-            cantidad=-payload.cantidad,
-            saldo_anterior=saldo_origen_ant,
-            saldo_nuevo=inv_origen.cantidad_disponible,
-            motivo=f"Transferencia hacia {destino_suc.nombre}: {payload.motivo}",
-            id_usuario=usuario_sesion.id_usuario,
-            referencia_documento=f"TRF-OUT->{destino_suc.id_sucursal}",
-        )
-        mov_entrada = MovimientoInventarioORM(
-            id_inventario=inv_destino.id_inventario,
-            tipo_movimiento=TipoMovimientoEnum.TRANSFERENCIA_ENTRADA.value,
-            cantidad=payload.cantidad,
-            saldo_anterior=saldo_destino_ant,
-            saldo_nuevo=saldo_destino_nuevo,
-            motivo=f"Transferencia desde {origen_suc.nombre}: {payload.motivo}",
-            id_usuario=usuario_sesion.id_usuario,
-            referencia_documento=f"TRF-IN<-{origen_suc.id_sucursal}",
-        )
-        db.add_all([mov_salida, mov_entrada])
-        db.commit()
-
-        variante = db.get(VarianteProductoORM, payload.id_variante)
-        return ComprobanteTransferenciaOut(
-            mensaje="Transferencia inter-sucursal completada exitosamente.",
-            id_sucursal_origen=payload.id_sucursal_origen,
-            id_sucursal_destino=payload.id_sucursal_destino,
-            id_variante=payload.id_variante,
-            sku=variante.sku if variante else "N/A",
-            cantidad_transferida=payload.cantidad,
-            saldo_origen_nuevo=inv_origen.cantidad_disponible,
-            saldo_destino_nuevo=saldo_destino_nuevo,
-            fecha=datetime.now(timezone.utc),
-        )
-
-    def obtener_kardex(
-        self, db: Session, id_inventario: int, usuario_sesion: UsuarioORM
-    ) -> HistorialKardexOut:
-        inv = db.get(InventarioSucursalORM, id_inventario)
-        if not inv:
-            raise InventarioNoEncontradoError(id_inventario)
-
-        self._validar_acceso_sucursal(usuario_sesion, inv.id_sucursal)
-
-        movs = db.scalars(
-            select(MovimientoInventarioORM)
-            .where(MovimientoInventarioORM.id_inventario == id_inventario)
-            .order_by(MovimientoInventarioORM.creado_en.desc())
-        ).all()
-
-        kardex_items = []
-        for m in movs:
-            nombre_u = "Sistema"
-            if m.usuario_responsable:
-                nombre_u = f"{m.usuario_responsable.nombres} {m.usuario_responsable.apellidos}".strip()
-            kardex_items.append(
-                KardexItemOut(
-                    id_movimiento=m.id_movimiento,
-                    id_inventario=m.id_inventario,
-                    tipo_movimiento=m.tipo_movimiento,
-                    cantidad=m.cantidad,
-                    saldo_anterior=m.saldo_anterior,
-                    saldo_nuevo=m.saldo_nuevo,
-                    motivo=m.motivo,
-                    referencia_documento=m.referencia_documento,
-                    id_usuario=m.id_usuario,
-                    usuario_nombre=nombre_u,
-                    creado_en=m.creado_en,
-                )
-            )
-
-        return HistorialKardexOut(
-            id_inventario=inv.id_inventario,
-            prenda_sku=f"{inv.variante.producto.nombre} ({inv.variante.sku})",
-            sucursal_nombre=inv.sucursal.nombre,
-            saldo_actual=inv.cantidad_disponible,
-            movimientos=kardex_items,
-        )
-
-    def consultar_disponibilidad_publica(
-        self, db: Session, id_variante: int
-    ) -> DisponibilidadPublicaOut:
-        variante = db.get(VarianteProductoORM, id_variante)
-        if not variante or not variante.activo or not variante.producto.activo:
-            raise EntidadInactivaError(f"Variante ID {id_variante}")
-
-        registros = db.scalars(
-            select(InventarioSucursalORM)
-            .join(InventarioSucursalORM.sucursal)
-            .where(
-                and_(
-                    InventarioSucursalORM.id_variante == id_variante,
-                    SucursalORM.activa.is_(True),
-                )
-            )
-        ).all()
-
-        sucursales_out = []
-        for r in registros:
-            sucursales_out.append(
-                DisponibilidadSucursalOut(
-                    id_sucursal=r.id_sucursal,
-                    nombre_sucursal=r.sucursal.nombre,
-                    ciudad=r.sucursal.ciudad.nombre if r.sucursal.ciudad else "",
-                    direccion=r.sucursal.direccion,
-                    cantidad_disponible=r.cantidad_disponible,
-                    estado="disponible" if r.cantidad_disponible > 0 else "agotada",
-                )
-            )
-
-        return DisponibilidadPublicaOut(
-            id_variante=variante.id_variante,
-            sku=variante.sku,
-            nombre_prenda=variante.producto.nombre,
-            sucursales=sucursales_out,
-        )
-```
+| Metodo HTTP | Ruta | Descripcion | Permisos RBAC | Respuesta Exitosa | Respuestas de Error |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/admin/temporadas` | Listado paginado y filtrado de temporadas | `administrador`, `encargado_sucursal` | 200 OK (`ListaPaginadaTemporadasOut`) | 401, 403, 422 |
+| `POST` | `/api/v1/admin/temporadas` | Alta de nueva temporada comercial | `administrador` | 201 Created (`TemporadaItemOut`) | 401, 403, 409, 422 |
+| `GET` | `/api/v1/admin/temporadas/{id}` | Ficha tecnica de temporada por ID | `administrador`, `encargado_sucursal` | 200 OK (`TemporadaItemOut`) | 401, 403, 404 |
+| `PUT` | `/api/v1/admin/temporadas/{id}` | Actualizacion de datos de temporada | `administrador` | 200 OK (`TemporadaItemOut`) | 401, 403, 404, 409, 422 |
+| `PATCH` | `/api/v1/admin/temporadas/{id}/estado` | Baja logica o reactivacion | `administrador` | 200 OK (`TemporadaItemOut`) | 401, 403, 404 |
+| `GET` | `/api/v1/admin/colecciones` | Listado paginado de colecciones capsula | `administrador`, `encargado_sucursal` | 200 OK (`ListaPaginadaColeccionesOut`) | 401, 403, 422 |
+| `POST` | `/api/v1/admin/colecciones` | Alta de coleccion vinculada a temporada | `administrador` | 201 Created (`ColeccionItemOut`) | 401, 403, 404, 409, 422 |
+| `GET` | `/api/v1/admin/colecciones/{id}` | Ficha de coleccion por ID | `administrador`, `encargado_sucursal` | 200 OK (`ColeccionItemOut`) | 401, 403, 404 |
+| `PUT` | `/api/v1/admin/colecciones/{id}` | Actualizacion de coleccion | `administrador` | 200 OK (`ColeccionItemOut`) | 401, 403, 404, 409, 422 |
+| `PATCH` | `/api/v1/admin/colecciones/{id}/estado` | Baja logica o reactivacion | `administrador` | 200 OK (`ColeccionItemOut`) | 401, 403, 404 |
 
 ---
 
-### 2.5 Rutas y Endpoints REST (FastAPI)
+## 4. Diseno del Frontend Web (`Ec-frontend` - Angular 19+ Standalone)
 
-Implementados en `app/modules/gestion_operativa/cu24_inventario_stock/router.py`:
+### 4.1 Contratos TypeScript DTO (`temporadas-colecciones.dto.ts`)
 
-| Metodo | Ruta | Proteccion RBAC | Codigos HTTP | Descripcion |
-|---|---|---|---|---|
-| `GET` | `/api/v1/admin/inventario` | `["administrador", "encargado_sucursal"]` | 200, 401, 403 | Consulta paginada con filtros multicriterio (segregacion de sede forzada para encargados). |
-| `POST` | `/api/v1/admin/inventario` | `["administrador", "encargado_sucursal"]` | 201, 409, 422 | Asignacion de existencias iniciales para variante en sucursal con kardex. |
-| `POST` | `/api/v1/admin/inventario/{id}/ajuste` | `["administrador", "encargado_sucursal"]` | 200, 404, 409, 422 | Ajuste manual por merma, rotura o sobrante fisico con justificacion obligatoria. |
-| `POST` | `/api/v1/admin/inventario/transferencia` | `["administrador", "encargado_sucursal"]` | 200, 404, 409, 422 | Transferencia atomica inter-sucursales (origen -> destino) con doble registro en Kardex. |
-| `GET` | `/api/v1/admin/inventario/{id}/kardex` | `["administrador", "encargado_sucursal"]` | 200, 404, 403 | Consulta cronologica del historial de movimientos de inventario de una variante. |
-| `GET` | `/api/v1/inventario/disponibilidad/{id_variante}` | Publico (Sin autenticacion) | 200, 422 | Consulta abierta de disponibilidad fisica en tiendas para catalogo web/movil. |
-
----
-
-## 3. Diseno Frontend Web (`Ec-frontend` - Angular 19+ Standalone)
-
-### 3.1 Modelos e Interfaces TypeScript (`inventario.dto.ts`)
-
-Ubicado en `src/app/modules/gestion_operativa/cu24_inventario_stock/modelos/inventario.dto.ts`:
+Ubicacion: `src/app/modules/catalogo/cu24_temporadas_colecciones/modelos/temporadas-colecciones.dto.ts`:
 
 ```typescript
-// inventario.dto.ts
-
-export type EstadoStockCalculado = 'optimo' | 'alerta_baja' | 'agotado';
-export type TipoAjusteManual = 'incremento' | 'decremento';
-
-export interface DatosVarianteInventario {
-  id_variante: number;
-  id_producto: number;
-  nombre_prenda: str;
-  sku: string;
-  talla: string;
-  color_nombre: string;
-  color_hex: string;
-  precio_base: number;
-  precio_final: number;
-  imagen_url?: string | null;
-  categoria_nombre: string;
-}
-
-export interface DatosSucursalInventario {
-  id_sucursal: number;
-  nombre: string;
-  ciudad: string;
-}
-
-export interface ItemInventarioAdmin {
-  id_inventario: number;
-  id_sucursal: number;
-  id_variante: number;
-  cantidad_disponible: number;
-  cantidad_reservada: number;
-  stock_total: number;
-  stock_minimo: number;
-  stock_alerta: number;
-  estado: string;
-  estado_calculado: EstadoStockCalculado;
-  actualizado_en: string;
-  sucursal: DatosSucursalInventario;
-  variante: DatosVarianteInventario;
-}
-
-export interface InventarioCrearPayload {
-  id_sucursal: number;
-  id_variante: number;
-  id_temporada?: number;
-  cantidad_inicial: number;
-  stock_minimo: number;
-  stock_alerta: number;
-  referencia_documento?: string;
-  observacion?: string;
-}
-
-export interface InventarioAjustePayload {
-  tipo_ajuste: TipoAjusteManual;
-  cantidad: number;
-  motivo: string;
-  referencia_documento?: string;
-}
-
-export interface TransferenciaInterSucursalPayload {
-  id_sucursal_origen: number;
-  id_sucursal_destino: number;
-  id_variante: number;
-  cantidad: number;
-  motivo: string;
-}
-
-export interface KardexItem {
-  id_movimiento: number;
-  id_inventario: number;
-  tipo_movimiento: string;
-  cantidad: number;
-  saldo_anterior: number;
-  saldo_nuevo: number;
-  motivo: string;
-  referencia_documento?: string;
-  usuario_nombre?: string;
+export interface TemporadaItem {
+  id_temporada: number;
+  nombre: str;
+  anio: number;
+  fecha_inicio: string;
+  fecha_fin: string;
+  estado_activo: boolean;
+  total_colecciones: number;
   creado_en: string;
+  actualizado_en: string;
 }
 
-export interface HistorialKardex {
-  id_inventario: number;
-  prenda_sku: string;
-  sucursal_nombre: string;
-  saldo_actual: number;
-  movimientos: KardexItem[];
+export interface TemporadaCrearPayload {
+  nombre: string;
+  anio: number;
+  fecha_inicio: string;
+  fecha_fin: string;
 }
 
-export interface ParametrosFiltroInventario {
-  id_sucursal?: number;
-  id_categoria?: number;
-  estado_stock?: string;
-  q?: string;
-  pagina?: number;
-  limite?: number;
+export interface TemporadaActualizarPayload {
+  nombre?: string;
+  anio?: number;
+  fecha_inicio?: string;
+  fecha_fin?: string;
 }
 
-export interface ListaPaginadaInventario {
-  items: ItemInventarioAdmin[];
-  total: number;
+export interface ColeccionItem {
+  id_coleccion: number;
+  id_temporada: number;
+  temporada_nombre: string;
+  temporada_anio: number;
+  nombre: string;
+  descripcion: string | null;
+  estado_activo: boolean;
+  total_productos: number;
+  creado_en: string;
+  actualizado_en: string;
+}
+
+export interface ColeccionCrearPayload {
+  id_temporada: number;
+  nombre: string;
+  descripcion?: string | null;
+}
+
+export interface ColeccionActualizarPayload {
+  id_temporada?: number;
+  nombre?: string;
+  descripcion?: string | null;
+}
+
+export interface FiltrosTemporada {
+  q: string;
+  anio: number | null;
+  estado_activo: 'todos' | 'activas' | 'inactivas';
+  ordenar_por: 'anio_desc' | 'anio_asc' | 'nombre_asc' | 'nombre_desc';
   pagina: number;
   limite: number;
-  total_paginas: number;
+}
+
+export interface FiltrosColeccion {
+  q: string;
+  id_temporada: number | null;
+  estado_activo: 'todos' | 'activas' | 'inactivas';
+  pagina: number;
+  limite: number;
 }
 ```
 
----
+### 4.2 Servicio Reactivo con Signals (`temporadas-colecciones-admin.service.ts`)
 
-### 3.2 Servicio HTTP Reactivo con Angular Signals (`InventarioAdminService`)
+Ubicacion: `src/app/modules/catalogo/cu24_temporadas_colecciones/servicios/temporadas-colecciones-admin.service.ts`:
 
-Ubicado en `src/app/modules/gestion_operativa/cu24_inventario_stock/servicios/inventario-admin.service.ts`:
+```typescript
+// Signals expuestos:
+// - temporadas: Signal<TemporadaItem[]>
+// - totalTemporadas: Signal<number>
+// - colecciones: Signal<ColeccionItem[]>
+// - totalColecciones: Signal<number>
+// - temporadasActivasParaSelector: Signal<TemporadaItem[]>
+// - cargando: Signal<boolean>
+// - guardando: Signal<boolean>
+// - error: Signal<string | null>
+// - mensajeExito: Signal<string | null>
+// - pestanaActiva: Signal<'temporadas' | 'colecciones'>
+```
 
-- Inyeccion de dependencias: `HttpClient`, `LoginService`.
-- Estado Reactivo gobernado por Signals:
-  * `inventario = signal<ItemInventarioAdmin[]>([])`
-  * `totalRegistros = signal<number>(0)`
-  * `paginaActual = signal<number>(1)`
-  * `totalPaginas = signal<number>(1)`
-  * `cargando = signal<boolean>(false)`
-  * `guardando = signal<boolean>(false)`
-  * `kardexActual = signal<HistorialKardex | null>(null)`
-  * `error = signal<string | null>(null)`
-  * `mensajeExito = signal<string | null>(null)`
-  * `filtros = signal<ParametrosFiltroInventario>({ pagina: 1, limite: 20 })`
-- Metodos publicos:
-  * `cargarInventario(filtros?: ParametrosFiltroInventario): void`
-  * `crearStockInicial(payload: InventarioCrearPayload): Observable<ItemInventarioAdmin>`
-  * `ajustarStock(idInventario: number, payload: InventarioAjustePayload): Observable<ItemInventarioAdmin>`
-  * `transferirMercaderia(payload: TransferenciaInterSucursalPayload): Observable<any>`
-  * `cargarKardex(idInventario: number): Observable<HistorialKardex>`
-  * `limpiarMensajes(): void`
+### 4.3 Componente Standalone (`temporadas-colecciones-admin.component.ts`)
 
----
+Ubicacion: `src/app/modules/catalogo/cu24_temporadas_colecciones/paginas/temporadas-colecciones-admin.component.ts`:
+- Layout editorial centrado `max-w-[1440px] px-6 py-8 mx-auto`.
+- Boton superior editorial: `Volver al Panel Principal` (`/admin`).
+- H1 oficial: `Gestionar temporadas y colecciones`.
+- Migas de pan: `FASHION STORE / ADMINISTRACION CORPORATIVA / GESTIONAR TEMPORADAS Y COLECCIONES`.
+- Pestanas reactivas (`Temporadas` y `Colecciones`).
+- Validador sincrono de formulario `rangoFechasValidator(control: AbstractControl)` para verificar `fechaFin > fechaInicio` en el cliente antes de la llamada HTTP.
 
-### 3.3 Integracion en `AdminDashboardComponent`
-
-El panel principal `/admin` integra la 5ta tarjeta boutique:
-- **Titulo:** "Inventario y Stock"
-- **Categoria:** "Logistica y Existencias"
-- **Descripcion:** "Monitoreo de existencias fisicas, control de mermas, reposicion y traspasos entre sedes."
-- **Badge:** "Control Operativo"
-- **Boton:** `id="btn-gestionar-inventario"`, `routerLink="/admin/inventario"`, `(click)="navegar('/admin/inventario')"`.
-- **Visibilidad:** Visible tanto si `esAdmin()` es verdadero como si `esEncargado()` es verdadero.
-- **Rejilla responsiva:** Se adapta limpiamente mediante rejilla flexible de diseno institucional.
+### 4.4 Integracion en `AdminDashboardComponent`
+- Categoria: *"Taxonomia Comercial"*.
+- Titulo oficial exacto: *"Gestionar temporadas y colecciones"*.
+- Descripcion: *"Calendario estacional de la moda, vigencias de campana y curaduria de colecciones capsula."*.
+- Badge: *"Calendario de Moda"*.
+- Boton: `id="btn-gestionar-temporadas-colecciones"` con `routerLink="/admin/temporadas-colecciones"`.
+- Permiso RBAC: visible para `esAdmin() || esEncargado()`.
 
 ---
 
-### 3.4 Componente Standalone `InventarioAdminComponent` (`/admin/inventario`)
+## 5. Plan de Pruebas Automatizadas
 
-1. **Layout y Diseno Editorial Atelier:**
-   - Contenedor: `max-w-[1440px] px-6 py-8 mx-auto`.
-   - Paleta cromatica: Fondo `bg-slate-50 / bg-white`, acentos `Camel (#AD8C63)` y contraste `Obsidian (#0F172A)`.
-   - Boton de navegacion superior: `"<- Volver al Panel Principal"` con enlace a `/admin`.
-2. **Barra de Filtros Multicriterio:**
-   - Input reactivo de busqueda textual `q` (debounce de 300ms).
-   - Selector de sucursal: Al entrar un `encargado_sucursal`, se bloquea (`disabled`) mostrando su boutique propia; para `administrador`, desplegable completo con opcion "Todas las sedes".
-   - Selector de categoria taxonomica (alimentado por `AtributosAdminService`).
-   - Selector de estado de stock: `Todos`, `Optimo`, `Alerta de Reposicion`, `Agotados`.
-3. **Tabla Maestra Editorial:**
-   - Miniatura de prenda (52x52px, `rounded-xl`, `border-slate-200`) o placeholder sobrio.
-   - Detalle de variante: modelo, SKU corporativo, talla y muestra visual `#HEX`.
-   - Sede asignada.
-   - Balance de existencias: columna destacada con `cantidad_disponible` y detalle sutil de `cantidad_reservada`.
-   - Badges cromados de estado:
-     * `Optimo` (Verde Esmeralda).
-     * `Alerta de Reposicion` (Ambar / Camel pulsante).
-     * `Agotado` (Rojo Carmesi).
-   - Botones de accion: "Ajustar", "Transferir" y "Kardex".
-4. **Modales Reactivos con `NonNullableFormBuilder`:**
-   - **Modal de Alta Inicial (`+ INGRESAR MERCADERIA`):** Selección de producto, variante, sucursal, cantidad inicial y umbrales.
-   - **Modal de Ajuste Manual:** Selector de incremento/decremento, cantidad (con validación de límite) y textarea con justificación obligatoria (mínimo 5 caracteres).
-   - **Modal de Transferencia:** Dropdown de sede destino (excluyendo automáticamente origen), cantidad limitada a disponible y motivo.
-   - **Modal / Panel de Kardex:** Cronología visual descendente con fecha, tipo de movimiento, variación (+/-), saldos anterior/nuevo y usuario responsable.
-5. **Luxury Banners:**
-   - Componente no destructivo que captura errores HTTP 409 y 422 mostrando explicaciones claras sin cerrar los modales ni resetear los datos digitados por el operador.
+### 5.1 Suite Backend (Pytest)
+Archivo: `tests/modules/catalogo/test_cu24_temporadas_colecciones.py`
+1. `test_cu24_rbac_sin_token_retorna_401`
+2. `test_cu24_rbac_cajero_denegado_403`
+3. `test_cu24_rbac_cliente_denegado_403`
+4. `test_cu24_administrador_acceso_exitoso_200`
+5. `test_cu24_encargado_acceso_lectura_200`
+6. `test_cu24_crear_temporada_exitosa_201`
+7. `test_cu24_fechas_invalidas_rechaza_422`
+8. `test_cu24_nombre_temporada_duplicado_rechaza_409`
+9. `test_cu24_baja_logica_temporada_patch_200`
+10. `test_cu24_crear_coleccion_vinculada_temporada_201`
+11. `test_cu24_coleccion_nombre_duplicado_misma_temporada_409`
+12. `test_cu24_coleccion_en_temporada_inactiva_rechaza_422`
 
----
-
-## 4. Estrategia de Pruebas Automatizadas
-
-### 4.1 Backend (`pytest` en `Ec-backend`)
-Ubicacion: `tests/modules/gestion_operativa/test_cu24_inventario_stock.py`.
-- **Casos de Acceso y RBAC:** Rechazo 401 si no hay token; rechazo 403 para cajero/cliente; acceso concedido a administrador y encargado_sucursal (AC-1).
-- **Segregacion Territorial:** Rechazo 403 cuando un encargado intenta consultar o modificar una sucursal distinta a la suya (AC-2).
-- **Consulta Paginada y Filtros:** Paginacion limpia, filtrado por categoria, por estado y por texto (AC-3, AC-4).
-- **Alta Inicial:** Creacion exitosa con generacion de kardex inicial (AC-5); rechazo 409 ante duplicidad (AC-6); rechazo 422 ante sede/variante inactiva (AC-7).
-- **Ajustes Manuales:** Incremento y decremento con kardex (AC-8); rechazo 409 si el decremento supera el disponible (AC-9); rechazo 422 si el motivo tiene menos de 5 caracteres (AC-10).
-- **Transferencias:** Transferencia inter-sucursal atomica con doble registro en kardex (AC-11); rechazo 422 ante auto-transferencia (AC-12); rechazo 409 ante saldo insuficiente en origen (AC-13).
-- **Kardex y Disponibilidad:** Consulta de historial cronologico (AC-14); consulta publica de disponibilidad (AC-15).
-
-### 4.2 Frontend (`Vitest` en `Ec-frontend`)
-- `inventario-admin.service.spec.ts`: Operaciones HTTP reactivas con `HttpTestingController` y evaluacion de Signals.
-- `inventario-admin.component.spec.ts`: Inicializacion, renderizado de tabla, filtros interactivos con debounce, bloqueo del selector para encargados, apertura/cierre de modales y Luxury Banners ante 409/422.
-- `admin-dashboard.component.spec.ts`: Presencia y enlace del boton `#btn-gestionar-inventario` para administrador y encargado.
-
----
-
-## 5. Matriz de Trazabilidad Requisitos (EARS) vs Componentes Tecnicos
-
-| Requisito EARS | Componente Backend | Componente Frontend | Verificacion |
-|---|---|---|---|
-| **# AC-1 (RBAC)** | `require_roles(["administrador", "encargado_sucursal"])` | `roleGuard` en `app.routes.ts` | Pytest `test_cu24_rbac` / Vitest `role.guard.spec` |
-| **# AC-2 (Segregacion)** | `ServicioGestionInventario._validar_acceso_sucursal` | Selector de sede bloqueado con `esEncargado()` | Pytest `test_cu24_segregacion` |
-| **# AC-3 (Listado Paginado)** | `ServicioGestionInventario.listar_inventario` | Tabla maestra con Signals | Pytest `test_cu24_listar` / Vitest `inventario.component.spec` |
-| **# AC-4 (Filtros)** | Parametros query y clausulas `where()` dinamicas | Barra de filtros con `debounce` | Pytest `test_cu24_filtros` |
-| **# AC-5 (Stock Inicial)** | `ServicioGestionInventario.crear_inventario_inicial` | Modal `FormularioIngresoMercaderia` | Pytest `test_cu24_crear_inicial` |
-| **# AC-6 (Duplicidad 409)** | `InventarioDuplicadoError` (409) | Luxury Banner de conflicto 409 | Pytest `test_cu24_duplicado_409` |
-| **# AC-7 (Inactiva 422)** | `EntidadInactivaError` (422) | Luxury Banner 422 | Pytest `test_cu24_inactiva_422` |
-| **# AC-8 (Ajuste Manual)** | `ServicioGestionInventario.ajustar_inventario` | Modal de ajuste contextual | Pytest `test_cu24_ajuste_exitoso` |
-| **# AC-9 (No Negatividad 409)**| `StockInsuficienteError` (409) | Validacion reactiva de maximo y banner 409 | Pytest `test_cu24_saldo_negativo_409` |
-| **# AC-10 (Motivo Obligatorio)**| `@field_validator("motivo")` | `Validators.minLength(5)` | Pytest `test_cu24_motivo_invalido_422` |
-| **# AC-11 (Transferencia ACID)**| `ServicioGestionInventario.transferir_mercaderia` | Modal de transferencia | Pytest `test_cu24_transferencia` |
-| **# AC-12 (Auto-Transferencia)**| `AutoTransferenciaError` (422) | Exclusion automatica de origen en dropdown | Pytest `test_cu24_auto_transferencia_422` |
-| **# AC-13 (Stock Origen 409)** | `StockInsuficienteError` (409) | Validacion síncrona en modal | Pytest `test_cu24_stock_origen_409` |
-| **# AC-14 (Kardex)** | `ServicioGestionInventario.obtener_kardex` | Panel / Modal de Kardex | Pytest `test_cu24_kardex` |
-| **# AC-15 (Disponibilidad)** | `ServicioGestionInventario.consultar_disponibilidad_publica`| Consumo por catalogo cliente | Pytest `test_cu24_disponibilidad` |
-| **# AC-16 (Tarjeta Dashboard)** | N/A | `AdminDashboardComponent` | Vitest `admin-dashboard.component.spec` |
-| **# AC-17 (Ruta Protegida)** | N/A | `InventarioAdminComponent` | Vitest `inventario-admin.component.spec` |
-| **# AC-18 (Boton Retorno)** | N/A | Boton `"<- Volver al Panel Principal"` | Vitest `inventario-admin.component.spec` |
-| **# AC-19 (Tabla Editorial)** | N/A | Tabla con miniaturas y badges | Vitest `inventario-admin.component.spec` |
-| **# AC-20 (Sede Bloqueada)** | N/A | Selector deshabilitado para encargados | Vitest `inventario-admin.component.spec` |
-| **# AC-21 (Modal Alta)** | N/A | Formulario reactivo tipado | Vitest `inventario-admin.component.spec` |
-| **# AC-22 (Modal Ajuste)** | N/A | Formulario de ajuste con motivo | Vitest `inventario-admin.component.spec` |
-| **# AC-23 (Modal Transfer)** | N/A | Formulario de traslado inter-sedes | Vitest `inventario-admin.component.spec` |
-| **# AC-24 (Panel Kardex)** | N/A | Modal con cronologia de movimientos | Vitest `inventario-admin.component.spec` |
-| **# AC-25 (Banners y Signals)**| N/A | `InventarioAdminService` y Luxury Banners | Vitest y `ng build` (0 errores) |
+### 5.2 Suite Frontend (Vitest)
+Archivos:
+- `temporadas-colecciones-admin.service.spec.ts` (pruebas de metodos HTTP, Signals y captura de 409/422).
+- `temporadas-colecciones-admin.component.spec.ts` (render de encabezado, alternancia de pestanas, validadores de fechas en modales, Luxury Banners).
+- `admin-dashboard.component.spec.ts` (verificacion de tarjeta boutique y enlace).

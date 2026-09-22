@@ -1,0 +1,510 @@
+<!-- Modulo CU26: Consultar inventario global -->
+<div class="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-slate-900 selection:text-white">
+
+  <!-- 1. Cabecera Institucional del Panel -->
+  <header class="w-full border-b border-slate-200 bg-white sticky top-0 z-30 shadow-xs">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 text-xs tracking-wider uppercase text-slate-500 font-medium">
+        <a routerLink="/admin" class="hover:text-slate-900 transition-colors font-semibold text-slate-900">
+          FASHION STORE
+        </a>
+        <span class="text-slate-300">/</span>
+        <a routerLink="/admin" class="hover:text-slate-900 transition-colors text-[#AD8C63]">
+          ADMINISTRACION CORPORATIVA
+        </a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-900 font-bold">CONSULTAR INVENTARIO GLOBAL</span>
+      </div>
+
+      <div>
+        <a
+          id="btn-volver-dashboard"
+          routerLink="/admin"
+          class="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-black bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-all"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Volver al Panel Principal</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Contenido Principal -->
+  <main class="max-w-[1440px] px-6 py-8 mx-auto w-full flex-grow flex flex-col">
+
+    <!-- Titulo Editorial y Contexto -->
+    <div class="pb-6 border-b border-slate-200 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div>
+        <span class="text-xs font-bold tracking-widest text-[#AD8C63] uppercase">
+          Gestion Operativa & Balance de Red
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 mt-1">
+          Consultar inventario global
+        </h1>
+        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
+          Vision panoramica multi-sucursal de existencias, balances de red comercial y semaforo de stock.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          id="btn-recargar-inventario"
+          (click)="reintentar()"
+          [disabled]="inventarioService.cargando()"
+          class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+        >
+          <svg class="w-3.5 h-3.5 text-[#AD8C63]" [class.animate-spin]="inventarioService.cargando()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Actualizar Datos</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Luxury Banner de Error Contextual -->
+    @if (inventarioService.error()) {
+      <div class="mt-6 p-4 rounded-xl border border-red-200 bg-red-50 flex items-start justify-between gap-3 animate-fade-in shadow-xs">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h4 class="text-xs font-bold text-red-900 uppercase tracking-wider">Aviso del Sistema</h4>
+            <p class="text-xs text-red-700 mt-0.5 leading-relaxed">{{ inventarioService.error() }}</p>
+          </div>
+        </div>
+        <button
+          (click)="reintentar()"
+          class="text-xs font-bold uppercase tracking-wider text-red-800 hover:text-red-950 underline shrink-0 cursor-pointer"
+        >
+          Reintentar
+        </button>
+      </div>
+    }
+
+    <!-- 3. Tarjetas de Metricas Superiores (KPIs de Red) -->
+    <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Metrica 1: Unidades en Red -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unidades en Red</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        </div>
+        <div class="mt-3 flex items-baseline justify-between">
+          <span class="text-2xl sm:text-3xl font-bold text-slate-900">
+            {{ inventarioService.metricas().total_unidades_red | number }}
+          </span>
+          <span class="text-xs font-medium text-slate-500">Disponibles</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">Existencias fisicas en red activa</p>
+      </div>
+
+      <!-- Metrica 2: Variantes Monitoreadas -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Variantes Monitoreadas</span>
+          <span class="w-2 h-2 rounded-full bg-[#AD8C63]"></span>
+        </div>
+        <div class="mt-3 flex items-baseline justify-between">
+          <span class="text-2xl sm:text-3xl font-bold text-slate-900">
+            {{ inventarioService.metricas().variantes_monitoreadas | number }}
+          </span>
+          <span class="text-xs font-medium text-slate-500">SKUs Activos</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">Combinaciones de talla y color</p>
+      </div>
+
+      <!-- Metrica 3: Alertas de Stock Bajo -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between" [class.border-amber-300]="inventarioService.metricas().alertas_stock_bajo > 0">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alertas de Stock Bajo</span>
+          <span class="w-2 h-2 rounded-full" [class.bg-amber-500]="inventarioService.metricas().alertas_stock_bajo > 0" [class.bg-slate-300]="inventarioService.metricas().alertas_stock_bajo === 0"></span>
+        </div>
+        <div class="mt-3 flex items-baseline justify-between">
+          <span class="text-2xl sm:text-3xl font-bold" [class.text-amber-700]="inventarioService.metricas().alertas_stock_bajo > 0" [class.text-slate-900]="inventarioService.metricas().alertas_stock_bajo === 0">
+            {{ inventarioService.metricas().alertas_stock_bajo | number }}
+          </span>
+          <span class="text-xs font-medium text-amber-600" *ngIf="inventarioService.metricas().alertas_stock_bajo > 0">Reposicion</span>
+          <span class="text-xs font-medium text-slate-400" *ngIf="inventarioService.metricas().alertas_stock_bajo === 0">Estable</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">Existencias entre 1 y 5 unidades</p>
+      </div>
+
+      <!-- Metrica 4: Sedes Activas -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sedes Activas</span>
+          <span class="w-2 h-2 rounded-full bg-slate-900"></span>
+        </div>
+        <div class="mt-3 flex items-baseline justify-between">
+          <span class="text-2xl sm:text-3xl font-bold text-slate-900">
+            {{ inventarioService.metricas().sedes_activas | number }}
+          </span>
+          <span class="text-xs font-medium text-slate-500">Boutiques</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">Plazas comerciales en operacion</p>
+      </div>
+    </div>
+
+    <!-- 4. Barra de Herramientas y Filtros Reactivos -->
+    <div class="mt-6 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col lg:flex-row items-center gap-3">
+      <!-- Buscador con Debounce -->
+      <div class="relative w-full lg:w-80">
+        <input
+          id="input-busqueda-inventario"
+          type="text"
+          [formControl]="busquedaControl"
+          placeholder="Buscar prenda o SKU..."
+          class="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+        />
+        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+      <!-- Selector de Categoria -->
+      <div class="w-full sm:w-auto flex-1">
+        <select
+          id="select-categoria-inventario"
+          [formControl]="categoriaControl"
+          class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+        >
+          <option [ngValue]="null">Todas las Categorias</option>
+          @for (cat of atributosService.categorias(); track cat.id_categoria) {
+            <option [ngValue]="cat.id_categoria">{{ cat.nombre }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Selector de Sucursal -->
+      <div class="w-full sm:w-auto flex-1">
+        <select
+          id="select-sucursal-inventario"
+          [formControl]="sucursalControl"
+          class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+        >
+          <option [ngValue]="null">Todas las Sucursales</option>
+          @for (suc of sucursalesService.sucursales(); track suc.id_sucursal) {
+            <option [ngValue]="suc.id_sucursal">{{ suc.nombre }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Selector de Estado de Stock -->
+      <div class="w-full sm:w-auto flex-1">
+        <select
+          id="select-estado-inventario"
+          [formControl]="estadoControl"
+          class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+        >
+          <option value="todos">Todos los Estados</option>
+          <option value="optimo">Optimo (&gt; 5 uds)</option>
+          <option value="alerta_baja">Alerta Baja (1 a 5 uds)</option>
+          <option value="agotado">Agotado (0 uds)</option>
+        </select>
+      </div>
+
+      <!-- Selector de Ordenacion -->
+      <div class="w-full sm:w-auto flex-1">
+        <select
+          id="select-orden-inventario"
+          [formControl]="ordenControl"
+          class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#AD8C63] transition-colors"
+        >
+          <option value="nombre_asc">Nombre (A-Z)</option>
+          <option value="nombre_desc">Nombre (Z-A)</option>
+          <option value="stock_desc">Mayor Stock Disponible</option>
+          <option value="stock_asc">Menor Stock Disponible</option>
+          <option value="sku_asc">SKU (A-Z)</option>
+        </select>
+      </div>
+
+      <!-- Boton de Limpiar Filtros -->
+      <div class="w-full sm:w-auto">
+        <button
+          id="btn-limpiar-filtros"
+          type="button"
+          (click)="limpiarFiltros()"
+          class="w-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-black bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+        >
+          Limpiar
+        </button>
+      </div>
+    </div>
+
+    <!-- 5. Tabla Maestra Consolidada Multi-Sede -->
+    <div class="mt-6 bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden flex flex-col">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-100/70 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+              <th class="py-3 px-4">Prenda & SKU</th>
+              <th class="py-3 px-4">Categoria</th>
+              <th class="py-3 px-4">Talla & Color</th>
+              <th class="py-3 px-4">Existencias por Sucursal</th>
+              <th class="py-3 px-4 text-center">Stock en Red</th>
+              <th class="py-3 px-4 text-center">Estado</th>
+              <th class="py-3 px-4 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <!-- Loading Skeleton -->
+            @if (inventarioService.cargando()) {
+              @for (_ of [1, 2, 3, 4, 5]; track _) {
+                <tr class="animate-pulse">
+                  <td class="py-4 px-4"><div class="h-4 bg-slate-200 rounded w-48"></div></td>
+                  <td class="py-4 px-4"><div class="h-4 bg-slate-200 rounded w-24"></div></td>
+                  <td class="py-4 px-4"><div class="h-4 bg-slate-200 rounded w-20"></div></td>
+                  <td class="py-4 px-4"><div class="h-4 bg-slate-200 rounded w-64"></div></td>
+                  <td class="py-4 px-4 text-center"><div class="h-4 bg-slate-200 rounded w-16 mx-auto"></div></td>
+                  <td class="py-4 px-4 text-center"><div class="h-4 bg-slate-200 rounded w-16 mx-auto"></div></td>
+                  <td class="py-4 px-4 text-right"><div class="h-6 bg-slate-200 rounded w-20 ml-auto"></div></td>
+                </tr>
+              }
+            } @else if (inventarioService.items().length === 0) {
+              <!-- Empty State -->
+              <tr>
+                <td colspan="7" class="py-12 text-center text-slate-400">
+                  <div class="flex flex-col items-center justify-center">
+                    <svg class="w-10 h-10 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    <p class="text-sm font-semibold text-slate-700">No se encontraron prendas con los criterios aplicados</p>
+                    <p class="text-xs text-slate-400 mt-1">Intente modificar la busqueda o limpiar los filtros activos.</p>
+                  </div>
+                </td>
+              </tr>
+            } @else {
+              <!-- Filas de Datos -->
+              @for (item of inventarioService.items(); track trackByVariante($index, item)) {
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                  <!-- Prenda y SKU -->
+                  <td class="py-3 px-4">
+                    <div class="font-bold text-slate-900">{{ item.nombre_producto }}</div>
+                    <div class="font-mono text-[11px] text-slate-400 mt-0.5">{{ item.sku }}</div>
+                  </td>
+
+                  <!-- Categoria -->
+                  <td class="py-3 px-4 text-slate-600">
+                    <span class="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
+                      {{ item.categoria }}
+                    </span>
+                  </td>
+
+                  <!-- Talla y Color -->
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-2">
+                      <span
+                        *ngIf="item.swatches_hex"
+                        class="w-3 h-3 rounded-full border border-slate-300 shrink-0"
+                        [style.backgroundColor]="item.swatches_hex"
+                      ></span>
+                      <span class="font-semibold text-slate-800">{{ item.talla }}</span>
+                      <span class="text-slate-400 text-[11px]">• {{ item.color }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Chips de Existencias por Sucursal -->
+                  <td class="py-3 px-4">
+                    <div class="flex flex-wrap gap-1.5 max-w-md">
+                      @for (suc of item.desglose_sucursales; track suc.id_sucursal) {
+                        <span
+                          (click)="abrirModalDetalle(item)"
+                          title="{{ suc.nombre_sucursal }} ({{ suc.ciudad }}): {{ suc.cantidad_disponible }} disponibles"
+                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border cursor-pointer hover:opacity-80 transition-opacity"
+                          [class.bg-emerald-50]="suc.cantidad_disponible > 5"
+                          [class.text-emerald-800]="suc.cantidad_disponible > 5"
+                          [class.border-emerald-200]="suc.cantidad_disponible > 5"
+                          [class.bg-amber-50]="suc.cantidad_disponible > 0 && suc.cantidad_disponible <= 5"
+                          [class.text-amber-800]="suc.cantidad_disponible > 0 && suc.cantidad_disponible <= 5"
+                          [class.border-amber-200]="suc.cantidad_disponible > 0 && suc.cantidad_disponible <= 5"
+                          [class.bg-slate-100]="suc.cantidad_disponible === 0"
+                          [class.text-slate-400]="suc.cantidad_disponible === 0"
+                          [class.border-slate-200]="suc.cantidad_disponible === 0"
+                        >
+                          <span class="truncate max-w-[80px]">{{ suc.nombre_sucursal }}</span>
+                          <span class="font-bold">: {{ suc.cantidad_disponible }}</span>
+                        </span>
+                      }
+                    </div>
+                  </td>
+
+                  <!-- Stock Total en Red -->
+                  <td class="py-3 px-4 text-center">
+                    <div class="font-bold text-slate-900 text-sm">{{ item.total_disponible }}</div>
+                    <div class="text-[10px] text-slate-400">
+                      ({{ item.total_reservado }} res.)
+                    </div>
+                  </td>
+
+                  <!-- Badge de Estado -->
+                  <td class="py-3 px-4 text-center">
+                    @if (item.estado_stock === 'optimo') {
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                        Optimo
+                      </span>
+                    } @else if (item.estado_stock === 'alerta_baja') {
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                        Alerta baja
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700">
+                        Agotado
+                      </span>
+                    }
+                  </td>
+
+                  <!-- Acciones -->
+                  <td class="py-3 px-4 text-right whitespace-nowrap">
+                    <button
+                      type="button"
+                      [id]="'btn-ver-desglose-' + item.id_variante"
+                      (click)="abrirModalDetalle(item)"
+                      class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-slate-700 hover:text-black bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <span>Ver Desglose</span>
+                    </button>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginador Inferior -->
+      <div class="p-4 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div>
+          Mostrando <span class="font-semibold text-slate-900">{{ inventarioService.items().length }}</span>
+          de <span class="font-semibold text-slate-900">{{ inventarioService.totalRegistros() }}</span> variantes registradas
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            [disabled]="inventarioService.filtros().pagina <= 1 || inventarioService.cargando()"
+            (click)="cambiarPagina(inventarioService.filtros().pagina - 1)"
+            class="px-3 py-1.5 border border-slate-200 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer font-medium"
+          >
+            Anterior
+          </button>
+          <span class="font-medium text-slate-700 px-2">
+            Pagina {{ inventarioService.filtros().pagina }} de {{ inventarioService.totalPaginas() }}
+          </span>
+          <button
+            type="button"
+            [disabled]="inventarioService.filtros().pagina >= inventarioService.totalPaginas() || inventarioService.cargando()"
+            (click)="cambiarPagina(inventarioService.filtros().pagina + 1)"
+            class="px-3 py-1.5 border border-slate-200 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer font-medium"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 6. Modal Accesible de Detalle Logistico por Sede -->
+  @if (inventarioService.modalDetalleAbierto() && inventarioService.itemSeleccionadoDetalle(); as seleccionado) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+        <!-- Encabezado del Modal -->
+        <div class="p-6 border-b border-slate-200 flex items-start justify-between">
+          <div>
+            <span class="text-[10px] font-bold text-[#AD8C63] uppercase tracking-widest">
+              Detalle Logistico & Derivacion
+            </span>
+            <h3 class="text-lg font-bold text-slate-900 mt-0.5">
+              {{ seleccionado.nombre_producto }}
+            </h3>
+            <p class="text-xs text-slate-500 font-mono mt-0.5">
+              SKU: {{ seleccionado.sku }} • Talla: {{ seleccionado.talla }} • Color: {{ seleccionado.color }}
+            </p>
+          </div>
+          <button
+            id="btn-cerrar-modal-detalle"
+            type="button"
+            (click)="cerrarModalDetalle()"
+            class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Tabla de Boutiques con Disponibilidad y Telefono Directo -->
+        <div class="p-6 overflow-y-auto space-y-4">
+          <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="bg-slate-100/70 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <th class="py-2.5 px-3">Boutique & Ciudad</th>
+                  <th class="py-2.5 px-3">Direccion & Contacto</th>
+                  <th class="py-2.5 px-3 text-center">Disponible</th>
+                  <th class="py-2.5 px-3 text-center">Reservado</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (suc of seleccionado.desglose_sucursales; track suc.id_sucursal) {
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-3 px-3">
+                      <div class="font-bold text-slate-900">{{ suc.nombre_sucursal }}</div>
+                      <div class="text-[11px] text-slate-500">{{ suc.ciudad }}</div>
+                    </td>
+                    <td class="py-3 px-3">
+                      <div class="text-slate-600 truncate max-w-[220px]">{{ suc.direccion }}</div>
+                      @if (suc.telefono) {
+                        <a
+                          [href]="'tel:' + suc.telefono"
+                          class="inline-flex items-center gap-1 text-[11px] text-[#AD8C63] font-semibold hover:underline mt-0.5"
+                        >
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          <span>{{ suc.telefono }}</span>
+                        </a>
+                      } @else {
+                        <span class="text-[11px] text-slate-400">Sin telefono</span>
+                      }
+                    </td>
+                    <td class="py-3 px-3 text-center font-bold text-slate-900" [class.text-emerald-700]="suc.cantidad_disponible > 0">
+                      {{ suc.cantidad_disponible }}
+                    </td>
+                    <td class="py-3 px-3 text-center text-slate-500">
+                      {{ suc.cantidad_reservada }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs text-slate-600">
+            <span>Total Disponible en Cadena:</span>
+            <span class="font-bold text-slate-900 text-sm">{{ seleccionado.total_disponible }} Unidades</span>
+          </div>
+        </div>
+
+        <!-- Pie del Modal -->
+        <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+          <button
+            type="button"
+            (click)="cerrarModalDetalle()"
+            class="px-5 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-black bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-colors cursor-pointer shadow-xs"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

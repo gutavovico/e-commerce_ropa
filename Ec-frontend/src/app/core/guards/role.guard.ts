@@ -10,21 +10,47 @@ export const roleGuard = (rolesPermitidos: string[]): CanActivateFn => {
   return () => {
     const loginService = inject(LoginService);
     const router = inject(Router);
-    const usuario = loginService.usuarioActual();
+    let usuario = loginService.usuarioActual();
+
+    // Recuperacion defensiva de sesion en caso de sincronizacion diferida
+    if (!usuario && typeof window !== 'undefined') {
+      try {
+        const userJson =
+          localStorage.getItem('fashionstore_user') ||
+          sessionStorage.getItem('fashionstore_user');
+        if (userJson) {
+          usuario = JSON.parse(userJson);
+        }
+      } catch {
+        usuario = null;
+      }
+    }
 
     if (!usuario) {
+      console.warn('[ROLE_GUARD] Acceso denegado: sesion de usuario no encontrada.');
       return router.createUrlTree(['/login']);
     }
 
-    const rolNormalizado = String(usuario?.rol || '').toLowerCase().trim();
+    const rolUsuario = String(usuario?.rol || '').toLowerCase().trim();
     const rolesPermitidosNormalizados = rolesPermitidos.map((r) =>
       String(r).toLowerCase().trim()
     );
 
-    if (rolesPermitidosNormalizados.includes(rolNormalizado)) {
+    const esAdminValido =
+      (rolUsuario === 'administrador' || rolUsuario === 'admin') &&
+      (rolesPermitidosNormalizados.includes('administrador') ||
+        rolesPermitidosNormalizados.includes('admin'));
+
+    if (rolesPermitidosNormalizados.includes(rolUsuario) || esAdminValido) {
       return true;
     }
 
+    console.warn(
+      '[ROLE_GUARD] Acceso denegado. Rol usuario:',
+      rolUsuario,
+      'Roles requeridos:',
+      rolesPermitidos
+    );
     return router.createUrlTree(['/admin']);
   };
 };
@@ -32,16 +58,36 @@ export const roleGuard = (rolesPermitidos: string[]): CanActivateFn => {
 export const adminOnlyGuard: CanActivateFn = () => {
   const loginService = inject(LoginService);
   const router = inject(Router);
-  const usuario = loginService.usuarioActual();
+  let usuario = loginService.usuarioActual();
+
+  // Recuperacion defensiva de sesion
+  if (!usuario && typeof window !== 'undefined') {
+    try {
+      const userJson =
+        localStorage.getItem('fashionstore_user') ||
+        sessionStorage.getItem('fashionstore_user');
+      if (userJson) {
+        usuario = JSON.parse(userJson);
+      }
+    } catch {
+      usuario = null;
+    }
+  }
 
   if (!usuario) {
+    console.warn('[ROLE_GUARD] Acceso denegado a adminOnlyGuard: sesion no encontrada.');
     return router.createUrlTree(['/login']);
   }
 
-  const rolNormalizado = String(usuario?.rol || '').toLowerCase().trim();
-  if (rolNormalizado === 'administrador') {
+  const rolUsuario = String(usuario?.rol || '').toLowerCase().trim();
+  if (rolUsuario === 'administrador' || rolUsuario === 'admin') {
     return true;
   }
 
+  console.warn(
+    '[ROLE_GUARD] Acceso denegado a adminOnlyGuard. Rol usuario:',
+    rolUsuario
+  );
   return router.createUrlTree(['/admin']);
 };
+

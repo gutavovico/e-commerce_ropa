@@ -1,0 +1,623 @@
+<div class="min-h-screen bg-slate-50 text-slate-900 font-['Outfit',sans-serif]">
+
+  <!-- Contenedor Editorial Central -->
+  <main class="max-w-[1440px] px-6 py-8 mx-auto space-y-8">
+
+    <!-- 1. Cabecera Institucional y Migas de Pan -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200">
+      <div>
+        <nav class="flex items-center gap-2 text-[11px] font-semibold tracking-widest text-[#AD8C63] uppercase mb-2" aria-label="Breadcrumb">
+          <a routerLink="/admin" class="hover:text-black transition-colors">INICIO</a>
+          <span>/</span>
+          <span>ADMINISTRACION</span>
+          <span>/</span>
+          <span class="text-slate-800">VISUALIZAR INDICADORES EMPRESARIALES</span>
+        </nav>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+            Visualizar indicadores empresariales
+          </h1>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+            Business Intelligence
+          </span>
+        </div>
+        <p class="text-xs md:text-sm text-slate-500 mt-1 max-w-2xl">
+          Supervision cuantitativa de ingresos, volumen transaccional, rentabilidad estimada y rendimiento por sucursal.
+        </p>
+      </div>
+
+      <!-- Acciones Superiores -->
+      <div class="flex items-center gap-3 shrink-0">
+        <a
+          routerLink="/admin"
+          id="btn-volver-dashboard-indicadores"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold tracking-wider transition-colors shadow-xs"
+        >
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Volver al Panel Principal</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- 2. Luxury Banners Contextuales (Captura no destructiva de anomalias) -->
+    @if (errorServicio() || errorFechas()) {
+      <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start justify-between gap-3 text-rose-800 animate-fadeIn">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider">Aviso de Excepcion Semantica</h4>
+            <p class="text-xs mt-0.5 leading-relaxed">{{ errorServicio() || errorFechas() }}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="limpiarError()"
+          class="text-rose-400 hover:text-rose-700 transition-colors p-1"
+          aria-label="Cerrar aviso"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- 3. Barra Superior Reactiva de Filtros y Temporalidad -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5" aria-label="Filtros analiticos">
+      <!-- Selector de Periodo Rapido -->
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Periodo:</span>
+        @for (opt of opcionesPeriodo; track opt.clave) {
+          <button
+            type="button"
+            [id]="'btn-periodo-' + opt.clave"
+            (click)="seleccionarPeriodo(opt.clave)"
+            [class.bg-[#0F172A]]="periodoSeleccionado() === opt.clave"
+            [class.text-white]="periodoSeleccionado() === opt.clave"
+            [class.border-[#0F172A]]="periodoSeleccionado() === opt.clave"
+            [class.bg-slate-50]="periodoSeleccionado() !== opt.clave"
+            [class.text-slate-700]="periodoSeleccionado() !== opt.clave"
+            [class.border-slate-200]="periodoSeleccionado() !== opt.clave"
+            class="px-3 py-1.5 rounded-xl border text-xs font-medium tracking-wide transition-all cursor-pointer hover:border-slate-400"
+          >
+            {{ opt.etiqueta }}
+          </button>
+        }
+      </div>
+
+      <!-- Selector de Sucursales / Filtro Territorial -->
+      <div class="flex items-center gap-3">
+        @if (esAdmin()) {
+          <div class="flex items-center gap-2">
+            <label for="select-sucursal-indicadores" class="text-xs font-bold uppercase tracking-wider text-slate-400 shrink-0">
+              Sede:
+            </label>
+            <select
+              id="select-sucursal-indicadores"
+              (change)="cambiarSucursalFiltro($event)"
+              [value]="idSucursalFiltro() ?? ''"
+              class="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs font-medium focus:outline-none focus:border-[#AD8C63] transition-colors"
+            >
+              <option value="">Todas las sucursales (Consolidado)</option>
+              @for (suc of sucursalesDisponibles(); track suc.id_sucursal) {
+                <option [value]="suc.id_sucursal">{{ suc.nombre }} ({{ suc.ciudad }})</option>
+              }
+            </select>
+          </div>
+        } @else if (esEncargado()) {
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
+            <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span>Sede asignada: <strong class="text-slate-900">{{ nombreSucursalEncargado() }}</strong></span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- 4. Subpanel de Rango Personalizado (Condicional) -->
+    @if (periodoSeleccionado() === 'personalizado') {
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-wrap items-center gap-4 animate-fadeIn">
+        <div class="flex items-center gap-2">
+          <label for="fecha-desde-indicadores" class="text-xs font-semibold text-slate-600">Desde:</label>
+          <input
+            type="date"
+            id="fecha-desde-indicadores"
+            [ngModel]="fechaDesde()"
+            (ngModelChange)="fechaDesde.set($event)"
+            class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 bg-slate-50 focus:outline-none focus:border-[#AD8C63]"
+          />
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label for="fecha-hasta-indicadores" class="text-xs font-semibold text-slate-600">Hasta:</label>
+          <input
+            type="date"
+            id="fecha-hasta-indicadores"
+            [ngModel]="fechaHasta()"
+            (ngModelChange)="fechaHasta.set($event)"
+            class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 bg-slate-50 focus:outline-none focus:border-[#AD8C63]"
+          />
+        </div>
+
+        <button
+          type="button"
+          id="btn-aplicar-fechas-personalizadas"
+          (click)="aplicarPeriodoPersonalizado()"
+          class="px-4 py-1.5 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-semibold tracking-wider transition-colors cursor-pointer shadow-xs"
+        >
+          Aplicar Rango
+        </button>
+      </div>
+    }
+
+    <!-- 5. Estado de Carga (Skeletons) -->
+    @if (cargando()) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 animate-pulse" aria-label="Cargando metricas">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 h-36 flex flex-col justify-between">
+            <div class="h-4 bg-slate-200 rounded-md w-1/2"></div>
+            <div class="h-8 bg-slate-200 rounded-md w-3/4"></div>
+            <div class="h-3 bg-slate-200 rounded-md w-2/3"></div>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- 6. Grid de 4 Tarjetas de KPIs Ejecutivos -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" aria-label="Indicadores Ejecutivos">
+        <!-- KPI 1: Ingresos Totales -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <span>Ingresos Totales</span>
+            <div class="w-8 h-8 rounded-lg bg-[#FAF7F2] border border-[#ECE4D8] flex items-center justify-center">
+              <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-3">
+            <p class="text-2xl font-bold text-slate-900" id="kpi-ingresos-totales">
+              {{ formatearMoneda(resumen()?.ingresos_totales) }}
+            </p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <span
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wider"
+                [class.bg-emerald-50]="(resumen()?.variacion_porcentual || 0) >= 0"
+                [class.text-emerald-700]="(resumen()?.variacion_porcentual || 0) >= 0"
+                [class.border]="(resumen()?.variacion_porcentual || 0) >= 0"
+                [class.border-emerald-200]="(resumen()?.variacion_porcentual || 0) >= 0"
+                [class.bg-rose-50]="(resumen()?.variacion_porcentual || 0) < 0"
+                [class.text-rose-700]="(resumen()?.variacion_porcentual || 0) < 0"
+                [class.border-rose-200]="(resumen()?.variacion_porcentual || 0) < 0"
+                id="badge-variacion-ingresos"
+              >
+                @if ((resumen()?.variacion_porcentual || 0) >= 0) {
+                  <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                } @else {
+                  <svg class="w-3 h-3 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                }
+                <span>{{ formatearPorcentaje(resumen()?.variacion_porcentual) }}</span>
+              </span>
+              <span class="text-[11px] text-slate-400">vs periodo anterior</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI 2: Transacciones Concluidas -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <span>Transacciones</span>
+            <div class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+              <svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-3">
+            <p class="text-2xl font-bold text-slate-900" id="kpi-total-transacciones">
+              {{ resumen()?.total_transacciones ?? 0 }}
+            </p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <span
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wider"
+                [class.bg-emerald-50]="(resumen()?.variacion_porcentual_transacciones || 0) >= 0"
+                [class.text-emerald-700]="(resumen()?.variacion_porcentual_transacciones || 0) >= 0"
+                [class.border]="(resumen()?.variacion_porcentual_transacciones || 0) >= 0"
+                [class.border-emerald-200]="(resumen()?.variacion_porcentual_transacciones || 0) >= 0"
+                [class.bg-rose-50]="(resumen()?.variacion_porcentual_transacciones || 0) < 0"
+                [class.text-rose-700]="(resumen()?.variacion_porcentual_transacciones || 0) < 0"
+                [class.border-rose-200]="(resumen()?.variacion_porcentual_transacciones || 0) < 0"
+              >
+                <span>{{ formatearPorcentaje(resumen()?.variacion_porcentual_transacciones) }}</span>
+              </span>
+              <span class="text-[11px] text-slate-400">ventas concluidas</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI 3: Margen Comercial Estimado -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <span>Margen Comercial Estimado</span>
+            <div class="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+              <svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-3">
+            <p class="text-2xl font-bold text-slate-900" id="kpi-margen-estimado">
+              {{ formatearMoneda(resumen()?.margen_estimado) }}
+            </p>
+            <p class="text-[11px] text-slate-400 mt-2 uppercase tracking-wider">
+              Rentabilidad bruta sobre costo base
+            </p>
+          </div>
+        </div>
+
+        <!-- KPI 4: Ticket Promedio -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <span>Ticket Promedio</span>
+            <div class="w-8 h-8 rounded-lg bg-[#FAF7F2] border border-[#ECE4D8] flex items-center justify-center">
+              <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+          </div>
+          <div class="mt-3">
+            <p class="text-2xl font-bold text-slate-900" id="kpi-ticket-promedio">
+              {{ formatearMoneda(resumen()?.ticket_promedio) }}
+            </p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <span
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wider"
+                [class.bg-emerald-50]="(resumen()?.variacion_porcentual_ticket || 0) >= 0"
+                [class.text-emerald-700]="(resumen()?.variacion_porcentual_ticket || 0) >= 0"
+                [class.border]="(resumen()?.variacion_porcentual_ticket || 0) >= 0"
+                [class.border-emerald-200]="(resumen()?.variacion_porcentual_ticket || 0) >= 0"
+                [class.bg-rose-50]="(resumen()?.variacion_porcentual_ticket || 0) < 0"
+                [class.text-rose-700]="(resumen()?.variacion_porcentual_ticket || 0) < 0"
+                [class.border-rose-200]="(resumen()?.variacion_porcentual_ticket || 0) < 0"
+              >
+                <span>{{ formatearPorcentaje(resumen()?.variacion_porcentual_ticket) }}</span>
+              </span>
+              <span class="text-[11px] text-slate-400">gasto medio por venta</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- 7. Grafica SVG Nativa 1: Curva Cronologica de Serie Temporal -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4" aria-label="Serie Temporal de Ingresos">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">
+            Evolucion Cronologica de Ingresos
+          </h2>
+          <p class="text-xs text-slate-500">
+            Comportamiento temporal de ventas concluidas durante el periodo seleccionado.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold tracking-wider uppercase border border-slate-200">
+            Agrupacion: {{ serieTemporal()?.agrupacion ?? 'diaria' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Contenedor del Grafico SVG -->
+      @if (puntosGraficoCalculados().length === 0) {
+        <div class="py-16 text-center text-slate-400">
+          <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <p class="text-sm font-medium">Sin datos transaccionales para graficar en este periodo.</p>
+        </div>
+      } @else {
+        <div class="relative w-full overflow-x-auto">
+          <svg
+            [attr.viewBox]="'0 0 ' + svgAncho + ' ' + svgAlto"
+            class="w-full h-auto min-w-[650px] overflow-visible"
+            aria-label="Grafico de ingresos temporales"
+          >
+            <!-- Definiciones de Gradiente SVG -->
+            <defs>
+              <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#AD8C63" stop-opacity="0.30" />
+                <stop offset="100%" stop-color="#AD8C63" stop-opacity="0.00" />
+              </linearGradient>
+            </defs>
+
+            <!-- Lineas de Cuadricula Horizontal y Etiquetas Y -->
+            @for (linea of lineasGuiaY(); track linea.valor) {
+              <line
+                [attr.x1]="svgMargen.izquierdo"
+                [attr.y1]="linea.y"
+                [attr.x2]="svgAncho - svgMargen.derecho"
+                [attr.y2]="linea.y"
+                stroke="#E2E8F0"
+                stroke-dasharray="4 4"
+                stroke-width="1"
+              />
+              <text
+                [attr.x]="svgMargen.izquierdo - 10"
+                [attr.y]="linea.y + 4"
+                text-anchor="end"
+                font-size="11"
+                fill="#94A3B8"
+                font-weight="500"
+              >
+                {{ linea.etiqueta }}
+              </text>
+            }
+
+            <!-- Area Sombreada -->
+            <path
+              [attr.d]="areaSombreadaSvg()"
+              fill="url(#areaGradient)"
+            />
+
+            <!-- Linea Curva Principal -->
+            <path
+              [attr.d]="lineaCurvaSvg()"
+              fill="none"
+              stroke="#AD8C63"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+
+            <!-- Puntos Interactivos y Etiquetas X -->
+            @for (p of puntosGraficoCalculados(); track p.fecha_inicio) {
+              <!-- Punto en la Curva -->
+              <circle
+                [attr.cx]="p.x"
+                [attr.cy]="p.y"
+                [attr.r]="puntoActivo()?.fecha_inicio === p.fecha_inicio ? 6 : 4"
+                [attr.fill]="puntoActivo()?.fecha_inicio === p.fecha_inicio ? '#AD8C63' : '#0F172A'"
+                stroke="#FFFFFF"
+                stroke-width="2"
+                class="transition-all cursor-pointer"
+                (mouseenter)="activarPunto(p)"
+                (mouseleave)="activarPunto(null)"
+              />
+
+              <!-- Etiqueta de Fecha en Eje X -->
+              <text
+                [attr.x]="p.x"
+                [attr.y]="svgAlto - 15"
+                text-anchor="middle"
+                font-size="10"
+                fill="#64748B"
+                font-weight="500"
+              >
+                {{ p.etiqueta_tiempo }}
+              </text>
+            }
+          </svg>
+
+          <!-- Popover / Tooltip Flotante del Punto Activo -->
+          @if (puntoActivo()) {
+            <div
+              class="absolute z-10 bg-[#0F172A] text-white p-2.5 rounded-xl shadow-lg pointer-events-none text-xs space-y-1 transition-all"
+              [style.left.px]="puntoActivo()!.x - 60"
+              [style.top.px]="puntoActivo()!.y - 65"
+            >
+              <p class="font-bold text-[#AD8C63]">{{ puntoActivo()!.etiqueta_tiempo }}</p>
+              <p class="text-slate-200">Ingresos: <strong>{{ formatearMoneda(puntoActivo()!.monto_ingresos) }}</strong></p>
+              <p class="text-slate-400">Ordenes: {{ puntoActivo()!.cantidad_ordenes }}</p>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- 8. Grid Dividido: Top 5 Prendas y Distribuciones -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+      <!-- Grafica SVG Nativa 2: Top 5 Prendas mas Comercializadas -->
+      <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-5" aria-label="Ranking de prendas">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">
+            Top 5 Prendas mas Comercializadas
+          </h2>
+          <p class="text-xs text-slate-500">
+            Prendas con mayor recaudacion e impacto cuantitativo en la red.
+          </p>
+        </div>
+
+        @if (topProductos().length === 0) {
+          <p class="text-xs text-slate-400 py-8 text-center">No hay productos comercializados en el periodo.</p>
+        } @else {
+          <div class="space-y-4">
+            @for (prod of topProductos(); track prod.id_producto; let idx = $index) {
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {{ idx + 1 }}
+                    </span>
+                    <span class="font-bold text-slate-900 truncate max-w-[200px] sm:max-w-[280px]">
+                      {{ prod.nombre_producto }}
+                    </span>
+                    <span class="px-2 py-0.5 rounded-md bg-[#FAF7F2] text-[#AD8C63] font-semibold text-[10px] border border-[#ECE4D8]">
+                      {{ prod.sku_referencia }}
+                    </span>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-bold text-slate-900">{{ formatearMoneda(prod.monto_total_generado) }}</span>
+                    <span class="text-slate-400 text-[11px] ml-1">({{ prod.unidades_vendidas }} uds)</span>
+                  </div>
+                </div>
+
+                <!-- Barra de Progreso SVG Proporcional -->
+                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                  <div
+                    class="bg-[#0F172A] h-2.5 rounded-full transition-all duration-500"
+                    [style.width.%]="(prod.monto_total_generado / maximoMontoProductos()) * 100"
+                  ></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Grafica Segmentada: Distribucion por Canales y Categorias -->
+      <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-6" aria-label="Distribucion por canal y categoria">
+        <!-- Canales de Venta -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">
+              Canales de Distribucion
+            </h3>
+            <span class="text-xs text-slate-400">Participacion %</span>
+          </div>
+
+          @if ((distribucion()?.por_canal?.length || 0) === 0) {
+            <p class="text-xs text-slate-400 py-2">Sin datos de canales disponibles.</p>
+          } @else {
+            <div class="space-y-3">
+              @for (canal of distribucion()?.por_canal || []; track canal.canal_codigo) {
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-medium text-slate-700">{{ canal.canal_nombre }}</span>
+                    <div class="space-x-2">
+                      <span class="font-bold text-slate-900">{{ formatearMoneda(canal.monto_facturado) }}</span>
+                      <span class="text-slate-400 font-semibold">{{ canal.porcentaje_participacion }}%</span>
+                    </div>
+                  </div>
+                  <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      class="bg-[#AD8C63] h-2 rounded-full transition-all duration-500"
+                      [style.width.%]="canal.porcentaje_participacion"
+                    ></div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <hr class="border-slate-100" />
+
+        <!-- Categorias Comerciales -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">
+              Categorias Destacadas
+            </h3>
+            <span class="text-xs text-slate-400">Participacion %</span>
+          </div>
+
+          @if ((distribucion()?.por_categoria?.length || 0) === 0) {
+            <p class="text-xs text-slate-400 py-2">Sin datos de categorias disponibles.</p>
+          } @else {
+            <div class="space-y-3">
+              @for (cat of distribucion()?.por_categoria || []; track cat.id_categoria) {
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-medium text-slate-700">{{ cat.nombre_categoria }}</span>
+                    <div class="space-x-2">
+                      <span class="font-bold text-slate-900">{{ formatearMoneda(cat.monto_facturado) }}</span>
+                      <span class="text-slate-400 font-semibold">{{ cat.porcentaje_participacion }}%</span>
+                    </div>
+                  </div>
+                  <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      class="bg-slate-700 h-2 rounded-full transition-all duration-500"
+                      [style.width.%]="cat.porcentaje_participacion"
+                    ></div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 9. Comparativa de Rendimiento por Sucursal (Exclusivo Administrador) -->
+    @if (esAdmin()) {
+      <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4" aria-label="Comparativa de Sucursales">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">
+              Comparativa de Rendimiento entre Sucursales
+            </h2>
+            <p class="text-xs text-slate-500">
+              Analisis del aporte de cada sede activa a los ingresos y volumen comercial corporativo.
+            </p>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 shrink-0">
+            Vista Corporativa
+          </span>
+        </div>
+
+        @if (sucursalesOrdenadas().length === 0) {
+          <p class="text-xs text-slate-400 py-8 text-center">No hay registros de sucursales para el periodo.</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs" aria-label="Tabla de sucursales">
+              <thead>
+                <tr class="border-b border-slate-200 text-slate-400 uppercase font-semibold tracking-wider">
+                  <th scope="col" class="pb-3 cursor-pointer hover:text-slate-700" (click)="cambiarOrdenSucursales('nombre_sucursal')">
+                    Sucursal / Ciudad
+                  </th>
+                  <th scope="col" class="pb-3 text-right cursor-pointer hover:text-slate-700" (click)="cambiarOrdenSucursales('total_ventas')">
+                    Ventas
+                  </th>
+                  <th scope="col" class="pb-3 text-right cursor-pointer hover:text-slate-700" (click)="cambiarOrdenSucursales('monto_facturado')">
+                    Ingresos Totales
+                  </th>
+                  <th scope="col" class="pb-3 text-right cursor-pointer hover:text-slate-700" (click)="cambiarOrdenSucursales('ticket_promedio')">
+                    Ticket Promedio
+                  </th>
+                  <th scope="col" class="pb-3 text-right cursor-pointer hover:text-slate-700" (click)="cambiarOrdenSucursales('porcentaje_red')">
+                    Participacion Red
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (suc of sucursalesOrdenadas(); track suc.id_sucursal) {
+                  <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="py-3.5 font-bold text-slate-900">
+                      {{ suc.nombre_sucursal }}
+                      <span class="block text-[11px] font-normal text-slate-400">{{ suc.ciudad }}</span>
+                    </td>
+                    <td class="py-3.5 text-right font-medium text-slate-700">
+                      {{ suc.total_ventas }}
+                    </td>
+                    <td class="py-3.5 text-right font-bold text-slate-900">
+                      {{ formatearMoneda(suc.monto_facturado) }}
+                    </td>
+                    <td class="py-3.5 text-right font-medium text-slate-700">
+                      {{ formatearMoneda(suc.ticket_promedio) }}
+                    </td>
+                    <td class="py-3.5 text-right">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                        {{ suc.porcentaje_red }}%
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+
+  </main>
+</div>

@@ -352,14 +352,22 @@ def test_endpoint_publico_sucursales(client):
 
 def test_endpoint_admin_ciudades_sin_token_401(client):
     # AC-1: Acceso a /api/v1/admin/ciudades sin token devuelve 401
-    response = client.get("/api/v1/admin/ciudades")
-    assert response.status_code == 401
-    assert response.json()["code"] == "TOKEN_INVALIDO"
+    app.dependency_overrides.pop(get_current_user, None)
+    mock_db = MagicMock()
+    app.dependency_overrides[get_db] = lambda: mock_db
+    try:
+        response = client.get("/api/v1/admin/ciudades")
+        assert response.status_code == 401
+        assert response.json()["code"] == "TOKEN_INVALIDO"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
 
 
 def test_endpoint_admin_ciudades_con_rol_cliente_403(client):
     # AC-1: Acceso con rol cliente devuelve 403 Forbidden
+    mock_db = MagicMock()
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_cliente_mock()
+    app.dependency_overrides[get_db] = lambda: mock_db
     try:
         token_cliente = create_access_token({"sub": "2", "rol": "cliente"})
         response = client.get(
@@ -370,6 +378,7 @@ def test_endpoint_admin_ciudades_con_rol_cliente_403(client):
         assert response.json()["code"] == "ACCESO_DENEGADO"
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_db, None)
 
 
 def test_endpoint_admin_ciudades_con_rol_admin_200(client):

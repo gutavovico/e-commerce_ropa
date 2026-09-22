@@ -30,7 +30,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from core.database import Base
 
@@ -84,25 +84,51 @@ class TemporadaORM(Base):
     """Mapeo de la tabla `fashionstore.temporadas`."""
 
     __tablename__ = "temporadas"
-    __table_args__ = {"schema": "fashionstore"}
+    __table_args__ = (
+        CheckConstraint("fecha_fin > fecha_inicio", name="chk_temporadas_fechas_orden"),
+        CheckConstraint("anio >= 2020", name="chk_temporadas_anio_valido"),
+        {"schema": "fashionstore", "extend_existing": True},
+    )
 
     id_temporada: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
-    tipo: Mapped[str] = mapped_column(tipo_temporada_enum, nullable=False)
+    tipo: Mapped[Optional[str]] = mapped_column(tipo_temporada_enum, nullable=True)
+    anio: Mapped[int] = mapped_column(Integer, nullable=False, default=2026)
     fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
     fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
-    activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    estado_activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    actualizado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    activa = synonym("estado_activo")
 
     colecciones: Mapped[List["ColeccionORM"]] = relationship(
-        "ColeccionORM", back_populates="temporada"
+        "ColeccionORM", back_populates="temporada", cascade="all, delete-orphan"
     )
+
+    def __init__(self, **kwargs):
+        if "activa" in kwargs and "estado_activo" not in kwargs:
+            kwargs["estado_activo"] = kwargs.pop("activa")
+        super().__init__(**kwargs)
 
 
 class ColeccionORM(Base):
     """Mapeo de la tabla `fashionstore.colecciones`."""
 
     __tablename__ = "colecciones"
-    __table_args__ = {"schema": "fashionstore"}
+    __table_args__ = (
+        UniqueConstraint("id_temporada", "nombre", name="uq_colecciones_temporada_nombre"),
+        {"schema": "fashionstore", "extend_existing": True},
+    )
 
     id_coleccion: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     id_temporada: Mapped[int] = mapped_column(
@@ -111,10 +137,17 @@ class ColeccionORM(Base):
     id_proveedor: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    estado_activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     creado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
+    )
+    actualizado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
     temporada: Mapped["TemporadaORM"] = relationship("TemporadaORM", back_populates="colecciones")

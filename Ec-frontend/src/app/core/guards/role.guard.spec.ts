@@ -118,4 +118,67 @@ describe('roleGuard', () => {
       TestBed.runInInjectionContext(() => guard({} as any, {} as any))
     ).toBe(true);
   });
+
+  it('debe reconocer admin como equivalente a administrador en roleGuard y adminOnlyGuard', () => {
+    usuarioActualSignal.set({
+      id_usuario: 1,
+      email: 'admin@fs.com',
+      nombres: 'Admin',
+      apellidos: 'Principal',
+      rol: 'admin',
+      token: 'jwt',
+    });
+
+    const guard = roleGuard(['administrador', 'encargado_sucursal']);
+    expect(
+      TestBed.runInInjectionContext(() => guard({} as any, {} as any))
+    ).toBe(true);
+
+    expect(
+      TestBed.runInInjectionContext(() => adminOnlyGuard({} as any, {} as any))
+    ).toBe(true);
+  });
+
+  it('debe registrar console.warn con los motivos de acceso denegado', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    usuarioActualSignal.set({
+      id_usuario: 3,
+      email: 'cajero@fs.com',
+      nombres: 'Cajero',
+      apellidos: 'Ventas',
+      rol: 'cajero',
+      token: 'jwt',
+    });
+
+    const guard = roleGuard(['administrador', 'admin', 'encargado_sucursal']);
+    const result = TestBed.runInInjectionContext(() => guard({} as any, {} as any));
+
+    expect(result).toBe('/admin');
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[ROLE_GUARD] Acceso denegado. Rol usuario:',
+      'cajero',
+      'Roles requeridos:',
+      ['administrador', 'admin', 'encargado_sucursal']
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('debe recuperar la sesion desde localStorage si usuarioActual es null', () => {
+    usuarioActualSignal.set(null);
+    const mockUser = {
+      id_usuario: 1,
+      email: 'admin@fs.com',
+      nombres: 'Admin',
+      apellidos: 'Principal',
+      rol: 'administrador',
+      token: 'jwt',
+    };
+    localStorage.setItem('fashionstore_user', JSON.stringify(mockUser));
+
+    const guard = roleGuard(['administrador', 'admin']);
+    const result = TestBed.runInInjectionContext(() => guard({} as any, {} as any));
+
+    expect(result).toBe(true);
+    localStorage.removeItem('fashionstore_user');
+  });
 });
