@@ -250,6 +250,15 @@ export const routes: Routes = [
       ).then((m) => m.BitacoraAdminComponent),
   },
   {
+    path: 'admin/reportes',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/cu31_reportes_voz/paginas/reportes-admin.component'
+      ).then((m) => m.ReportesAdminComponent),
+    title: 'FASHION STORE | Generar reportes ejecutivos y consultas por voz',
+  },
+  {
     path: 'admin/perfil',
     canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
     loadComponent: () =>

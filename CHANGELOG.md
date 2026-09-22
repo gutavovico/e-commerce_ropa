@@ -2,6 +2,18 @@
 
 Todas las modificaciones notables, correcciones de errores de infraestructura y promociones de especificaciones del proyecto se documentan en este archivo.
 
+## [2.8.0] - 2026-09-22
+
+### Promocion a Baseline Permanente
+- **CU31 - Generar reportes ejecutivos y consultas por voz (Analitica, Emision Binaria y Reconocimiento de Voz):** Promovido oficialmente a especificacion permanente del sistema en [`.specs/modules/comercial/CU31-reportes-voz.md`](.specs/modules/comercial/CU31-reportes-voz.md).
+- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU31/` (`spec.md`, `design.md`, `tasks.md`) y limpiado el directorio de cambios temporales `.specs/changes/CU31/`.
+- **Exclusion Formal Justificada de Ec-mobile:** Ratificada documentalmente la exclusion justificada de la aplicacion movil (`Ec-mobile`). La emision de reportes ejecutivos contables, compilacion de hojas de calculo complejas, generacion de documentos PDF vectoriales y procesamiento de comandos de trastienda son competencias exclusivas del back-office en la consola web de escritorio (`Ec-frontend`). La aplicacion movil B2C queda formalmente excluida sin pantallas, modelos ni dependencias de reporte.
+- **Validacion Completa:**
+  - Backend: 407/407 tests en verde en `pytest` (20/20 especificos de CU31 en `test_cu31_reportes_voz.py`); motores de generacion binaria en memoria (`GeneradorExcel` con `openpyxl` aplicando paleta Obsidian & Camel y formulas SUM, `GeneradorPDF` con `reportlab` horizontal Letter con encabezado corporativo y pie paginado, `GeneradorCSV` con prefijo BOM UTF-8 `\ufeff`); parser lexico-semantico determinista de voz `ParserComandosVoz` sin dependencias externas para resolucion de modulos, fechas, sedes y formatos; endpoints REST en `/api/v1/admin/reportes` con streaming binario (`StreamingResponse`) y cabeceras `Content-Disposition`; RBAC estricto (aislamiento por sede y bloqueo de bitacora para `encargado_sucursal`); emision defensiva del evento de auditoria `EXPORTAR_REPORTE` en `fashionstore.bitacora`.
+  - Frontend Web: Compilacion limpia en Angular CLI (`ng build`, 0 errores), 448/448 tests en verde en Vitest / Angular CLI (8/8 en `reportes-admin.component.spec.ts`, 7/7 en `voz-reconocimiento.service.spec.ts`, 6/6 en `reportes-admin.service.spec.ts`, 27/27 en `admin-dashboard.component.spec.ts`); decimotercera tarjeta corporativa en `AdminDashboardComponent` ("Generar reportes ejecutivos y consultas por voz") bajo "Analitica y Reportes" con badge "Voz & Exportacion", boton `id="btn-reportes-voz"`, regla anti-botones estaticos con directiva dual (`routerLink="/admin/reportes"` y `(click)="navegar('/admin/reportes', $event)"`), conteo de 13 modulos activos para administrador y 10 para encargado, y prueba unitaria DOM en spec; servicio `VozReconocimientoService` integrado con Web Speech API nativa, senales reactivas y configuracion `es-BO` con degradacion elegante; servicio `ReportesAdminService` con descarga reactiva de Blobs binarios; vista Standalone `ReportesAdminComponent` en `/admin/reportes` con consola de microfono interactiva, animacion pulsante, seleccion manual multicriterio, previsualizacion cuantitativa reactiva y Luxury Banners.
+
+---
+
 ## [2.7.0] - 2026-09-22
 
 ### Promocion a Baseline Permanente
