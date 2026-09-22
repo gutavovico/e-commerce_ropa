@@ -46,6 +46,10 @@ canal_origen_enum = PG_ENUM(
     create_type=False,
 )
 
+# Los 12 valores del enum `fashionstore.tipo_movimiento_inv` tal y como existen en PostgreSQL
+# (verificado por introspección el 2026-09-22). Declarar menos de los reales no es inocuo:
+# SQLAlchemy valida en Python antes de escribir, así que registrar un movimiento
+# `venta_confirmada` o `cancelacion_pedido` fallaría pese a ser válido en la base.
 tipo_movimiento_inv_enum = PG_ENUM(
     "ingreso_proveedor",
     "reserva",
@@ -55,6 +59,10 @@ tipo_movimiento_inv_enum = PG_ENUM(
     "ajuste",
     "transferencia_salida",
     "transferencia_entrada",
+    "ajuste_positivo",
+    "ajuste_negativo",
+    "venta_confirmada",
+    "cancelacion_pedido",
     name="tipo_movimiento_inv",
     schema="fashionstore",
     create_type=False,

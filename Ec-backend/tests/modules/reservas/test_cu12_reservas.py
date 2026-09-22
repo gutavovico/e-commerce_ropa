@@ -395,9 +395,11 @@ def test_crear_reserva_no_autenticado_401(client):
 
 
 def test_listar_sucursales_activas_200(client):
-    """Verifica que el endpoint GET /api/v1/sucursales/activas devuelva el directorio de boutiques."""
+    """Verifica que GET /api/v1/sucursales/activas devuelva el directorio real de boutiques."""
+    sucursal = crear_sucursal_fixture(id_sucursal=1)
+
     db_mock = MagicMock()
-    db_mock.execute.return_value.scalars.return_value.all.return_value = []
+    db_mock.execute.return_value.scalars.return_value.all.return_value = [sucursal]
 
     app.dependency_overrides[get_db] = lambda: db_mock
     try:
@@ -405,7 +407,27 @@ def test_listar_sucursales_activas_200(client):
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) >= 2
-        assert data[0]["nombre"] == "Flagship Serrano (Madrid)"
+        assert len(data) == 1
+        assert data[0]["id_sucursal"] == 1
+        assert data[0]["direccion"] == "Calle de Serrano 44, Salamanca"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+def test_listar_sucursales_activas_sin_boutiques_devuelve_lista_vacia(client):
+    """Sin boutiques en la base, el endpoint no debe inventar ninguna.
+
+    Hasta el 2026-09-22 devolvía tres sedes ficticias (Serrano, Saint-Honoré y un hub de
+    Madrid) que no existen en `fashionstore.sucursales`. La interfaz ofrecía así boutiques
+    donde era imposible reservar, incumpliendo la regla de dominio «cero datos inventados».
+    """
+    db_mock = MagicMock()
+    db_mock.execute.return_value.scalars.return_value.all.return_value = []
+
+    app.dependency_overrides[get_db] = lambda: db_mock
+    try:
+        response = client.get("/api/v1/sucursales/activas")
+        assert response.status_code == 200
+        assert response.json() == []
     finally:
         app.dependency_overrides.pop(get_db, None)

@@ -20,6 +20,7 @@ from sqlalchemy import (
     Boolean,
     Date,
     DateTime,
+    FetchedValue,
     ForeignKey,
     Integer,
     Numeric,
@@ -356,7 +357,24 @@ class VentaORM(Base):
         default=lambda: datetime.now(timezone.utc),
     )
 
-    sucursal: Mapped["SucursalORM"] = relationship("SucursalORM")
+    # --- Columnas añadidas por la migración 0009 para CU15 (Comprar desde la plataforma) ---
+    # `id_sucursal` (arriba) es la sucursal RESPONSABLE de la orden; la boutique concreta desde
+    # la que se expide cada prenda vive en `VentaDetalleORM.id_sucursal`, porque la bolsa es
+    # multi-boutique por diseño.
+    tipo_entrega: Mapped[str] = mapped_column(String(20), nullable=False, default="domicilio")
+    id_sucursal_retiro: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("fashionstore.sucursales.id_sucursal"), nullable=True
+    )
+    direccion_envio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    id_promocion: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("fashionstore.promociones.id_promocion"), nullable=True
+    )
+
+    sucursal: Mapped["SucursalORM"] = relationship("SucursalORM", foreign_keys=[id_sucursal])
+    sucursal_retiro: Mapped[Optional["SucursalORM"]] = relationship(
+        "SucursalORM", foreign_keys=[id_sucursal_retiro]
+    )
+    promocion: Mapped[Optional["PromocionORM"]] = relationship("PromocionORM")
     detalles: Mapped[List["VentaDetalleORM"]] = relationship(
         "VentaDetalleORM", back_populates="venta", cascade="all, delete-orphan"
     )
@@ -378,8 +396,24 @@ class VentaDetalleORM(Base):
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     precio_unitario: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
+    # `subtotal_linea` está definida en PostgreSQL como GENERATED ALWAYS AS
+    # (cantidad * precio_unitario). Se mapea en SOLO LECTURA: incluirla en un INSERT o UPDATE
+    # hace que PostgreSQL rechace la sentencia.
+    subtotal_linea: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(12, 2),
+        server_default=FetchedValue(),
+        server_onupdate=FetchedValue(),
+        nullable=True,
+    )
+
+    # Añadida por la migración 0009: boutique desde la que se expide esta prenda concreta.
+    id_sucursal: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("fashionstore.sucursales.id_sucursal"), nullable=True, index=True
+    )
+
     venta: Mapped["VentaORM"] = relationship("VentaORM", back_populates="detalles")
     variante: Mapped["VarianteProductoORM"] = relationship("VarianteProductoORM")
+    sucursal: Mapped[Optional["SucursalORM"]] = relationship("SucursalORM")
 
 
 class RecomendacionIAORM(Base):
@@ -416,10 +450,31 @@ class PromocionORM(Base):
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     porcentaje_descuento: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2), nullable=True)
-    fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
-    fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
+    # En PostgreSQL ambas columnas son TIMESTAMPTZ, no DATE. Declararlas como `Date` hacía que
+    # SQLAlchemy devolviese `datetime` donde el código esperaba `date`, y cualquier comparación
+    # en Python fallaba con "can't compare datetime.datetime to datetime.date".
+    fecha_inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    fecha_fin: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     # La columna real en PostgreSQL es `estado_activo` (la migración 0001 declara `activa`).
     activa: Mapped[bool] = mapped_column("estado_activo", Boolean, nullable=False, default=True)
+
+    # --- Soporte de cupones y bonos atelier (CU15) ---
+    # Estas columnas ya existían en PostgreSQL pero no estaban mapeadas, de modo que el modelo
+    # sólo podía expresar promociones por porcentaje ligadas a producto. Mapearlas no requiere
+    # ningún cambio de esquema.
+    codigo_cupon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    tipo_descuento: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="porcentaje"
+    )
+    valor_descuento: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False, default=Decimal("0.00")
+    )
+    tope_descuento: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2), nullable=True)
+    limite_usos: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    usos_actuales: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    alcance: Mapped[str] = mapped_column(String(20), nullable=False, default="global")
+    id_categoria: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    id_producto: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
 
 
 class PromocionProductoORM(Base):

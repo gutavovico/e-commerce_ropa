@@ -148,12 +148,14 @@ from modules.autenticacion_seguridad.cu04_gestionar_perfil.router import (
 )
 from modules.autenticacion_seguridad.router import router as router_autenticacion
 from modules.catalogo.router import router as router_catalogo
+from modules.compras_pagos.router import router as router_compras_pagos
 from modules.reservas.router import router as router_reservas
 
 app.include_router(router_autenticacion, prefix="/api/v1")
 app.include_router(router_perfil, prefix="/api/v1")
 app.include_router(router_catalogo, prefix="/api/v1")
 app.include_router(router_reservas, prefix="/api/v1")
+app.include_router(router_compras_pagos, prefix="/api/v1")
 
 
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["Health"])

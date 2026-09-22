@@ -45,55 +45,13 @@ def listar_sucursales_activas(
     db: Session = Depends(get_db),
 ) -> List[DisponibilidadSucursalItemOut]:
     """Endpoint para obtener el directorio de boutiques activas de FashionStore."""
+    # Se sirven únicamente boutiques reales de `fashionstore.sucursales`. Hasta el 2026-09-22
+    # este endpoint inventaba tres sedes (Serrano, Saint-Honoré y un hub de Madrid) cuando la
+    # tabla venía vacía, y asignaba `cantidad_disponible = 5` fijo a cualquier boutique real.
+    # Eso hacía que la interfaz ofreciese existencias que la reserva rechazaba después, además
+    # de incumplir la regla de dominio «cero datos inventados». Una lista vacía es una respuesta
+    # legítima: el cliente debe mostrar su estado vacío.
     sucursales = ReservaRepositorio.obtener_sucursales_activas(db)
-    if not sucursales:
-        return [
-            DisponibilidadSucursalItemOut(
-                id_sucursal=1,
-                nombre="Flagship Serrano (Madrid)",
-                ciudad="Madrid",
-                direccion="Calle de Serrano 44, Salamanca",
-                telefono="91 555 0123",
-                horario_apertura="09:00",
-                horario_cierre="20:00",
-                cantidad_disponible=2,
-                cantidad_reservada=0,
-                estado_stock="disponible",
-                badge_stock="2 UDS EN STOCK",
-                citas_disponibles_texto="Citas de prueba disponibles hoy y mañana",
-                permite_reserva_directa=True,
-            ),
-            DisponibilidadSucursalItemOut(
-                id_sucursal=2,
-                nombre="Boutique Paris Saint-Honoré",
-                ciudad="París",
-                direccion="228 Rue du Faubourg Saint-Honoré",
-                telefono="+33 1 42 68 0000",
-                horario_apertura="09:00",
-                horario_cierre="20:00",
-                cantidad_disponible=1,
-                cantidad_reservada=0,
-                estado_stock="disponible",
-                badge_stock="1 UD EN STOCK",
-                citas_disponibles_texto="Horario preferente con concierge bilingüe",
-                permite_reserva_directa=True,
-            ),
-            DisponibilidadSucursalItemOut(
-                id_sucursal=3,
-                nombre="Madrid Central Atelier Hub",
-                ciudad="Madrid",
-                direccion="Paseo de la Castellana 92",
-                telefono="91 555 0199",
-                horario_apertura="09:00",
-                horario_cierre="20:00",
-                cantidad_disponible=0,
-                cantidad_reservada=0,
-                estado_stock="agotada",
-                badge_stock="CITA CON SASTRE JEFE",
-                citas_disponibles_texto="Sesión de patronaje y ajuste personalizado (60 min)",
-                permite_reserva_directa=False,
-            ),
-        ]
 
     resultado = []
     for suc in sucursales:
@@ -101,12 +59,15 @@ def listar_sucursales_activas(
             DisponibilidadSucursalItemOut(
                 id_sucursal=suc.id_sucursal,
                 nombre=suc.nombre,
-                ciudad=suc.ciudad.nombre if suc.ciudad else "Madrid",
+                ciudad=suc.ciudad.nombre if suc.ciudad else "",
                 direccion=suc.direccion,
                 telefono=suc.telefono,
                 horario_apertura=suc.horario_apertura or "09:00",
                 horario_cierre=suc.horario_cierre or "20:00",
-                cantidad_disponible=5,
+                # Este endpoint es un directorio de boutiques, no una consulta de inventario:
+                # las existencias por prenda se obtienen de
+                # `GET /api/v1/productos/{id}/disponibilidad`, que sí las lee de la base.
+                cantidad_disponible=0,
                 cantidad_reservada=0,
                 estado_stock="disponible",
                 badge_stock="CITAS DISPONIBLES",

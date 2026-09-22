@@ -63,14 +63,14 @@ def _cargar_todos_los_modelos():
 
 
 @pytest.fixture(scope="module")
-def columnas_reales() -> dict[str, set[str]]:
-    """Mapa {tabla: {columnas}} leído de `information_schema` de la base de datos real."""
+def esquema_real() -> dict[str, dict[str, str]]:
+    """Mapa {tabla: {columna: tipo}} leído de `information_schema` de la base de datos real."""
     try:
         motor = create_engine(DATABASE_URL)
         with motor.connect() as conexion:
             filas = conexion.execute(
                 text(
-                    "SELECT table_name, column_name FROM information_schema.columns "
+                    "SELECT table_name, column_name, data_type FROM information_schema.columns "
                     "WHERE table_schema = :esquema"
                 ),
                 {"esquema": ESQUEMA},
@@ -78,14 +78,43 @@ def columnas_reales() -> dict[str, set[str]]:
     except SQLAlchemyError as exc:
         pytest.skip(f"No se pudo conectar a la base de datos para verificar el esquema: {exc}")
 
-    mapa: dict[str, set[str]] = {}
-    for tabla, columna in filas:
-        mapa.setdefault(tabla, set()).add(columna)
+    mapa: dict[str, dict[str, str]] = {}
+    for tabla, columna, tipo in filas:
+        mapa.setdefault(tabla, {})[columna] = tipo
 
     if not mapa:
         pytest.skip(f"El esquema '{ESQUEMA}' no contiene tablas en la base de datos configurada.")
 
     return mapa
+
+
+@pytest.fixture(scope="module")
+def columnas_reales(esquema_real) -> dict[str, set[str]]:
+    """Vista simplificada {tabla: {columnas}} del esquema real."""
+    return {tabla: set(columnas) for tabla, columnas in esquema_real.items()}
+
+
+# Familias de tipos que se consideran equivalentes entre el ORM y PostgreSQL. Se comparan
+# familias y no nombres exactos porque `VARCHAR(50)`, `character varying` y `TEXT` son
+# intercambiables para el ORM, mientras que DATE frente a TIMESTAMPTZ no lo son.
+FAMILIAS_TIPO = {
+    "fecha": {"date"},
+    "instante": {"timestamp with time zone", "timestamp without time zone"},
+    "numero_exacto": {"numeric"},
+    "entero": {"integer", "bigint", "smallint"},
+    "texto": {"character varying", "text", "character", "citext"},
+    "booleano": {"boolean"},
+    "json": {"json", "jsonb"},
+}
+
+
+def _familia(tipo_sql: str) -> str | None:
+    """Clasifica un tipo de PostgreSQL en su familia, o None si no está catalogado."""
+    tipo = tipo_sql.lower()
+    for familia, tipos in FAMILIAS_TIPO.items():
+        if tipo in tipos:
+            return familia
+    return None
 
 
 def test_todas_las_tablas_del_orm_existen_en_la_base_de_datos(columnas_reales):
@@ -129,3 +158,54 @@ def test_ninguna_columna_del_orm_falta_en_la_base_de_datos(columnas_reales):
         "argumento de `mapped_column(\"nombre_real\", ...)` para conservar el atributo de dominio:\n"
         f"{desajustes}"
     )
+
+
+def test_los_tipos_del_orm_son_compatibles_con_la_base_de_datos(esquema_real):
+    """Ningún atributo puede declarar una familia de tipo distinta a la de su columna real.
+
+    El 2026-09-22 `PromocionORM.fecha_inicio` se declaraba `Date` mientras PostgreSQL la define
+    como TIMESTAMPTZ. SQLAlchemy devolvía entonces un `datetime` donde el código esperaba un
+    `date`, y la validación de cupones reventaba con «can't compare datetime.datetime to
+    datetime.date». La comprobación de nombres no lo detectaba: la columna existía.
+
+    Se comparan familias, no nombres exactos: VARCHAR y TEXT son intercambiables para el ORM,
+    pero DATE y TIMESTAMPTZ no lo son.
+    """
+    base = _cargar_todos_los_modelos()
+
+    incompatibles: dict[str, dict[str, str]] = {}
+    for tabla in base.metadata.tables.values():
+        columnas_bd = esquema_real.get(tabla.name)
+        if not columnas_bd:
+            continue
+
+        for columna in tabla.columns:
+            tipo_bd = columnas_bd.get(columna.name)
+            if tipo_bd is None:
+                continue  # Cubierto por el test de columnas ausentes.
+
+            familia_bd = _familia(tipo_bd)
+            try:
+                familia_orm = _familia(columna.type.compile(dialect=_dialecto()))
+            except Exception:  # noqa: BLE001 - tipos exóticos (ENUM, ARRAY) quedan fuera
+                continue
+
+            # Solo se exige coincidencia cuando ambas familias están catalogadas.
+            if familia_bd and familia_orm and familia_bd != familia_orm:
+                incompatibles[f"{tabla.name}.{columna.name}"] = {
+                    "declarado_en_orm": str(columna.type),
+                    "real_en_postgresql": tipo_bd,
+                }
+
+    assert not incompatibles, (
+        "El ORM declara tipos incompatibles con la base de datos. Ajusta el tipo del "
+        "`mapped_column` al real para que SQLAlchemy devuelva el objeto Python esperado:\n"
+        f"{incompatibles}"
+    )
+
+
+def _dialecto():
+    """Dialecto de PostgreSQL usado para compilar los tipos declarados en el ORM."""
+    from sqlalchemy.dialects import postgresql
+
+    return postgresql.dialect()
