@@ -17,7 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from core.database import Base
 from modules.catalogo.modelos import InventarioSucursalORM
@@ -107,6 +107,17 @@ class MovimientoInventarioORM(Base):
         foreign_keys=[id_usuario],
         lazy="joined",
     )
+
+    id_usuario_responsable = synonym("id_usuario")
+    observacion = synonym("motivo")
+
+    def __init__(self, **kwargs):
+        if "id_usuario_responsable" in kwargs and "id_usuario" not in kwargs:
+            kwargs["id_usuario"] = kwargs.pop("id_usuario_responsable")
+        if "observacion" in kwargs and "motivo" not in kwargs:
+            kwargs["motivo"] = kwargs.pop("observacion")
+        super().__init__(**kwargs)
+
 
 
 # Asociacion bidireccional de movimientos sobre la entidad canonica InventarioSucursalORM

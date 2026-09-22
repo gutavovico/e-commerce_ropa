@@ -145,6 +145,14 @@ class VentaORM(Base):
         default=lambda: datetime.now(timezone.utc),
         index=True,
     )
+    tipo_entrega: Mapped[str] = mapped_column(String(20), nullable=False, default="domicilio")
+    id_sucursal_retiro: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("fashionstore.sucursales.id_sucursal"), nullable=True
+    )
+    direccion_envio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    id_promocion: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("fashionstore.promociones.id_promocion"), nullable=True
+    )
 
     # Relaciones
     cliente: Mapped[Optional["ClienteORM"]] = relationship(
@@ -155,6 +163,16 @@ class VentaORM(Base):
     sucursal: Mapped["SucursalORM"] = relationship(
         "modules.gestion_operativa.modelos.SucursalORM",
         foreign_keys=[id_sucursal],
+        lazy="selectin",
+    )
+    sucursal_retiro: Mapped[Optional["SucursalORM"]] = relationship(
+        "modules.gestion_operativa.modelos.SucursalORM",
+        foreign_keys=[id_sucursal_retiro],
+        lazy="selectin",
+    )
+    promocion: Mapped[Optional["PromocionORM"]] = relationship(
+        "modules.comercial.cu27_promociones.modelos.PromocionORM",
+        foreign_keys=[id_promocion],
         lazy="selectin",
     )
     cajero: Mapped[Optional["EmpleadoORM"]] = relationship(
@@ -197,11 +215,19 @@ class VentaDetalleORM(Base):
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
     precio_unitario: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     subtotal_linea: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+    id_sucursal: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("fashionstore.sucursales.id_sucursal"), nullable=True, index=True
+    )
 
     venta: Mapped["VentaORM"] = relationship("VentaORM", back_populates="detalles")
     variante: Mapped["VarianteProductoORM"] = relationship(
         "modules.catalogo.modelos.VarianteProductoORM",
         foreign_keys=[id_variante],
+        lazy="selectin",
+    )
+    sucursal: Mapped[Optional["SucursalORM"]] = relationship(
+        "modules.gestion_operativa.modelos.SucursalORM",
+        foreign_keys=[id_sucursal],
         lazy="selectin",
     )
 

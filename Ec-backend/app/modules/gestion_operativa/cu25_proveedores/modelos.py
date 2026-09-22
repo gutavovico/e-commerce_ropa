@@ -16,7 +16,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from core.database import Base
 
@@ -61,3 +61,12 @@ class ProveedorORM(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    nit = synonym("nit_rut")
+    activo = synonym("estado_activo")
+
+    colecciones = relationship(
+        "modules.catalogo.modelos.ColeccionORM",
+        back_populates="proveedor",
+    )
+

@@ -141,29 +141,7 @@ class TemporadaORM(Base):
         super().__init__(**kwargs)
 
 
-class ProveedorORM(Base):
-    """Mapeo de la tabla `fashionstore.proveedores`."""
-
-    __tablename__ = "proveedores"
-    __table_args__ = {"schema": "fashionstore"}
-
-    id_proveedor: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    id_usuario: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    razon_social: Mapped[str] = mapped_column(String(200), nullable=False)
-    # La columna real en PostgreSQL es `nit_rut` (la migración 0001 declara `nit`).
-    nit: Mapped[Optional[str]] = mapped_column("nit_rut", String(30), unique=True, nullable=True)
-    contacto_nombre: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
-    telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
-    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    # La columna real en PostgreSQL es `estado_activo` (la migración 0001 declara `activo`).
-    activo: Mapped[bool] = mapped_column("estado_activo", Boolean, nullable=False, default=True)
-    creado_en: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
-
-    colecciones: Mapped[List["ColeccionORM"]] = relationship("ColeccionORM", back_populates="proveedor")
+from modules.gestion_operativa.cu25_proveedores.modelos import ProveedorORM
 
 
 class ColeccionORM(Base):
@@ -198,7 +176,10 @@ class ColeccionORM(Base):
     )
 
     temporada: Mapped["TemporadaORM"] = relationship("TemporadaORM", back_populates="colecciones")
-    proveedor: Mapped[Optional["ProveedorORM"]] = relationship("ProveedorORM", back_populates="colecciones")
+    proveedor: Mapped[Optional["ProveedorORM"]] = relationship(
+        "modules.gestion_operativa.cu25_proveedores.modelos.ProveedorORM",
+        back_populates="colecciones",
+    )
     productos: Mapped[List["ProductoORM"]] = relationship("ProductoORM", back_populates="coleccion")
 
 
@@ -348,144 +329,22 @@ class InventarioSucursalORM(Base):
         "VarianteProductoORM", back_populates="inventarios"
     )
     sucursal = relationship(
-        "SucursalORM",
+        "modules.gestion_operativa.modelos.SucursalORM",
         foreign_keys=[id_sucursal],
         lazy="joined",
     )
 
 
-class CiudadORM(Base):
-    """Mapeo de la tabla `fashionstore.ciudades`."""
+from modules.gestion_operativa.modelos import CiudadORM, SucursalORM
+from modules.comercial.cu28_ventas_reservas.modelos import VentaDetalleORM, VentaORM
 
-    __tablename__ = "ciudades"
-    __table_args__ = {"schema": "fashionstore"}
-
-    id_ciudad: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    pais: Mapped[str] = mapped_column(String(100), nullable=False, default="España")
-    creado_en: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
-
-
-class SucursalORM(Base):
-    """Mapeo de la tabla `fashionstore.sucursales`."""
-
-    __tablename__ = "sucursales"
-    __table_args__ = {"schema": "fashionstore"}
-
-    id_sucursal: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    id_ciudad: Mapped[int] = mapped_column(
-        Integer, ForeignKey("fashionstore.ciudades.id_ciudad"), nullable=False, index=True
-    )
-    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
-    direccion: Mapped[str] = mapped_column(String(255), nullable=False)
-    telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
-    horario_apertura: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, default="09:00")
-    horario_cierre: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, default="20:00")
-    activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    creado_en: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
-
-    ciudad: Mapped[Optional["CiudadORM"]] = relationship("CiudadORM")
-
-
-class VentaORM(Base):
-    """Mapeo de la tabla `fashionstore.ventas`."""
-
-    __tablename__ = "ventas"
-    __table_args__ = {"schema": "fashionstore"}
-
-    id_venta: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    numero_comprobante: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
-    id_cliente: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("fashionstore.clientes.id_cliente"), nullable=True, index=True
-    )
-    id_sucursal: Mapped[int] = mapped_column(
-        Integer, ForeignKey("fashionstore.sucursales.id_sucursal"), nullable=False, index=True
-    )
-    id_cajero: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    id_reserva: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    tipo_venta: Mapped[str] = mapped_column(tipo_venta_enum, nullable=False)
-    estado: Mapped[str] = mapped_column(estado_venta_enum, nullable=False, default="pendiente", index=True)
-    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
-    descuento: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
-    total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
-    fecha_venta: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
-
-    # --- Columnas añadidas por la migración 0009 para CU15 (Comprar desde la plataforma) ---
-    # `id_sucursal` (arriba) es la sucursal RESPONSABLE de la orden; la boutique concreta desde
-    # la que se expide cada prenda vive en `VentaDetalleORM.id_sucursal`, porque la bolsa es
-    # multi-boutique por diseño.
-    tipo_entrega: Mapped[str] = mapped_column(String(20), nullable=False, default="domicilio")
-    id_sucursal_retiro: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("fashionstore.sucursales.id_sucursal"), nullable=True
-    )
-    direccion_envio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    id_promocion: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("fashionstore.promociones.id_promocion"), nullable=True
-    )
-
-    sucursal: Mapped["SucursalORM"] = relationship("SucursalORM", foreign_keys=[id_sucursal])
-    sucursal_retiro: Mapped[Optional["SucursalORM"]] = relationship(
-        "SucursalORM", foreign_keys=[id_sucursal_retiro]
-    )
-    promocion: Mapped[Optional["PromocionORM"]] = relationship("PromocionORM")
-    detalles: Mapped[List["VentaDetalleORM"]] = relationship(
-        "VentaDetalleORM", back_populates="venta", cascade="all, delete-orphan"
-    )
-
-
-class VentaDetalleORM(Base):
-    """Mapeo de la tabla `fashionstore.venta_detalle`."""
-
-    __tablename__ = "venta_detalle"
-    __table_args__ = {"schema": "fashionstore"}
-
-    id_venta_detalle: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    id_venta: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("fashionstore.ventas.id_venta", ondelete="CASCADE"), nullable=False, index=True
-    )
-    id_variante: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("fashionstore.variantes_producto.id_variante"), nullable=False
-    )
-    cantidad: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    precio_unitario: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-
-    # `subtotal_linea` está definida en PostgreSQL como GENERATED ALWAYS AS
-    # (cantidad * precio_unitario). Se mapea en SOLO LECTURA: incluirla en un INSERT o UPDATE
-    # hace que PostgreSQL rechace la sentencia.
-    subtotal_linea: Mapped[Optional[Decimal]] = mapped_column(
-        Numeric(12, 2),
-        server_default=FetchedValue(),
-        server_onupdate=FetchedValue(),
-        nullable=True,
-    )
-
-    # Añadida por la migración 0009: boutique desde la que se expide esta prenda concreta.
-    id_sucursal: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("fashionstore.sucursales.id_sucursal"), nullable=True, index=True
-    )
-
-    venta: Mapped["VentaORM"] = relationship("VentaORM", back_populates="detalles")
-    variante: Mapped["VarianteProductoORM"] = relationship("VarianteProductoORM")
-    sucursal: Mapped[Optional["SucursalORM"]] = relationship("SucursalORM")
 
 
 class RecomendacionIAORM(Base):
     """Mapeo de la tabla `fashionstore.recomendaciones_ia`."""
 
     __tablename__ = "recomendaciones_ia"
-    __table_args__ = {"schema": "fashionstore"}
+    __table_args__ = {"schema": "fashionstore", "extend_existing": True}
 
     id_recomendacion: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     id_cliente: Mapped[int] = mapped_column(
@@ -505,52 +364,5 @@ class RecomendacionIAORM(Base):
     producto: Mapped["ProductoORM"] = relationship("ProductoORM")
 
 
-class PromocionORM(Base):
-    """Mapeo de la tabla `fashionstore.promociones`."""
+from modules.comercial.cu27_promociones.modelos import PromocionORM, PromocionProductoORM
 
-    __tablename__ = "promociones"
-    __table_args__ = {"schema": "fashionstore"}
-
-    id_promocion: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
-    descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    porcentaje_descuento: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2), nullable=True)
-    # En PostgreSQL ambas columnas son TIMESTAMPTZ, no DATE. Declararlas como `Date` hacía que
-    # SQLAlchemy devolviese `datetime` donde el código esperaba `date`, y cualquier comparación
-    # en Python fallaba con "can't compare datetime.datetime to datetime.date".
-    fecha_inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    fecha_fin: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    # La columna real en PostgreSQL es `estado_activo` (la migración 0001 declara `activa`).
-    activa: Mapped[bool] = mapped_column("estado_activo", Boolean, nullable=False, default=True)
-
-    # --- Soporte de cupones y bonos atelier (CU15) ---
-    # Estas columnas ya existían en PostgreSQL pero no estaban mapeadas, de modo que el modelo
-    # sólo podía expresar promociones por porcentaje ligadas a producto. Mapearlas no requiere
-    # ningún cambio de esquema.
-    codigo_cupon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    tipo_descuento: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="porcentaje"
-    )
-    valor_descuento: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2), nullable=False, default=Decimal("0.00")
-    )
-    tope_descuento: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2), nullable=True)
-    limite_usos: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    usos_actuales: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    alcance: Mapped[str] = mapped_column(String(20), nullable=False, default="global")
-    id_categoria: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    id_producto: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-
-
-class PromocionProductoORM(Base):
-    """Mapeo de la tabla de asociación `fashionstore.promocion_producto`."""
-
-    __tablename__ = "promocion_producto"
-    __table_args__ = {"schema": "fashionstore"}
-
-    id_promocion: Mapped[int] = mapped_column(
-        Integer, ForeignKey("fashionstore.promociones.id_promocion", ondelete="CASCADE"), primary_key=True
-    )
-    id_producto: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("fashionstore.productos.id_producto", ondelete="CASCADE"), primary_key=True
-    )

@@ -563,7 +563,7 @@ def test_endpoint_publico_obtener_producto_ficha_tecnica(client):
         coleccion=None,
     )
     # Variante activa
-    talla = TallaORM(id_talla=1, codigo="40")
+    talla = TallaORM(id_talla=1, codigo="40", orden=1)
     color = ColorORM(id_color=3, nombre="Azul Noche", codigo_hex="#0A1128")
     var = VarianteProductoORM(
         id_variante=50,
@@ -576,11 +576,14 @@ def test_endpoint_publico_obtener_producto_ficha_tecnica(client):
         talla=talla,
         color=color,
     )
+    var.inventarios = []
     prod.variantes = [var]
 
     mock_db = MagicMock()
     mock_db.get.return_value = prod
     mock_db.execute.return_value.scalar.return_value = 4  # stock
+    mock_db.execute.return_value.scalar_one_or_none.side_effect = [prod, None]
+    mock_db.execute.return_value.scalars.return_value.all.return_value = []
 
     app.dependency_overrides[get_db] = lambda: mock_db
     try:

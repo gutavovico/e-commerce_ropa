@@ -157,6 +157,7 @@ from modules.autenticacion_seguridad.cu20_usuarios_roles.router import (
     router as router_usuarios_admin,
 )
 from modules.autenticacion_seguridad.router import router as router_autenticacion
+from modules.catalogo.router import router as router_catalogo
 from modules.comercial.router import router as router_comercial
 from modules.compras_pagos.router import router as router_compras_pagos
 from modules.gestion_operativa.router import router as router_gestion_operativa

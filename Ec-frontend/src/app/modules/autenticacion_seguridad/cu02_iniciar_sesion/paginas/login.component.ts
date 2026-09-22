@@ -30,12 +30,12 @@ export class LoginComponent implements OnInit {
   private readonly router = inject(Router);
 
   ngOnInit(): void {
-    const usuario = this.loginService.usuarioActual();
+    const usuario = typeof this.loginService.usuarioActual === 'function' ? this.loginService.usuarioActual() : null;
     if (usuario) {
       if (usuario.rol === 'administrador') {
         this.router.navigate(['/admin']);
       } else {
-        this.router.navigate(['/perfil']);
+        this.router.navigate(['/inicio']);
       }
     }
   }
@@ -91,6 +91,7 @@ export class LoginComponent implements OnInit {
     this.loginService.iniciarSesion(peticion).subscribe({
       next: (resp) => {
         this.cargando.set(false);
+        this.exito.set(true);
         // Redirigir segun el rol del usuario autenticado
         setTimeout(() => {
           const rol = String(resp.rol || '').toLowerCase().trim();

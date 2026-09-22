@@ -45,6 +45,7 @@ class VarianteDetalleOut(BaseModel):
     sku: str
     precio_extra: Decimal = Decimal("0.00")
     precio_final_variante: Decimal
+    precio_final: Optional[Decimal] = None
     stock_total_disponible: int = 0
     tiene_stock: bool = True
     imagen_url: Optional[str] = None

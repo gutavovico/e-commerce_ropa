@@ -4,10 +4,10 @@ Mapea las tablas `fashionstore.usuarios` y `fashionstore.clientes` con fidelidad
 al esquema de base de datos definido en SI2-Parcial1.md.
 """
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -82,7 +82,7 @@ class ClienteORM(Base):
         ForeignKey("fashionstore.usuarios.id_usuario", ondelete="CASCADE"),
         primary_key=True,
     )
-    fecha_nacimiento: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    fecha_nacimiento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     genero: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     talla_preferida: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     ciudad_preferida: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

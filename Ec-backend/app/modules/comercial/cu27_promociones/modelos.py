@@ -60,13 +60,14 @@ class PromocionORM(Base):
             unique=True,
             postgresql_where=func.coalesce("codigo_cupon", "").isnot(None),
         ),
-        {"schema": "fashionstore"},
+        {"schema": "fashionstore", "extend_existing": True},
     )
 
     id_promocion: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     codigo_cupon: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    porcentaje_descuento: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2), nullable=True)
     tipo_descuento: Mapped[str] = mapped_column(String(20), nullable=False, default="porcentaje")
     valor_descuento: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     fecha_inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -98,3 +99,18 @@ class PromocionORM(Base):
     # Relaciones relacionales
     categoria = relationship(CategoriaORM, foreign_keys=[id_categoria], lazy="joined")
     producto = relationship(ProductoORM, foreign_keys=[id_producto], lazy="joined")
+
+
+class PromocionProductoORM(Base):
+    """Mapeo de la tabla de asociación `fashionstore.promocion_producto`."""
+
+    __tablename__ = "promocion_producto"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_promocion: Mapped[int] = mapped_column(
+        Integer, ForeignKey("fashionstore.promociones.id_promocion", ondelete="CASCADE"), primary_key=True
+    )
+    id_producto: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("fashionstore.productos.id_producto", ondelete="CASCADE"), primary_key=True
+    )
+

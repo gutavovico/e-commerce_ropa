@@ -61,6 +61,7 @@ export class LoginService {
   /**
    * Persiste el token y los datos de sesión en el almacenamiento correspondiente.
    */
+  guardarSesion(respuesta: LoginRespuesta, recordar = true): void {
     this.establecerSesion(
       {
         id_usuario: respuesta.id_usuario,
