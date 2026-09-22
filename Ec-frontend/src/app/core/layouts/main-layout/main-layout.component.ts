@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { CatalogoService } from '../../../modules/catalogo/servicios/catalogo.service';
 import { CarritoService } from '../../../modules/compras_pagos/cu11_gestionar_carrito/servicios/carrito.service';
 import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 
@@ -133,6 +132,8 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
 export class MainLayoutComponent implements OnInit {
   private readonly carritoService = inject(CarritoService);
   private readonly loginService = inject(LoginService);
+
+  protected readonly esAdmin = this.loginService.esAdmin;
 
   /**
    * Contador real de prendas en la bolsa.

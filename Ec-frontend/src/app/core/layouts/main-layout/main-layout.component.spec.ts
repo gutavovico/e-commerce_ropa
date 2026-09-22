@@ -17,7 +17,10 @@ describe('MainLayoutComponent', () => {
     totalPrendas: ReturnType<typeof computed<number>>;
     cargarCarrito: ReturnType<typeof vi.fn>;
   };
-  let mockLoginService: { estaAutenticado: ReturnType<typeof vi.fn> };
+  let mockLoginService: {
+    estaAutenticado: ReturnType<typeof vi.fn>;
+    esAdmin: ReturnType<typeof signal<boolean>>;
+  };
 
   const totalPrendas = signal<number>(3);
 
@@ -33,6 +36,7 @@ describe('MainLayoutComponent', () => {
     };
     mockLoginService = {
       estaAutenticado: vi.fn().mockReturnValue(true),
+      esAdmin: signal(false),
     };
 
     await TestBed.configureTestingModule({
@@ -116,7 +120,7 @@ describe('MainLayoutComponent sin sesión', () => {
         },
         {
           provide: LoginService,
-          useValue: { estaAutenticado: vi.fn().mockReturnValue(false) },
+          useValue: { estaAutenticado: vi.fn().mockReturnValue(false), esAdmin: signal(false) },
         },
       ],
     }).compileComponents();
