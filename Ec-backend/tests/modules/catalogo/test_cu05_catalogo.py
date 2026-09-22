@@ -49,7 +49,7 @@ def crear_producto_fixture(
         nombre=nombre,
         descripcion="Prenda confeccionada en lana fría de Biella con corte estructurado.",
         precio_base=precio_base,
-        imagen_url="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6",
+        imagen_url="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f",
         activo=True,
     )
     prod.categoria = categoria or crear_categoria_fixture(id_categoria=id_categoria)

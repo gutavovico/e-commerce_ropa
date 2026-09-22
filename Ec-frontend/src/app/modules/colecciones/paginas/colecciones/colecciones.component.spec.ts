@@ -201,9 +201,7 @@ describe('ColeccionesComponent', () => {
     const articulo = fixture.nativeElement.querySelector('article');
     articulo.click();
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/buscar'], {
-      queryParams: { q: 'Vestido plisado en seda natural' },
-    });
+    expect(navigateSpy).toHaveBeenCalledWith(['/productos', 1]);
   });
 
   it('debe navegar al detalle de la colección al hacer click en una card de Otras colecciones', () => {

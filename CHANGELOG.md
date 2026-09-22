@@ -2,6 +2,86 @@
 
 Todas las modificaciones notables, correcciones de errores de infraestructura y promociones de especificaciones del proyecto se documentan en este archivo.
 
+## [1.9.0] - 2026-09-21
+
+### Auditoría Transversal y Corrección de Defectos de Contrato
+
+Diagnóstico completo de `Ec-backend`, `Ec-frontend` y `Ec-mobile` contra la documentación de
+`.agents/` y `.specs/`. El hallazgo estructural es que **las tres suites reportaban verde mientras
+CU12 (Reservar Prendas) era imposible de completar desde la aplicación móvil**: el backend mockea
+la sesión de base de datos en sus tests y el móvil construía sus DTO con constructores sin
+ejercitar nunca `fromJson`, de modo que ningún desajuste de nombres de campo era observable.
+
+- **Blindaje de las pruebas contra el contrato real:** los mocks de reserva del web y del móvil se
+  reescribieron a partir de payloads literales de `POST /api/v1/reservas`, y se añadió un grupo de
+  pruebas de contrato en `test/pantalla_producto_detalle_test.dart` que valida `toJson`/`fromJson`
+  frente a los esquemas Pydantic. Se añadieron `registro.component.spec.ts` y una prueba de
+  supervivencia del listener de sesión en `widget_test.dart`, los dos archivos con más cambio de
+  comportamiento y sin cobertura previa.
+- **Reconciliación documental:** actualizada la directriz Hub-and-Spoke (declaraba CU05 pendiente y
+  CU36 «en migración de layout en Web»), cerrados los gates de aprobación de
+  `change-detalle-producto-reservas.md` y `change-landing-page-publica.md` (afirmaban que no se
+  había generado código con 18 y 13 tareas ya marcadas), resuelto el conflicto de rutas de
+  `/inicio` y `/colecciones` a favor del enrutamiento vigente, y marcado el Bloque 3 (Mobile) de
+  CU07/CU08/CU09/CU12 según el estado real del repositorio.
+- **Deriva de esquema entre el ORM y PostgreSQL (2026-09-22):** una segunda pasada, motivada por
+  errores HTTP 500 reproducidos en la aplicación en ejecución, reveló que tres modelos mapeaban
+  columnas inexistentes en la base de datos real. La trampa de fondo es que
+  `alembic/versions/0001_base_ddl.py` **no refleja el esquema desplegado en Neon**: ORM y migración
+  coincidían entre sí y discrepaban de la realidad. Se alinearon los modelos con la base de datos
+  —sin tocar el esquema— y se añadió `Ec-backend/tests/test_esquema_bd.py` como guardia permanente.
+- **Verificación:** `pytest` 123/123 (incluye la guardia de esquema contra Neon) · `ng test`
+  108/108 y `ng build` 0 errores · `dart analyze` 0 issues y `flutter test` 104/104. Además,
+  verificación end-to-end contra la base real: `/api/v1/catalogo`, `/api/v1/colecciones/activas`,
+  `/api/v1/catalogo/filtros-disponibles`, `/api/v1/catalogo/recomendaciones/personalizadas`,
+  `/api/v1/sucursales/activas` y `/api/v1/productos` devuelven HTTP 200 con datos de Neon.
+
+### Deuda Técnica Registrada
+- **`alembic/versions/0001_base_ddl.py` no describe la base de datos real.** Declara `activa`,
+  `activo` y `nit` donde PostgreSQL tiene `estado_activo` y `nit_rut`, y omite columnas que sí
+  existen (`actualizado_en`, `anio`, `codigo_cupon`, `alcance`, `limite_usos`, `direccion`,
+  `ciudad`, `rubro`, entre otras). Mientras siga así, cualquiera que consulte la migración para
+  saber cómo es una tabla obtendrá la respuesta incorrecta, y `alembic revision --autogenerate`
+  propondrá cambios destructivos. Reconciliarla implica una decisión sobre el esquema y queda
+  pendiente de autorización explícita.
+
+### Registro de Errores Corregidos y Soluciones Aplicadas
+34. **HTTP 500 en Catálogo, Búsqueda y Colecciones por Deriva entre el ORM y el Esquema Real de PostgreSQL**:
+    - *Causa:* `TemporadaORM`, `PromocionORM` y `ProveedorORM` mapeaban columnas llamadas `activa`, `activo` y `nit`, mientras que en la base de datos de Neon esas columnas se llaman `estado_activo` y `nit_rut`. SQLAlchemy emitía `SELECT temporadas.activa …` y PostgreSQL respondía `UndefinedColumn`, tumbando `GET /api/v1/catalogo` (vía `PromocionORM`), `GET /api/v1/catalogo/filtros-disponibles` y `GET /api/v1/colecciones/activas` (ambos vía `TemporadaORM`).
+    - *Agravante que impidió diagnosticarlo:* la migración `alembic/versions/0001_base_ddl.py` **no describe la base de datos realmente desplegada** —declara los nombres antiguos—, de modo que ORM y migración se confirmaban mutuamente mientras producción fallaba. Sumado a que todos los tests mockean la sesión, no existía ningún punto del proyecto donde el desajuste fuese observable.
+    - *Solución:* Se pasó el nombre real como primer argumento de `mapped_column("estado_activo", …)` / `mapped_column("nit_rut", …)` en `Ec-backend/app/modules/catalogo/modelos.py`, conservando los atributos de dominio (`activa`, `activo`, `nit`) para no alterar ninguna consulta. No se modificó el esquema de la base de datos. Se añadió `tests/test_esquema_bd.py`, que contrasta `Base.metadata` contra `information_schema` y falla ante cualquier columna mapeada inexistente.
+    - *Nota de corrección:* una revisión anterior de este mismo changelog atribuyó el fallo a «un renombrado a `nit_rut`/`estado_activo` sin migración de respaldo» y lo revirtió. El diagnóstico estaba invertido: esos eran los nombres correctos y el revert reintrodujo el error. La fuente de verdad es la base de datos desplegada, no la migración.
+35. **HTTP 500 al Reservar la Misma Variante Dos Veces en una Cita**:
+    - *Causa:* El servicio de CU12 recorría `payload.items` sin consolidar, descontando el inventario tantas veces como líneas repetidas e insertando detalles duplicados que violaban el `UNIQUE (id_reserva, id_variante)` de `reserva_detalle`. El `IntegrityError` resultante no pertenece al árbol `DomainError`, por lo que escapaba del manejador de errores como un 500. La restricción tampoco estaba declarada en el ORM.
+    - *Solución:* Consolidación de líneas por `id_variante` antes de tocar inventario, validación del tope de 5 unidades sobre el total agrupado (`CANTIDAD_MAXIMA_EXCEDIDA`, HTTP 400) y declaración del `UniqueConstraint` en `ReservaDetalleORM`.
+36. **HTTP 500 Latente por Consulta de Inventario sobre una Clave No Única**:
+    - *Causa:* El repositorio de reservas resolvía el inventario con `scalar_one_or_none()` filtrando por `(id_variante, id_sucursal)`, pero la clave única real de `inventario_sucursal` incluye `id_temporada`. Bastaba con que una variante tuviera existencias de una segunda temporada en la misma boutique para que toda reserva de esa prenda lanzara `MultipleResultsFound`. Permanecía latente solo porque el seed siembra una única temporada.
+    - *Solución:* Selección determinista de la fila que cubre la cantidad solicitada (temporada más reciente primero), con fallback a la de mayor stock para que el mensaje de existencias insuficientes informe la disponibilidad real.
+37. **HTTP 422 Sistemático al Reservar Cita desde la Aplicación Móvil**:
+    - *Causa:* `ReservaCrearInDto.toJson` serializaba `fecha_reserva`, `notas_cliente` y `lineas`, mientras que `ReservaCrearIn` exige `fecha_hora_atencion`, `observacion` e `items` (este último obligatorio). Tres de las cuatro claves eran incorrectas, por lo que CU12 nunca llegó a funcionar en móvil. El DTO de respuesta presentaba el mismo problema, de modo que todos los campos caían en sus valores por defecto y el diálogo de confirmación mostraba datos inventados.
+    - *Solución:* Alineación campo a campo de la petición y la respuesta con los esquemas Pydantic, envío explícito de `canal_origen: 'movil'` y derivación de `totalPrendas` a partir de las líneas devueltas.
+38. **Listener de Sesión Móvil Autodesactivado tras el Login**:
+    - *Causa:* La suscripción a `SesionManager` vivía en el widget montado como ruta `home`. Al navegar al hub mediante `pushReplacement` desde el contexto de ese mismo estado, la ruta se reemplazaba a sí misma, el estado se desmontaba y `dispose()` cancelaba la suscripción. El auto-redirect por HTTP 401 solo escuchaba mientras el usuario permanecía en el login —justo cuando un 401 no puede producirse— y, al cerrar sesión, los callbacks del nuevo login apuntaban a un estado destruido, de modo que volver a autenticarse dejaba la aplicación en el formulario sin mensaje alguno.
+    - *Solución:* Reestructuración de `main.dart` para que la gestión de sesión resida por encima del `Navigator`, actuando mediante `navigatorKey` y `scaffoldMessengerKey` globales, y liberación del flag anti-duplicados de `SesionManager` en cada retorno al login.
+39. **Ficha de Producto Móvil sin Fotografía Principal ni Galería Multiángulo**:
+    - *Causa:* `ProductoDetalleDto.fromJson` leía `imagen_url` y `galeria_angulos`, mientras que `ProductoDetalleOut` emite `imagen_principal` y `galeria`. Ambos resolvían a `null` y lista vacía.
+    - *Solución:* Corrección puntual de ambas claves, preservando `imagen_url` en los DTO de listado, donde sí es el nombre correcto.
+40. **HTTP 401 al Reservar desde las Pestañas Catálogo y Buscar**:
+    - *Causa:* `PantallaCatalogo` y `PantallaBuscarProductos` no declaraban campo `token` ni lo propagaban a `PantallaProductoDetalle`, por lo que la petición de reserva salía sin cabecera `Authorization` aun con el usuario autenticado.
+    - *Solución:* Añadido el campo `token` a ambas pantallas y a las de colecciones, propagado desde `PantallaPrincipalHub`.
+41. **Confirmación de Reserva Web con Campos en Blanco**:
+    - *Causa:* La interfaz `ReservaConfirmacion` declaraba `codigo_confirmacion`, `total_prendas` y `mensaje_cortesia`, campos que `ReservaCreadaOut` no envía. El modal imprimía «CÓDIGO: » sin contenido y la notificación mostraba `Cita confirmada (undefined)`. El spec mockeaba la interfaz del propio frontend, dando por válido un contrato que el servidor nunca produce.
+    - *Solución:* Modelo alineado con `ReservaCreadaOut`, total derivado de las líneas mediante `computed()`, y spec reescrito sobre un payload real del backend.
+42. **Sesión Anónima tras Completar el Registro en Web**:
+    - *Causa:* `RegistroComponent` persistía la sesión con claves propias (`fs_token_acceso`, `fs_usuario`) que ningún servicio consulta, ya que `LoginService`, `PerfilService` e `InicioService` leen `fashionstore_token` y `fashionstore_user`. El usuario recién registrado quedaba sin autenticar, el interceptor no adjuntaba el token y `/perfil` rebotaba a `/login`.
+    - *Solución:* El registro delega la persistencia en el nuevo método `LoginService.establecerSesion()`, dejando las claves de almacenamiento bajo un único propietario.
+43. **Todo Fallo Interno del Backend Llegaba al Navegador como «Failed to fetch»**:
+    - *Causa:* Ante una excepción no controlada, la respuesta 500 la generaba el `ServerErrorMiddleware` de Starlette, que envuelve a todos los middlewares de usuario, incluido el `CORSMiddleware`. La respuesta salía sin `Access-Control-Allow-Origin` y el navegador la descartaba, de modo que la web y la app Flutter mostraban un error de red genérico en lugar del error real. Añadir un `@app.exception_handler(Exception)` no lo resuelve: Starlette monta ese manejador precisamente en el `ServerErrorMiddleware`.
+    - *Solución:* Middleware `capturar_errores_no_controlados` registrado **antes** del `CORSMiddleware` (`add_middleware` antepone, así que el primero declarado queda por dentro), que devuelve un 500 JSON estructurado y atraviesa CORS. El traceback se registra en el log del servidor y nunca se envía al cliente. Se conserva el manejador de excepción externo como último recurso para fallos del propio CORSMiddleware.
+44. **Landing Page Pública Inalcanzable en la URL Raíz**:
+    - *Causa:* La ruta `{ path: '', component: MainLayoutComponent, children: [...] }` introducida con CU05 quedó declarada por delante de `{ path: '', loadComponent: landing, pathMatch: 'full' }`. Angular resuelve las rutas en orden: la URL raíz entraba en el layout y, al no existir ningún hijo con `path: ''`, la landing dejaba de mostrarse. El proyecto seguía compilando sin errores.
+    - *Solución:* La landing se declara primero en `app.routes.ts`; su `pathMatch: 'full'` garantiza que solo capture la URL vacía exacta. Se añadió además la ruta comodín `{ path: '**' }` que faltaba —sin ella, cualquier URL desconocida producía un `NG04002` y una pantalla en blanco, agravado porque `vercel.json` reescribe todo a `index.html`— y el guard `src/app/app.routes.spec.ts`, que navega a `/` y verifica el orden de declaración.
+
 ## [1.8.0] - 2026-09-21
 
 ### Promoción a Baseline Permanente

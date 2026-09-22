@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 import { CatalogoService } from '../../servicios/catalogo.service';
@@ -21,7 +21,7 @@ import {
 @Component({
   selector: 'app-buscar-productos',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './buscar-productos.component.html',
   styleUrls: ['./buscar-productos.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

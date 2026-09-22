@@ -40,9 +40,7 @@ export class ColeccionDetalleComponent implements OnInit {
   }
 
   protected irACatalogo(producto: ProductoColeccionItem): void {
-    this.router.navigate(['/buscar'], {
-      queryParams: { q: producto.nombre },
-    });
+    this.router.navigate(['/productos', producto.id_producto]);
   }
 
   protected reintentar(): void {

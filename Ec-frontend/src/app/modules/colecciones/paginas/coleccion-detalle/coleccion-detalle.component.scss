@@ -163,16 +163,17 @@
   position: relative;
   text-decoration: none;
   color: inherit;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   &:hover {
     .card-image {
       transform: scale(1.04);
     }
     .product-title {
-      color: #C19A6B;
+      color: #3F3F46;
     }
     .action-btn {
-      color: #C19A6B;
+      color: #000;
     }
   }
 }
@@ -218,18 +219,21 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   .top-meta-row {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    font-family: 'Outfit', sans-serif;
     font-size: 11px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #70706C;
+    color: #71717A;
     margin-bottom: 5px;
 
     .atelier-subtext {
+      font-family: 'Outfit', sans-serif;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
@@ -238,21 +242,23 @@
     }
 
     .price-tag {
+      font-family: 'Outfit', sans-serif;
       font-weight: 600;
       color: #000;
       flex-shrink: 0;
-      letter-spacing: 0.02em;
-      font-size: 12.5px;
+      letter-spacing: -0.01em;
+      font-size: 13px;
     }
   }
 
   .product-title {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 15px;
-    font-weight: 400;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14.5px;
+    font-weight: 500;
     color: #111;
     margin: 0 0 5px 0;
     line-height: 1.35;
+    letter-spacing: -0.01em;
     transition: color 0.2s ease;
     white-space: nowrap;
     overflow: hidden;
@@ -288,6 +294,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      font-family: 'Outfit', sans-serif;
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.12em;

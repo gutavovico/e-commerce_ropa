@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../datos/modelos/coleccion_dto.dart';
+import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/colecciones_bloc.dart';
 import 'detalle_coleccion_screen.dart';
 
 class ColeccionesScreen extends StatefulWidget {
+  /// JWT de la sesión activa, usado cuando la pantalla abre la ficha de producto por su
+  /// cuenta (sin [alSeleccionarProducto]). CU12 exige `Authorization` para reservar.
+  final String? token;
   final ColeccionesBloc? bloc;
   final VoidCallback? alIrAInicio;
   final void Function(ProductoColeccionItemDto)? alSeleccionarProducto;
 
   const ColeccionesScreen({
     super.key,
+    this.token,
     this.bloc,
     this.alIrAInicio,
     this.alSeleccionarProducto,
@@ -45,6 +50,7 @@ class _ColeccionesScreenState extends State<ColeccionesScreen> {
         builder: (_) => DetalleColeccionScreen(
           idColeccion: col.idColeccion,
           nombreColeccionInicial: col.nombre,
+          token: widget.token,
           bloc: _bloc,
           alSeleccionarProducto: widget.alSeleccionarProducto,
         ),
@@ -543,6 +549,15 @@ class _ColeccionesScreenState extends State<ColeccionesScreen> {
           onTap: () {
             if (widget.alSeleccionarProducto != null) {
               widget.alSeleccionarProducto!(pieza);
+            } else {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PantallaProductoDetalle(
+                    idProducto: pieza.idProducto,
+                    token: widget.token,
+                  ),
+                ),
+              );
             }
           },
           child: Container(

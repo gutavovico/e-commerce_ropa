@@ -5,8 +5,17 @@
 **Integración:** Vista Principal de Inicio (`/inicio`), CU36 (Consultar Colecciones) y Módulo Recomendado para Ti  
 **Paquete de Dominio:** `catalogo` (Catálogo y Exploración)  
 **Metodología:** Spec-Driven Development (SDD) & Proceso Unificado de Desarrollo de Software (PUDS)  
-**Estado:** 🟢 APROBADO & SUPERADO AL 100% (Promovido a Especificación Permanente)  
+**Estado:** 🟢 APROBADO & SUPERADO AL 100% (archivado en `.specs/finalized/`)  
 **Fecha de Finalización:** 2026-09-21  
+
+> **Nota de reconciliación (2026-09-21):** este encabezado declaraba el caso de uso «Promovido a
+> Especificación Permanente», pero la promoción nunca llegó a materializarse: no existe
+> `.specs/modules/catalogo_productos/CU18-recomendaciones-personalizadas.md` ni entrada propia en
+> `CHANGELOG.md` (las versiones saltan de 1.7.0/CU36 a 1.8.0/CU05). El caso de uso está
+> implementado y verificado en los tres bloques, pero a efectos del proceso SDD sigue **archivado
+> en `.specs/finalized/`, pendiente de promoción a baseline permanente**, al igual que el conjunto
+> CU07/CU08/CU09/CU12. Se corrige el estado para no dar por cerrado un paso del proceso que no se
+> ejecutó.  
 
 ---
 
@@ -64,7 +73,7 @@
 #### 2.2 Estructura Visual de la Pantalla de Inicio
 1. **Header Sticky:** Logotipo con espaciado editorial, navegación principal con enlace activo en `INICIO` y botones de perfil/cesta.
 2. **Barra de Bienvenida Atelier:** Saludo al cliente autenticado (`Bienvenida, Ana Valenzuela`) y chip de boutique habitual `ATELIER HABITUAL: Boutique Serrano (Madrid)`.
-3. **Hero Banner Promocional (CU36):** Imagen de fondo en penumbra, tipografía de alta costura, copy sobre patronaje atemporal y botón CTA interactivo `EXPLORAR COLECCIÓN CÁPSULA →` enlazado a `/colecciones` (redirige a `/catalogo`).
+3. **Hero Banner Promocional (CU36):** Imagen de fondo en penumbra, tipografía de alta costura, copy sobre patronaje atemporal y botón CTA interactivo `EXPLORAR COLECCIÓN CÁPSULA →` enlazado a `/colecciones` (ruta secundaria propia de CU36, fuera de `MainLayoutComponent`).
 4. **Módulo de Recomendaciones (CU18):** Subtítulo dorado `SELECCIÓN A MEDIDA • ATELIER RECOMMENDS`, titular `Recomendado para ti` y botón `Ver catálogo completo →`. Soporta 4 estados:
    - Skeleton Loader durante carga.
    - Grid de tarjetas de producto con badges de lujo, subtítulo textil, precio en EUR y botón `+ Añadir a bolsa`.

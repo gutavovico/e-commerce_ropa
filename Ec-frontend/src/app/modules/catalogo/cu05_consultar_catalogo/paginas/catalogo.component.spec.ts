@@ -20,7 +20,7 @@ describe('CatalogoComponent (CU05)', () => {
     precio_final: '890.00',
     tiene_descuento: false,
     porcentaje_descuento: null,
-    imagen_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6',
+    imagen_url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f',
     categoria_id: 1,
     categoria_nombre: 'Sastrería & Trajes',
     subtitulo_atelier: 'SASTRERÍA ATELIER',

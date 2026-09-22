@@ -14,6 +14,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { RegistroService } from '../servicios/registro.service';
 import { RegistroClientePeticion } from '../modelos/registro.dto';
+import { LoginService } from '../../cu02_iniciar_sesion/servicios/login.service';
 
 @Component({
   selector: 'app-registro',
@@ -26,6 +27,7 @@ import { RegistroClientePeticion } from '../modelos/registro.dto';
 export class RegistroComponent {
   private readonly fb = inject(FormBuilder);
   private readonly registroService = inject(RegistroService);
+  private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
 
   // Estados reactivos con Signals
@@ -152,21 +154,17 @@ export class RegistroComponent {
         this.cargando.set(false);
         this.exito.set(true);
 
-        try {
-          localStorage.setItem('fs_token_acceso', respuesta.token_acceso);
-          localStorage.setItem(
-            'fs_usuario',
-            JSON.stringify({
-              id_usuario: respuesta.id_usuario,
-              email: respuesta.email,
-              nombres: respuesta.nombres,
-              apellidos: respuesta.apellidos,
-              rol: respuesta.rol,
-            })
-          );
-        } catch {
-          // Fallback seguro
-        }
+        // La sesión se delega en LoginService para que use sus mismas claves de
+        // almacenamiento. Persistirla aquí con claves propias dejaba al recién registrado
+        // anónimo para el resto de la aplicación y para el interceptor HTTP.
+        this.loginService.establecerSesion({
+          id_usuario: respuesta.id_usuario,
+          email: respuesta.email,
+          nombres: respuesta.nombres,
+          apellidos: respuesta.apellidos,
+          rol: respuesta.rol,
+          token: respuesta.token_acceso,
+        });
 
         setTimeout(() => {
           this.router.navigate(['/']);

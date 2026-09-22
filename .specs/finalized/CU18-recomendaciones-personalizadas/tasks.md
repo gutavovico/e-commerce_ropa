@@ -30,7 +30,7 @@
   - Módulo de recomendaciones CU18 con los 4 estados (Skeleton loader, Grid de cards con tags, Empty State con copy normativo y Fallback de error).
   - Módulo "Experiencia Atelier" con las 3 tarjetas de garantías exclusivas.
   - Footer editorial corporativo FASHION STORE.
-- [x] **Tarea 2.4**: Configurar enrutamiento en `src/app/app.routes.ts` conectando `/inicio` a `InicioComponent`, alias `/home` -> `/inicio`, y `/colecciones` -> `/catalogo`.
+- [x] **Tarea 2.4**: Configurar enrutamiento en `src/app/app.routes.ts` conectando `/inicio` a `InicioComponent` y alias `/home` -> `/inicio`. *(Reconciliado 2026-09-21: `/colecciones` no es un redirect a `/catalogo`; CU36 la declara como ruta secundaria propia con su `ColeccionesComponent` y su detalle `/colecciones/:id`, fuera de `MainLayoutComponent`.)*
 - [x] **Tarea 2.5**: Escribir pruebas unitarias en `src/app/modules/inicio/paginas/inicio.component.spec.ts` y validar `npm test` (57/57 tests pasando) y `npm run build` (0 errores).
 
 ---

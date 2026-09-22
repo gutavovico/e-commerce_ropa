@@ -7,6 +7,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { LoginService } from './login.service';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
+import { provideRouter } from '@angular/router';
+
 describe('LoginService & Logout (CU03)', () => {
   let service: LoginService;
   let httpMock: HttpTestingController;
@@ -15,6 +17,7 @@ describe('LoginService & Logout (CU03)', () => {
     TestBed.configureTestingModule({
       providers: [
         LoginService,
+        provideRouter([{ path: 'login', component: class {} }]),
         provideHttpClient(),
         provideHttpClientTesting(),
       ],

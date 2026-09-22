@@ -42,7 +42,7 @@ Son **única y exclusivamente las 4 secciones base** accesibles desde la barra d
 
 1. **`Inicio`** (`/inicio` o `/home`): Atelier, novedades, bienvenida, colecciones destacadas y recomendaciones IA (CU18).
 2. **`Buscar`** (`/buscar`): Motor de búsqueda difusa `pg_trgm`, filtros avanzados y exploración (CU06).
-3. **`Catálogo`** (`/catalogo`): Índice canónico de categorías y catálogo general (CU05, *pendiente de implementar*).
+3. **`Catálogo`** (`/catalogo`): Índice canónico de categorías y catálogo general (CU05).
 4. **`Perfil`** (`/perfil` o `/mi-cuenta`): Gestión de perfil del cliente, citas atelier y pedidos (CU04).
 
 #### Reglas Inviolables para Pantallas Raíz:
@@ -80,7 +80,7 @@ Cualquier otro caso de uso, vista de detalle, proceso transaccional o sub-flujo 
        children: [
          { path: 'inicio', loadComponent: () => import('./modules/inicio/paginas/inicio.component').then(m => m.InicioComponent) },
          { path: 'buscar', loadComponent: () => import('./modules/catalogo/cu06_buscar_filtrar/paginas/buscar-productos.component').then(m => m.BuscarProductosComponent) },
-         { path: 'catalogo', ... }, // Pendiente CU05
+         { path: 'catalogo', loadComponent: () => import('./modules/catalogo/cu05_consultar_catalogo/paginas/catalogo.component').then(m => m.CatalogoComponent) },
          { path: 'perfil', canActivate: [authGuard], loadComponent: () => import('./modules/autenticacion_seguridad/cu04_gestionar_perfil/paginas/perfil.component').then(m => m.PerfilComponent) },
        ]
      }
@@ -104,7 +104,7 @@ Cualquier otro caso de uso, vista de detalle, proceso transaccional o sub-flujo 
    - El Scaffold de la pantalla secundaria **no declara `bottomNavigationBar`** (queda completamente oculta).
    - Su `AppBar` incluye obligatoriamente `leading: IconButton(icon: Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop())`.
 3. **Alineación de Catálogo (CU05):**
-   - El botón/ítem de Catálogo en el menú no debe realizar transiciones a pantallas ajenas como Colecciones mientras CU05 se encuentre en estado pendiente de especificación.
+   - El ítem de Catálogo del menú resuelve siempre a la pestaña canónica de CU05 (índice 2 del `IndexedStack` de `PantallaPrincipalHub`) y nunca a pantallas ajenas como Colecciones, que es una vista secundaria.
 
 ---
 
@@ -114,7 +114,8 @@ Cualquier otro caso de uso, vista de detalle, proceso transaccional o sub-flujo 
 | :--- | :--- | :--- | :--- | :--- |
 | **Inicio** | Principal (Hub) | Visible (Siempre) | Prohibido | ✅ Conforme |
 | **Buscar (CU06)** | Principal (Hub) | Visible (Siempre) | Prohibido | ✅ Conforme (`automaticallyImplyLeading: false`) |
-| **Catálogo (CU05)** | Principal (Hub) | Visible (Siempre) | Prohibido | ⏳ Pendiente de implementar |
+| **Catálogo (CU05)** | Principal (Hub) | Visible (Siempre) | Prohibido | ✅ Conforme (`automaticallyImplyLeading: false`, pestaña 2 del Hub) |
 | **Perfil (CU04)** | Principal (Hub) | Visible (Siempre) | Prohibido | ✅ Conforme |
-| **Colecciones (CU36)** | Secundaria (Hoja) | Oculta / No disponible | Obligatorio hacia `/inicio` | ✅ Conforme en Mobile / En migración de Layout en Web |
+| **Colecciones (CU36)** | Secundaria (Hoja) | Oculta / No disponible | Obligatorio hacia `/inicio` | ✅ Conforme en Mobile y Web |
 | **Detalle Colección (CU36)** | Secundaria (Hoja) | Oculta / No disponible | Obligatorio hacia `/colecciones` | ✅ Conforme |
+| **Detalle de Prenda (CU07)** | Secundaria (Hoja) | Oculta / No disponible | Obligatorio (`Location.back()` en Web, `Navigator.pop()` en Mobile) | ✅ Conforme |

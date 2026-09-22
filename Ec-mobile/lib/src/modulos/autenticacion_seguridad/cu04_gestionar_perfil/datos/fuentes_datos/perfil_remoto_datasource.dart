@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
+import 'package:ec_mobile/src/core/sesion_manager.dart';
 import '../modelos/perfil_dto.dart';
 
 class PerfilExcepcion implements Exception {
@@ -48,6 +49,7 @@ class PerfilRemotoDatasource {
       } else if (response.statusCode == 401) {
         final detalle = body['detail'] as String? ?? 'Sesión expirada o token no válido.';
         final codigo = body['code'] as String? ?? 'TOKEN_INVALIDO';
+        SesionManager.instancia.notificarSesionExpirada(mensaje: detalle);
         throw PerfilExcepcion(detalle, codigo: codigo, statusCode: 401);
       } else if (response.statusCode == 403) {
         final detalle = body['detail'] as String? ?? 'Acceso restringido a cuentas cliente.';
@@ -99,6 +101,7 @@ class PerfilRemotoDatasource {
           statusCode: 422,
         );
       } else if (response.statusCode == 401) {
+        SesionManager.instancia.notificarSesionExpirada(mensaje: 'Sesión no autorizada.');
         throw const PerfilExcepcion('Sesión no autorizada.', statusCode: 401);
       } else {
         final detalle = body['detail'] as String? ?? 'Error al actualizar perfil.';

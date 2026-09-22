@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../datos/modelos/catalogo_dto.dart';
+import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/catalogo_bloc.dart';
 
 /// Pantalla Principal del Catálogo de Prendas (CU05) para FashionStore Móvil.
@@ -11,6 +12,9 @@ import '../bloc/catalogo_bloc.dart';
 /// Conforme a la Directriz Global Hub-and-Spoke, carece estrictamente de botón
 /// de retroceso (automaticallyImplyLeading: false).
 class PantallaCatalogo extends StatefulWidget {
+  /// JWT de la sesión activa. Se propaga a la ficha de producto porque CU12 (reservar cita
+  /// en boutique) exige `Authorization`; sin él la reserva respondía 401 aun estando logueado.
+  final String? token;
   final bool mostrarBottomNav;
   final bool habilitarImagenesRed;
   final VoidCallback? alIrAInicio;
@@ -20,6 +24,7 @@ class PantallaCatalogo extends StatefulWidget {
 
   const PantallaCatalogo({
     super.key,
+    this.token,
     this.mostrarBottomNav = true,
     this.habilitarImagenesRed = true,
     this.alIrAInicio,
@@ -701,12 +706,24 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
       ProductoCatalogoItemDto prod, Set<int> favoritos) {
     final esFav = favoritos.contains(prod.idProducto);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(2),
-        border: Border.all(color: const Color(0xFFECEAE6)),
-      ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PantallaProductoDetalle(
+              idProducto: prod.idProducto,
+              token: widget.token,
+              habilitarImagenesRed: widget.habilitarImagenesRed,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(2),
+          border: Border.all(color: const Color(0xFFECEAE6)),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -903,8 +920,9 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _placeholderPrenda() {
     return const Center(

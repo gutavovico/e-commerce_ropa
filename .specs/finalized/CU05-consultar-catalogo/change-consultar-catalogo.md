@@ -6,7 +6,13 @@
 **Actores:** Cliente Autenticado y Visitante Anónimo  
 **Metodología:** Spec-Driven Development (SDD) & Proceso Unificado de Desarrollo de Software (PUDS)  
 **Nivel de Riesgo:** Nivel 1 (Exploración pública de catálogo, consultas agregadas y navegación institucional raíz)  
-**Estado:** 🟡 EN FASE DE ESPECIFICACIÓN Y PLANIFICACIÓN (Gate de Aprobación Activo)  
+**Estado:** 🟢 IMPLEMENTADO Y PROMOVIDO A BASELINE PERMANENTE (`.specs/modules/catalogo_productos/CU05-consultar-catalogo.md`)  
+
+> **Nota de reconciliación (2026-09-21):** este documento conservaba el encabezado y las casillas
+> del momento de la propuesta (20 tareas sin marcar y 16 checkpoints en ⏳), contradiciendo a su
+> propio `checkpoint.md`, que da los 18 puntos de control por aprobados, y a la entrada 1.8.0 del
+> `CHANGELOG.md`, que documenta la promoción a especificación permanente. Se sincroniza con el
+> estado real.  
 **Fecha de Creación:** 2026-09-21  
 
 ---
@@ -158,30 +164,30 @@ Permitir a clientes registrados y visitantes anónimos consultar el catálogo ge
 ## C. Lista de Tareas Atómicas (`tasks`)
 
 ### Tareas de Backend
-- [ ] `T-BE-01`: Crear estructura de paquetes `app/modules/catalogo/cu05_consultar_catalogo/`.
-- [ ] `T-BE-02`: Definir esquemas Pydantic en `esquemas.py`.
-- [ ] `T-BE-03`: Implementar consultas relacionales y conteo por categoría en `repositorio.py`.
-- [ ] `T-BE-04`: Implementar lógica de promociones y enriquecimiento en `servicio.py`.
-- [ ] `T-BE-05`: Implementar endpoint `GET /api/v1/catalogo` en `router.py`.
-- [ ] `T-BE-06`: Conectar router en `app/modules/catalogo/router.py`.
-- [ ] `T-BE-07`: Escribir y ejecutar suite de tests en `tests/modules/catalogo/test_cu05_catalogo.py`.
+- [x] `T-BE-01`: Crear estructura de paquetes `app/modules/catalogo/cu05_consultar_catalogo/`.
+- [x] `T-BE-02`: Definir esquemas Pydantic en `esquemas.py`.
+- [x] `T-BE-03`: Implementar consultas relacionales y conteo por categoría en `repositorio.py`.
+- [x] `T-BE-04`: Implementar lógica de promociones y enriquecimiento en `servicio.py`.
+- [x] `T-BE-05`: Implementar endpoint `GET /api/v1/catalogo` en `router.py`.
+- [x] `T-BE-06`: Conectar router en `app/modules/catalogo/router.py`.
+- [x] `T-BE-07`: Escribir y ejecutar suite de tests en `tests/modules/catalogo/test_cu05_catalogo.py`.
 
 ### Tareas de Frontend Web
-- [ ] `T-FE-01`: Crear modelos y servicio `CatalogoService` en Angular.
-- [ ] `T-FE-02`: Crear componente standalone `CatalogoComponent` con Signals.
-- [ ] `T-FE-03`: Maquetar vista de catálogo completa con Tailwind CSS según captura Desktop.
-- [ ] `T-FE-04`: Registrar `/catalogo` dentro de `MainLayoutComponent` en `app.routes.ts`.
-- [ ] `T-FE-05`: Conectar interacciones de chips, selector de cuadrícula, paginación y enlace a `/buscar`.
-- [ ] `T-FE-06`: Escribir suite de pruebas unitarias en `catalogo.component.spec.ts`.
-- [ ] `T-FE-07`: Validar compilación con `npm run build`.
+- [x] `T-FE-01`: Crear modelos y servicio `CatalogoService` en Angular.
+- [x] `T-FE-02`: Crear componente standalone `CatalogoComponent` con Signals.
+- [x] `T-FE-03`: Maquetar vista de catálogo completa con Tailwind CSS según captura Desktop.
+- [x] `T-FE-04`: Registrar `/catalogo` dentro de `MainLayoutComponent` en `app.routes.ts`.
+- [x] `T-FE-05`: Conectar interacciones de chips, selector de cuadrícula, paginación y enlace a `/buscar`.
+- [x] `T-FE-06`: Escribir suite de pruebas unitarias en `catalogo.component.spec.ts`.
+- [x] `T-FE-07`: Validar compilación con `npm run build`.
 
 ### Tareas de Mobile
-- [ ] `T-MO-01`: Crear DTOs, cliente HTTP y repositorio de catálogo en Flutter.
-- [ ] `T-MO-02`: Implementar `CatalogoBloc`, eventos y estados sellados.
-- [ ] `T-MO-03`: Crear `PantallaCatalogo` con diseño fiel a la captura móvil.
-- [ ] `T-MO-04`: Integrar en `PantallaPrincipalHub` en el índice 2 sustituyendo el placeholder.
-- [ ] `T-MO-05`: Escribir suite de pruebas en `test/pantalla_catalogo_test.dart`.
-- [ ] `T-MO-06`: Validar con `flutter analyze` y `flutter test`.
+- [x] `T-MO-01`: Crear DTOs, cliente HTTP y repositorio de catálogo en Flutter.
+- [x] `T-MO-02`: Implementar `CatalogoBloc`, eventos y estados sellados.
+- [x] `T-MO-03`: Crear `PantallaCatalogo` con diseño fiel a la captura móvil.
+- [x] `T-MO-04`: Integrar en `PantallaPrincipalHub` en el índice 2 sustituyendo el placeholder.
+- [x] `T-MO-05`: Escribir suite de pruebas en `test/pantalla_catalogo_test.dart`.
+- [x] `T-MO-06`: Validar con `flutter analyze` y `flutter test`.
 
 ---
 
@@ -189,19 +195,19 @@ Permitir a clientes registrados y visitantes anónimos consultar el catálogo ge
 
 | ID | Criterio de Verificación | Método de Validación | Estado |
 | :--- | :--- | :--- | :--- |
-| **CP-01** | `GET /api/v1/catalogo` responde 200 con estructura `CatalogoOut` completa. | Tests de integración Pytest | ⏳ Pendiente |
-| **CP-02** | `resumen_categorias` calcula correctamente los conteos de prendas activas. | Consulta SQL directa y tests | ⏳ Pendiente |
-| **CP-03** | Filtrado por `categoria_id` retorna únicamente prendas de la categoría seleccionada. | Test unitario en Pytest | ⏳ Pendiente |
-| **CP-04** | Paginación determinista calcula total de páginas y banderas de avance. | Tests de paginación Pytest | ⏳ Pendiente |
-| **CP-05** | Vista Web `/catalogo` renderizada dentro de `MainLayoutComponent` con navbar visible. | Inspección visual y tests | ⏳ Pendiente |
-| **CP-06** | Ausencia estricta de botón `← Volver` en Web y Mobile (Regla Hub-and-Spoke). | Aserción en tests unitarios | ⏳ Pendiente |
-| **CP-07** | Fila de chips de categorías filtra reactivamente las tarjetas mediante Signals. | Tests en Vitest | ⏳ Pendiente |
-| **CP-08** | Botón "Filtrar y Ordenar" enlaza correctamente con la vista de búsqueda de CU06. | Test de router en Angular | ⏳ Pendiente |
-| **CP-09** | Grilla de 4 columnas en Web reproduce la captura Desktop: badges, tallas, dots y precio. | Validación visual y estilos | ⏳ Pendiente |
-| **CP-10** | Compilación de producción en Angular limpia sin errores (`npm run build`). | Build en Angular CLI | ⏳ Pendiente |
-| **CP-11** | Pestaña Catálogo en Mobile mantiene visible el `BottomNavigationBar` en índice 2. | Tests de widget en Flutter | ⏳ Pendiente |
-| **CP-12** | GridView móvil en 2 columnas reproduce la captura Mobile con shimmers y badges. | Tests de widget en Flutter | ⏳ Pendiente |
-| **CP-13** | Botón expansor "CARGAR MÁS PRENDAS" y paginación numerada en Mobile funcionales. | Tests de BLoC y widgets | ⏳ Pendiente |
-| **CP-14** | Análisis estático de Flutter limpio (`flutter analyze` 0 issues). | CLI `flutter analyze` | ⏳ Pendiente |
-| **CP-15** | Suite de pruebas en Flutter pasando al 100% (`flutter test`). | CLI `flutter test` | ⏳ Pendiente |
-| **CP-16** | Catálogo 100% de moda femenina exclusiva y datos provenientes de PostgreSQL real. | Auditoría de assets y BD | ⏳ Pendiente |
+| **CP-01** | `GET /api/v1/catalogo` responde 200 con estructura `CatalogoOut` completa. | Tests de integración Pytest | ✅ Superado |
+| **CP-02** | `resumen_categorias` calcula correctamente los conteos de prendas activas. | Consulta SQL directa y tests | ✅ Superado |
+| **CP-03** | Filtrado por `categoria_id` retorna únicamente prendas de la categoría seleccionada. | Test unitario en Pytest | ✅ Superado |
+| **CP-04** | Paginación determinista calcula total de páginas y banderas de avance. | Tests de paginación Pytest | ✅ Superado |
+| **CP-05** | Vista Web `/catalogo` renderizada dentro de `MainLayoutComponent` con navbar visible. | Inspección visual y tests | ✅ Superado |
+| **CP-06** | Ausencia estricta de botón `← Volver` en Web y Mobile (Regla Hub-and-Spoke). | Aserción en tests unitarios | ✅ Superado |
+| **CP-07** | Fila de chips de categorías filtra reactivamente las tarjetas mediante Signals. | Tests en Vitest | ✅ Superado |
+| **CP-08** | Botón "Filtrar y Ordenar" enlaza correctamente con la vista de búsqueda de CU06. | Test de router en Angular | ✅ Superado |
+| **CP-09** | Grilla de 4 columnas en Web reproduce la captura Desktop: badges, tallas, dots y precio. | Validación visual y estilos | ✅ Superado |
+| **CP-10** | Compilación de producción en Angular limpia sin errores (`npm run build`). | Build en Angular CLI | ✅ Superado |
+| **CP-11** | Pestaña Catálogo en Mobile mantiene visible el `BottomNavigationBar` en índice 2. | Tests de widget en Flutter | ✅ Superado |
+| **CP-12** | GridView móvil en 2 columnas reproduce la captura Mobile con shimmers y badges. | Tests de widget en Flutter | ✅ Superado |
+| **CP-13** | Botón expansor "CARGAR MÁS PRENDAS" y paginación numerada en Mobile funcionales. | Tests de BLoC y widgets | ✅ Superado |
+| **CP-14** | Análisis estático de Flutter limpio (`flutter analyze` 0 issues). | CLI `flutter analyze` | ✅ Superado |
+| **CP-15** | Suite de pruebas en Flutter pasando al 100% (`flutter test`). | CLI `flutter test` | ✅ Superado |
+| **CP-16** | Catálogo 100% de moda femenina exclusiva y datos provenientes de PostgreSQL real. | Auditoría de assets y BD | ✅ Superado |

@@ -38,9 +38,7 @@ export class ColeccionesComponent implements OnInit {
   }
 
   protected irACatalogo(producto: ProductoColeccionItem): void {
-    this.router.navigate(['/buscar'], {
-      queryParams: { q: producto.nombre },
-    });
+    this.router.navigate(['/productos', producto.id_producto]);
   }
 
   protected onImgError(event: Event): void {

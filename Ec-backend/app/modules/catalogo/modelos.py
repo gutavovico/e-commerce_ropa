@@ -108,7 +108,10 @@ class TemporadaORM(Base):
     tipo: Mapped[str] = mapped_column(tipo_temporada_enum, nullable=False)
     fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
     fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
-    activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # La columna real en PostgreSQL es `estado_activo`, no `activa`. El atributo Python conserva
+    # el nombre de dominio para no alterar las consultas (`TemporadaORM.activa`).
+    # Ojo: `alembic/versions/0001_base_ddl.py` declara `activa` y NO refleja la base real.
+    activa: Mapped[bool] = mapped_column("estado_activo", Boolean, nullable=False, default=True)
 
     colecciones: Mapped[List["ColeccionORM"]] = relationship(
         "ColeccionORM", back_populates="temporada"
@@ -124,11 +127,13 @@ class ProveedorORM(Base):
     id_proveedor: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     id_usuario: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     razon_social: Mapped[str] = mapped_column(String(200), nullable=False)
-    nit: Mapped[Optional[str]] = mapped_column(String(30), unique=True, nullable=True)
+    # La columna real en PostgreSQL es `nit_rut` (la migración 0001 declara `nit`).
+    nit: Mapped[Optional[str]] = mapped_column("nit_rut", String(30), unique=True, nullable=True)
     contacto_nombre: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # La columna real en PostgreSQL es `estado_activo` (la migración 0001 declara `activo`).
+    activo: Mapped[bool] = mapped_column("estado_activo", Boolean, nullable=False, default=True)
     creado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -283,6 +288,22 @@ class InventarioSucursalORM(Base):
     )
 
 
+class CiudadORM(Base):
+    """Mapeo de la tabla `fashionstore.ciudades`."""
+
+    __tablename__ = "ciudades"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_ciudad: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    pais: Mapped[str] = mapped_column(String(100), nullable=False, default="España")
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
 class SucursalORM(Base):
     """Mapeo de la tabla `fashionstore.sucursales`."""
 
@@ -290,16 +311,22 @@ class SucursalORM(Base):
     __table_args__ = {"schema": "fashionstore"}
 
     id_sucursal: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    id_ciudad: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_ciudad: Mapped[int] = mapped_column(
+        Integer, ForeignKey("fashionstore.ciudades.id_ciudad"), nullable=False, index=True
+    )
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     direccion: Mapped[str] = mapped_column(String(255), nullable=False)
     telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    horario_apertura: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, default="09:00")
+    horario_cierre: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, default="20:00")
     activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     creado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
+
+    ciudad: Mapped[Optional["CiudadORM"]] = relationship("CiudadORM")
 
 
 class VentaORM(Base):
@@ -391,7 +418,8 @@ class PromocionORM(Base):
     porcentaje_descuento: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2), nullable=True)
     fecha_inicio: Mapped[date] = mapped_column(Date, nullable=False)
     fecha_fin: Mapped[date] = mapped_column(Date, nullable=False)
-    activa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # La columna real en PostgreSQL es `estado_activo` (la migración 0001 declara `activa`).
+    activa: Mapped[bool] = mapped_column("estado_activo", Boolean, nullable=False, default=True)
 
 
 class PromocionProductoORM(Base):

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../datos/modelos/producto_item_dto.dart';
+import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/catalogo_bloc.dart';
 
 /// Paleta de 16 colores textiles de confección para el catálogo de FashionStore.
@@ -32,6 +33,9 @@ const List<SwatchColorTextil> kColoresTextiles = [
 ];
 
 class PantallaBuscarProductos extends StatefulWidget {
+  /// JWT de la sesión activa. Se propaga a la ficha de producto porque CU12 (reservar cita
+  /// en boutique) exige `Authorization`; sin él la reserva respondía 401 aun estando logueado.
+  final String? token;
   final CatalogoBloc? bloc;
   final VoidCallback? alIrAPerfil;
   final VoidCallback? alIrAInicio;
@@ -41,6 +45,7 @@ class PantallaBuscarProductos extends StatefulWidget {
 
   const PantallaBuscarProductos({
     super.key,
+    this.token,
     this.bloc,
     this.alIrAPerfil,
     this.alIrAInicio,
@@ -953,7 +958,19 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
   Widget _construirTarjetaProducto(ProductoItemDto item) {
     final esFav = _bloc.favoritosIds.contains(item.idProducto);
 
-    return Column(
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PantallaProductoDetalle(
+              idProducto: item.idProducto,
+              token: widget.token,
+              habilitarImagenesRed: widget.habilitarImagenesRed,
+            ),
+          ),
+        );
+      },
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Contenedor de Fotografía con Badges y Corazón
@@ -1119,8 +1136,9 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
           ],
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _construirBusquedasFrecuentes() {
     final busquedas = _bloc.busquedasFrecuentes;

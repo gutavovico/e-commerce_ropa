@@ -199,6 +199,7 @@
   position: relative;
   text-decoration: none;
   color: inherit;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   &:hover {
     .card-image {
@@ -206,10 +207,10 @@
     }
     .product-title,
     .collection-title {
-      color: #C19A6B;
+      color: #3F3F46; /* neutral-700 para mantener elegancia sin tonos dorados discordantes */
     }
     .ver-link {
-      color: #C19A6B;
+      color: #000;
       transform: translateX(2px);
     }
   }
@@ -246,9 +247,10 @@
   .badge-editorial-tag {
     background-color: rgba(255, 255, 255, 0.96);
     color: #000;
+    font-family: 'Outfit', sans-serif;
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     padding: 3px 8px;
     border: 1px solid rgba(0, 0, 0, 0.08);
@@ -259,9 +261,10 @@
   .badge-disponible-tag {
     background-color: #000;
     color: #fff;
+    font-family: 'Outfit', sans-serif;
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     padding: 3px 8px;
     white-space: nowrap;
@@ -270,9 +273,10 @@
   .badge-ultimas-tag {
     background-color: #C19A6B;
     color: #000;
+    font-family: 'Outfit', sans-serif;
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     padding: 3px 8px;
     white-space: nowrap;
@@ -284,18 +288,21 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   .top-meta-row {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    font-family: 'Outfit', sans-serif;
     font-size: 11px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #70706C;
+    color: #71717A;
     margin-bottom: 5px;
 
     .atelier-subtext {
+      font-family: 'Outfit', sans-serif;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
@@ -304,22 +311,24 @@
     }
 
     .price-tag {
+      font-family: 'Outfit', sans-serif;
       font-weight: 600;
       color: #000;
       flex-shrink: 0;
-      letter-spacing: 0.02em;
-      font-size: 12.5px;
+      letter-spacing: -0.01em;
+      font-size: 13px;
     }
   }
 
   .product-title,
   .collection-title {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 15px;
-    font-weight: 400;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14.5px;
+    font-weight: 500;
     color: #111;
     margin: 0 0 5px 0;
     line-height: 1.35;
+    letter-spacing: -0.01em;
     transition: color 0.2s ease;
     white-space: nowrap;
     overflow: hidden;
@@ -328,8 +337,9 @@
 
   .product-description,
   .collection-description {
-    font-size: 11px;
-    color: #70706C;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11.5px;
+    color: #71717A;
     line-height: 1.45;
     margin: 0 0 10px 0;
     display: -webkit-box;
@@ -364,6 +374,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      font-family: 'Outfit', sans-serif;
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.12em;

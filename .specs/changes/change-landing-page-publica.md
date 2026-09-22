@@ -5,7 +5,7 @@
 **Alcance:** Exclusivamente Frontend Web (`Ec-frontend` - Angular 19+)  
 **Metodología:** Spec-Driven Development (SDD) & Proceso Unificado de Desarrollo (PUDS)  
 **Fuente de Verdad Visual:** Prototipo Editorial de Alta Costura Adjunto  
-**Estado:** 🟡 En Espera de Aprobación Humana (Gate Estricto de Especificación)  
+**Estado:** 🟢 Implementado y Verificado (gate superado el 2026-09-21)  
 **Fecha:** 2026-09-20  
 
 ---
@@ -193,8 +193,9 @@ La landing page sintetiza visualmente la propuesta de valor omnicanal de la firm
 - **Problema Detectado:** Al asignarse `path: ''` a la `LandingPageComponent`, las cabeceras de navegación de las vistas internas y autenticadas (`/perfil`, `/buscar`, `/catalogo`) que contenían enlaces `routerLink="/"` provocaban que al pulsar `INICIO` o el logotipo `FASHION STORE`, el usuario fuera expulsado de su sesión activa y redirigido a la Landing Page pública de bienvenida.
 - **Decisión Arquitectónica:**
   1. El botón `INICIO` y el logotipo dentro del ecosistema de navegación interno se desvinculan de la ruta raíz pública (`/`) y se enrutan a `/inicio`.
-  2. En [app.routes.ts](file:///c:/Users/tonys/OneDrive/Documentos/contenido/SI2/Parcial1-Ecommerce/Ec-frontend/src/app/app.routes.ts), se define `{ path: 'inicio', redirectTo: 'catalogo', pathMatch: 'full' }`.
-  3. Esto mantiene al usuario dentro de la galería de compra interna mientras se planifica y desarrolla el panel / dashboard de inicio autenticado ("función a implementar más adelante").
+  2. En [app.routes.ts](file:///c:/Users/tonys/OneDrive/Documentos/contenido/SI2/Parcial1-Ecommerce/Ec-frontend/src/app/app.routes.ts), `/inicio` resuelve al `InicioComponent` real (CU18) dentro de `MainLayoutComponent`, con `/home` como alias.
+  3. Esto mantiene al usuario dentro del ecosistema autenticado sin expulsarlo a la landing pública.
+     > **Nota de reconciliación (2026-09-21):** la redacción original describía `{ path: 'inicio', redirectTo: 'catalogo', pathMatch: 'full' }` como solución provisional «mientras se planifica el dashboard de inicio autenticado». Ese dashboard se entregó en CU18 (Recomendaciones Personalizadas), de modo que `/inicio` dejó de ser un redirect y pasó a ser una pantalla raíz propia. Se corrige el texto para que coincida con el enrutamiento vigente.
   4. Los hipervínculos de retorno contextual (como el botón "EXPLORAR PIEZAS" en el perfil de cliente) apuntan explícitamente a `/catalogo`.
 
 ---
@@ -257,4 +258,6 @@ Una vez aprobada esta especificación, la ejecución se llevará a cabo en las s
 
 ---
 
-> ⛔ **GATE DE APROBACIÓN OBLIGATORIO (STRICT STOP)**: La especificación técnica y el plan de trabajo están completamente definidos. No se modificará ni generará código en `Ec-frontend` hasta contar con la autorización explícita del usuario.
+> ✅ **GATE SUPERADO (2026-09-21)**: Autorización concedida. Las 13 tareas `T1…T13` están implementadas y los checkpoints `CP-01…CP-05` verificados. El aislamiento multiplataforma (CP-04) se mantiene: este cambio no tocó `Ec-backend/` ni `Ec-mobile/`.
+>
+> **Nota de reconciliación (2026-09-21):** este bloque declaraba un *strict stop* sobre `Ec-frontend` mientras las 13 tareas figuraban ya como `[x]`. El texto del gate había quedado congelado en el momento de la propuesta; se corrige para reflejar el estado real.

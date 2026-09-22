@@ -226,12 +226,14 @@
             >
               <!-- 1. FOTOGRAFÍA CON BADGES Y ACCIONES -->
               <div class="relative w-full aspect-[3/4] bg-[#F5F4F0] overflow-hidden rounded-xs mb-3">
-                <img
-                  [src]="prod.imagen_url || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop&q=80'"
-                  [alt]="prod.nombre"
-                  loading="lazy"
-                  class="w-full h-full object-cover object-center group-hover:scale-104 transition-transform duration-500 ease-out"
-                />
+                <a [routerLink]="['/productos', prod.id_producto]" class="block w-full h-full cursor-pointer">
+                  <img
+                    [src]="prod.imagen_url || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop&q=80'"
+                    [alt]="prod.nombre"
+                    loading="lazy"
+                    class="w-full h-full object-cover object-center group-hover:scale-104 transition-transform duration-500 ease-out"
+                  />
+                </a>
 
                 <!-- Badge Editorial en Esquina Superior Izquierda -->
                 @if (prod.etiqueta_badge) {
@@ -300,7 +302,9 @@
                   </div>
 
                   <h3 class="text-xs md:text-sm font-semibold text-[#111111] tracking-tight line-clamp-1 group-hover:text-[#444444] transition-colors">
-                    {{ prod.nombre }}
+                    <a [routerLink]="['/productos', prod.id_producto]" class="hover:underline">
+                      {{ prod.nombre }}
+                    </a>
                   </h3>
 
                   <!-- Precios y Descuentos -->

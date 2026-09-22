@@ -425,12 +425,14 @@
                 <!-- Contenedor de Imagen y Badges -->
                 <div class="relative w-full aspect-[3/4] bg-[#F7F6F4] overflow-hidden">
                   <!-- Imagen de Prenda con Zoom Suave -->
-                  <img
-                    [src]="item.imagen_url || 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&auto=format&fit=crop&q=80'"
-                    [alt]="item.nombre"
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                    loading="lazy"
-                  />
+                  <a [routerLink]="['/productos', item.id_producto]" class="block w-full h-full cursor-pointer">
+                    <img
+                      [src]="item.imagen_url || 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&auto=format&fit=crop&q=80'"
+                      [alt]="item.nombre"
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                      loading="lazy"
+                    />
+                  </a>
 
                   <!-- Badge Superior Izquierdo -->
                   @if (item.badge_editorial) {
@@ -469,7 +471,9 @@
 
                     <!-- Título de Prenda -->
                     <h2 class="text-sm font-medium text-[#111111] leading-snug tracking-normal">
-                      {{ item.nombre }}
+                      <a [routerLink]="['/productos', item.id_producto]" class="hover:underline">
+                        {{ item.nombre }}
+                      </a>
                     </h2>
                   </div>
 

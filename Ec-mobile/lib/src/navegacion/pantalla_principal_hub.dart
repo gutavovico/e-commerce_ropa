@@ -4,6 +4,7 @@ import '../modulos/autenticacion_seguridad/cu04_gestionar_perfil/presentacion/pa
 import '../modulos/catalogo/cu05_consultar_catalogo/presentacion/pantallas/pantalla_catalogo.dart';
 import '../modulos/catalogo/cu06_buscar_filtrar/presentacion/pantallas/pantalla_buscar_productos.dart';
 import '../modulos/catalogo/cu18_recomendaciones/presentacion/pantallas/pantalla_inicio.dart';
+import '../modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../modulos/catalogo/cu36_consultar_colecciones/presentacion/pantallas/colecciones_screen.dart';
 
 /// Contenedor Principal (Hub) que orquesta las 4 pantallas raíz del sistema FashionStore:
@@ -77,7 +78,19 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ColeccionesScreen(
+          token: widget.token,
           alIrAInicio: () => Navigator.of(context).pop(),
+          alSeleccionarProducto: (prod) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PantallaProductoDetalle(
+                  idProducto: prod.idProducto,
+                  token: widget.token,
+                  habilitarImagenesRed: widget.habilitarImagenesRed,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -100,6 +113,7 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
 
       // 1. Buscar
       PantallaBuscarProductos(
+        token: widget.token,
         mostrarBottomNav: false,
         habilitarImagenesRed: widget.habilitarImagenesRed,
         alIrAInicio: () => _cambiarTab(0),
@@ -109,6 +123,7 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
 
       // 2. Catálogo (CU05: Consultar Catálogo de Prendas)
       PantallaCatalogo(
+        token: widget.token,
         mostrarBottomNav: false,
         habilitarImagenesRed: widget.habilitarImagenesRed,
         alIrAInicio: () => _cambiarTab(0),

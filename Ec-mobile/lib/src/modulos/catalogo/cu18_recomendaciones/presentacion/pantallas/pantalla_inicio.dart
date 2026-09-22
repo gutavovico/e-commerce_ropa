@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu04_gestionar_perfil/dominio/repositorios/perfil_repositorio.dart';
+import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../../datos/modelos/recomendacion_item_dto.dart';
 import '../bloc/inicio_bloc.dart';
 
@@ -537,7 +538,19 @@ class _PantallaInicioState extends State<PantallaInicio> {
           final item = items[index];
           final esFav = _bloc.favoritos.contains(item.idProducto);
 
-          return Container(
+          return GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PantallaProductoDetalle(
+                    idProducto: item.idProducto,
+                    token: widget.token,
+                    habilitarImagenesRed: widget.habilitarImagenesRed,
+                  ),
+                ),
+              );
+            },
+            child: Container(
             width: 195,
             decoration: BoxDecoration(
               color: Colors.white,
@@ -682,7 +695,17 @@ class _PantallaInicioState extends State<PantallaInicio> {
                           ),
                           const SizedBox(width: 6),
                           GestureDetector(
-                            onTap: widget.alIrACatalogo ?? widget.alIrABuscar,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => PantallaProductoDetalle(
+                                    idProducto: item.idProducto,
+                                    token: widget.token,
+                                    habilitarImagenesRed: widget.habilitarImagenesRed,
+                                  ),
+                                ),
+                              );
+                            },
                             child: Container(
                               width: 30,
                               height: 30,
@@ -701,7 +724,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 ),
               ],
             ),
-          );
+          ),
+        );
         },
       ),
     );

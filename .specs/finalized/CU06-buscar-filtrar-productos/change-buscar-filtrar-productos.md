@@ -4,7 +4,11 @@
 **Caso de Uso:** CU06 - Buscar y Filtrar Productos  
 **Paquete de Dominio:** `catalogo` (Catálogo y Exploración)  
 **Metodología:** Spec-Driven Development (SDD) & Proceso Unificado de Desarrollo (PUDS)  
-**Estado:** 🟡 En Espera de Aprobación Humana (Gate Estricto de Especificación)  
+**Estado:** 🟢 IMPLEMENTADO Y PROMOVIDO A BASELINE PERMANENTE (`.specs/modules/catalogo_productos/CU06-buscar-filtrar-productos.md`)
+
+> **Nota de reconciliación (2026-09-21):** el encabezado y las 12 casillas de tareas seguían
+> congelados en el momento de la propuesta, contradiciendo a su propio `checkpoint.md` (8 puntos de
+> control superados) y al `CHANGELOG.md`. Se sincroniza con el estado real.  
 **Fecha:** 2026-09-20  
 
 ---
@@ -363,32 +367,32 @@ El desarrollo se organizará en 3 bloques secuenciales, cada uno con su correspo
 - [x] **B1.6**: Escribir suite de pruebas `tests/modules/catalogo/test_cu06_buscar_filtrar.py` y validar 100% de tests en verde con `pytest` (16/16 tests de CU06 pasando, 79/79 suite completa).
 
 ### Bloque 2: Frontend Web (`Ec-frontend`)
-- [ ] **F2.1**: Crear modelos e interfaces TypeScript en `src/app/modules/catalogo/modelos/catalogo.modelos.ts`.
-- [ ] **F2.2**: Implementar `CatalogoService` en `src/app/modules/catalogo/servicios/catalogo.service.ts`.
-- [ ] **F2.3**: Diseñar componente `BuscarProductosComponent` maquetando fielmente la captura Web:
+- [x] **F2.1**: Crear modelos e interfaces TypeScript en `src/app/modules/catalogo/modelos/catalogo.modelos.ts`.
+- [x] **F2.2**: Implementar `CatalogoService` en `src/app/modules/catalogo/servicios/catalogo.service.ts`.
+- [x] **F2.3**: Diseñar componente `BuscarProductosComponent` maquetando fielmente la captura Web:
   - Barra de búsqueda con debounce y botón `✕`.
   - Selector superior de temporadas (chips horizontales).
   - Sidebar izquierdo de filtros (Colecciones, Tallas, Colores, Rango de inversión).
   - Selector de orden y limpiador de historial.
   - Grilla de 4 columnas de tarjetas de prenda con badges, tallas y botón `+ CESTA`.
   - Paginador atelier y píldoras de búsquedas frecuentes.
-- [ ] **F2.4**: Integrar sincronización bidireccional con Query Params (`ActivatedRoute` / `Router`).
-- [ ] **F2.5**: Configurar ruta `/buscar` en `app.routes.ts` y enlazar en navegación principal.
-- [ ] **F2.6**: Escribir tests unitarios `buscar-productos.component.spec.ts` y validar `ng test` y `npm run build`.
+- [x] **F2.4**: Integrar sincronización bidireccional con Query Params (`ActivatedRoute` / `Router`).
+- [x] **F2.5**: Configurar ruta `/buscar` en `app.routes.ts` y enlazar en navegación principal.
+- [x] **F2.6**: Escribir tests unitarios `buscar-productos.component.spec.ts` y validar `ng test` y `npm run build`.
 
 ### Bloque 3: Mobile (`Ec-mobile`)
-- [ ] **M3.1**: Definir DTOs y modelos de datos en `lib/src/modulos/catalogo/cu06_buscar_filtrar/datos/modelos/`.
-- [ ] **M3.2**: Implementar `CatalogoRemotoDatasource` y `CatalogoRepositorio`.
-- [ ] **M3.3**: Crear `CatalogoBloc` con estados sellados, debounce de búsqueda y control de paginación.
-- [ ] **M3.4**: Maquetar `PantallaBuscarProductos` según la captura Mobile:
+- [x] **M3.1**: Definir DTOs y modelos de datos en `lib/src/modulos/catalogo/cu06_buscar_filtrar/datos/modelos/`.
+- [x] **M3.2**: Implementar `CatalogoRemotoDatasource` y `CatalogoRepositorio`.
+- [x] **M3.3**: Crear `CatalogoBloc` con estados sellados, debounce de búsqueda y control de paginación.
+- [x] **M3.4**: Maquetar `PantallaBuscarProductos` según la captura Mobile:
   - Barra de búsqueda con botón de filtros rápidos.
   - Fila horizontal de temporadas (`OTOÑO / INVIERNO`).
   - Filas de chips para Línea, Tallas cuadradas y Colores con muestra visual.
   - `GridView` de 2 columnas para prendas con badges editoriales y botón `+ CESTA`.
   - Píldoras inferiores de búsquedas más frecuentes.
   - Modal BottomSheet para filtros avanzados (slider de precios).
-- [ ] **M3.5**: Conectar destino `Buscar` en la barra inferior de navegación.
-- [ ] **M3.6**: Escribir tests unitarios y de widgets (`catalogo_bloc_test.dart`, `pantalla_buscar_test.dart`) y verificar `flutter test` y `flutter analyze`.
+- [x] **M3.5**: Conectar destino `Buscar` en la barra inferior de navegación.
+- [x] **M3.6**: Escribir tests unitarios y de widgets (`catalogo_bloc_test.dart`, `pantalla_buscar_test.dart`) y verificar `flutter test` y `flutter analyze`.
 
 ---
 

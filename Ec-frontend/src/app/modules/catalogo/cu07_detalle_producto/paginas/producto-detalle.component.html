@@ -1,0 +1,587 @@
+<div class="min-h-screen bg-white text-stone-900 flex flex-col font-sans">
+  <!-- Toast Notification Feedback -->
+  @if (mensajeToast()) {
+    <div class="fixed bottom-6 right-6 z-50 bg-black text-white px-5 py-3 rounded shadow-2xl text-xs font-mono tracking-wider flex items-center gap-3 animate-fadeIn">
+      <span>{{ mensajeToast() }}</span>
+      <button (click)="mensajeToast.set(null)" class="text-stone-400 hover:text-white">✕</button>
+    </div>
+  }
+
+  <!-- 1. CABECERA DEDICADA DE SPOKE / PANTALLA SECUNDARIA (SIN NAVBAR GLOBAL) -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 px-6 lg:px-12 py-3.5 flex items-center justify-between">
+    <!-- Botón Volver Nativo (Location.back) -->
+    <button
+      type="button"
+      (click)="volver()"
+      class="group flex items-center gap-2 text-xs uppercase tracking-widest font-mono text-stone-700 hover:text-black transition-colors"
+      aria-label="Volver a la vista anterior"
+    >
+      <span class="transition-transform group-hover:-translate-x-1">←</span>
+      <span class="font-semibold">VOLVER</span>
+    </button>
+
+    <!-- Breadcrumbs de Atelier -->
+    <nav class="hidden md:flex items-center gap-2 text-[11px] font-mono tracking-widest text-stone-400 uppercase truncate max-w-lg">
+      <a routerLink="/catalogo" class="hover:text-stone-700 transition-colors">ATELIER</a>
+      <span>/</span>
+      <a routerLink="/colecciones" class="hover:text-stone-700 transition-colors">EDICIONES EXCLUSIVAS</a>
+      <span>/</span>
+      <span class="text-stone-900 font-medium truncate">{{ producto()?.nombre || 'DETALLE' }}</span>
+    </nav>
+
+    <!-- Botón Guardados / Wishlist -->
+    <button
+      type="button"
+      (click)="toggleFavorito()"
+      class="flex items-center gap-2 text-xs font-mono tracking-wider uppercase text-stone-700 hover:text-black transition-colors"
+      [attr.aria-pressed]="esFavorito()"
+    >
+      <span [ngClass]="{'text-red-700 font-bold': esFavorito(), 'text-stone-500': !esFavorito()}">
+        {{ esFavorito() ? '♥' : '♡' }}
+      </span>
+      <span>{{ totalGuardados() }} GUARDADOS</span>
+    </button>
+  </header>
+
+  <!-- ESTADOS DE CARGA Y ERROR -->
+  @if (cargando()) {
+    <div class="flex-1 flex flex-col items-center justify-center p-12 space-y-4">
+      <div class="w-8 h-8 border-2 border-stone-900 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-xs font-mono tracking-widest text-stone-500 uppercase">Consultando archivo de atelier...</p>
+    </div>
+  } @else if (error()) {
+    <div class="flex-1 flex flex-col items-center justify-center p-12 text-center max-w-md mx-auto space-y-4">
+      <span class="text-3xl text-amber-800">◇</span>
+      <h2 class="text-2xl text-stone-900 font-medium tracking-tight">Prenda No Disponible</h2>
+      <p class="text-xs text-stone-600 leading-relaxed">{{ error() }}</p>
+      <button
+        type="button"
+        (click)="volver()"
+        class="mt-4 px-6 py-2.5 bg-black text-white text-xs font-mono tracking-wider uppercase rounded hover:bg-stone-800 transition-colors"
+      >
+        Regresar al Catálogo
+      </button>
+    </div>
+  } @else if (producto()) {
+    <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-12 py-8 space-y-16">
+      
+      <!-- 2. LAYOUT PRINCIPAL: 2 COLUMNAS (GALERÍA IZQUIERDA + FICHA DERECHA) -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+        
+        <!-- COLUMNA IZQUIERDA: GALERÍA DE ALTA RESOLUCIÓN Y SIMULADOR AR -->
+        <div class="lg:col-span-6 space-y-6">
+          
+          <!-- Visor Principal con Badges de Atelier -->
+          <div class="relative bg-stone-100 rounded-sm overflow-hidden aspect-[3/4] shadow-sm border border-stone-200/60">
+            <img
+              [src]="imagenPrincipal()"
+              [alt]="producto()?.nombre"
+              class="w-full h-full object-cover object-center transition-all duration-300"
+            />
+
+            <!-- Badges Superiores -->
+            <div class="absolute top-4 left-4 flex flex-col gap-2 z-10">
+              <span class="bg-black text-white text-[10px] font-mono tracking-widest uppercase px-3 py-1 font-semibold shadow-sm">
+                {{ producto()?.etiqueta_badge || 'EDICIÓN LIMITADA' }}
+              </span>
+              <span class="bg-white/95 backdrop-blur text-stone-900 border border-stone-200 text-[10px] font-mono tracking-widest uppercase px-3 py-1 font-medium shadow-sm">
+                {{ producto()?.linea_confeccion || 'ALTA COSTURA LYON' }}
+              </span>
+            </div>
+
+            <!-- Indicador Inferior de Modelo -->
+            <div class="absolute bottom-4 left-4 z-10">
+              <span class="bg-white/90 backdrop-blur-sm text-stone-800 text-[10px] font-mono tracking-wider px-3 py-1.5 rounded-sm shadow-sm border border-stone-200/50">
+                {{ producto()?.modelo_info || 'MODELO: 1,77M · TALLA 38 ES' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Fila de 4 Miniaturas de Tomas Fotográficas -->
+          <div class="grid grid-cols-4 gap-3">
+            @for (toma of galeriaPrenda(); track toma.url; let i = $index) {
+              <button
+                type="button"
+                (click)="seleccionarToma(toma.url, i)"
+                class="group flex flex-col space-y-1.5 focus:outline-none"
+              >
+                <div
+                  class="aspect-[3/4] rounded-sm overflow-hidden bg-stone-100 border-2 transition-all"
+                  [ngClass]="{
+                    'border-stone-900 shadow-sm': tomaActivaIndice() === i,
+                    'border-stone-200 group-hover:border-stone-400': tomaActivaIndice() !== i
+                  }"
+                >
+                  <img
+                    [src]="toma.url"
+                    [alt]="toma.etiqueta"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <span
+                  class="text-[10px] font-mono tracking-wider uppercase text-center block transition-colors"
+                  [ngClass]="{
+                    'text-stone-900 font-bold': tomaActivaIndice() === i,
+                    'text-stone-500': tomaActivaIndice() !== i
+                  }"
+                >
+                  {{ toma.etiqueta }}
+                </span>
+              </button>
+            }
+          </div>
+
+          <!-- CU10: Bloque Visual de Vestidor Virtual & Escáner 3D (Sin dependencias pesadas) -->
+          <div class="bg-stone-50/90 border border-stone-200 rounded-md p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-[10px] font-mono tracking-widest uppercase text-stone-600 font-medium">
+                <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                <span>SIMULADOR VESTIDOR VIRTUAL & ESCÁNER 3D</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <h4 class="text-sm font-medium text-stone-900">
+                Simulación Morfológica Inteligente
+              </h4>
+              <p class="text-xs text-stone-600 leading-relaxed">
+                Talla {{ varianteActiva()?.talla_codigo }}: Ajuste estimado con caída fluida en 1,75 m. Largo al empeine sin arrastre, drapeado lateral con 4 mm de holgura en sisa.
+              </p>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                (click)="abrirModalAR()"
+                class="w-full py-2.5 px-4 bg-white border border-stone-300 hover:border-black text-stone-900 text-xs font-mono tracking-wider uppercase rounded flex items-center justify-center gap-2 transition-colors shadow-sm"
+              >
+                <span>👁</span>
+                <span>INICIAR PROBADOR INTERACTIVO</span>
+              </button>
+            </div>
+
+            <!-- Métricas Técnicas Textiles -->
+            <div class="grid grid-cols-3 gap-2 pt-3 border-t border-stone-200/80 text-[10px] font-mono text-stone-500 leading-tight">
+              <div>
+                <span class="block text-stone-400">TOLERANCIA BUSTO:</span>
+                <span class="font-medium text-stone-800">PERFECT FIT (+0,5 CM)</span>
+              </div>
+              <div>
+                <span class="block text-stone-400">ELASTICIDAD:</span>
+                <span class="font-medium text-stone-800">TENSIÓN 0% (SEDA)</span>
+              </div>
+              <div>
+                <span class="block text-stone-400">CAÍDA TEXTIL:</span>
+                <span class="font-medium text-stone-800">18/20 (FLUIDEZ)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- COLUMNA DERECHA: FICHA TÉCNICA DE ALTA COSTURA, SELECTORES Y CTAS -->
+        <div class="lg:col-span-6 space-y-7">
+          
+          <!-- Metadatos de Cabecera -->
+          <div class="space-y-2 border-b border-stone-100 pb-5">
+            <div class="flex items-center justify-between text-xs font-mono text-stone-500">
+              <span class="tracking-widest uppercase font-medium">
+                {{ producto()?.subtitulo_atelier || 'ALTA COSTURA · MILÁN / LYON' }}
+              </span>
+              <span class="text-stone-400">
+                SKU: {{ varianteActiva()?.sku || producto()?.sku_base }}
+              </span>
+            </div>
+
+            <h1 class="text-3xl sm:text-4xl text-stone-900 font-medium tracking-tight">
+              {{ producto()?.nombre }}
+            </h1>
+
+            <!-- Calificación y Reseñas VIP -->
+            <div class="flex items-center gap-2 pt-1">
+              <div class="flex text-amber-500 text-sm">
+                <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+              </div>
+              <span class="text-xs font-mono text-stone-700 font-semibold">
+                {{ producto()?.rating_promedio || 4.9 }}
+              </span>
+              <span class="text-xs text-stone-400">·</span>
+              <span class="text-xs text-stone-500 underline underline-offset-4 cursor-pointer">
+                {{ producto()?.total_resenas || 38 }} valoraciones de clientes VIP verificadas
+              </span>
+            </div>
+          </div>
+
+          <!-- Bloque de Precio y Financiación Atelier Pay -->
+          <div class="space-y-2 bg-stone-50/70 border border-stone-200/60 rounded p-4">
+            <div class="flex items-baseline gap-3">
+              <span class="text-3xl font-medium text-stone-900 tracking-tight">
+                {{ varianteActiva()?.precio_final_variante || producto()?.precio_final }} €
+              </span>
+              @if (producto()?.tiene_descuento) {
+                <span class="text-sm text-stone-400 line-through">
+                  {{ producto()?.precio_base }} €
+                </span>
+                <span class="bg-amber-100 text-amber-900 text-[10px] font-mono tracking-wider font-semibold px-2 py-0.5 rounded">
+                  AHORRO DE {{ producto()?.descuento_monto }} € · BENEFICIO PRIVÉ
+                </span>
+              }
+            </div>
+
+            <p class="text-xs text-stone-600 flex items-center gap-1.5">
+              <span>💳</span>
+              <span>{{ producto()?.cuotas_info || 'o 3 pagos sin intereses con Atelier Pay' }}</span>
+            </p>
+
+            <p class="text-[11px] text-stone-500 italic pt-1 border-t border-stone-200/50">
+              {{ producto()?.beneficio_membresia || 'Beneficio Membresía Atelier aplicado en liquidación privada' }}
+            </p>
+          </div>
+
+          <!-- Selector Cromático (Colores Artesanales) -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-mono tracking-wider font-semibold text-stone-800 uppercase">
+                COLOR: {{ varianteActiva()?.color_nombre || 'SEDA MARFIL NATURAL' }}
+              </span>
+              <span class="text-[10px] font-mono text-stone-400 tracking-widest uppercase">
+                TINTE ARTESANAL LIBRE DE METALES
+              </span>
+            </div>
+
+            <div class="flex items-center gap-3">
+              @for (col of producto()?.colores_disponibles; track col.id_color) {
+                <button
+                  type="button"
+                  (click)="seleccionarColor(col.id_color)"
+                  class="relative w-8 h-8 rounded-full transition-all focus:outline-none"
+                  [ngClass]="{
+                    'ring-2 ring-stone-900 ring-offset-2 scale-105': (colorSeleccionadoId() ?? varianteActiva()?.id_color) === col.id_color,
+                    'hover:ring-1 hover:ring-stone-400': (colorSeleccionadoId() ?? varianteActiva()?.id_color) !== col.id_color
+                  }"
+                  [style.background-color]="col.codigo_hex"
+                  [title]="col.nombre"
+                >
+                  @if ((colorSeleccionadoId() ?? varianteActiva()?.id_color) === col.id_color) {
+                    <span class="absolute inset-0 flex items-center justify-center text-stone-700 text-xs">
+                      •
+                    </span>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Selector de Tallas Normalizadas (FR / ES) disponibles para el color -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-mono tracking-wider font-semibold text-stone-800 uppercase">
+                TALLA (FR / ES)
+              </span>
+              <span class="text-[11px] text-stone-500 underline underline-offset-4 cursor-pointer flex items-center gap-1">
+                <span>📏</span>
+                <span>GUÍA DE MEDIDAS & ASESORÍA DE FITTING EN VIVO</span>
+              </span>
+            </div>
+
+            <div class="grid grid-cols-5 gap-2.5">
+              @for (tal of tallasDisponiblesParaColor(); track tal.id_talla) {
+                <button
+                  type="button"
+                  (click)="tal.disponible ? seleccionarTalla(tal.id_talla) : null"
+                  [disabled]="!tal.disponible"
+                  class="py-3 text-center text-xs font-mono font-medium rounded transition-all relative overflow-hidden"
+                  [ngClass]="{
+                    'bg-black text-white border border-black shadow-sm': varianteActiva()?.id_talla === tal.id_talla,
+                    'bg-white text-stone-900 border border-stone-300 hover:border-black': varianteActiva()?.id_talla !== tal.id_talla && tal.disponible,
+                    'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-60': !tal.disponible
+                  }"
+                >
+                  {{ tal.codigo }}
+                  @if (!tal.disponible) {
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div class="w-full h-[1px] bg-stone-400 rotate-45"></div>
+                    </div>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Notificación Dinámica de Disponibilidad Multisede -->
+          <div class="p-3.5 bg-amber-50/60 border border-amber-200/70 rounded text-xs text-amber-950 space-y-1">
+            <div class="flex items-start gap-2">
+              <span class="text-amber-700 font-bold mt-0.5">●</span>
+              <p class="leading-relaxed">
+                <strong>Talla {{ varianteActiva()?.talla_codigo }} disponible:</strong> {{ textoDisponibilidad() }}
+              </p>
+            </div>
+          </div>
+
+          <!-- CTAs de Compra y Cita en Boutique -->
+          <div class="space-y-3 pt-2">
+            <!-- Botón Principal: Añadir a la Bolsa -->
+            <button
+              type="button"
+              (click)="anadirABolsa()"
+              [disabled]="!varianteActiva()?.tiene_stock"
+              class="w-full py-4 bg-black text-white text-xs font-mono tracking-widest uppercase rounded font-medium hover:bg-stone-800 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span>🛍</span>
+              <span>AÑADIR A LA BOLSA · {{ varianteActiva()?.precio_final_variante || producto()?.precio_final }} €</span>
+            </button>
+
+            <!-- Acción Secundaria: Cita de Prueba en Boutique (CU12) -->
+            <div>
+              <button
+                type="button"
+                (click)="abrirModalReserva()"
+                class="w-full py-3.5 px-4 bg-white border border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white text-xs font-mono tracking-wider uppercase rounded transition-all flex items-center justify-center gap-2 font-medium shadow-sm"
+              >
+                <span>📅</span>
+                <span>CITA DE PRUEBA BOUTIQUE</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Beneficios de Guante Blanco Atelier -->
+          <div class="pt-4 border-t border-stone-100 space-y-2.5 text-xs text-stone-600">
+            <div class="flex items-center gap-3">
+              <span class="text-base">🚚</span>
+              <span>Envío express con guante blanco en 24-48h y embalaje de conservación.</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-base">✂️</span>
+              <span>Ajuste de sastrería a medida de cortesía en cualquier boutique de la marca.</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-base">🔄</span>
+              <span>Devoluciones aseguradas durante 30 días con recogida privada a domicilio.</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 3. COMPOSICIÓN & SOSTENIBILIDAD (3 TARJETAS DE ALTA COSTURA) -->
+      <section class="border-t border-stone-200 pt-12 space-y-8">
+        <div class="space-y-1">
+          <span class="text-[10px] font-mono tracking-widest text-stone-400 uppercase">
+            TRAZABILIDAD Y CUIDADO TEXTIL
+          </span>
+          <h3 class="text-2xl text-stone-900 font-medium tracking-tight">
+            COMPOSICIÓN & SOSTENIBILIDAD
+          </h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Tarjeta 1: Limpieza -->
+          <div class="p-6 bg-stone-50/60 border border-stone-200/70 rounded space-y-2.5">
+            <div class="flex items-center gap-2 text-xs font-mono tracking-wider font-semibold text-stone-800 uppercase">
+              <span>✨</span>
+              <span>LIMPIEZA PROFESIONAL</span>
+            </div>
+            <p class="text-xs text-stone-600 leading-relaxed">
+              {{ producto()?.composicion?.instrucciones_cuidado?.[0] || 'Exclusivamente limpieza en seco con percloroetileno moderado e hidrocarburos. No sumergir en agua para preservar la fijación de los pliegues artesanales.' }}
+            </p>
+          </div>
+
+          <!-- Tarjeta 2: Planchado / Vapor -->
+          <div class="p-6 bg-stone-50/60 border border-stone-200/70 rounded space-y-2.5">
+            <div class="flex items-center gap-2 text-xs font-mono tracking-wider font-semibold text-stone-800 uppercase">
+              <span>💨</span>
+              <span>VAPOR VERTICAL</span>
+            </div>
+            <p class="text-xs text-stone-600 leading-relaxed">
+              {{ producto()?.composicion?.instrucciones_cuidado?.[1] || 'Planchado únicamente vertical mediante vapor suave a distancia mínima de 15 cm. No aplicar plancha de contacto directo sobre la superficie plisada.' }}
+            </p>
+          </div>
+
+          <!-- Tarjeta 3: Almacenamiento -->
+          <div class="p-6 bg-stone-50/60 border border-stone-200/70 rounded space-y-2.5">
+            <div class="flex items-center gap-2 text-xs font-mono tracking-wider font-semibold text-stone-800 uppercase">
+              <span>🧥</span>
+              <span>ALMACENAMIENTO</span>
+            </div>
+            <p class="text-xs text-stone-600 leading-relaxed">
+              {{ producto()?.composicion?.instrucciones_cuidado?.[2] || 'Conservar en su funda transpirable de algodón incluida. Colgar en percha acolchada ancha para mantener el porte de los hombros intacto.' }}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. PROPUESTA EDITORIAL DE ESTILISMO: "COMPLETA EL LOOK ATELIER" -->
+      <section class="border-t border-stone-200 pt-12 space-y-8">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div class="space-y-1">
+            <span class="text-[10px] font-mono tracking-widest text-stone-400 uppercase">
+              PROPUESTA EDITORIAL DE ESTILISMO
+            </span>
+            <h3 class="text-2xl text-stone-900 font-medium tracking-tight">
+              COMPLETA EL LOOK ATELIER
+            </h3>
+          </div>
+
+          <button
+            type="button"
+            class="px-5 py-2.5 bg-black text-white text-xs font-mono tracking-wider uppercase rounded hover:bg-stone-800 transition-colors flex items-center gap-2"
+          >
+            <span>🛒</span>
+            <span>+ AÑADIR LOOK COMPLETO ({{ totalLookPrecio() }} €)</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          @for (pieza of producto()?.piezas_look_complementario; track pieza.id_producto) {
+            <div class="group flex flex-col space-y-3 bg-white border border-stone-200 rounded overflow-hidden p-3 transition-shadow hover:shadow-md">
+              <div class="aspect-[3/4] bg-stone-100 rounded overflow-hidden relative">
+                <img
+                  [src]="pieza.imagen_url"
+                  [alt]="pieza.nombre"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <span class="absolute top-2 left-2 bg-white/90 backdrop-blur text-stone-900 text-[9px] font-mono tracking-widest uppercase px-2 py-0.5 rounded-sm">
+                  {{ pieza.categoria }}
+                </span>
+              </div>
+
+              <div class="space-y-1 flex-1 flex flex-col justify-between">
+                <div>
+                  <span class="text-[10px] font-mono text-stone-400 uppercase tracking-widest block">
+                    {{ pieza.subtitulo_atelier }}
+                  </span>
+                  <h4 class="text-sm font-medium text-stone-900 line-clamp-1">
+                    {{ pieza.nombre }}
+                  </h4>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+                  <span class="text-sm font-semibold text-stone-900">
+                    {{ pieza.precio_final }} €
+                  </span>
+                  <button
+                    type="button"
+                    [routerLink]="['/productos', pieza.id_producto]"
+                    class="text-xs font-mono uppercase tracking-wider text-stone-600 hover:text-black hover:underline"
+                  >
+                    + VER PIEZA
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+    </main>
+  }
+
+  <!-- 5. FOOTER DE ALTA COSTURA FASHION STORE -->
+  <footer class="bg-stone-50 border-t border-stone-200 mt-20 pt-16 pb-12 px-6 lg:px-12 text-stone-600 text-xs">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+      <div class="space-y-3">
+        <h5 class="font-mono text-xs font-bold text-stone-900 uppercase tracking-wider">CUSTOMER CARE</h5>
+        <ul class="space-y-2 text-stone-500">
+          <li><a href="javascript:void(0)" class="hover:text-stone-900">Atelier Concierge Personal</a></li>
+          <li><a href="javascript:void(0)" class="hover:text-stone-900">Reserva de Citas & Private Fitting</a></li>
+          <li><a href="javascript:void(0)" class="hover:text-stone-900">Guía de Tallas & Medidas Artesanales</a></li>
+          <li><a href="javascript:void(0)" class="hover:text-stone-900">Envíos Exclusivos y Reformas de Cortesía</a></li>
+          <li><a href="javascript:void(0)" class="hover:text-stone-900">Cuidado y Conservación Textil</a></li>
+        </ul>
+      </div>
+
+      <div class="space-y-3">
+        <h5 class="font-mono text-xs font-bold text-stone-900 uppercase tracking-wider">BOUTIQUES INSIGNIA</h5>
+        <div class="space-y-2 text-stone-500">
+          <p><strong>Madrid Serrano:</strong> Calle de Serrano 44, Salamanca<br><span class="text-[11px] text-stone-400">Lunes a Sábado: 10:00 - 20:30</span></p>
+          <p><strong>París Saint-Honoré:</strong> 228 Rue du Faubourg Saint-Honoré, 8e<br><span class="text-[11px] text-stone-400">Lunes a Sábado: 10:00 - 19:30</span></p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <h5 class="font-mono text-xs font-bold text-stone-900 uppercase tracking-wider">SOSTENIBILIDAD & MANIFIESTO</h5>
+        <p class="text-stone-500 leading-relaxed">
+          Piezas concebidas bajo la premisa de la permanencia. Empleamos exclusivamente seda natural certificada, lanas orgánicas y técnicas de patronaje residuo cero en nuestros talleres europeos.
+        </p>
+        <a href="javascript:void(0)" class="font-mono text-[11px] uppercase tracking-wider text-stone-900 hover:underline inline-block">
+          LEER MANIFIESTO DE CIRCULARIDAD →
+        </a>
+      </div>
+
+      <div class="space-y-3">
+        <h5 class="font-mono text-xs font-bold text-stone-900 uppercase tracking-wider">ATELIER PRIVÉ</h5>
+        <p class="text-stone-500 leading-relaxed">
+          Suscríbete para recibir invitaciones prioritarias a ventas de archivo privado y citas con directores creativos.
+        </p>
+        <div class="flex gap-2">
+          <input
+            type="email"
+            placeholder="Tu email..."
+            class="bg-white border border-stone-300 px-3 py-2 text-xs rounded flex-1 focus:outline-none focus:border-stone-900"
+          />
+          <button class="bg-black text-white px-3 py-2 text-xs font-mono uppercase tracking-wider rounded hover:bg-stone-800">
+            Unirse
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto pt-8 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-400 text-[11px] font-mono">
+      <p>© 2026 FASHION STORE ATELIER · TODOS LOS DERECHOS RESERVADOS</p>
+      <div class="flex gap-4">
+        <a href="javascript:void(0)" class="hover:text-stone-700">AVISO LEGAL</a>
+        <a href="javascript:void(0)" class="hover:text-stone-700">POLÍTICA DE PRIVACIDAD</a>
+        <a href="javascript:void(0)" class="hover:text-stone-700">COOKIES</a>
+        <a href="javascript:void(0)" class="hover:text-stone-700">TRANSPARENCIA ÉTICA</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL DE RESERVA EN BOUTIQUE (CU12) -->
+  @if (modalReservaAbierto() && producto() && varianteActiva()) {
+    <app-modal-reserva-boutique
+      [producto]="producto()!"
+      [varianteSeleccionada]="varianteActiva()!"
+      [sucursales]="sucursalesActivas()"
+      (cerrar)="cerrarModalReserva()"
+      (reservaConfirmada)="onReservaConfirmada($event)"
+    ></app-modal-reserva-boutique>
+  }
+
+  <!-- MODAL AR INFORMATIVO (CU10 PREPARACIÓN VISUAL) -->
+  @if (modalARAbierto()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn" (click)="cerrarModalAR()">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full space-y-4 shadow-2xl border border-stone-200" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+          <div class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-stone-700 font-semibold">
+            <span>👁</span>
+            <span>SIMULADOR VESTIDOR VIRTUAL & ESCÁNER 3D</span>
+          </div>
+          <button (click)="cerrarModalAR()" class="text-stone-400 hover:text-stone-800 text-lg">✕</button>
+        </div>
+
+        <div class="space-y-2 text-stone-600 text-xs leading-relaxed">
+          <p class="font-medium text-stone-900 text-sm">
+            Calibración Volumétrica y Renderizado Textil en Preparación
+          </p>
+          <p>
+            El módulo de Realidad Aumentada y Escaneo 3D para alta costura se encuentra en proceso de sincronización para el siguiente ciclo.
+          </p>
+          <p class="p-3 bg-stone-50 border border-stone-200 rounded text-stone-500 font-mono text-[11px]">
+            Tolerancia de Busto: Perfect Fit (+0,5 cm)<br>
+            Elasticidad Estructural: Tensión 0% (Seda Pura)<br>
+            Índice Caída Textil: 18/20 (Fluidez Óptima)
+          </p>
+        </div>
+
+        <button
+          type="button"
+          (click)="cerrarModalAR()"
+          class="w-full py-2.5 bg-black text-white text-xs font-mono uppercase tracking-wider rounded hover:bg-stone-800"
+        >
+          Aceptar
+        </button>
+      </div>
+    </div>
+  }
+</div>

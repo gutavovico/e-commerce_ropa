@@ -4,6 +4,24 @@ import { MainLayoutComponent } from './core/layouts/main-layout/main-layout.comp
 
 export const routes: Routes = [
   // =========================================================================
+  // 0. LANDING PAGE INSTITUCIONAL PÚBLICA
+  // Debe declararse ANTES del bloque de MainLayoutComponent: ambos usan `path: ''`
+  // y Angular resuelve las rutas en orden. Con el layout por delante, la URL raíz
+  // entraba en él y, al no existir ningún hijo con `path: ''`, la landing quedaba
+  // inalcanzable. Su `pathMatch: 'full'` garantiza que solo capture la URL vacía
+  // exacta, sin interferir con /inicio, /catalogo ni el resto de secciones.
+  // =========================================================================
+  {
+    path: '',
+    loadComponent: () =>
+      import('./public/landing/landing.component').then(
+        (m) => m.LandingPageComponent
+      ),
+    pathMatch: 'full',
+    title: 'FASHION STORE | Alta Costura y Sastrería Digital',
+  },
+
+  // =========================================================================
   // 1. PANTALLAS RAÍZ (HUB) BAJO MAIN LAYOUT CON NAVBAR PERSISTENTE
   // Únicamente estas 4 secciones tienen la barra de navegación institucional
   // y carecen estrictamente de botón volver (←).
@@ -79,6 +97,14 @@ export const routes: Routes = [
       ).then((m) => m.ColeccionDetalleComponent),
     title: 'FASHION STORE | Detalle de Colección',
   },
+  {
+    path: 'productos/:id',
+    loadComponent: () =>
+      import(
+        './modules/catalogo/cu07_detalle_producto/paginas/producto-detalle.component'
+      ).then((m) => m.ProductoDetalleComponent),
+    title: 'FASHION STORE | Detalle de Prenda de Alta Costura',
+  },
 
   // =========================================================================
   // 3. FLUJOS DE AUTENTICACIÓN Y SEGURIDAD
@@ -116,15 +142,12 @@ export const routes: Routes = [
   },
 
   // =========================================================================
-  // 4. LANDING PAGE INSTITUCIONAL PÚBLICA
+  // 4. RUTA COMODÍN (404)
+  // `vercel.json` reescribe cualquier URL a index.html, así que sin este comodín
+  // un enlace obsoleto provocaba un NG04002 y una pantalla en blanco.
   // =========================================================================
   {
-    path: '',
-    loadComponent: () =>
-      import('./public/landing/landing.component').then(
-        (m) => m.LandingPageComponent
-      ),
-    pathMatch: 'full',
-    title: 'FASHION STORE | Alta Costura y Sastrería Digital',
+    path: '**',
+    redirectTo: '',
   },
 ];
