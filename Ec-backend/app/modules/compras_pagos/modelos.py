@@ -1,15 +1,13 @@
-"""Modelos ORM de SQLAlchemy 2.0 para el paquete de Compras y Pagos (CU11 y CU15).
+"""Modelos ORM de SQLAlchemy 2.0 para el paquete de Compras y Pagos (CU11, CU15 y CU16).
 
 Mapea las tablas del esquema `fashionstore`:
 - carritos
 - carrito_detalle
 
-`VentaORM` y `VentaDetalleORM` NO se declaran aquí: ya existían en
-`modules/catalogo/modelos.py`, donde las introdujo CU18 para el cálculo de afinidad. Declararlas
-de nuevo produciría un `InvalidRequestError` por tabla duplicada en el mismo `MetaData`. Se
-reexportan al final del módulo para que el paquete disponga de ellas con un único origen de
-verdad; las columnas de entrega y de expedición por línea que necesita CU15 se añadieron sobre
-aquellas definiciones.
+`VentaORM`, `VentaDetalleORM` y `PagoORM` NO se declaran aquí: ya existen en
+`modules/comercial/cu28_ventas_reservas/modelos.py`. Declararlas de nuevo produciría un
+`InvalidRequestError` por tabla duplicada en el mismo `MetaData`. Se reexportan al final del
+módulo para que el paquete disponga de ellas con un único origen de verdad.
 
 Los nombres de columna se verificaron por introspección directa contra PostgreSQL el 2026-09-22.
 La migración `alembic/versions/0001_base_ddl.py` NO describe el esquema desplegado y no debe
@@ -17,52 +15,28 @@ usarse como referencia (ver `CHANGELOG.md`, defecto 34).
 """
 
 from datetime import datetime, timezone
-from decimal import Decimal
-from typing import List, Optional
+from typing import List
 
 from sqlalchemy import (
     BigInteger,
     DateTime,
     ForeignKey,
     Integer,
-    Numeric,
-    String,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
 from modules.catalogo.modelos import (
     SucursalORM,
     VarianteProductoORM,
+)
+from modules.comercial.cu28_ventas_reservas.modelos import (
+    PagoORM,
     VentaDetalleORM,
     VentaORM,
-)
-
-# Enums de pago existentes en PostgreSQL Neon (verificados por introspección el 2026-09-22).
-estado_pago_enum = PG_ENUM(
-    "pendiente",
-    "autorizado",
-    "confirmado",
-    "rechazado",
-    "reembolsado",
-    name="estado_pago",
-    schema="fashionstore",
-    create_type=False,
-)
-
-metodo_pago_enum = PG_ENUM(
-    "efectivo",
-    "tarjeta_debito",
-    "tarjeta_credito",
-    "pasarela_digital",
-    "qr",
-    "transferencia",
-    name="metodo_pago",
-    schema="fashionstore",
-    create_type=False,
+    estado_pago_enum,
+    metodo_pago_enum,
 )
 
 # Modalidades de entrega admitidas, alineadas con el CHECK `ck_ventas_tipo_entrega`
@@ -162,45 +136,7 @@ class CarritoDetalleORM(Base):
     sucursal: Mapped["SucursalORM"] = relationship("SucursalORM")
 
 
-class PagoORM(Base):
-    """Mapeo de la tabla `fashionstore.pagos` (CU16).
 
-    `id_venta` NO es único a propósito: la tabla acumula todos los intentos de cobro de una
-    misma orden, de modo que un rechazo seguido de un reintento exitoso deja ambos registros y
-    el historial financiero queda completo.
-    """
-
-    __tablename__ = "pagos"
-    __table_args__ = {"schema": "fashionstore"}
-
-    id_pago: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    id_venta: Mapped[int] = mapped_column(
-        BigInteger,
-        ForeignKey("fashionstore.ventas.id_venta", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    metodo_pago: Mapped[str] = mapped_column(metodo_pago_enum, nullable=False)
-    monto: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    estado: Mapped[str] = mapped_column(
-        estado_pago_enum, nullable=False, default="pendiente", index=True
-    )
-    referencia_pasarela: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
-
-    # `jsonb` nativo: se escribe como diccionario, no como cadena serializada a mano. Guarda la
-    # respuesta cruda de la pasarela para auditoría financiera. Nunca contiene PAN ni CVV.
-    payload_respuesta: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
-
-    creado_en: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-    )
-    confirmado_en: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-
-    venta: Mapped["VentaORM"] = relationship("VentaORM")
 
 
 __all__ = [
@@ -213,4 +149,6 @@ __all__ = [
     "TIPO_ENTREGA_RECOGIDA",
     "TIPOS_ENTREGA_VALIDOS",
     "MINUTOS_RETENCION_VENTA",
+    "estado_pago_enum",
+    "metodo_pago_enum",
 ]
