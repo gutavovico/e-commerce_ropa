@@ -1,11 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-<<<<<<< Updated upstream
 import { CatalogoService } from '../../../modules/catalogo/servicios/catalogo.service';
-=======
 import { CarritoService } from '../../../modules/compras_pagos/cu11_gestionar_carrito/servicios/carrito.service';
->>>>>>> Stashed changes
 import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 
 @Component({
@@ -132,13 +129,7 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-<<<<<<< Updated upstream
-export class MainLayoutComponent {
-  private readonly catalogoService = inject(CatalogoService);
-  private readonly loginService = inject(LoginService);
-  protected readonly cestaCount = this.catalogoService.cestaCount;
-  protected readonly esAdmin = this.loginService.esAdmin;
-=======
+
 export class MainLayoutComponent implements OnInit {
   private readonly carritoService = inject(CarritoService);
   private readonly loginService = inject(LoginService);
@@ -163,5 +154,4 @@ export class MainLayoutComponent implements OnInit {
       });
     }
   }
->>>>>>> Stashed changes
 }
