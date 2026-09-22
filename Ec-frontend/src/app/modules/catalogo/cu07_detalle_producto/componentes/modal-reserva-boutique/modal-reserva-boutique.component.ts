@@ -84,16 +84,27 @@ export class ModalReservaBoutiqueComponent {
     this.cargando.set(true);
     this.error.set(null);
 
+    if (!this.varianteSeleccionada?.id_variante) {
+      this.error.set('Por favor, selecciona una variante válida para agendar la cita.');
+      this.cargando.set(false);
+      return;
+    }
+
     // Calcular fecha futura acorde a la franja seleccionada
     const fechaAtencion = new Date();
     fechaAtencion.setDate(fechaAtencion.getDate() + 1);
     fechaAtencion.setHours(11, 30, 0, 0);
 
+    const talla = this.varianteSeleccionada.talla_codigo || 'Única';
+    const color = this.varianteSeleccionada.color_nombre || 'Estándar';
+    const nombreProd = this.producto?.nombre || 'Prenda de alta costura';
+    const sucursalId = this.sucursalSeleccionadaId() || (this.sucursales?.[0]?.id_sucursal ?? 1);
+
     const payload: ReservaCrearPayload = {
-      id_sucursal: this.sucursalSeleccionadaId(),
+      id_sucursal: sucursalId,
       fecha_hora_atencion: fechaAtencion.toISOString(),
       canal_origen: 'web',
-      observacion: `Cita privada de prueba presencial para ${this.producto.nombre} (Talla: ${this.varianteSeleccionada.talla_codigo}, Color: ${this.varianteSeleccionada.color_nombre}) en franja ${this.horarioSeleccionado()}`,
+      observacion: `Cita privada de prueba presencial para ${nombreProd} (Talla: ${talla}, Color: ${color}) en franja ${this.horarioSeleccionado()}`,
       items: [
         {
           id_variante: this.varianteSeleccionada.id_variante,

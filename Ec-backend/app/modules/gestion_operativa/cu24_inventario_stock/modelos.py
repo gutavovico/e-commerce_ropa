@@ -103,7 +103,7 @@ class MovimientoInventarioORM(Base):
         back_populates="movimientos",
     )
     usuario_responsable = relationship(
-        "modules.autenticacion_seguridad.modelos.UsuarioORM",
+        "UsuarioORM",
         foreign_keys=[id_usuario],
         lazy="joined",
     )

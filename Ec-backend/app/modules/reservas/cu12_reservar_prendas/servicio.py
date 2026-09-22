@@ -125,6 +125,8 @@ class ReservaServicio:
             # Movimiento de auditoría física inmutable
             ref_doc = f"RESERVA-{reserva.id_reserva}"
             obs_mov = f"Apartado para cita privada de fitting en {sucursal.nombre} ({fecha_cita.strftime('%d/%m/%Y %H:%M')})"
+            saldo_ant = inventario.cantidad_disponible + cant
+            saldo_nue = inventario.cantidad_disponible
             ReservaRepositorio.registrar_movimiento_inventario(
                 db=db,
                 id_inventario=inventario.id_inventario,
@@ -132,6 +134,8 @@ class ReservaServicio:
                 id_usuario=usuario.id_usuario,
                 referencia=ref_doc,
                 observacion=obs_mov,
+                saldo_anterior=saldo_ant,
+                saldo_nuevo=saldo_nue,
             )
 
             precio_unit = variante.producto.precio_base + (variante.precio_extra or Decimal("0.00"))
@@ -158,6 +162,31 @@ class ReservaServicio:
         res_id = reserva.id_reserva or 1
         res_creado = reserva.creado_en or ahora
         cod_reserva = f"RES-{res_creado.year}-{res_id:04d}"
+
+        # 8. Persistencia en Bitacora de Auditoria (CU30)
+        from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+
+        nombre_usuario = (
+            f"{usuario.nombres} {usuario.apellidos}".strip() or usuario.email
+            if usuario
+            else "Cliente Atelier"
+        )
+        ServicioBitacoraAuditoria.registrar_evento_seguro(
+            id_usuario=usuario.id_usuario if usuario else None,
+            usuario_nombre=nombre_usuario,
+            accion="CREAR_RESERVA",
+            tabla_modulo="reservas",
+            severidad="INFO",
+            payload_anterior=None,
+            payload_nuevo={
+                "id_reserva": res_id,
+                "codigo_reserva": cod_reserva,
+                "id_sucursal": sucursal.id_sucursal,
+                "total_items": len(items_procesados),
+                "canal_origen": reserva.canal_origen,
+            },
+            db=db,
+        )
 
         return ReservaCreadaOut(
             id_reserva=res_id,

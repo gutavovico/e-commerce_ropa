@@ -148,6 +148,8 @@ class ReservaRepositorio:
         id_usuario: int,
         referencia: str,
         observacion: str,
+        saldo_anterior: int = 0,
+        saldo_nuevo: int = 0,
     ) -> MovimientoInventarioORM:
         """Registra la auditoría física inmutable de reserva en movimientos_inventario."""
         movimiento = MovimientoInventarioORM(
@@ -157,6 +159,8 @@ class ReservaRepositorio:
             id_usuario_responsable=id_usuario,
             referencia_documento=referencia,
             observacion=observacion,
+            saldo_anterior=saldo_anterior,
+            saldo_nuevo=saldo_nuevo,
         )
         db.add(movimiento)
         return movimiento

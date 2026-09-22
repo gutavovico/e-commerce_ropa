@@ -44,10 +44,11 @@ export class PerfilComponent implements OnInit {
   protected readonly pedidos = this.perfilService.pedidos;
   protected readonly cerrandoSesion = signal<boolean>(false);
   protected readonly esAdmin = computed(() => {
-    const rolPerfil = this.perfil()?.rol;
-    if (rolPerfil === 'administrador') return true;
+    const rolPerfil = this.perfil()?.rol?.toLowerCase()?.trim();
+    if (rolPerfil === 'administrador' || rolPerfil === 'admin') return true;
     if (typeof this.loginService?.usuarioActual === 'function') {
-      return this.loginService.usuarioActual()?.rol === 'administrador';
+      const rolLogin = this.loginService.usuarioActual()?.rol?.toLowerCase()?.trim();
+      return rolLogin === 'administrador' || rolLogin === 'admin';
     }
     return false;
   });

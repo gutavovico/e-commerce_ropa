@@ -233,6 +233,21 @@ class ServicioGestionPromociones:
         db.commit()
         db.refresh(nueva_promocion)
 
+        from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+        ServicioBitacoraAuditoria.registrar_evento_seguro(
+            accion="CREAR_PROMOCION",
+            tabla_modulo="promociones",
+            severidad="INFO",
+            payload_anterior=None,
+            payload_nuevo={
+                "id_promocion": nueva_promocion.id_promocion,
+                "nombre": nueva_promocion.nombre,
+                "codigo_cupon": nueva_promocion.codigo_cupon,
+                "tipo_descuento": nueva_promocion.tipo_descuento,
+            },
+            db=db,
+        )
+
         return self.obtener_promocion_por_id(db, nueva_promocion.id_promocion)
 
     def actualizar_promocion(
@@ -256,7 +271,7 @@ class ServicioGestionPromociones:
                     "El porcentaje de descuento debe situarse entre 1.00% y 100.00%."
                 )
 
-        # 3. Validacion de unicidad de cupon excluyendo el propio ID
+        # 3. Validacion de unicidad de cupon si se modifica
         codigo_normalizado: Optional[str] = None
         if datos.codigo_cupon:
             codigo_normalizado = datos.codigo_cupon.strip().upper()
@@ -302,6 +317,13 @@ class ServicioGestionPromociones:
             id_producto_final = datos.id_producto
 
         # 5. Mutacion de campos
+        payload_ant = {
+            "nombre": promocion.nombre,
+            "codigo_cupon": promocion.codigo_cupon,
+            "tipo_descuento": promocion.tipo_descuento,
+            "valor_descuento": float(promocion.valor_descuento) if promocion.valor_descuento else None,
+        }
+
         promocion.nombre = datos.nombre.strip()
         promocion.descripcion = datos.descripcion.strip() if datos.descripcion else None
         promocion.codigo_cupon = codigo_normalizado
@@ -320,6 +342,20 @@ class ServicioGestionPromociones:
         db.commit()
         db.refresh(promocion)
 
+        from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+        ServicioBitacoraAuditoria.registrar_evento_seguro(
+            accion="ACTUALIZAR_PROMOCION",
+            tabla_modulo="promociones",
+            severidad="INFO",
+            payload_anterior=payload_ant,
+            payload_nuevo={
+                "id_promocion": promocion.id_promocion,
+                "nombre": promocion.nombre,
+                "codigo_cupon": promocion.codigo_cupon,
+            },
+            db=db,
+        )
+
         return self.obtener_promocion_por_id(db, promocion.id_promocion)
 
     def conmutar_estado(
@@ -332,10 +368,21 @@ class ServicioGestionPromociones:
         if not promocion:
             raise PromocionNoEncontradaError(id_promocion)
 
+        estado_anterior = promocion.estado_activo
         promocion.estado_activo = estado_activo
         promocion.actualizado_en = datetime.now(timezone.utc)
         db.commit()
         db.refresh(promocion)
+
+        from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+        ServicioBitacoraAuditoria.registrar_evento_seguro(
+            accion="CONMUTAR_ESTADO_PROMOCION",
+            tabla_modulo="promociones",
+            severidad="INFO",
+            payload_anterior={"estado_activo": estado_anterior},
+            payload_nuevo={"id_promocion": id_promocion, "estado_activo": estado_activo},
+            db=db,
+        )
 
         return self.obtener_promocion_por_id(db, promocion.id_promocion)
 

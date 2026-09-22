@@ -27,6 +27,9 @@ from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
+from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
+from modules.catalogo.modelos import VarianteProductoORM
+from modules.gestion_operativa.modelos import CiudadORM, SucursalORM
 
 # Enums existentes en la base de datos PostgreSQL
 tipo_venta_enum = PG_ENUM(
@@ -109,7 +112,7 @@ class EmpleadoORM(Base):
     cargo: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     usuario: Mapped[Optional["UsuarioORM"]] = relationship(
-        "modules.autenticacion_seguridad.modelos.UsuarioORM",
+        "UsuarioORM",
         lazy="selectin",
     )
 
@@ -156,22 +159,22 @@ class VentaORM(Base):
 
     # Relaciones
     cliente: Mapped[Optional["ClienteORM"]] = relationship(
-        "modules.autenticacion_seguridad.modelos.ClienteORM",
+        "ClienteORM",
         foreign_keys=[id_cliente],
         lazy="selectin",
     )
     sucursal: Mapped["SucursalORM"] = relationship(
-        "modules.gestion_operativa.modelos.SucursalORM",
+        "SucursalORM",
         foreign_keys=[id_sucursal],
         lazy="selectin",
     )
     sucursal_retiro: Mapped[Optional["SucursalORM"]] = relationship(
-        "modules.gestion_operativa.modelos.SucursalORM",
+        "SucursalORM",
         foreign_keys=[id_sucursal_retiro],
         lazy="selectin",
     )
     promocion: Mapped[Optional["PromocionORM"]] = relationship(
-        "modules.comercial.cu27_promociones.modelos.PromocionORM",
+        "PromocionORM",
         foreign_keys=[id_promocion],
         lazy="selectin",
     )
@@ -221,12 +224,12 @@ class VentaDetalleORM(Base):
 
     venta: Mapped["VentaORM"] = relationship("VentaORM", back_populates="detalles")
     variante: Mapped["VarianteProductoORM"] = relationship(
-        "modules.catalogo.modelos.VarianteProductoORM",
+        "VarianteProductoORM",
         foreign_keys=[id_variante],
         lazy="selectin",
     )
     sucursal: Mapped[Optional["SucursalORM"]] = relationship(
-        "modules.gestion_operativa.modelos.SucursalORM",
+        "SucursalORM",
         foreign_keys=[id_sucursal],
         lazy="selectin",
     )
@@ -285,12 +288,12 @@ class ReservaORM(Base):
     observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     cliente: Mapped["ClienteORM"] = relationship(
-        "modules.autenticacion_seguridad.modelos.ClienteORM",
+        "ClienteORM",
         foreign_keys=[id_cliente],
         lazy="selectin",
     )
     sucursal: Mapped["SucursalORM"] = relationship(
-        "modules.gestion_operativa.modelos.SucursalORM",
+        "SucursalORM",
         foreign_keys=[id_sucursal],
         lazy="selectin",
     )
@@ -324,7 +327,7 @@ class ReservaDetalleORM(Base):
 
     reserva: Mapped["ReservaORM"] = relationship("ReservaORM", back_populates="detalles")
     variante: Mapped["VarianteProductoORM"] = relationship(
-        "modules.catalogo.modelos.VarianteProductoORM",
+        "VarianteProductoORM",
         foreign_keys=[id_variante],
         lazy="selectin",
     )

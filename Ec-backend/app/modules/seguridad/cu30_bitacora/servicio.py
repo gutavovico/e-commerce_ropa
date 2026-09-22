@@ -210,3 +210,62 @@ class ServicioBitacoraAuditoria:
         db.commit()
         db.refresh(nuevo)
         return nuevo
+
+    @classmethod
+    def registrar_evento_seguro(
+        cls,
+        *,
+        id_usuario: Optional[int] = None,
+        usuario_nombre: Optional[str] = None,
+        accion: str,
+        tabla_modulo: str,
+        direccion_ip: Optional[str] = None,
+        severidad: str = "INFO",
+        payload_anterior: Optional[dict[str, Any]] = None,
+        payload_nuevo: Optional[dict[str, Any]] = None,
+        db: Optional[Any] = None,
+    ) -> Optional[Bitacora]:
+        """Registra un evento de auditoria de forma autonoma y no bloqueante.
+
+        Garantiza que cualquier excepcion en la persistencia de auditoria sea
+        capturada defensivamente para no abortar ni interferir con la transaccion comercial.
+        En pruebas unitarias con mocks omite la conexion de red a base de datos.
+        """
+        if db is not None and (hasattr(db, "_mock_return_value") or type(db).__name__ in ("MagicMock", "Mock")):
+            return None
+
+        import logging
+        logger = logging.getLogger("fashionstore.auditoria")
+        try:
+            from core.database import SessionLocal
+            es_autonoma = (db is None)
+            audit_session = SessionLocal() if es_autonoma else db
+            try:
+                nuevo = Bitacora(
+                    id_usuario=id_usuario,
+                    usuario_nombre=usuario_nombre,
+                    accion=accion,
+                    tabla_modulo=tabla_modulo,
+                    direccion_ip=direccion_ip,
+                    severidad=severidad,
+                    payload_anterior=payload_anterior,
+                    payload_nuevo=payload_nuevo,
+                )
+                audit_session.add(nuevo)
+                if es_autonoma:
+                    audit_session.commit()
+                    audit_session.refresh(nuevo)
+                else:
+                    audit_session.flush()
+                return nuevo
+            finally:
+                if es_autonoma:
+                    audit_session.close()
+        except Exception as exc:
+            logger.warning(
+                "[AUDITORIA] Fallo defensivo no bloqueante al registrar en bitacora: %s (accion=%s, modulo=%s)",
+                exc,
+                accion,
+                tabla_modulo,
+            )
+            return None

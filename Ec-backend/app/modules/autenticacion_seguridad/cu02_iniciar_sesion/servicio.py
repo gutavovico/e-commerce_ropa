@@ -1,6 +1,7 @@
 """Servicio de dominio transaccional para CU02: Iniciar Sesion (Login)."""
 
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -12,17 +13,24 @@ from modules.autenticacion_seguridad.cu02_iniciar_sesion.esquemas import (
     LoginOut,
 )
 from modules.autenticacion_seguridad.modelos import UsuarioORM
+from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
 
 
 class ServicioAutenticarLogin:
     """Gestiona la logica de autenticacion, validacion criptografica y emision de JWT."""
 
-    def autenticar_usuario(self, db: Session, datos: LoginIn) -> LoginOut:
+    def autenticar_usuario(
+        self,
+        db: Session,
+        datos: LoginIn,
+        direccion_ip: Optional[str] = None,
+    ) -> LoginOut:
         """Autentica las credenciales de un usuario y emite un token de acceso JWT.
 
         Args:
             db: Sesion activa de base de datos SQLAlchemy.
             datos: Credenciales proporcionadas por el usuario (email, password, recordar_dispositivo).
+            direccion_ip: Direccion IP del cliente para bitacora de seguridad.
 
         Returns:
             LoginOut con el token de acceso JWT y los datos esenciales del usuario.
@@ -38,6 +46,17 @@ class ServicioAutenticarLogin:
 
         # 2. Verificacion contra ataques de enumeracion (mismo mensaje y codigo)
         if usuario is None:
+            ServicioBitacoraAuditoria.registrar_evento_seguro(
+                id_usuario=None,
+                usuario_nombre=email_normalizado,
+                accion="LOGIN_FALLIDO",
+                tabla_modulo="autenticacion",
+                direccion_ip=direccion_ip,
+                severidad="WARN",
+                payload_anterior=None,
+                payload_nuevo={"email": email_normalizado, "motivo": "Usuario inexistente"},
+                db=db,
+            )
             raise AuthenticationError(
                 message="Credenciales incorrectas",
                 code="CREDENCIALES_INVALIDAS",
@@ -45,6 +64,18 @@ class ServicioAutenticarLogin:
 
         # 3. Verificacion criptografica con Argon2id
         if not verify_password(datos.password, usuario.password_hash):
+            nombre_desc = f"{usuario.nombres} {usuario.apellidos}".strip() or usuario.email
+            ServicioBitacoraAuditoria.registrar_evento_seguro(
+                id_usuario=usuario.id_usuario,
+                usuario_nombre=nombre_desc,
+                accion="LOGIN_FALLIDO",
+                tabla_modulo="autenticacion",
+                direccion_ip=direccion_ip,
+                severidad="WARN",
+                payload_anterior=None,
+                payload_nuevo={"email": email_normalizado, "motivo": "Password incorrecto"},
+                db=db,
+            )
             raise AuthenticationError(
                 message="Credenciales incorrectas",
                 code="CREDENCIALES_INVALIDAS",
@@ -52,6 +83,18 @@ class ServicioAutenticarLogin:
 
         # 4. Verificacion de estado activo de la cuenta
         if not usuario.activo:
+            nombre_desc = f"{usuario.nombres} {usuario.apellidos}".strip() or usuario.email
+            ServicioBitacoraAuditoria.registrar_evento_seguro(
+                id_usuario=usuario.id_usuario,
+                usuario_nombre=nombre_desc,
+                accion="LOGIN_FALLIDO",
+                tabla_modulo="autenticacion",
+                direccion_ip=direccion_ip,
+                severidad="WARN",
+                payload_anterior=None,
+                payload_nuevo={"email": email_normalizado, "motivo": "Cuenta inactiva"},
+                db=db,
+            )
             raise AuthorizationError(
                 message="La cuenta se encuentra inactiva o suspendida.",
                 code="CUENTA_INACTIVA",
@@ -70,6 +113,20 @@ class ServicioAutenticarLogin:
             "rol": str(usuario.rol),
         }
         access_token = create_access_token(data=payload_token, expires_delta=expires_delta)
+
+        # 6.5 Registrar evento exitoso en bitacora de auditoria
+        nombre_desc = f"{usuario.nombres} {usuario.apellidos}".strip() or usuario.email
+        ServicioBitacoraAuditoria.registrar_evento_seguro(
+            id_usuario=usuario.id_usuario,
+            usuario_nombre=nombre_desc,
+            accion="LOGIN_EXITOSO",
+            tabla_modulo="autenticacion",
+            direccion_ip=direccion_ip,
+            severidad="INFO",
+            payload_anterior=None,
+            payload_nuevo={"email": usuario.email, "rol": str(usuario.rol)},
+            db=db,
+        )
 
         # 7. Construir respuesta estandarizada
         return LoginOut(

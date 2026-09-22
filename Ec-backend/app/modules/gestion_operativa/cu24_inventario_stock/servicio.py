@@ -308,6 +308,25 @@ class ServicioGestionInventario:
         db.commit()
         db.refresh(inv)
 
+        from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+
+        nombre_u = f"{usuario_sesion.nombres} {usuario_sesion.apellidos}".strip() or usuario_sesion.email
+        ServicioBitacoraAuditoria.registrar_evento_seguro(
+            id_usuario=usuario_sesion.id_usuario,
+            usuario_nombre=nombre_u,
+            accion="AJUSTE_INVENTARIO",
+            tabla_modulo="inventario",
+            severidad="INFO",
+            payload_anterior={"cantidad_disponible": saldo_anterior},
+            payload_nuevo={
+                "id_inventario": id_inventario,
+                "cantidad_disponible": saldo_nuevo,
+                "delta": delta,
+                "motivo": payload.motivo,
+            },
+            db=db,
+        )
+
         estado_calc = self._calcular_estado_stock(inv.cantidad_disponible, inv.stock_alerta)
         return self._to_inventario_item_out(inv, estado_calc)
 

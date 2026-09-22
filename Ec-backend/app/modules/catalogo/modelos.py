@@ -329,9 +329,9 @@ class InventarioSucursalORM(Base):
         "VarianteProductoORM", back_populates="inventarios"
     )
     sucursal = relationship(
-        "modules.gestion_operativa.modelos.SucursalORM",
+        "SucursalORM",
         foreign_keys=[id_sucursal],
-        lazy="joined",
+        lazy="selectin",
     )
 
 

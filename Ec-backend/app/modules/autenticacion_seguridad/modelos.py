@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
+from modules.gestion_operativa.modelos import SucursalORM
 
 rol_usuario_enum = PG_ENUM(
     "cliente",
@@ -65,7 +66,7 @@ class UsuarioORM(Base):
 
     # Relacion N:1 con SucursalORM
     sucursal: Mapped[Optional["SucursalORM"]] = relationship(
-        "modules.gestion_operativa.modelos.SucursalORM",
+        "SucursalORM",
         foreign_keys=[id_sucursal],
         lazy="joined",
     )

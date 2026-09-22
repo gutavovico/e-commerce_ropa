@@ -240,6 +240,15 @@ export const routes: Routes = [
         './modules/seguridad/cu30_bitacora/paginas/bitacora-admin.component'
       ).then((m) => m.BitacoraAdminComponent),
   },
+  {
+    path: 'admin/perfil',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/autenticacion_seguridad/cu04_gestionar_perfil/paginas/perfil.component'
+      ).then((m) => m.PerfilComponent),
+    title: 'FASHION STORE | Perfil Institucional Administrador',
+  },
 
   // =========================================================================
   // 5. RUTA COMODÍN (404)
