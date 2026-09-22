@@ -9,7 +9,7 @@ Criterios de aceptacion:
 
 from datetime import datetime
 
-from app.main import app
+from main import app
 from core.errors import (
     AuthenticationError,
     AuthorizationError,

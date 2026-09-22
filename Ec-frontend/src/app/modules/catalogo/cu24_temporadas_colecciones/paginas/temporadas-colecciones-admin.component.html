@@ -1,0 +1,877 @@
+<!-- Hub Administrativo para CU24: Gestionar temporadas y colecciones -->
+<div class="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-slate-900 selection:text-white">
+
+  <!-- 1. Barra de Navegacion Superior y Migas de Pan -->
+  <header class="w-full border-b border-slate-200 bg-white sticky top-0 z-30 shadow-xs">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 text-xs tracking-wider uppercase">
+        <a routerLink="/admin" class="font-bold text-slate-900 hover:text-[#AD8C63] transition-colors">
+          FASHION STORE
+        </a>
+        <span class="text-slate-300">/</span>
+        <a routerLink="/admin" class="font-medium text-slate-500 hover:text-slate-900 transition-colors">
+          ADMINISTRACION CORPORATIVA
+        </a>
+        <span class="text-slate-300">/</span>
+        <span class="font-semibold text-[#AD8C63]">
+          GESTIONAR TEMPORADAS Y COLECCIONES
+        </span>
+      </div>
+
+      <div>
+        <a
+          routerLink="/admin"
+          class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-white transition-all shadow-xs"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Volver al Panel Principal</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Contenido Principal -->
+  <main class="max-w-[1440px] px-6 py-8 mx-auto w-full flex-grow flex flex-col">
+
+    <!-- Encabezado Editorial y Ficha Informativa -->
+    <div class="pb-8 border-b border-slate-200">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8] mb-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+            TAXONOMIA COMERCIAL - CALENDARIO EDITORIAL
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
+            Gestionar temporadas y colecciones
+          </h1>
+          <p class="text-sm text-slate-500 mt-2 max-w-3xl leading-relaxed">
+            Parametrizacion de ciclos de moda, temporadas comerciales, colecciones capsula y gobernanza de estado para el catalogo de productos omnicanal.
+          </p>
+        </div>
+
+        <!-- Metricas de Control -->
+        <div class="flex items-center gap-3">
+          <div class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-xs text-right">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Temporadas</p>
+            <p class="text-xl font-bold text-slate-900">{{ servicio.totalTemporadas() }}</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-xs text-right">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Colecciones</p>
+            <p class="text-xl font-bold text-slate-900">{{ servicio.totalColecciones() }}</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-xs text-right">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nivel RBAC</p>
+            <p class="text-xs font-bold text-emerald-700 uppercase tracking-wider mt-1">
+              {{ esAdmin() ? 'Administrador' : 'Encargado Sede' }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Banners Contextuales (Luxury Banners) -->
+    @if (errorBanner()) {
+      <div class="mt-6 p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-900 flex items-start justify-between shadow-xs">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-rose-800">Atencion Requerida</h4>
+            <p class="text-sm mt-0.5 text-rose-700">{{ errorBanner() }}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="limpiarBanners()"
+          class="text-rose-500 hover:text-rose-700 p-1 transition-colors"
+          title="Cerrar aviso"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    @if (mensajeExitoBanner()) {
+      <div class="mt-6 p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 flex items-start justify-between shadow-xs">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-800">Operacion Exitosa</h4>
+            <p class="text-sm mt-0.5 text-emerald-700">{{ mensajeExitoBanner() }}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="limpiarBanners()"
+          class="text-emerald-500 hover:text-emerald-700 p-1 transition-colors"
+          title="Cerrar aviso"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- 4. Sistema de Pestanas Reactivas -->
+    <div class="mt-8 border-b border-slate-200 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <button
+          id="tab-temporadas"
+          type="button"
+          (click)="cambiarPestana('temporadas')"
+          [class.border-[#AD8C63]]="pestanaActiva() === 'temporadas'"
+          [class.text-slate-900]="pestanaActiva() === 'temporadas'"
+          [class.border-transparent]="pestanaActiva() !== 'temporadas'"
+          [class.text-slate-500]="pestanaActiva() !== 'temporadas'"
+          class="inline-flex items-center gap-2 px-5 py-3 border-b-2 text-sm font-bold uppercase tracking-wider hover:text-slate-900 transition-all cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>Temporadas</span>
+          <span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700 font-mono">
+            {{ servicio.totalTemporadas() }}
+          </span>
+        </button>
+
+        <button
+          id="tab-colecciones"
+          type="button"
+          (click)="cambiarPestana('colecciones')"
+          [class.border-[#AD8C63]]="pestanaActiva() === 'colecciones'"
+          [class.text-slate-900]="pestanaActiva() === 'colecciones'"
+          [class.border-transparent]="pestanaActiva() !== 'colecciones'"
+          [class.text-slate-500]="pestanaActiva() !== 'colecciones'"
+          class="inline-flex items-center gap-2 px-5 py-3 border-b-2 text-sm font-bold uppercase tracking-wider hover:text-slate-900 transition-all cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <span>Colecciones</span>
+          <span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700 font-mono">
+            {{ servicio.totalColecciones() }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Boton de Accion Principal segun Pestana Activa -->
+      <div>
+        @if (esAdmin()) {
+          @if (pestanaActiva() === 'temporadas') {
+            <button
+              id="btn-nueva-temporada"
+              type="button"
+              (click)="abrirModalCrearTemporada()"
+              class="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Nueva Temporada</span>
+            </button>
+          } @else {
+            <button
+              id="btn-nueva-coleccion"
+              type="button"
+              (click)="abrirModalCrearColeccion()"
+              class="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-2.5 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Nueva Coleccion</span>
+            </button>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 5. VISTA DE TEMPORADAS                                               -->
+    <!-- ==================================================================== -->
+    @if (pestanaActiva() === 'temporadas') {
+      <!-- Barra de Filtros de Temporada -->
+      <div class="mt-6 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-wrap items-center gap-4">
+        <!-- Busqueda por Nombre -->
+        <div class="flex-1 min-w-[240px] relative">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            id="input-busqueda-temporada"
+            type="text"
+            [value]="busquedaTemporada()"
+            (input)="onBusquedaTemporada($event)"
+            placeholder="Buscar temporada por nombre o ciclo..."
+            class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#AD8C63] focus:ring-1 focus:ring-[#AD8C63]"
+          />
+        </div>
+
+        <!-- Filtro por Anio -->
+        <div class="w-44">
+          <select
+            id="select-filtro-anio"
+            (change)="onFiltroAnioTemporada($event)"
+            class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 bg-white focus:outline-none focus:border-[#AD8C63]"
+          >
+            <option value="">Todos los anios</option>
+            @for (anio of aniosDisponibles; track anio) {
+              <option [value]="anio">{{ anio }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Filtro por Estado -->
+        <div class="w-36">
+          <select
+            id="select-filtro-estado-temporada"
+            (change)="onFiltroEstadoTemporada($event)"
+            class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 bg-white focus:outline-none focus:border-[#AD8C63]"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="activas">Solo activas</option>
+            <option value="inactivas">Solo inactivas</option>
+          </select>
+        </div>
+
+        <!-- Ordenamiento -->
+        <div class="w-48">
+          <select
+            id="select-orden-temporada"
+            (change)="onFiltroOrdenTemporada($event)"
+            class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 bg-white focus:outline-none focus:border-[#AD8C63]"
+          >
+            <option value="anio_desc">Anio (Recientes)</option>
+            <option value="anio_asc">Anio (Antiguos)</option>
+            <option value="nombre_asc">Nombre (A - Z)</option>
+            <option value="nombre_desc">Nombre (Z - A)</option>
+            <option value="fecha_desc">Fecha de Inicio</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tabla Maestra de Temporadas -->
+      <div class="mt-6 bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr>
+                <th class="px-6 py-3.5">Temporada / Tipo</th>
+                <th class="px-6 py-3.5">Anio Comercial</th>
+                <th class="px-6 py-3.5">Vigencia Cronologica</th>
+                <th class="px-6 py-3.5 text-center">Colecciones Asociadas</th>
+                <th class="px-6 py-3.5">Estado</th>
+                <th class="px-6 py-3.5 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @if (servicio.cargando()) {
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                    <div class="inline-flex items-center gap-2">
+                      <svg class="animate-spin h-4 w-4 text-[#AD8C63]" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Cargando temporadas comerciales...</span>
+                    </div>
+                  </td>
+                </tr>
+              } @else if (servicio.temporadas().length === 0) {
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                    <div class="max-w-sm mx-auto flex flex-col items-center">
+                      <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p class="text-sm font-semibold text-slate-800">No se encontraron temporadas</p>
+                      <p class="text-xs text-slate-500 mt-1">No hay temporadas registradas que coincidan con los criterios de busqueda.</p>
+                    </div>
+                  </td>
+                </tr>
+              } @else {
+                @for (temp of servicio.temporadas(); track temp.id_temporada) {
+                  <tr class="hover:bg-slate-50/70 transition-colors">
+                    <td class="px-6 py-4">
+                      <div class="font-bold text-slate-900">{{ temp.nombre }}</div>
+                      <div class="text-[11px] text-slate-400 mt-0.5">
+                        {{ temp.tipo ? temp.tipo.replace('_', ' ') : 'General' }}
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 font-mono font-bold text-slate-800">
+                      {{ temp.anio }}
+                    </td>
+                    <td class="px-6 py-4 text-slate-700">
+                      <div class="flex items-center gap-1.5 font-mono text-[11px]">
+                        <span>{{ temp.fecha_inicio }}</span>
+                        <span class="text-slate-400">&rarr;</span>
+                        <span>{{ temp.fecha_fin }}</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                        {{ temp.total_colecciones }} colecciones
+                      </span>
+                    </td>
+                    <td class="px-6 py-4">
+                      @if (temp.estado_activo) {
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Activa
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                          Inactiva
+                        </span>
+                      }
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      @if (esAdmin()) {
+                        <div class="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            (click)="abrirModalEditarTemporada(temp)"
+                            class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 hover:border-[#AD8C63] hover:text-[#AD8C63] transition-colors cursor-pointer"
+                            title="Editar temporada"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            (click)="solicitarConmutarEstado('temporada', temp.id_temporada, temp.nombre, temp.estado_activo)"
+                            [class.text-rose-600]="temp.estado_activo"
+                            [class.border-rose-200]="temp.estado_activo"
+                            [class.hover:bg-rose-50]="temp.estado_activo"
+                            [class.text-emerald-700]="!temp.estado_activo"
+                            [class.border-emerald-200]="!temp.estado_activo"
+                            [class.hover:bg-emerald-50]="!temp.estado_activo"
+                            class="px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer"
+                          >
+                            {{ temp.estado_activo ? 'Dar de Baja' : 'Reactivar' }}
+                          </button>
+                        </div>
+                      } @else {
+                        <span class="text-xs text-slate-400 italic">Solo lectura</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginacion de Temporadas -->
+        @if (servicio.totalTemporadas() > 0) {
+          <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+            <div>
+              Mostrando pagina <span class="font-bold text-slate-800">{{ paginaTemporada() }}</span> de <span class="font-bold text-slate-800">{{ servicio.totalPaginasTemporadas() }}</span>
+              ({{ servicio.totalTemporadas() }} temporadas registradas)
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                [disabled]="paginaTemporada() <= 1"
+                (click)="cambiarPaginaTemporada(paginaTemporada() - 1)"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+              >
+                Anterior
+              </button>
+              <button
+                type="button"
+                [disabled]="paginaTemporada() >= servicio.totalPaginasTemporadas()"
+                (click)="cambiarPaginaTemporada(paginaTemporada() + 1)"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ==================================================================== -->
+    <!-- 6. VISTA DE COLECCIONES                                              -->
+    <!-- ==================================================================== -->
+    @if (pestanaActiva() === 'colecciones') {
+      <!-- Barra de Filtros de Colecciones -->
+      <div class="mt-6 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-wrap items-center gap-4">
+        <!-- Busqueda por Nombre o Descripcion -->
+        <div class="flex-1 min-w-[240px] relative">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            id="input-busqueda-coleccion"
+            type="text"
+            [value]="busquedaColeccion()"
+            (input)="onBusquedaColeccion($event)"
+            placeholder="Buscar coleccion capsula..."
+            class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#AD8C63] focus:ring-1 focus:ring-[#AD8C63]"
+          />
+        </div>
+
+        <!-- Filtro por Temporada Matriz -->
+        <div class="w-64">
+          <select
+            id="select-filtro-temporada-matriz"
+            (change)="onFiltroTemporadaColeccion($event)"
+            class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 bg-white focus:outline-none focus:border-[#AD8C63]"
+          >
+            <option value="">Todas las temporadas matrices</option>
+            @for (t of servicio.temporadasActivasParaSelector(); track t.id_temporada) {
+              <option [value]="t.id_temporada">{{ t.nombre }} ({{ t.anio }})</option>
+            }
+          </select>
+        </div>
+
+        <!-- Filtro por Estado -->
+        <div class="w-36">
+          <select
+            id="select-filtro-estado-coleccion"
+            (change)="onFiltroEstadoColeccion($event)"
+            class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 bg-white focus:outline-none focus:border-[#AD8C63]"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="activas">Solo activas</option>
+            <option value="inactivas">Solo inactivas</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tabla Maestra de Colecciones -->
+      <div class="mt-6 bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr>
+                <th class="px-6 py-3.5">Coleccion Capsula</th>
+                <th class="px-6 py-3.5">Temporada Matriz</th>
+                <th class="px-6 py-3.5">Descripcion Editorial</th>
+                <th class="px-6 py-3.5 text-center">Prendas Vinculadas</th>
+                <th class="px-6 py-3.5">Estado</th>
+                <th class="px-6 py-3.5 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @if (servicio.cargando()) {
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                    <div class="inline-flex items-center gap-2">
+                      <svg class="animate-spin h-4 w-4 text-[#AD8C63]" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Cargando colecciones capsula...</span>
+                    </div>
+                  </td>
+                </tr>
+              } @else if (servicio.colecciones().length === 0) {
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                    <div class="max-w-sm mx-auto flex flex-col items-center">
+                      <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                      </div>
+                      <p class="text-sm font-semibold text-slate-800">No se encontraron colecciones</p>
+                      <p class="text-xs text-slate-500 mt-1">No hay colecciones registradas que coincidan con los filtros aplicados.</p>
+                    </div>
+                  </td>
+                </tr>
+              } @else {
+                @for (col of servicio.colecciones(); track col.id_coleccion) {
+                  <tr class="hover:bg-slate-50/70 transition-colors">
+                    <td class="px-6 py-4">
+                      <div class="font-bold text-slate-900">{{ col.nombre }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="font-semibold text-slate-800">{{ col.temporada_nombre }}</div>
+                      <div class="text-[11px] text-slate-400 font-mono">Ciclo {{ col.temporada_anio }}</div>
+                    </td>
+                    <td class="px-6 py-4 max-w-xs truncate text-slate-500">
+                      {{ col.descripcion || 'Sin descripcion adicional' }}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                        {{ col.total_productos }} prendas
+                      </span>
+                    </td>
+                    <td class="px-6 py-4">
+                      @if (col.estado_activo) {
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Activa
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                          Inactiva
+                        </span>
+                      }
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      @if (esAdmin()) {
+                        <div class="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            (click)="abrirModalEditarColeccion(col)"
+                            class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 hover:border-[#AD8C63] hover:text-[#AD8C63] transition-colors cursor-pointer"
+                            title="Editar coleccion"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            (click)="solicitarConmutarEstado('coleccion', col.id_coleccion, col.nombre, col.estado_activo)"
+                            [class.text-rose-600]="col.estado_activo"
+                            [class.border-rose-200]="col.estado_activo"
+                            [class.hover:bg-rose-50]="col.estado_activo"
+                            [class.text-emerald-700]="!col.estado_activo"
+                            [class.border-emerald-200]="!col.estado_activo"
+                            [class.hover:bg-emerald-50]="!col.estado_activo"
+                            class="px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer"
+                          >
+                            {{ col.estado_activo ? 'Dar de Baja' : 'Reactivar' }}
+                          </button>
+                        </div>
+                      } @else {
+                        <span class="text-xs text-slate-400 italic">Solo lectura</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginacion de Colecciones -->
+        @if (servicio.totalColecciones() > 0) {
+          <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+            <div>
+              Mostrando pagina <span class="font-bold text-slate-800">{{ paginaColeccion() }}</span> de <span class="font-bold text-slate-800">{{ servicio.totalPaginasColecciones() }}</span>
+              ({{ servicio.totalColecciones() }} colecciones registradas)
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                [disabled]="paginaColeccion() <= 1"
+                (click)="cambiarPaginaColeccion(paginaColeccion() - 1)"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+              >
+                Anterior
+              </button>
+              <button
+                type="button"
+                [disabled]="paginaColeccion() >= servicio.totalPaginasColecciones()"
+                (click)="cambiarPaginaColeccion(paginaColeccion() + 1)"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+  </main>
+
+  <!-- ==================================================================== -->
+  <!-- 7. MODALES REACTIVOS                                                 -->
+  <!-- ==================================================================== -->
+
+  <!-- Modal 1: Temporada (Crear / Editar) -->
+  @if (modalTemporadaAbierto()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-200">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+          <h3 class="text-lg font-bold text-slate-900">
+            {{ modoEdicionTemporada() ? 'Editar Temporada Comercial' : 'Registrar Nueva Temporada' }}
+          </h3>
+          <button
+            type="button"
+            (click)="cerrarModales()"
+            class="text-slate-400 hover:text-slate-600 p-1"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form [formGroup]="formTemporada" (ngSubmit)="guardarTemporada()" class="mt-4 space-y-4 text-xs">
+          <!-- Nombre de la Temporada -->
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Nombre Comercial de la Temporada *</label>
+            <input
+              id="input-nombre-temporada"
+              type="text"
+              formControlName="nombre"
+              placeholder="Ej. Otono - Invierno 2026"
+              class="w-full px-3 py-2 border rounded-xl focus:outline-none text-slate-800"
+              [class.border-rose-400]="formTemporada.get('nombre')?.touched && formTemporada.get('nombre')?.invalid"
+              [class.border-slate-200]="!formTemporada.get('nombre')?.touched || formTemporada.get('nombre')?.valid"
+            />
+            @if (formTemporada.get('nombre')?.touched && formTemporada.get('nombre')?.invalid) {
+              <p class="text-[11px] text-rose-500 mt-1">El nombre es requerido y debe contener al menos 3 caracteres.</p>
+            }
+          </div>
+
+          <!-- Tipo y Anio -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Tipo de Temporada</label>
+              <select
+                id="select-tipo-temporada"
+                formControlName="tipo"
+                class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none bg-white text-slate-800"
+              >
+                <option value="">General / Sin tipificacion</option>
+                @for (t of tiposTemporada; track t.valor) {
+                  <option [value]="t.valor">{{ t.etiqueta }}</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Anio Comercial *</label>
+              <input
+                id="input-anio-temporada"
+                type="number"
+                formControlName="anio"
+                min="2020"
+                max="2100"
+                class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none text-slate-800"
+              />
+            </div>
+          </div>
+
+          <!-- Fechas: Inicio y Fin -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Fecha de Inicio *</label>
+              <input
+                id="input-fecha-inicio-temporada"
+                type="date"
+                formControlName="fecha_inicio"
+                class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none text-slate-800"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Fecha de Finalizacion *</label>
+              <input
+                id="input-fecha-fin-temporada"
+                type="date"
+                formControlName="fecha_fin"
+                class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none text-slate-800"
+              />
+            </div>
+          </div>
+
+          <!-- Error de Validacion Cruzada de Fechas -->
+          @if (formTemporada.errors?.['fechasInvalidas'] && (formTemporada.get('fecha_inicio')?.touched || formTemporada.get('fecha_fin')?.touched)) {
+            <div class="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] flex items-center gap-2">
+              <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>{{ formTemporada.errors?.['fechasInvalidas'] }}</span>
+            </div>
+          }
+
+          <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              (click)="cerrarModales()"
+              class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              id="btn-guardar-temporada"
+              type="submit"
+              [disabled]="formTemporada.invalid || servicio.guardando()"
+              class="px-5 py-2 rounded-xl bg-[#0F172A] hover:bg-black text-white font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition-all cursor-pointer"
+            >
+              {{ servicio.guardando() ? 'Guardando...' : (modoEdicionTemporada() ? 'Guardar Cambios' : 'Crear Temporada') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal 2: Coleccion (Crear / Editar) -->
+  @if (modalColeccionAbierto()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-200">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+          <h3 class="text-lg font-bold text-slate-900">
+            {{ modoEdicionColeccion() ? 'Editar Coleccion Capsula' : 'Registrar Nueva Coleccion Capsula' }}
+          </h3>
+          <button
+            type="button"
+            (click)="cerrarModales()"
+            class="text-slate-400 hover:text-slate-600 p-1"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form [formGroup]="$any(formColeccion)" (ngSubmit)="guardarColeccion()" class="mt-4 space-y-4 text-xs">
+          <!-- Temporada Matriz -->
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Temporada Matriz *</label>
+            <select
+              id="select-temporada-matriz"
+              formControlName="id_temporada"
+              class="w-full px-3 py-2 border rounded-xl focus:outline-none bg-white text-slate-800"
+              [class.border-rose-400]="formColeccion.get('id_temporada')?.touched && formColeccion.get('id_temporada')?.invalid"
+              [class.border-slate-200]="!formColeccion.get('id_temporada')?.touched || formColeccion.get('id_temporada')?.valid"
+            >
+              <option [ngValue]="null">Seleccione una temporada activa...</option>
+              @for (t of servicio.temporadasActivasParaSelector(); track t.id_temporada) {
+                <option [value]="t.id_temporada">{{ t.nombre }} ({{ t.anio }})</option>
+              }
+            </select>
+            @if (formColeccion.get('id_temporada')?.touched && formColeccion.get('id_temporada')?.invalid) {
+              <p class="text-[11px] text-rose-500 mt-1">Debe seleccionar una temporada comercial valida y activa.</p>
+            }
+          </div>
+
+          <!-- Nombre de la Coleccion -->
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Nombre de la Coleccion *</label>
+            <input
+              id="input-nombre-coleccion"
+              type="text"
+              formControlName="nombre"
+              placeholder="Ej. Capsula Alpaca Real"
+              class="w-full px-3 py-2 border rounded-xl focus:outline-none text-slate-800"
+              [class.border-rose-400]="formColeccion.get('nombre')?.touched && formColeccion.get('nombre')?.invalid"
+              [class.border-slate-200]="!formColeccion.get('nombre')?.touched || formColeccion.get('nombre')?.valid"
+            />
+            @if (formColeccion.get('nombre')?.touched && formColeccion.get('nombre')?.invalid) {
+              <p class="text-[11px] text-rose-500 mt-1">El nombre debe contener al menos 3 caracteres validos.</p>
+            }
+          </div>
+
+          <!-- Descripcion Editorial -->
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Descripcion Editorial / Concepto</label>
+            <textarea
+              id="textarea-descripcion-coleccion"
+              formControlName="descripcion"
+              rows="3"
+              placeholder="Detalles sobre las prendas, tejidos, paleta o inspiracion de la coleccion..."
+              class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none text-slate-800"
+            ></textarea>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              (click)="cerrarModales()"
+              class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              id="btn-guardar-coleccion"
+              type="submit"
+              [disabled]="formColeccion.invalid || servicio.guardando()"
+              class="px-5 py-2 rounded-xl bg-[#0F172A] hover:bg-black text-white font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition-all cursor-pointer"
+            >
+              {{ servicio.guardando() ? 'Guardando...' : (modoEdicionColeccion() ? 'Guardar Cambios' : 'Crear Coleccion') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal 3: Confirmar Cambio de Estado / Baja Logica -->
+  @if (modalConfirmarEstadoAbierto() && elementoParaConmutar()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200">
+        <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+               [class.bg-rose-100]="elementoParaConmutar()?.estado_activo"
+               [class.text-rose-600]="elementoParaConmutar()?.estado_activo"
+               [class.bg-emerald-100]="!elementoParaConmutar()?.estado_activo"
+               [class.text-emerald-600]="!elementoParaConmutar()?.estado_activo"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">
+              {{ elementoParaConmutar()?.estado_activo ? 'Confirmar Baja Logica' : 'Confirmar Reactivacion' }}
+            </h3>
+            <p class="text-xs text-slate-500">
+              Gobernanza del catalogo editorial
+            </p>
+          </div>
+        </div>
+
+        <div class="py-4 text-xs text-slate-600 space-y-2">
+          <p>
+            ¿Esta seguro de que desea
+            <span class="font-bold text-slate-900">
+              {{ elementoParaConmutar()?.estado_activo ? 'dar de baja' : 'reactivar' }}
+            </span>
+            la {{ elementoParaConmutar()?.tipo }}
+            <span class="font-bold text-[#AD8C63]">"{{ elementoParaConmutar()?.nombre }}"</span>?
+          </p>
+          @if (elementoParaConmutar()?.estado_activo) {
+            <p class="text-slate-500 italic">
+              Esta operacion desactivara el registro preservando la trazabilidad de historicos y prendas vinculadas.
+            </p>
+          }
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3 text-xs">
+          <button
+            type="button"
+            (click)="cerrarModales()"
+            class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            id="btn-confirmar-conmutar-estado"
+            type="button"
+            (click)="confirmarConmutarEstado()"
+            [disabled]="servicio.guardando()"
+            [class.bg-rose-600]="elementoParaConmutar()?.estado_activo"
+            [class.hover:bg-rose-700]="elementoParaConmutar()?.estado_activo"
+            [class.bg-emerald-600]="!elementoParaConmutar()?.estado_activo"
+            [class.hover:bg-emerald-700]="!elementoParaConmutar()?.estado_activo"
+            class="px-5 py-2 rounded-xl text-white font-bold uppercase tracking-wider shadow-xs transition-all cursor-pointer"
+          >
+            {{ servicio.guardando() ? 'Procesando...' : (elementoParaConmutar()?.estado_activo ? 'Confirmar Baja' : 'Reactivar') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

@@ -1,0 +1,793 @@
+<!-- Panel de Administracion: Categorias, Tallas y Colores Fashion Store -->
+<div class="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-slate-900 selection:text-white">
+
+  <!-- 1. Cabecera Institucional del Panel -->
+  <header class="w-full border-b border-slate-200 bg-white sticky top-0 z-30 shadow-sm">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <a routerLink="/admin" class="text-sm font-semibold tracking-widest text-slate-900 uppercase hover:opacity-80 transition-opacity">
+          FASHION STORE
+        </a>
+        <span class="text-slate-300">/</span>
+        <a routerLink="/admin" class="text-xs font-medium tracking-wider text-[#AD8C63] uppercase hover:underline">
+          ADMINISTRACION CORPORATIVA
+        </a>
+      </div>
+
+      <nav class="flex items-center space-x-6 text-xs font-medium tracking-wider uppercase">
+        <a
+          routerLink="/admin"
+          routerLinkActive="text-slate-900 font-semibold border-b-2 border-[#AD8C63] pb-1"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          PANEL PRINCIPAL
+        </a>
+        <a
+          routerLink="/perfil"
+          routerLinkActive="text-slate-900 font-semibold border-b-2 border-[#AD8C63] pb-1"
+          class="text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          MI CUENTA
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 2. Contenido Principal -->
+  <main class="max-w-[1440px] mx-auto px-6 py-8 flex-grow w-full flex flex-col">
+
+    <!-- Boton de Retorno al Panel Principal -->
+    <div class="mb-4">
+      <a
+        routerLink="/admin"
+        class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors uppercase tracking-wider group"
+      >
+        <svg class="w-4 h-4 text-[#AD8C63] group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span>Volver al Panel Principal</span>
+      </a>
+    </div>
+
+    <!-- Titulo Editorial y Metricas Resumen -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
+      <div>
+        <p class="text-xs font-semibold tracking-widest text-[#AD8C63] uppercase">
+          GESTIONAR CATEGORIAS, TALLAS Y COLORES
+        </p>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+          Gestionar categorias, tallas y colores
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">
+          Parametrizacion editorial de la estructura textil, escala secuencial de tallas y paleta cromatica con codigos #HEX.
+        </p>
+      </div>
+
+      <!-- Metricas Resumen -->
+      <div class="flex items-center gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-right shadow-xs">
+          <p class="text-xs font-medium text-slate-400 uppercase">Categorias</p>
+          <p class="text-xl font-bold text-slate-900">{{ categorias().length }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-right shadow-xs">
+          <p class="text-xs font-medium text-slate-400 uppercase">Tallas</p>
+          <p class="text-xl font-bold text-slate-900">{{ tallas().length }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-right shadow-xs">
+          <p class="text-xs font-medium text-slate-400 uppercase">Colores</p>
+          <p class="text-xl font-bold text-slate-900">{{ colores().length }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Luxury Banners de Feedback -->
+    @if (notificacionConflicto()) {
+      <div class="mt-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start justify-between shadow-xs">
+        <div class="flex items-start space-x-3">
+          <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h4 class="text-xs font-bold text-rose-900 uppercase tracking-wider">Restriccion de Dominio o Conflicto</h4>
+            <p class="text-xs text-rose-700 mt-1 leading-relaxed">{{ notificacionConflicto() }}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="cerrarAlertaConflicto()"
+          class="text-rose-400 hover:text-rose-700 transition-colors"
+          title="Cerrar advertencia"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    @if (mensajeExito()) {
+      <div class="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between shadow-xs">
+        <div class="flex items-center space-x-3 text-emerald-800 text-xs font-medium">
+          <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>{{ mensajeExito() }}</span>
+        </div>
+        <button
+          type="button"
+          (click)="atributosService.limpiarMensajes()"
+          class="text-emerald-400 hover:text-emerald-700 transition-colors"
+          title="Cerrar confirmacion"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- Selector de Pestanas Principales y Boton de Accion Contextual -->
+    <div class="mt-6 flex items-center justify-between border-b border-slate-200">
+      <div class="flex space-x-8">
+        <button
+          type="button"
+          (click)="cambiarPestana('categorias')"
+          [class.text-slate-900]="pestanaActiva() === 'categorias'"
+          [class.border-[#AD8C63]]="pestanaActiva() === 'categorias'"
+          [class.text-slate-400]="pestanaActiva() !== 'categorias'"
+          [class.border-transparent]="pestanaActiva() !== 'categorias'"
+          class="py-4 text-xs font-bold tracking-widest uppercase border-b-2 transition-colors flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h7" />
+          </svg>
+          Categorias ({{ categorias().length }})
+        </button>
+
+        <button
+          type="button"
+          (click)="cambiarPestana('tallas')"
+          [class.text-slate-900]="pestanaActiva() === 'tallas'"
+          [class.border-[#AD8C63]]="pestanaActiva() === 'tallas'"
+          [class.text-slate-400]="pestanaActiva() !== 'tallas'"
+          [class.border-transparent]="pestanaActiva() !== 'tallas'"
+          class="py-4 text-xs font-bold tracking-widest uppercase border-b-2 transition-colors flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6l3 12h12l3-12H3z" />
+          </svg>
+          Tallas ({{ tallas().length }})
+        </button>
+
+        <button
+          type="button"
+          (click)="cambiarPestana('colores')"
+          [class.text-slate-900]="pestanaActiva() === 'colores'"
+          [class.border-[#AD8C63]]="pestanaActiva() === 'colores'"
+          [class.text-slate-400]="pestanaActiva() !== 'colores'"
+          [class.border-transparent]="pestanaActiva() !== 'colores'"
+          class="py-4 text-xs font-bold tracking-widest uppercase border-b-2 transition-colors flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+          </svg>
+          Colores ({{ colores().length }})
+        </button>
+      </div>
+
+      <!-- Boton de Accion Contextual -->
+      @if (pestanaActiva() === 'categorias') {
+        <button
+          type="button"
+          (click)="abrirModalCategoria()"
+          class="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg shadow-sm transition-all"
+        >
+          <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          + Nueva Categoria
+        </button>
+      } @else if (pestanaActiva() === 'tallas') {
+        <button
+          type="button"
+          (click)="abrirModalTalla()"
+          class="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg shadow-sm transition-all"
+        >
+          <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          + Nueva Talla
+        </button>
+      } @else {
+        <button
+          type="button"
+          (click)="abrirModalColor()"
+          class="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg shadow-sm transition-all"
+        >
+          <svg class="w-4 h-4 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          + Nuevo Color
+        </button>
+      }
+    </div>
+
+    <!-- Barra de Filtro Reactivo -->
+    <div class="mt-6 p-4 bg-white border border-slate-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+      <div class="relative flex-grow max-w-md">
+        <input
+          type="text"
+          [value]="filtroBusqueda()"
+          (input)="actualizarFiltro($any($event.target).value)"
+          [placeholder]="pestanaActiva() === 'categorias' ? 'Buscar categorias por nombre o padre...' : (pestanaActiva() === 'tallas' ? 'Buscar tallas por codigo...' : 'Buscar colores por nombre o #HEX...')"
+          class="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-slate-900 bg-slate-50 transition-colors"
+        />
+        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <div class="text-xs text-slate-500 font-medium">
+        @if (pestanaActiva() === 'categorias') {
+          <span>{{ categoriasFiltradas().length }} de {{ categorias().length }} categorias</span>
+        } @else if (pestanaActiva() === 'tallas') {
+          <span>{{ tallasFiltradas().length }} de {{ tallas().length }} tallas</span>
+        } @else {
+          <span>{{ coloresFiltrados().length }} de {{ colores().length }} colores</span>
+        }
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 1: CATEGORIAS (ARBOL JERARQUICO) -->
+    <!-- ========================================== -->
+    @if (pestanaActiva() === 'categorias') {
+      <div class="mt-6 bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              Arbol Taxonomico de Categorias
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Estructura jerarquica de navegacion de prendas, categorias raiz y subcategorias de alta costura.
+            </p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+              <tr>
+                <th scope="col" class="py-3.5 px-6">Categoria</th>
+                <th scope="col" class="py-3.5 px-6">Categoria Padre</th>
+                <th scope="col" class="py-3.5 px-6 text-center">Productos Vinculados</th>
+                <th scope="col" class="py-3.5 px-6 text-center">Subcategorias</th>
+                <th scope="col" class="py-3.5 px-6 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (cat of categoriasFiltradas(); track cat.id_categoria) {
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                  <td class="py-4 px-6 font-medium text-slate-900">
+                    <div class="flex items-center gap-2" [ngClass]="cat.id_categoria_padre ? 'pl-6' : ''">
+                      @if (cat.id_categoria_padre) {
+                        <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                      }
+                      <span class="font-bold text-slate-900">{{ cat.nombre }}</span>
+                      <span
+                        class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md"
+                        [ngClass]="cat.id_categoria_padre ? 'bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]' : 'bg-slate-100 text-slate-700'"
+                      >
+                        {{ cat.id_categoria_padre ? 'Subcategoria' : 'Raiz' }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="py-4 px-6 text-slate-600">
+                    {{ cat.padre_nombre || '—' }}
+                  </td>
+                  <td class="py-4 px-6 text-center">
+                    <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                      {{ cat.total_productos }}
+                    </span>
+                  </td>
+                  <td class="py-4 px-6 text-center">
+                    <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                      [class.bg-[#FAF7F2]]="cat.total_subcategorias > 0"
+                      [class.text-[#AD8C63]]="cat.total_subcategorias > 0"
+                      [class.border]="cat.total_subcategorias > 0"
+                      [class.border-[#ECE4D8]]="cat.total_subcategorias > 0"
+                      [class.bg-slate-100]="cat.total_subcategorias === 0"
+                      [class.text-slate-600]="cat.total_subcategorias === 0"
+                    >
+                      {{ cat.total_subcategorias }}
+                    </span>
+                  </td>
+                  <td class="py-4 px-6 text-right space-x-2">
+                    <button
+                      type="button"
+                      (click)="abrirModalCategoria(cat)"
+                      class="text-slate-600 hover:text-slate-900 font-medium transition-colors"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      (click)="abrirConfirmarEliminar('categorias', cat.id_categoria, cat.nombre)"
+                      class="text-rose-600 hover:text-rose-800 font-medium transition-colors"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="py-12 text-center text-slate-400">
+                    No se encontraron categorias coincidentes.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 2: TALLAS (ESCALA SECUENCIAL)     -->
+    <!-- ========================================== -->
+    @if (pestanaActiva() === 'tallas') {
+      <div class="mt-6 bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              Escala Comercial de Tallas
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Definicion de tallas y su secuencia numerica para selectores de compra y filtros de catalogo.
+            </p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+              <tr>
+                <th scope="col" class="py-3.5 px-6">Orden</th>
+                <th scope="col" class="py-3.5 px-6">Codigo Textil</th>
+                <th scope="col" class="py-3.5 px-6 text-center">Variantes en Inventario</th>
+                <th scope="col" class="py-3.5 px-6 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (talla of tallasFiltradas(); track talla.id_talla) {
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                  <td class="py-4 px-6 font-mono font-bold text-slate-400">
+                    #{{ talla.orden }}
+                  </td>
+                  <td class="py-4 px-6">
+                    <span class="inline-block px-3 py-1 bg-slate-100 text-slate-900 font-mono font-bold text-xs rounded border border-slate-200 tracking-wider">
+                      {{ talla.codigo }}
+                    </span>
+                  </td>
+                  <td class="py-4 px-6 text-center">
+                    <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                      {{ talla.total_variantes }}
+                    </span>
+                  </td>
+                  <td class="py-4 px-6 text-right space-x-2">
+                    <button
+                      type="button"
+                      (click)="abrirModalTalla(talla)"
+                      class="text-slate-600 hover:text-slate-900 font-medium transition-colors"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      (click)="abrirConfirmarEliminar('tallas', talla.id_talla, talla.codigo)"
+                      class="text-rose-600 hover:text-rose-800 font-medium transition-colors"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="py-12 text-center text-slate-400">
+                    No se encontraron tallas coincidentes.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 3: COLORES (REJILLA DE SWATCHES)  -->
+    <!-- ========================================== -->
+    @if (pestanaActiva() === 'colores') {
+      <div class="mt-6">
+        <div class="px-1 py-2 flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              Paleta Cromatica Textil
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Muestras de color con representacion visual directa desde codigos hexadecimales #HEX.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          @for (color of coloresFiltrados(); track color.id_color) {
+            <div class="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-all shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center space-x-4">
+                  <!-- Swatch cromático -->
+                  <div
+                    class="w-12 h-12 rounded-xl shadow-inner border border-slate-200 shrink-0"
+                    [style.backgroundColor]="color.codigo_hex"
+                  ></div>
+                  <div class="overflow-hidden">
+                    <h4 class="font-bold text-slate-900 text-sm truncate" [title]="color.nombre">
+                      {{ color.nombre }}
+                    </h4>
+                    <span class="inline-block mt-0.5 font-mono text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      {{ color.codigo_hex }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span class="text-slate-500">
+                  {{ color.total_variantes }} {{ color.total_variantes === 1 ? 'variante' : 'variantes' }}
+                </span>
+                <div class="space-x-2">
+                  <button
+                    type="button"
+                    (click)="abrirModalColor(color)"
+                    class="text-slate-600 hover:text-slate-900 font-medium transition-colors"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    (click)="abrirConfirmarEliminar('colores', color.id_color, color.nombre)"
+                    class="text-rose-600 hover:text-rose-800 font-medium transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="col-span-full py-16 text-center bg-white border border-slate-200 rounded-xl">
+              <p class="text-sm font-semibold text-slate-700">No se encontraron colores</p>
+              <p class="text-xs text-slate-400 mt-1">Ajuste el termino de busqueda o registre una nueva tonalidad textil.</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL: CATEGORIA                          -->
+  <!-- ========================================== -->
+  @if (modalCategoriaAbierto()) {
+    <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl animate-in fade-in zoom-in-95">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div>
+            <span class="text-xs font-semibold tracking-wider text-[#AD8C63] uppercase">
+              {{ categoriaEnEdicion() ? 'Edicion Editorial' : 'Alta de Registro' }}
+            </span>
+            <h3 class="text-base font-bold text-slate-900">
+              {{ categoriaEnEdicion() ? 'Actualizar Categoria' : 'Nueva Categoria Taxonomica' }}
+            </h3>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalCategoria()"
+            class="text-slate-400 hover:text-slate-700 transition-colors"
+            title="Cerrar modal"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        @if (notificacionConflicto()) {
+          <div class="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+            <span class="font-bold">Conflicto:</span> {{ notificacionConflicto() }}
+          </div>
+        }
+
+        <form [formGroup]="categoriaForm" (ngSubmit)="guardarCategoria()" class="mt-4 space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Nombre de la Categoria *
+            </label>
+            <input
+              type="text"
+              formControlName="nombre"
+              placeholder="Ej. Alta Costura Femenina"
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+            />
+            @if (categoriaForm.get('nombre')?.touched && categoriaForm.get('nombre')?.errors) {
+              <p class="text-[11px] text-rose-600 mt-1">El nombre debe tener al menos 2 caracteres.</p>
+            }
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Categoria Padre (Opcional)
+            </label>
+            <select
+              formControlName="id_categoria_padre"
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 bg-white focus:outline-none focus:border-slate-900"
+            >
+              <option [ngValue]="null">Ninguna (Es Categoria Raiz)</option>
+              @for (padre of categoriasPadreDisponibles(); track padre.id_categoria) {
+                <option [ngValue]="padre.id_categoria">{{ padre.nombre }}</option>
+              }
+            </select>
+            <p class="text-[11px] text-slate-400 mt-1">
+              Seleccione una categoria existente para convertirla en subcategoria.
+            </p>
+          </div>
+
+          <div class="pt-4 border-t border-slate-200 flex items-center justify-end space-x-3">
+            <button
+              type="button"
+              (click)="cerrarModalCategoria()"
+              class="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="categoriaForm.invalid || atributosService.guardando()"
+              class="px-4 py-2 text-xs font-bold text-white bg-[#0F172A] hover:bg-black rounded-lg shadow-xs transition-all disabled:opacity-50"
+            >
+              {{ atributosService.guardando() ? 'Guardando...' : (categoriaEnEdicion() ? 'Guardar Cambios' : 'Crear Categoria') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- MODAL: TALLA                              -->
+  <!-- ========================================== -->
+  @if (modalTallaAbierto()) {
+    <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div>
+            <span class="text-xs font-semibold tracking-wider text-[#AD8C63] uppercase">
+              {{ tallaEnEdicion() ? 'Edicion Editorial' : 'Alta de Registro' }}
+            </span>
+            <h3 class="text-base font-bold text-slate-900">
+              {{ tallaEnEdicion() ? 'Actualizar Talla' : 'Nueva Talla Comercial' }}
+            </h3>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalTalla()"
+            class="text-slate-400 hover:text-slate-700 transition-colors"
+            title="Cerrar modal"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        @if (notificacionConflicto()) {
+          <div class="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+            <span class="font-bold">Conflicto:</span> {{ notificacionConflicto() }}
+          </div>
+        }
+
+        <form [formGroup]="tallaForm" (ngSubmit)="guardarTalla()" class="mt-4 space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Codigo de Talla *
+            </label>
+            <input
+              type="text"
+              formControlName="codigo"
+              (input)="onCodigoTallaInput($event)"
+              placeholder="Ej. XS, 38, M, XL"
+              class="w-full text-xs font-mono uppercase border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+            />
+            @if (tallaForm.get('codigo')?.touched && tallaForm.get('codigo')?.errors) {
+              <p class="text-[11px] text-rose-600 mt-1">El codigo es obligatorio (maximo 10 caracteres).</p>
+            }
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Orden Secuencial *
+            </label>
+            <input
+              type="number"
+              formControlName="orden"
+              min="0"
+              placeholder="Ej. 1, 2, 3..."
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+            />
+            <p class="text-[11px] text-slate-400 mt-1">
+              Define el orden de aparicion en selectores y filtros (0 para el primero).
+            </p>
+          </div>
+
+          <div class="pt-4 border-t border-slate-200 flex items-center justify-end space-x-3">
+            <button
+              type="button"
+              (click)="cerrarModalTalla()"
+              class="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="tallaForm.invalid || atributosService.guardando()"
+              class="px-4 py-2 text-xs font-bold text-white bg-[#0F172A] hover:bg-black rounded-lg shadow-xs transition-all disabled:opacity-50"
+            >
+              {{ atributosService.guardando() ? 'Guardando...' : (tallaEnEdicion() ? 'Guardar Cambios' : 'Crear Talla') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- MODAL: COLOR                              -->
+  <!-- ========================================== -->
+  @if (modalColorAbierto()) {
+    <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div>
+            <span class="text-xs font-semibold tracking-wider text-[#AD8C63] uppercase">
+              {{ colorEnEdicion() ? 'Edicion Editorial' : 'Alta de Registro' }}
+            </span>
+            <h3 class="text-base font-bold text-slate-900">
+              {{ colorEnEdicion() ? 'Actualizar Color' : 'Nueva Tonalidad Textil' }}
+            </h3>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalColor()"
+            class="text-slate-400 hover:text-slate-700 transition-colors"
+            title="Cerrar modal"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        @if (notificacionConflicto()) {
+          <div class="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+            <span class="font-bold">Conflicto:</span> {{ notificacionConflicto() }}
+          </div>
+        }
+
+        <form [formGroup]="colorForm" (ngSubmit)="guardarColor()" class="mt-4 space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Nombre de la Tonalidad *
+            </label>
+            <input
+              type="text"
+              formControlName="nombre"
+              placeholder="Ej. Obsidian Black, Camel Real"
+              class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+            />
+            @if (colorForm.get('nombre')?.touched && colorForm.get('nombre')?.errors) {
+              <p class="text-[11px] text-rose-600 mt-1">El nombre es obligatorio (al menos 2 caracteres).</p>
+            }
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Codigo Hexadecimal #HEX *
+            </label>
+            <div class="flex items-center space-x-3">
+              <!-- Selector nativo de color -->
+              <input
+                type="color"
+                [value]="colorForm.controls.codigo_hex.value || '#000000'"
+                (input)="actualizarHexDesdePicker($event)"
+                class="w-12 h-10 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white shrink-0"
+                title="Elegir muestra de color"
+              />
+              <!-- Campo textual sincronizado -->
+              <input
+                type="text"
+                formControlName="codigo_hex"
+                (input)="onHexTextInput($event)"
+                placeholder="#1A1A1A"
+                maxlength="7"
+                class="w-full text-xs font-mono uppercase border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-slate-900"
+              />
+            </div>
+            @if (colorForm.get('codigo_hex')?.touched && colorForm.get('codigo_hex')?.errors) {
+              <p class="text-[11px] text-rose-600 mt-1">El formato debe ser # seguido de 6 digitos hexadecimales (ej. #FFFFFF).</p>
+            }
+          </div>
+
+          <div class="pt-4 border-t border-slate-200 flex items-center justify-end space-x-3">
+            <button
+              type="button"
+              (click)="cerrarModalColor()"
+              class="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="colorForm.invalid || atributosService.guardando()"
+              class="px-4 py-2 text-xs font-bold text-white bg-[#0F172A] hover:bg-black rounded-lg shadow-xs transition-all disabled:opacity-50"
+            >
+              {{ atributosService.guardando() ? 'Guardando...' : (colorEnEdicion() ? 'Guardar Cambios' : 'Crear Color') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- MODAL: CONFIRMAR ELIMINACION              -->
+  <!-- ========================================== -->
+  @if (modalEliminarAbierto() && elementoAEliminar()) {
+    <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 text-center">
+        <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4 border border-rose-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </div>
+
+        <h3 class="text-base font-bold text-slate-900">
+          ¿Eliminar {{ elementoAEliminar()?.tipo }}?
+        </h3>
+        <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+          Esta a punto de eliminar <span class="font-bold text-slate-800">"{{ elementoAEliminar()?.nombre }}"</span>. Esta accion no se puede deshacer y fallara si el elemento cuenta con dependencias activas (productos o variantes).
+        </p>
+
+        <div class="mt-6 flex items-center justify-center space-x-3">
+          <button
+            type="button"
+            (click)="cerrarModalEliminar()"
+            class="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="confirmarEliminacion()"
+            [disabled]="atributosService.guardando()"
+            class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs transition-all disabled:opacity-50"
+          >
+            {{ atributosService.guardando() ? 'Eliminando...' : 'Confirmar Eliminacion' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

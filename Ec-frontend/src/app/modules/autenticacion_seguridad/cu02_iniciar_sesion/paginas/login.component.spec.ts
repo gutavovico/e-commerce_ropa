@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { LoginComponent } from './login.component';
 import { LoginService } from '../servicios/login.service';
 import { provideRouter, Router } from '@angular/router';
@@ -22,6 +23,7 @@ describe('LoginComponent (CU02 - Iniciar Sesión)', () => {
   };
 
   const mockLoginService = {
+    usuarioActual: signal(null),
     iniciarSesion: vi.fn(),
   };
 

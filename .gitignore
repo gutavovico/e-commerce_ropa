@@ -60,6 +60,10 @@ app.*.map.json
 
 # General Build & Temp
 tmp/
+Ec-backend/static/uploads/*
+Ec-backend/static/uploads/**/*
+!Ec-backend/static/uploads/**/.gitkeep
+!Ec-backend/static/uploads/.gitkeep
 
 # IDEs and Editors
 .idea/
@@ -77,3 +81,7 @@ tmp/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Scripts y logs temporales de operacion local
+scratch/
+*.log

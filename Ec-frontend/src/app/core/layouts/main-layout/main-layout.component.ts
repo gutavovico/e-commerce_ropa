@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CatalogoService } from '../../../modules/catalogo/servicios/catalogo.service';
+import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -20,7 +21,7 @@ import { CatalogoService } from '../../../modules/catalogo/servicios/catalogo.se
             FASHION STORE
           </a>
 
-          <!-- Navegación Desktop: Exclusivamente las 4 Pantallas Raíz -->
+          <!-- Navegación Desktop: Rutas Raíz y Consola Admin Condicional -->
           <nav class="hidden md:flex items-center space-x-10 text-[11px] font-medium tracking-[0.2em] uppercase">
             <a
               routerLink="/inicio"
@@ -45,12 +46,22 @@ import { CatalogoService } from '../../../modules/catalogo/servicios/catalogo.se
               CATÁLOGO
             </a>
             <a
-              routerLink="/perfil"
+              [routerLink]="esAdmin() ? '/admin/perfil' : '/perfil'"
               routerLinkActive="text-black font-semibold border-b-2 border-black pb-1"
               class="text-[#666666] hover:text-black transition-colors"
             >
-              PERFIL
+              {{ esAdmin() ? 'MI CUENTA (ADMIN)' : 'PERFIL' }}
             </a>
+            @if (esAdmin()) {
+              <a
+                routerLink="/admin"
+                class="inline-flex items-center gap-1.5 px-3 py-1 bg-[#111111] text-[#AD8C63] text-[10px] font-bold tracking-widest uppercase rounded-full border border-[#AD8C63]/40 hover:bg-[#222222] transition-colors"
+                title="Consola Administrativa"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                CONSOLA ADMIN
+              </a>
+            }
           </nav>
 
           <!-- Utilidades: Notificaciones, Cesta, Avatar -->
@@ -95,13 +106,13 @@ import { CatalogoService } from '../../../modules/catalogo/servicios/catalogo.se
 
             <!-- Avatar Circular -->
             <a
-              routerLink="/perfil"
+              [routerLink]="esAdmin() ? '/admin/perfil' : '/perfil'"
               class="w-8 h-8 rounded-full overflow-hidden border border-[#D5D2CD] hover:border-black transition-colors block shrink-0"
-              title="Mi Cuenta"
+              [title]="esAdmin() ? 'Mi Cuenta Corporativa' : 'Mi Cuenta'"
             >
               <img
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80"
-                alt="Perfil de Cliente"
+                alt="Perfil de Usuario"
                 class="w-full h-full object-cover"
               />
             </a>
@@ -119,5 +130,7 @@ import { CatalogoService } from '../../../modules/catalogo/servicios/catalogo.se
 })
 export class MainLayoutComponent {
   private readonly catalogoService = inject(CatalogoService);
+  private readonly loginService = inject(LoginService);
   protected readonly cestaCount = this.catalogoService.cestaCount;
+  protected readonly esAdmin = this.loginService.esAdmin;
 }

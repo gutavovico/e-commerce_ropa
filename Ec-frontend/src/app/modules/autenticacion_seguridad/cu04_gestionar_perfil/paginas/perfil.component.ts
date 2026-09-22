@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -13,7 +14,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { PerfilService } from '../servicios/perfil.service';
 import { LoginService } from '../../cu02_iniciar_sesion/servicios/login.service';
 import { PedidoHistorico, PerfilClienteActualizar } from '../modelos/perfil.dto';
@@ -21,7 +22,7 @@ import { PedidoHistorico, PerfilClienteActualizar } from '../modelos/perfil.dto'
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
   templateUrl: './perfil.component.html',
   styleUrls: ['./perfil.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,6 +43,15 @@ export class PerfilComponent implements OnInit {
   protected readonly modalAbierto = this.perfilService.modalEdicionAbierto;
   protected readonly pedidos = this.perfilService.pedidos;
   protected readonly cerrandoSesion = signal<boolean>(false);
+  protected readonly esAdmin = computed(() => {
+    const rolPerfil = this.perfil()?.rol?.toLowerCase()?.trim();
+    if (rolPerfil === 'administrador' || rolPerfil === 'admin') return true;
+    if (typeof this.loginService?.usuarioActual === 'function') {
+      const rolLogin = this.loginService.usuarioActual()?.rol?.toLowerCase()?.trim();
+      return rolLogin === 'administrador' || rolLogin === 'admin';
+    }
+    return false;
+  });
 
   // Formulario reactivo para la actualización de perfil
   protected readonly formularioPerfil: FormGroup = this.fb.group({

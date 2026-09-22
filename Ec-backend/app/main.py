@@ -22,6 +22,7 @@ logger = logging.getLogger("fashionstore.api")
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from core.config import settings
@@ -31,6 +32,7 @@ from core.errors import (
     ConflictError,
     DomainError,
     NotFoundError,
+    UnprocessableEntityError,
 )
 
 app = FastAPI(
@@ -98,6 +100,11 @@ async def conflict_handler(_request: Request, exc: ConflictError) -> JSONRespons
     return _domain_error_response(409, exc)
 
 
+@app.exception_handler(UnprocessableEntityError)
+async def unprocessable_entity_handler(_request: Request, exc: UnprocessableEntityError) -> JSONResponse:
+    return _domain_error_response(422, exc)
+
+
 @app.exception_handler(AuthenticationError)
 async def authentication_handler(_request: Request, exc: AuthenticationError) -> JSONResponse:
     return _domain_error_response(401, exc)
@@ -146,16 +153,31 @@ class HealthResponse(BaseModel):
 from modules.autenticacion_seguridad.cu04_gestionar_perfil.router import (
     router as router_perfil,
 )
+from modules.autenticacion_seguridad.cu20_usuarios_roles.router import (
+    router as router_usuarios_admin,
+)
 from modules.autenticacion_seguridad.router import router as router_autenticacion
 from modules.catalogo.router import router as router_catalogo
+from modules.comercial.router import router as router_comercial
 from modules.compras_pagos.router import router as router_compras_pagos
+from modules.gestion_operativa.router import router as router_gestion_operativa
 from modules.reservas.router import router as router_reservas
+from modules.seguridad.cu30_bitacora.router import router as router_bitacora
 
 app.include_router(router_autenticacion, prefix="/api/v1")
 app.include_router(router_perfil, prefix="/api/v1")
 app.include_router(router_catalogo, prefix="/api/v1")
+app.include_router(router_comercial, prefix="/api/v1")
+app.include_router(router_gestion_operativa, prefix="/api/v1")
+app.include_router(router_usuarios_admin, prefix="/api/v1")
 app.include_router(router_reservas, prefix="/api/v1")
 app.include_router(router_compras_pagos, prefix="/api/v1")
+app.include_router(router_bitacora, prefix="/api/v1")
+
+# --- Almacenamiento Estatico Local ---
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+(STATIC_DIR / "uploads" / "productos").mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["Health"])

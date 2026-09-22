@@ -23,6 +23,10 @@ export class LoginService {
   // Estado reactivo de usuario con Signals
   readonly usuarioActual = signal<UsuarioSesion | null>(this.recuperarSesionInicial());
   readonly estaAutenticado = computed(() => this.usuarioActual() !== null);
+  readonly esAdmin = computed(() => {
+    const rol = this.usuarioActual()?.rol?.toLowerCase()?.trim();
+    return rol === 'administrador' || rol === 'admin';
+  });
 
   /**
    * Envía las credenciales al backend de FastAPI y emite la respuesta.
@@ -60,7 +64,7 @@ export class LoginService {
   /**
    * Persiste el token y los datos de sesión en el almacenamiento correspondiente.
    */
-  private guardarSesion(respuesta: LoginRespuesta, recordar: boolean): void {
+  guardarSesion(respuesta: LoginRespuesta, recordar = true): void {
     this.establecerSesion(
       {
         id_usuario: respuesta.id_usuario,
@@ -69,6 +73,7 @@ export class LoginService {
         apellidos: respuesta.apellidos,
         rol: respuesta.rol,
         token: respuesta.access_token,
+        id_sucursal: respuesta.id_sucursal ?? null,
       },
       recordar
     );

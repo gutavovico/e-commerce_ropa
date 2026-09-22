@@ -1,6 +1,4 @@
-"""Router HTTP de FastAPI para CU02: Iniciar Sesion."""
-
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db
@@ -29,7 +27,9 @@ servicio_login = ServicioAutenticarLogin()
 )
 def iniciar_sesion(
     datos: LoginIn,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> LoginOut:
     """Endpoint publico para inicio de sesion (login)."""
-    return servicio_login.autenticar_usuario(db=db, datos=datos)
+    ip_cliente = request.client.host if request.client else None
+    return servicio_login.autenticar_usuario(db=db, datos=datos, direccion_ip=ip_cliente)
