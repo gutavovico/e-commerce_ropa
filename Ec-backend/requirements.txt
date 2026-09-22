@@ -9,3 +9,5 @@ pyjwt>=2.8,<3
 argon2-cffi>=23.1,<24
 python-dotenv>=1.0,<2
 email-validator>=2.0.0
+stripe>=11,<13
+python-multipart>=0.0.9
