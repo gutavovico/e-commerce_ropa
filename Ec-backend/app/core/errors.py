@@ -42,14 +42,13 @@ class AuthorizationError(DomainError):
         super().__init__(message, code=code)
 
 
-<<<<<<< Updated upstream
 class UnprocessableEntityError(DomainError):
     """Entidad no procesable o regla semantica violada (HTTP 422)."""
 
     def __init__(self, message: str = "Entidad no procesable", code: str = "UNPROCESSABLE_ENTITY"):
         super().__init__(message, code=code)
 
-=======
+
 class PaymentRequiredError(DomainError):
     """La pasarela denegó el cargo (HTTP 402).
 
@@ -60,4 +59,4 @@ class PaymentRequiredError(DomainError):
 
     def __init__(self, message: str = "Pago rechazado", code: str = "PAGO_RECHAZADO"):
         super().__init__(message, code=code)
->>>>>>> Stashed changes
+

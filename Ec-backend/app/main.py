@@ -32,11 +32,8 @@ from core.errors import (
     ConflictError,
     DomainError,
     NotFoundError,
-<<<<<<< Updated upstream
-    UnprocessableEntityError,
-=======
     PaymentRequiredError,
->>>>>>> Stashed changes
+    UnprocessableEntityError,
 )
 
 app = FastAPI(
