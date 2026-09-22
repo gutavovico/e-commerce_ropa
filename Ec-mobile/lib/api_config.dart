@@ -1,20 +1,42 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-/// Configuración centralizada de red y entornos para Ec-mobile.
+/// Configuracion centralizada de red y entornos para Ec-mobile.
 class ApiConfig {
+  /// URL de produccion en la nube (Render) que opera de forma autonoma
+  /// sin requerir conexion por cable a la laptop ni presencia en la misma red local.
+  static const String productionUrl = 'https://e-commerce-ropa-4vjn.onrender.com';
+
   /// Permite sobreescribir la URL base mediante `--dart-define=API_URL=http://...`
   static const String _envApiUrl = String.fromEnvironment('API_URL', defaultValue: '');
 
-  /// Puerto por defecto del backend FastAPI
+  /// URL personalizada configurada en tiempo de ejecucion
+  static String? _customUrl;
+
+  /// Puerto por defecto del backend FastAPI local
   static const int port = 8000;
 
-  /// Obtiene la URL base de forma dinámica según la plataforma y el entorno de ejecución:
-  /// - Android Emulator: 10.0.2.2 (alias de localhost de la máquina host)
-  /// - iOS Simulator / Desktop: localhost
-  /// - Web: localhost
-  /// - Dispositivo físico: configurable vía `--dart-define=API_URL=http://<IP_LOCAL>:8000`
+  /// Permite establecer una URL base personalizada en tiempo de ejecucion
+  static void setCustomBaseUrl(String url) {
+    _customUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
+  }
+
+  /// Restablece la URL base a su valor predeterminado
+  static void restablecerUrlPredeterminada() {
+    _customUrl = null;
+  }
+
+  /// Obtiene la URL base de forma dinamica segun el entorno:
+  /// 1. Si existe URL personalizada definida por el usuario, tiene maxima prioridad.
+  /// 2. Si se especifico `--dart-define=API_URL=...` en compilacion, se utiliza.
+  /// 3. En entorno Web: localhost:8000
+  /// 4. En dispositivos moviles (Android / iOS): URL de produccion en la nube por defecto,
+  ///    permitiendo que la aplicacion funcione en cualquier celular sin cables ni laptop.
   static String get baseUrl {
+    if (_customUrl != null && _customUrl!.isNotEmpty) {
+      return _customUrl!;
+    }
+
     if (_envApiUrl.isNotEmpty) {
       return _envApiUrl;
     }
@@ -23,13 +45,13 @@ class ApiConfig {
       return 'http://localhost:$port';
     }
 
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:$port';
-    } else if (Platform.isIOS || Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+    if (Platform.isAndroid || Platform.isIOS) {
+      return productionUrl;
+    } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
       return 'http://localhost:$port';
     }
 
-    return 'http://localhost:$port';
+    return productionUrl;
   }
 
   /// Endpoint de comprobación de salud del backend
