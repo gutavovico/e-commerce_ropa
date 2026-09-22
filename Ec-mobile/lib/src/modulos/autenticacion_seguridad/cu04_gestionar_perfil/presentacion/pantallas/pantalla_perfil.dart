@@ -4,6 +4,7 @@ import '../bloc/perfil_bloc.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/repositorios/login_repositorio.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu06_buscar_filtrar/presentacion/pantallas/pantalla_buscar_productos.dart';
+import 'package:ec_mobile/src/modulos/comercial/cu31_reportes_voz/presentacion/pantallas/pantalla_reportes_voz.dart';
 
 class PantallaPerfil extends StatefulWidget {
   final String token;
@@ -918,6 +919,18 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
               titulo: 'Personal Shopper Asignado',
               subtitulo: 'Lucía M. · Boutique Serrano',
             ),
+            _construirOpcionConfiguracion(
+              icono: Icons.insights_outlined,
+              titulo: 'Reportes y Consultas por Voz',
+              subtitulo: 'Centro ejecutivo de analítica, filtros y comandos de voz',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PantallaReportesVoz(token: widget.token),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 20),
 
             // 5. Botón de Cierre de Sesión Seguro
@@ -1032,43 +1045,48 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
     required IconData icono,
     required String titulo,
     required String subtitulo,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(10),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icono, size: 18, color: Colors.black87),
             ),
-            child: Icon(icono, size: 18, color: Colors.black87),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  subtitulo,
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                ),
-              ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    subtitulo,
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
-        ],
+            const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }

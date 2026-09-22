@@ -5,7 +5,7 @@
 **Paquete de Dominio:** `comercial` / `analitica_reportes`  
 **Directorio Funcional Backend:** `app/modules/comercial/cu31_reportes_voz`  
 **Directorio Funcional Frontend:** `src/app/modules/comercial/cu31_reportes_voz`  
-**Directorio Funcional Mobile:** Excluido formalmente (emision de reportes ejecutivos y exportaciones binarias reservada exclusivamente al back-office web corporativo)  
+**Directorio Funcional Mobile:** `lib/src/modulos/comercial/cu31_reportes_voz`  
 **Actores Primarios:**  
 - Administrador (Acceso irrestricto transversal a reportes de Ventas, Reservas, Inventario y Bitacora en formatos Excel, PDF y CSV; consultas de consolidado corporativo o por sucursal).  
 - Encargado de Sucursal (Acceso acotado a reportes de Ventas, Reservas e Inventario de su propia sucursal asignada; bloqueo estricto a Bitacora y consolidado global).  
@@ -13,24 +13,24 @@
 - Cajero (Bloqueo estricto por politica RBAC - HTTP 403 Forbidden)  
 - Cliente (Bloqueo estricto por confidencialidad comercial - HTTP 403 Forbidden)  
 **Metodologia:** Spec-Driven Development (SDD) & Sintaxis EARS (Easy Approach to Requirements Syntax)  
-**Version:** 2.8.0 (Linea Base Permanente)  
+**Version:** 2.9.0 (Ampliacion Multiplataforma Mobile)  
 **Estado:** Aprobado y Promovido a Permanente  
 **Fuentes de Verdad:**  
 - Documento Maestro de Requisitos: `SI2-Parcial1.md` (Modulo de Analitica y Reportes).  
 - Arquitectura de Dominio Backend: `.agents/skills/fashionstore-backend-sdd/references/dominio.md`.  
-- Design System Multiplataforma: `.agents/skills/fashionstore-frontend-sdd/references/fashionstore-tokens.md` (Diseno editorial Atelier, paleta Slate/Camel/Obsidian, tipografia Outfit, ChangeDetectionStrategy.OnPush, Angular Signals y streaming binario de archivos).  
+- Design System Multiplataforma: `.agents/skills/fashionstore-frontend-sdd/references/fashionstore-tokens.md` y `.agents/skills/fashionstore-mobile-sdd/references/fashionstore-tokens.md` (Diseno editorial Atelier, paleta Slate/Camel/Obsidian, tipografia Outfit, ChangeDetectionStrategy.OnPush, Angular Signals, Flutter BLoC/ChangeNotifier y streaming binario de archivos).  
 
 ---
 
 ## 1. Definicion Funcional y Reglas de Negocio
 
 ### 1.1 Proposito y Alcance
-El caso de uso CU31 dota a la direccion ejecutiva y a los administradores de sucursal de una consola unificada para la generacion, previsualizacion cuantitativa y exportacion binaria en streaming de informes tabulares y documentos ejecutivos en formatos Excel (.xlsx), PDF vectorial (.pdf) y CSV plano (.csv). Cubre cuatro dominios cardinales: Ventas, Reservas, Inventario y Bitacora de Auditoria. Incorpora un Asistente de Consulta por Voz que captura ordenes verbales mediante la Web Speech API nativa del navegador y las procesa mediante un parser semantico determinista en backend.
+El caso de uso CU31 dota a la direccion ejecutiva y a los administradores de sucursal de una consola unificada para la generacion, previsualizacion cuantitativa y exportacion binaria en streaming de informes tabulares y documentos ejecutivos en formatos Excel (.xlsx), PDF vectorial (.pdf) y CSV plano (.csv). Cubre cuatro dominios cardinales: Ventas, Reservas, Inventario y Bitacora de Auditoria. Incorpora un Asistente de Consulta por Voz que captura ordenes verbales y las procesa mediante un parser semantico determinista en backend.
 
-### 1.2 Declaracion Formal de Exclusion de la Aplicacion Movil (Ec-mobile)
-La aplicacion movil de FashionStore (`Ec-mobile`), desarrollada en Flutter 3.x, esta orientada exclusivamente al consumidor final B2C (catalogo inmersivo, vestidor con Realidad Aumentada, bolsa de compras y pagos).  
-La generacion y descarga de archivos binarios contables, compilacion de PDFs de alta densidad y auditoria de trastienda son competencias exclusivas de la estacion web corporativa de escritorio (`Ec-frontend`).  
-Por tanto, se ratifica formalmente la exclusion justificada de `Ec-mobile`: cero cambios o dependencias en Flutter para este caso de uso.
+### 1.2 Soporte Multiplataforma Integral (Web y Mobile)
+El caso de uso esta disponible en dos clientes oficiales de FashionStore:
+1. **Estacion de Trabajo Web (`Ec-frontend`):** Pantalla `/admin/reportes` con integracion nativa a la Web Speech API del navegador.
+2. **Aplicacion Movil (`Ec-mobile` - Flutter 3.x):** Pantalla ejecutiva `PantallaReportesVoz` accesible desde el perfil de usuario, con dictado por voz, chips de ordenes rapidas sugeridas, previsualizacion dinamica y exportacion binaria en streaming.
 
 ### 1.3 Reglas de Negocio Estrictas (RB)
 
@@ -84,3 +84,32 @@ Por tanto, se ratifica formalmente la exclusion justificada de `Ec-mobile`: cero
 - **AdminDashboardComponent:**
   * Decimotercera tarjeta bajo "Analitica y Reportes" con badge "Voz & Exportacion", identificador `#btn-reportes-voz` y directiva dual estricta.
   * Conteo de modulos computado: 13 activos para Superusuario Administrador y 10 para Encargado de Sede.
+
+---
+
+## 4. Arquitectura Tecnica de la Aplicacion Movil (`Ec-mobile` - Flutter 3.x)
+
+### 4.1 Capas de Datos y Dominio (Data & Domain Layers)
+- **Directorio:** `lib/src/modulos/comercial/cu31_reportes_voz/`
+- **Modelos DTO:**
+  * `ComandoVozIn` y `ComandoVozOut`: Peticion y respuesta del parser semantico.
+  * `ReporteFiltrosDto`: Parametros inmutables con soporte `copyWith`.
+  * `ReportePrevisualizacionDto`: Contadores de registros y resumen financiero.
+  * `SucursalOpcionDto`: Sucursales activas para selector de alcance.
+- **Datasource Remoto:** `ReportesRemotoDatasource`
+  * Consumo HTTP con `http.Client`.
+  * Manejo centralizado de sesion 401 via `SesionManager.instancia.notificarSesionExpirada()`.
+  * Extraccion de nombre de archivo desde cabecera `Content-Disposition`.
+- **Repositorio:** `ReportesRepositorio` y su implementacion `ReportesRepositorioImpl`.
+
+### 4.2 Capa de Presentacion (Presentation Layer)
+- **BLoC / State Management:** `ReportesBloc` (`ChangeNotifier` con estados sellados inmutables `ReportesEstado`).
+  * `ReportesInicial`, `ReportesCargando`, `ReportesListo`, `ReportesExportando`, `ReportesError`.
+- **Pantalla Ejecutiva:** `PantallaReportesVoz`
+  * Diseno Haute Couture Atelier con paleta Obsidian (`#111111`) y Camel (`#AD8C63`).
+  * Tarjeta de dictado por voz con campo de texto compatible con microfono del teclado nativo y chips de ordenes sugeridas.
+  * Tarjeta de previsualizacion cuantitativa en tiempo real.
+  * Selectores de chips de modulo (Ventas, Reservas, Stock, Bitacora), formato (Excel, PDF, CSV), periodo y sucursal.
+  * Boton de exportacion y streaming binario.
+- **Acceso en Navegacion:** Opcion ejecutiva dentro de `PantallaPerfil` ("Reportes y Consultas por Voz").
+
