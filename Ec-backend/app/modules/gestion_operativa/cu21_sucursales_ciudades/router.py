@@ -129,7 +129,7 @@ def eliminar_ciudad(
     status_code=status.HTTP_200_OK,
     tags=["Admin - Sucursales"],
     summary="Listado administrativo de sucursales (Admin)",
-    dependencies=[Depends(require_roles(["administrador"]))],
+    dependencies=[Depends(require_roles(["administrador", "admin", "encargado_sucursal"]))],
 )
 def listar_sucursales_admin(
     id_ciudad: Optional[int] = Query(None, description="Filtrar por ciudad"),

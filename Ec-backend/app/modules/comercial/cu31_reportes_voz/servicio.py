@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
-from modules.autenticacion_seguridad.modelos import UsuarioORM
+from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
 from modules.catalogo.modelos import InventarioSucursalORM, ProductoORM, VarianteProductoORM
 from modules.comercial.cu28_ventas_reservas.modelos import ReservaORM, VentaORM
 from modules.comercial.cu31_reportes_voz.errores import (
@@ -268,7 +268,10 @@ class ServicioReportesVoz:
 
             stmt = (
                 select(VentaORM)
-                .options(joinedload(VentaORM.cliente), joinedload(VentaORM.sucursal))
+                .options(
+                    joinedload(VentaORM.cliente).joinedload(ClienteORM.usuario),
+                    joinedload(VentaORM.sucursal),
+                )
                 .where(*condiciones)
                 .order_by(VentaORM.fecha_venta.desc())
                 .limit(5000)
@@ -278,7 +281,12 @@ class ServicioReportesVoz:
             filas = []
             suma_total = Decimal("0.00")
             for v in ventas:
-                nom_cliente = f"{v.cliente.nombres} {v.cliente.apellidos}".strip() if v.cliente else "Venta Mostrador"
+                nom_cliente = "Venta Mostrador"
+                if v.cliente and v.cliente.usuario:
+                    nom_cliente = f"{v.cliente.usuario.nombres} {v.cliente.usuario.apellidos}".strip() or v.cliente.usuario.email
+                elif v.cliente:
+                    nom_cliente = f"Cliente #{v.id_cliente}"
+
                 nom_suc = v.sucursal.nombre if v.sucursal else "Central"
                 tot_val = float(v.total or Decimal("0.00"))
                 suma_total += (v.total or Decimal("0.00"))
@@ -299,7 +307,10 @@ class ServicioReportesVoz:
 
             stmt = (
                 select(ReservaORM)
-                .options(joinedload(ReservaORM.cliente), joinedload(ReservaORM.sucursal))
+                .options(
+                    joinedload(ReservaORM.cliente).joinedload(ClienteORM.usuario),
+                    joinedload(ReservaORM.sucursal),
+                )
                 .where(*condiciones)
                 .order_by(ReservaORM.creado_en.desc())
                 .limit(5000)
@@ -308,7 +319,12 @@ class ServicioReportesVoz:
 
             filas = []
             for r in reservas:
-                nom_cliente = f"{r.cliente.nombres} {r.cliente.apellidos}".strip() if r.cliente else "Cliente Atelier"
+                nom_cliente = "Cliente Atelier"
+                if r.cliente and r.cliente.usuario:
+                    nom_cliente = f"{r.cliente.usuario.nombres} {r.cliente.usuario.apellidos}".strip() or r.cliente.usuario.email
+                elif r.cliente:
+                    nom_cliente = f"Cliente #{r.id_cliente}"
+
                 nom_suc = r.sucursal.nombre if r.sucursal else "Boutique"
                 cod_reserva = f"RES-{r.id_reserva:05d}" if r.id_reserva else "RES-00000"
                 filas.append([cod_reserva, r.fecha_hora_atencion, nom_cliente, nom_suc, r.canal_origen, r.estado, r.creado_en])
