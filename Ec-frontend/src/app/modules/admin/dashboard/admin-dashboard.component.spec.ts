@@ -56,7 +56,7 @@ describe('AdminDashboardComponent', () => {
     expect(compiled.textContent).toContain('Administrador');
   });
 
-  it('debe renderizar las doce tarjetas boutique para rol administrador', () => {
+  it('debe renderizar las trece tarjetas boutique para rol administrador', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     // Tarjeta 1 (CU21)
     expect(compiled.textContent).toContain('Gestionar sucursales y ciudades');
@@ -82,11 +82,13 @@ describe('AdminDashboardComponent', () => {
     expect(compiled.textContent).toContain('Visualizar indicadores empresariales');
     // Tarjeta 12 (CU30)
     expect(compiled.textContent).toContain('Consultar bitacora');
+    // Tarjeta 13 (CU31)
+    expect(compiled.textContent).toContain('Generar reportes ejecutivos y consultas por voz');
 
-    expect(component.totalModulosActivos()).toBe('12 Activos');
+    expect(component.totalModulosActivos()).toBe('13 Activos');
   });
 
-  it('debe contener los enlaces de navegacion hacia /admin/sucursales, /admin/atributos, /admin/temporadas-colecciones, /admin/productos, /admin/usuarios, /admin/inventario, /admin/proveedores, /admin/inventario-global, /admin/promociones, /admin/ventas-reservas, /admin/indicadores y /admin/bitacora', () => {
+  it('debe contener los enlaces de navegacion hacia /admin/sucursales, /admin/atributos, /admin/temporadas-colecciones, /admin/productos, /admin/usuarios, /admin/inventario, /admin/proveedores, /admin/inventario-global, /admin/promociones, /admin/ventas-reservas, /admin/indicadores, /admin/bitacora y /admin/reportes', () => {
     const links = fixture.debugElement.queryAll(By.directive(RouterLink));
     const hrefs = links.map((link) => link.injector.get(RouterLink).href);
 
@@ -102,6 +104,7 @@ describe('AdminDashboardComponent', () => {
     expect(hrefs).toContain('/admin/ventas-reservas');
     expect(hrefs).toContain('/admin/indicadores');
     expect(hrefs).toContain('/admin/bitacora');
+    expect(hrefs).toContain('/admin/reportes');
     expect(hrefs).toContain('/admin');
   });
 
@@ -212,7 +215,7 @@ describe('AdminDashboardComponent', () => {
     expect(botonUsuarios.getAttribute('routerLink')).toBe('/admin/usuarios');
   });
 
-  it('debe aplicar segmentacion RBAC: si el rol es encargado_sucursal, mostrar Temporadas, Inventario, Proveedores, Inventario Global, Promociones y Ventas/Reservas y ocultar tarjetas de CU20 y CU21', () => {
+  it('debe aplicar segmentacion RBAC: si el rol es encargado_sucursal, mostrar Temporadas, Inventario, Proveedores, Inventario Global, Promociones, Ventas/Reservas, Indicadores y Reportes/Voz y ocultar tarjetas de CU20, CU21 y CU30', () => {
     const mockEncargado: UsuarioSesion = {
       id_usuario: 50,
       email: 'encargado.central@fashionstore.com',
@@ -227,7 +230,7 @@ describe('AdminDashboardComponent', () => {
 
     expect(component.esAdmin()).toBe(false);
     expect(component.esEncargado()).toBe(true);
-    expect(component.totalModulosActivos()).toBe('9 Activos');
+    expect(component.totalModulosActivos()).toBe('10 Activos');
 
     const compiled = fixture.nativeElement as HTMLElement;
     // Deben estar visibles
@@ -240,6 +243,7 @@ describe('AdminDashboardComponent', () => {
     expect(compiled.textContent).toContain('Gestionar promociones');
     expect(compiled.textContent).toContain('Consultar ventas y reservas');
     expect(compiled.textContent).toContain('Visualizar indicadores empresariales');
+    expect(compiled.textContent).toContain('Generar reportes ejecutivos y consultas por voz');
 
     // Deben estar estrictamente ocultos
     expect(compiled.textContent).not.toContain('Gestionar sucursales y ciudades');
@@ -256,6 +260,7 @@ describe('AdminDashboardComponent', () => {
     const botonPromociones = compiled.querySelector('#btn-gestionar-promociones');
     const botonVentasReservas = compiled.querySelector('#btn-consultar-ventas-reservas');
     const botonIndicadores = compiled.querySelector('#btn-visualizar-indicadores-empresariales');
+    const botonReportesVoz = compiled.querySelector('#btn-reportes-voz');
     expect(botonUsuarios).toBeNull();
     expect(botonSucursales).toBeNull();
     expect(botonBitacora).toBeNull();
@@ -266,7 +271,8 @@ describe('AdminDashboardComponent', () => {
     expect(botonPromociones).toBeTruthy();
     expect(botonVentasReservas).toBeTruthy();
     expect(botonIndicadores).toBeTruthy();
-    expect(component.totalModulosActivos()).toBe('9 Activos');
+    expect(botonReportesVoz).toBeTruthy();
+    expect(component.totalModulosActivos()).toBe('10 Activos');
   });
 
   it('debe ocultar los botones de administracion operativa si el rol es cajero o cliente', () => {
@@ -294,6 +300,7 @@ describe('AdminDashboardComponent', () => {
     const botonVentasReservas = compiled.querySelector('#btn-consultar-ventas-reservas');
     const botonIndicadores = compiled.querySelector('#btn-visualizar-indicadores-empresariales');
     const botonBitacora = compiled.querySelector('#btn-consultar-bitacora');
+    const botonReportesVoz = compiled.querySelector('#btn-reportes-voz');
     expect(botonTempCol).toBeNull();
     expect(botonInventario).toBeNull();
     expect(botonProveedores).toBeNull();
@@ -302,6 +309,7 @@ describe('AdminDashboardComponent', () => {
     expect(botonVentasReservas).toBeNull();
     expect(botonIndicadores).toBeNull();
     expect(botonBitacora).toBeNull();
+    expect(botonReportesVoz).toBeNull();
   });
 
   it('debe reconocer rol admin como esAdmin=true y mostrar tarjeta Gestionar promociones', () => {
@@ -461,5 +469,39 @@ describe('AdminDashboardComponent', () => {
 
     expect(navegarSpy).toHaveBeenCalledWith('/admin/bitacora', expect.any(MouseEvent));
     expect(navigateSpy).toHaveBeenCalledWith('/admin/bitacora');
+  });
+
+  it('debe localizar especificamente el boton GENERAR REPORTES Y VOZ y verificar su enlace y directiva dual', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const botonReportes = compiled.querySelector('#btn-reportes-voz') as HTMLAnchorElement;
+
+    expect(botonReportes).toBeTruthy();
+    expect(botonReportes.textContent?.toUpperCase()).toContain('GENERAR REPORTES Y VOZ');
+    expect(botonReportes.getAttribute('routerLink')).toBe('/admin/reportes');
+
+    const router = TestBed.inject(Router);
+    const spy = vi.spyOn(router, 'navigateByUrl');
+    const mockEvent = new MouseEvent('click');
+    const preventDefaultSpy = vi.spyOn(mockEvent, 'preventDefault');
+
+    component.navegar('/admin/reportes', mockEvent);
+
+    expect(preventDefaultSpy).toHaveBeenCalled();
+    expect(spy).toHaveBeenCalledWith('/admin/reportes');
+  });
+
+  it('debe despachar el evento click real en el DOM sobre #btn-reportes-voz y verificar que router.navigateByUrl se invoque con /admin/reportes', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const botonReportes = compiled.querySelector('#btn-reportes-voz') as HTMLAnchorElement;
+    expect(botonReportes).toBeTruthy();
+
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigateByUrl');
+    const navegarSpy = vi.spyOn(component, 'navegar');
+
+    botonReportes.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(navegarSpy).toHaveBeenCalledWith('/admin/reportes', expect.any(MouseEvent));
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/reportes');
   });
 });
