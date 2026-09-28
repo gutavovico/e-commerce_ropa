@@ -822,6 +822,69 @@
         </div>
       }
 
+      <!-- Tarjeta 13: Generar reportes ejecutivos y consultas por voz (CU31) -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Analitica y Reportes
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Voz & Exportacion
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Generar reportes ejecutivos y consultas por voz
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Emision de reportes ejecutivos tabulares en Excel, PDF y CSV mediante ordenes dictadas o filtros avanzados.
+                </p>
+              </div>
+            </div>
+
+            <!-- Puntos Clave del Modulo -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Asistente de voz con Web Speech API</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Exportacion binaria en streaming (XLSX, PDF, CSV)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-reportes-voz"
+              routerLink="/admin/reportes"
+              (click)="navegar('/admin/reportes', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Generar reportes y voz</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
     </div>
 
     <!-- 4. Resumen Informativo de Seguridad del Sistema -->

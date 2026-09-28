@@ -57,6 +57,8 @@ build/
 **/.flutter-plugins-dependencies
 app.*.symbols
 app.*.map.json
+*.apk
+*.aab
 
 # General Build & Temp
 tmp/

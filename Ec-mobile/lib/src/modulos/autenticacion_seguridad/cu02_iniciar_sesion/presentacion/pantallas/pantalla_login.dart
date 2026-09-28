@@ -4,6 +4,8 @@ import '../../datos/modelos/login_dto.dart';
 import '../bloc/login_bloc.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu01_registrarse/presentacion/pantallas/pantalla_registro.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu33_recuperar_acceso/presentacion/pantallas/pantalla_recuperar_password.dart';
+import 'package:ec_mobile/api_config.dart';
+import 'package:http/http.dart' as http;
 
 class PantallaLogin extends StatefulWidget {
   final VoidCallback? alCompletarLogin;
@@ -80,6 +82,193 @@ class _PantallaLoginState extends State<PantallaLogin> {
     }
   }
 
+  void _mostrarConfiguracionServidor() {
+    final controller = TextEditingController(text: ApiConfig.baseUrl);
+    String estadoConexion = '';
+    bool probando = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'CONFIGURACION DE SERVIDOR',
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Seleccione el entorno o ingrese la URL del backend FastAPI:',
+                style: TextStyle(fontSize: 12, color: Color(0xFF737373)),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ActionChip(
+                    label: const Text('Nube (Render - Autonomo)', style: TextStyle(fontSize: 11)),
+                    backgroundColor: controller.text == ApiConfig.productionUrl
+                        ? const Color(0xFFE8E0D5)
+                        : const Color(0xFFF5F5F5),
+                    onPressed: () {
+                      setModalState(() {
+                        controller.text = ApiConfig.productionUrl;
+                        estadoConexion = '';
+                      });
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('Wi-Fi Laptop (10.13.137.254)', style: TextStyle(fontSize: 11)),
+                    backgroundColor: controller.text == 'http://10.13.137.254:8000'
+                        ? const Color(0xFFE8E0D5)
+                        : const Color(0xFFF5F5F5),
+                    onPressed: () {
+                      setModalState(() {
+                        controller.text = 'http://10.13.137.254:8000';
+                        estadoConexion = '';
+                      });
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('Emulador Android (10.0.2.2)', style: TextStyle(fontSize: 11)),
+                    backgroundColor: controller.text == 'http://10.0.2.2:8000'
+                        ? const Color(0xFFE8E0D5)
+                        : const Color(0xFFF5F5F5),
+                    onPressed: () {
+                      setModalState(() {
+                        controller.text = 'http://10.0.2.2:8000';
+                        estadoConexion = '';
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  labelText: 'URL Base del Backend',
+                  hintText: 'https://...',
+                  filled: true,
+                  fillColor: const Color(0xFFF9F9F9),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                style: const TextStyle(fontSize: 13),
+              ),
+              if (estadoConexion.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  estadoConexion,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: estadoConexion.startsWith('Conectado')
+                        ? const Color(0xFF1B5E20)
+                        : const Color(0xFFBA1A1A),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.black,
+                        side: const BorderSide(color: Color(0xFFD4D4D4)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: probando
+                          ? null
+                          : () async {
+                              setModalState(() {
+                                probando = true;
+                                estadoConexion = 'Comprobando conexion...';
+                              });
+                              try {
+                                final urlLimpia = controller.text.trim().replaceAll(RegExp(r'/+$'), '');
+                                final resp = await http.get(
+                                  Uri.parse('$urlLimpia/api/v1/health'),
+                                ).timeout(const Duration(seconds: 4));
+                                setModalState(() {
+                                  probando = false;
+                                  estadoConexion = resp.statusCode == 200
+                                      ? 'Conectado exitosamente (${resp.statusCode})'
+                                      : 'Respuesta del servidor: HTTP ${resp.statusCode}';
+                                });
+                              } catch (e) {
+                                setModalState(() {
+                                  probando = false;
+                                  estadoConexion = 'Error de conexion: no se pudo alcanzar el servidor';
+                                });
+                              }
+                            },
+                      child: probando
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Probar Conexion', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () {
+                        ApiConfig.setCustomBaseUrl(controller.text);
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Servidor configurado: ${ApiConfig.baseUrl}'),
+                            backgroundColor: Colors.black,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      },
+                      child: const Text('Guardar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _iniciarSesion() {
     if (_formKey.currentState?.validate() ?? false) {
       final peticion = LoginPeticionDto(
@@ -113,6 +302,20 @@ class _PantallaLoginState extends State<PantallaLogin> {
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
               child: Container(
                 color: Colors.black.withValues(alpha: 0.40),
+              ),
+            ),
+          ),
+
+          // 2.1 Boton de Configuracion de Servidor (Discreto)
+          Positioned(
+            top: 40,
+            right: 16,
+            child: SafeArea(
+              child: IconButton(
+                key: const Key('login_server_settings_button'),
+                icon: const Icon(Icons.dns_outlined, color: Colors.white70),
+                tooltip: 'Configurar Servidor',
+                onPressed: _mostrarConfiguracionServidor,
               ),
             ),
           ),

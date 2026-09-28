@@ -6,12 +6,13 @@ Ver documento principal en [../../CHANGELOG.md](../../CHANGELOG.md).
 
 ### Promocion a Baseline Permanente
 - **CU07 - Consultar detalle de producto, CU08 - Consultar tallas/colores/caracteristicas, CU09 - Consultar disponibilidad por sucursal y CU12 - Reservar varias prendas (cita de prueba presencial):** Promovidos oficialmente a especificacion permanente del sistema. El cambio cubria ademas la maqueta aislada de CU10 (Probador Virtual AR), sin logica ni dependencias 3D en este ciclo.
-- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `finalized/CU07-CU08-CU09-CU12-detalle-producto/` (`spec.md`, `plan.md`, `tasks.md`, `checkpoint.md`, `change-detalle-producto-reservas.md`) y limpiado el directorio de cambios temporales `changes/`.
+- **CU31 - Generar reportes ejecutivos y consultas por voz (Analitica, Emision Binaria y Reconocimiento de Voz):** Promovido oficialmente a especificacion permanente del sistema en [`modules/comercial/CU31-reportes-voz.md`](modules/comercial/CU31-reportes-voz.md).
+- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `finalized/CU07-CU08-CU09-CU12-detalle-producto/` (`spec.md`, `plan.md`, `tasks.md`, `checkpoint.md`, `change-detalle-producto-reservas.md`) y en `finalized/CU31/` (`spec.md`, `design.md`, `tasks.md`); limpiados los directorios de cambios temporales `changes/` y `changes/CU31/`.
 - **Cierre de deuda pendiente (CP-19/CP-20):** el gate inicial del 2026-09-21 dejaba dos checkpoints abiertos por datos fabricados (defecto `D-09`, ver entradas 61 y 62 abajo). Se corrigieron y ahora los 20 checkpoints (`CP-01…CP-20`) quedan aprobados.
-- **Validacion Completa:**
-  - Backend: 413/413 tests en verde en `pytest` (suite completa, incluida la guardia `tests/test_esquema_bd.py` y las 2 pruebas de regresion nuevas de CP-20).
-  - Frontend Web: 467/467 tests en verde en Vitest (`ng test`, 48 archivos de prueba); ningun cambio de codigo requerido en el cliente, que ya degradaba a estado vacio ante listas vacias.
-  - Mobile: 150/150 tests en verde en `flutter test`; ningun cambio de codigo requerido, los widgets ya usaban `isEmpty`/`isNotEmpty` antes de leer `coloresDisponibles`, `tallasDisponibles` y `sucursales`.
+- **Exclusion Formal Justificada de Ec-mobile (CU31):** ratificada documentalmente la exclusion justificada de la aplicacion movil. La emision de reportes ejecutivos, hojas de calculo, PDFs vectoriales y comandos de voz de trastienda son competencia exclusiva del back-office en `Ec-frontend`; `Ec-mobile` queda formalmente excluida sin pantallas, modelos ni dependencias de reporte.
+- **Validacion por bloque de trabajo** (cifras del punto de promocion de cada cambio):
+  - CU07-CU12: Backend 413/413, Web 467/467 (48 archivos), Mobile 150/150.
+  - CU31: Backend 407/407 (20/20 en `test_cu31_reportes_voz.py`), Web 448/448 (`ng build` limpio).
 
 ### Errores Corregidos y Soluciones Tecnicas Aplicadas
 

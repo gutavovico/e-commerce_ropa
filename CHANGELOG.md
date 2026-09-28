@@ -6,12 +6,13 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ### Promocion a Baseline Permanente
 - **CU07 - Consultar detalle de producto, CU08 - Consultar tallas/colores/caracteristicas, CU09 - Consultar disponibilidad por sucursal y CU12 - Reservar varias prendas (cita de prueba presencial):** Promovidos oficialmente a especificacion permanente del sistema. El cambio cubria ademas la maqueta aislada de CU10 (Probador Virtual AR), sin logica ni dependencias 3D en este ciclo.
-- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU07-CU08-CU09-CU12-detalle-producto/` (`spec.md`, `plan.md`, `tasks.md`, `checkpoint.md`, `change-detalle-producto-reservas.md`) y limpiado el directorio de cambios temporales `.specs/changes/`.
+- **CU31 - Generar reportes ejecutivos y consultas por voz (Analitica, Emision Binaria y Reconocimiento de Voz):** Promovido oficialmente a especificacion permanente del sistema en [`.specs/modules/comercial/CU31-reportes-voz.md`](.specs/modules/comercial/CU31-reportes-voz.md).
+- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU07-CU08-CU09-CU12-detalle-producto/` (`spec.md`, `plan.md`, `tasks.md`, `checkpoint.md`, `change-detalle-producto-reservas.md`) y en `.specs/finalized/CU31/` (`spec.md`, `design.md`, `tasks.md`); limpiados los directorios de cambios temporales `.specs/changes/` y `.specs/changes/CU31/`.
 - **Cierre de deuda pendiente (CP-19/CP-20):** el gate inicial del 2026-09-21 dejaba dos checkpoints abiertos por datos fabricados (defecto `D-09`, ver entradas 61 y 62 abajo). Se corrigieron y ahora los 20 checkpoints (`CP-01…CP-20`) quedan aprobados.
-- **Validacion Completa:**
-  - Backend: 413/413 tests en verde en `pytest` (suite completa, incluida la guardia `tests/test_esquema_bd.py` y las 2 pruebas de regresion nuevas de CP-20).
-  - Frontend Web: 467/467 tests en verde en Vitest (`ng test`, 48 archivos de prueba); ningun cambio de codigo requerido en el cliente, que ya degradaba a estado vacio ante listas vacias.
-  - Mobile: 150/150 tests en verde en `flutter test`; ningun cambio de codigo requerido, los widgets ya usaban `isEmpty`/`isNotEmpty` antes de leer `coloresDisponibles`, `tallasDisponibles` y `sucursales`.
+- **Exclusion Formal Justificada de Ec-mobile (CU31):** Ratificada documentalmente la exclusion justificada de la aplicacion movil (`Ec-mobile`). La emision de reportes ejecutivos contables, compilacion de hojas de calculo complejas, generacion de documentos PDF vectoriales y procesamiento de comandos de trastienda son competencias exclusivas del back-office en la consola web de escritorio (`Ec-frontend`). La aplicacion movil B2C queda formalmente excluida sin pantallas, modelos ni dependencias de reporte.
+- **Validacion por bloque de trabajo** (cifras del punto de promocion de cada cambio; ver `[Unreleased]`/entradas mas recientes para la cifra vigente tras la fusion de ambos):
+  - CU07-CU12: Backend 413/413, Web 467/467 (48 archivos), Mobile 150/150.
+  - CU31: Backend 407/407 (20/20 especificos en `test_cu31_reportes_voz.py`; motores de generacion binaria en memoria — `GeneradorExcel` con `openpyxl` aplicando paleta Obsidian & Camel y formulas SUM, `GeneradorPDF` con `reportlab` horizontal Letter con encabezado corporativo y pie paginado, `GeneradorCSV` con prefijo BOM UTF-8 `﻿`; parser lexico-semantico determinista de voz `ParserComandosVoz` sin dependencias externas para resolucion de modulos, fechas, sedes y formatos; endpoints REST en `/api/v1/admin/reportes` con streaming binario (`StreamingResponse`) y cabeceras `Content-Disposition`; RBAC estricto con aislamiento por sede y bloqueo de bitacora para `encargado_sucursal`; emision defensiva del evento de auditoria `EXPORTAR_REPORTE` en `fashionstore.bitacora`), Web 448/448 (`ng build` limpio; 8/8 en `reportes-admin.component.spec.ts`, 7/7 en `voz-reconocimiento.service.spec.ts`, 6/6 en `reportes-admin.service.spec.ts`, 27/27 en `admin-dashboard.component.spec.ts` — decimotercera tarjeta corporativa en `AdminDashboardComponent` bajo "Analitica y Reportes", servicio `VozReconocimientoService` sobre Web Speech API nativa en `es-BO`, servicio `ReportesAdminService` con descarga reactiva de Blobs, vista `ReportesAdminComponent` en `/admin/reportes`).
 
 ### Errores Corregidos y Soluciones Tecnicas Aplicadas
 
@@ -66,7 +67,6 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 #### 63. RenderFlex Overflowed en la Pantalla de Pago Seguro Movil (CU16, `Ec-mobile`)
 - **Causa:** En `CheckoutPaymentScreen` (`lib/src/modulos/compras_pagos/cu16_realizar_pago/presentacion/pantallas/checkout_payment_screen.dart`), la fila con el titulo "Selecciona Forma de Pago" y el badge "CIFRADO SEGURO" usaba `mainAxisAlignment: spaceBetween` sin `Expanded`, igual que la fila de la pantalla de confirmacion (`_filaResumen`) cuando el valor era largo (por ejemplo, "VISA terminada en 1111"). Es la sexta aparicion de este defecto en el proyecto (CHANGELOG, entradas 9, 20, 26 y 31).
 - **Solucion:** Envueltos los textos variables en `Expanded` con `overflow: TextOverflow.ellipsis`, sin reducir tamanos de fuente, siguiendo la practica ya fijada en `CLAUDE.md` para este defecto recurrente.
-
 ---
 
 ## [2.7.0] - 2026-09-22

@@ -6,16 +6,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { CheckoutPagoComponent } from './checkout-pago.component';
 import { PagoService } from '../servicios/pago.service';
+import { StripeConfigService } from '../servicios/stripe-config.service';
 import { PagoConfirmado, PagoIntentoOut, ResumenPago } from '../modelos/pago.model';
 
 /**
- * Este archivo cubre el «modo simulador»: `environments/environment.ts` trae
- * `stripePublishableKey: ''` por defecto (sin una clave real de Stripe configurada), que es el
- * estado real del proyecto hoy. El componente entonces no carga Stripe.js — no hay red que
- * mockear— y muestra en su lugar el panel de escenarios deterministas, el mismo mecanismo que ya
- * usa `StripeService` en el backend cuando tampoco tiene `STRIPE_SECRET_KEY` real (revisado el
- * 2026-09-28). El caso con clave real configurada se cubre aparte, en
- * `checkout-pago-stripe-real.component.spec.ts`.
+ * Este archivo cubre el «modo simulador»: fuerza `StripeConfigService.publishableKey` a `''` vía
+ * `TestBed`, sin depender de si `environments/environment.ts` tiene o no una clave real en este
+ * momento (puede tenerla, para pruebas manuales contra Stripe real — ver CHANGELOG entrada 70).
+ * Sin clave, el componente no carga Stripe.js y muestra en su lugar el panel de escenarios
+ * deterministas, el mismo mecanismo que ya usa `StripeService` en el backend cuando tampoco tiene
+ * `STRIPE_SECRET_KEY` real (revisado el 2026-09-28). El caso con clave real configurada se cubre
+ * aparte, en `checkout-pago-stripe-real.component.spec.ts`.
  */
 
 const RESUMEN_MOCK: ResumenPago = {
@@ -129,6 +130,7 @@ describe('CheckoutPagoComponent (CU16 - Pasarela Stripe, modo simulador)', () =>
       providers: [
         provideRouter([]),
         { provide: PagoService, useValue: mockPagoService },
+        { provide: StripeConfigService, useValue: { publishableKey: '' } },
         {
           provide: ActivatedRoute,
           useValue: {
