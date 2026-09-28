@@ -7,9 +7,14 @@ que validar y el descuento nunca podia demostrarse.
 Se siembran dos promociones reales:
 
 1. `MAISON-2025` — bono de bienvenida de alcance global, 10 % con tope de 200 EUR y 500 usos.
-2. Membresia Prive — promocion por porcentaje ligada a productos concretos a traves de
+2. Seleccion Atelier — promocion por porcentaje ligada a productos concretos a traves de
    `promocion_producto`, que es el mecanismo que ya consume CU05 para pintar el precio tachado.
    Se asocia a las prendas mas representativas del catalogo sembrado.
+
+Nota (2026-09-28): esta promocion se llamo originalmente "Membresia Prive". Se renombro porque
+el sistema no tiene ningun concepto de membresia ni de segmentacion de clientes: el descuento se
+aplica a cualquiera que compre esas prendas, sin importar quien sea. El nombre anterior sugeria
+un beneficio de cliente VIP que el mecanismo real no ofrece.
 
 Todos los importes son inserciones de datos: esta revision no altera el esquema.
 
@@ -59,7 +64,7 @@ def upgrade() -> None:
     """)
 
     # ------------------------------------------------------------------
-    # 2. Membresia Prive: descuento por producto (precio tachado en catalogo)
+    # 2. Seleccion Atelier: descuento por producto (precio tachado en catalogo)
     # ------------------------------------------------------------------
     op.execute("""
         INSERT INTO fashionstore.promociones (
@@ -68,8 +73,8 @@ def upgrade() -> None:
             tipo_descuento, valor_descuento, usos_actuales, alcance
         )
         SELECT
-            'Membresia Prive',
-            'Beneficio exclusivo de la membresia Prive sobre piezas seleccionadas de alta costura.',
+            'Seleccion Atelier',
+            'Descuento de catalogo sobre piezas seleccionadas de alta costura, sin necesidad de cupon.',
             15.00,
             now() - INTERVAL '1 day',
             now() + INTERVAL '365 days',
@@ -79,11 +84,11 @@ def upgrade() -> None:
             0,
             'producto'
         WHERE NOT EXISTS (
-            SELECT 1 FROM fashionstore.promociones WHERE nombre = 'Membresia Prive'
+            SELECT 1 FROM fashionstore.promociones WHERE nombre = 'Seleccion Atelier'
         );
     """)
 
-    # Asociar la membresia a las 3 prendas activas mas costosas del catalogo real.
+    # Asociar la promocion a las 3 prendas activas mas costosas del catalogo real.
     # Se resuelve por consulta y no por identificadores fijos: sembrar ids inventados
     # romperia la regla de dominio "cero datos inventados".
     op.execute("""
@@ -97,7 +102,7 @@ def upgrade() -> None:
             ORDER BY precio_base DESC
             LIMIT 3
         ) prod
-        WHERE p.nombre = 'Membresia Prive'
+        WHERE p.nombre = 'Seleccion Atelier'
         ON CONFLICT DO NOTHING;
     """)
 
@@ -107,10 +112,10 @@ def downgrade() -> None:
         DELETE FROM fashionstore.promocion_producto
         WHERE id_promocion IN (
             SELECT id_promocion FROM fashionstore.promociones
-            WHERE nombre = 'Membresia Prive'
+            WHERE nombre = 'Seleccion Atelier'
         );
     """)
     op.execute("""
         DELETE FROM fashionstore.promociones
-        WHERE codigo_cupon = 'MAISON-2025' OR nombre = 'Membresia Prive';
+        WHERE codigo_cupon = 'MAISON-2025' OR nombre = 'Seleccion Atelier';
     """)

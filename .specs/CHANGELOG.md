@@ -2,6 +2,70 @@
 
 Ver documento principal en [../../CHANGELOG.md](../../CHANGELOG.md).
 
+## [2.8.0] - 2026-09-27
+
+### Promocion a Baseline Permanente
+- **CU07 - Consultar detalle de producto, CU08 - Consultar tallas/colores/caracteristicas, CU09 - Consultar disponibilidad por sucursal y CU12 - Reservar varias prendas (cita de prueba presencial):** Promovidos oficialmente a especificacion permanente del sistema. El cambio cubria ademas la maqueta aislada de CU10 (Probador Virtual AR), sin logica ni dependencias 3D en este ciclo.
+- **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `finalized/CU07-CU08-CU09-CU12-detalle-producto/` (`spec.md`, `plan.md`, `tasks.md`, `checkpoint.md`, `change-detalle-producto-reservas.md`) y limpiado el directorio de cambios temporales `changes/`.
+- **Cierre de deuda pendiente (CP-19/CP-20):** el gate inicial del 2026-09-21 dejaba dos checkpoints abiertos por datos fabricados (defecto `D-09`, ver entradas 61 y 62 abajo). Se corrigieron y ahora los 20 checkpoints (`CP-01…CP-20`) quedan aprobados.
+- **Validacion Completa:**
+  - Backend: 413/413 tests en verde en `pytest` (suite completa, incluida la guardia `tests/test_esquema_bd.py` y las 2 pruebas de regresion nuevas de CP-20).
+  - Frontend Web: 467/467 tests en verde en Vitest (`ng test`, 48 archivos de prueba); ningun cambio de codigo requerido en el cliente, que ya degradaba a estado vacio ante listas vacias.
+  - Mobile: 150/150 tests en verde en `flutter test`; ningun cambio de codigo requerido, los widgets ya usaban `isEmpty`/`isNotEmpty` antes de leer `coloresDisponibles`, `tallasDisponibles` y `sucursales`.
+
+### Errores Corregidos y Soluciones Tecnicas Aplicadas
+
+#### 61. Datos Fabricados en Disponibilidad Multisede (CP-20, `CU07-CU08-CU09-CU12-detalle-producto`)
+- **Causa:** `DisponibilidadServicio.consultar_disponibilidad` (`app/modules/catalogo/cu09_disponibilidad/servicio.py`) sustituia la lista real de `obtener_sucursales_activas` por tres boutiques ficticias (`sucursales_mock`: Flagship Serrano, Boutique Saint-Honore y un "Madrid Central Atelier Hub") cuando `fashionstore.sucursales` no devolvia filas, ofreciendo existencias inventadas que la reserva rechazaba despues.
+- **Solucion:** Eliminada la rama de relleno; sin sucursales activas la respuesta trae `sucursales: []` y `total_disponible_global: 0`, conforme a la regla de dominio "cero datos inventados". Prueba de regresion: `tests/modules/catalogo/test_cu09_disponibilidad.py::test_consultar_disponibilidad_sin_sucursales_devuelve_lista_vacia`.
+
+#### 62. Tallas y Colores Fabricados en Ficha de Producto (CP-20, `CU07-CU08-CU09-CU12-detalle-producto`)
+- **Causa:** `ProductoDetalleServicio.consultar_detalle_producto` (`app/modules/catalogo/cu07_detalle_producto/servicio.py`) rellenaba `tallas_disponibles` con 5 tallas fijas (34-42) y `colores_disponibles` con 4 colores fijos (Seda Marfil Natural, Obsidian Negro, Camel Suave, Vino Borgona) cuando el producto no tenia `variantes_producto` en base de datos, sin vinculo alguno con la prenda real.
+- **Solucion:** Eliminado el bloque de relleno; un producto sin variantes ahora devuelve `variantes`, `tallas_disponibles` y `colores_disponibles` como listas vacias, y la interfaz muestra su estado vacio. Prueba de regresion: `tests/modules/catalogo/test_cu07_detalle_producto.py::test_consultar_detalle_producto_sin_variantes_no_inventa_tallas_ni_colores`.
+
+#### 70. Verificacion end-to-end contra Stripe real (modo test) y correccion del `urlScheme` en Mobile (CU16)
+- **Contexto:** con claves de prueba ya configuradas, se corrio el flujo completo (carrito -> checkout -> `pagos/intentos` -> confirmacion real con `stripe.PaymentIntent.confirm()` -> `pagos/confirmar`) contra la API real de Stripe. Dos ordenes pagadas (una con un rechazo intermedio y reintento exitoso), inventario consolidado correctamente, `referencia_pasarela` con el `PaymentIntent` real.
+- **Defecto encontrado:** Stripe exige `return_url` en cuanto `allow_redirects` no es `'never'`. Web ya lo resolvia; Mobile no, porque `flutter_stripe` lo espera como ajuste global (`Stripe.urlScheme`), no por llamada. Se anadio `Stripe.urlScheme = 'fashionstore'` en `main.dart`; falta registrar el mismo esquema en `AndroidManifest.xml`/`Info.plist`, sin verificar en dispositivo real (no disponible en este entorno).
+
+#### 69. Mobile Migrado al SDK de Stripe: la App ya no Envia la Tarjeta a Nuestro Servidor (CU16, Mobile)
+- **Causa:** igual que en Web (entrada 68), `checkout_payment_screen.dart` recolectaba la tarjeta en controladores propios y la enviaba en un contrato que el backend ya no acepta.
+- **Solucion:** `flutter_stripe` instalado; `STRIPE_PUBLISHABLE_KEY` en `api_config.dart` (mismo patron que `API_URL`). `StripeGateway` nuevo desacopla `PagoBloc` del SDK: con clave real encadena `iniciarPago()` -> `confirmarPago()` de Stripe -> `confirmarPago()` del backend; sin clave, usa `escenario_prueba` como el simulador del backend.
+- **Verificacion:** `dart analyze` limpio, `flutter test` 181/181. No verificado en emulador/dispositivo real (no disponible en este entorno); el camino de Stripe real se cubre con un `StripeGateway` falso inyectado en `PagoBloc`.
+
+#### 68. Web Migrada a Stripe Elements: el Navegador ya no Envia la Tarjeta a Nuestro Servidor (CU16, Web)
+- **Causa:** `checkout-pago.component.ts` seguia recolectando la tarjeta en un formulario propio tras el rediseno del backend (entrada 67); el proyecto tampoco tenia `environment.ts` donde guardar la clave publicable de Stripe (no secreta).
+- **Solucion:** `@stripe/stripe-js` instalado; `environment.ts`/`environment.prod.ts` nuevos con `fileReplacements`. `PagoService` dividido en `iniciarPago`/`confirmarPago`/`registrarPagoEfectivo`. `CheckoutPagoComponent` monta el Payment Element de Stripe (modo *deferred*) y encadena `elements.submit()` -> `iniciarPago()` -> `stripe.confirmPayment()` -> `confirmarPago()`, con manejo de retorno por redireccion. Sin clave real configurada, muestra un panel de "modo simulador" (3 escenarios).
+- **Hallazgo:** el runner de pruebas del proyecto rechaza `vi.mock` sobre imports relativos; se crearon `StripeConfigService`/`StripeLoaderService` inyectables para poder mockear via `TestBed`.
+- **Verificacion:** Web 484/484, build de produccion exitoso. No verificado con Stripe.js real ni con `4242 4242 4242 4242`: no hay clave real de Stripe configurada en el proyecto todavia.
+
+#### 67. El Backend Recibia el PAN y el CVV en Crudo, Algo que Stripe Bloquea por Defecto (CU16, Backend)
+- **Causa:** `TarjetaIn`/`PagoProcesarIn` recogian el numero de tarjeta y el CVV en `POST /pagos/procesar` y los reenviaban a Stripe como `payment_method_data.card.*`, la via de "raw card data APIs" que Stripe bloquea por defecto en cuentas nuevas desde 2019.
+- **Solucion:** Cobro en dos pasos, sin datos de tarjeta en el backend. `POST /pagos/intentos` abre un `PaymentIntent` y devuelve su `client_secret`; el cliente confirma directamente contra Stripe (Stripe.js/SDK de Flutter). `POST /pagos/{id_pago}/confirmar` recupera el `PaymentIntent` y decide el desenlace segun lo que Stripe responda, nunca segun lo que el cliente reporte. `efectivo` se separo en `POST /pagos/efectivo`, sin cambio de comportamiento.
+- **Pendiente:** falta el webhook de Stripe (`payment_intent.succeeded`) para reconciliar un pago aprobado si el cliente cierra antes de llamar a `confirmar_pago`.
+- **Verificacion:** Backend 442/442, verificado ademas end-to-end contra Neon real en una transaccion revertida. Web y Mobile pendientes de adaptarse al nuevo contrato.
+
+#### 66. La Promocion Automatica se Llamaba "Membresia Prive" sin Existir Ninguna Membresia (CU11 + CU16)
+- **Causa:** La migracion `0010` sembro `promociones.id_promocion = 2` como "Membresia Prive", copiado del mockup: descuento de catalogo (`alcance='producto'`, sin cupon) que se aplica automaticamente a cualquiera que compre una de sus 3 prendas vinculadas en `promocion_producto`. El sistema no tiene ningun concepto de membresia ni de segmentacion de clientes.
+- **Solucion:** Renombrada a "Seleccion Atelier" en la fila real de Neon, en el seed de la migracion `0010` y en los literales de codigo/pruebas que la citaban (Backend, Web, Mobile). La mecanica automatica no cambio, solo el nombre.
+- **Verificacion:** Backend 432/432, Web 478/478, Mobile 173/173.
+
+#### 65. La Bolsa se Vaciaba al Tramitar, Aunque el Pago Nunca se Confirmara (CU15 + CU16)
+- **Causa:** `CheckoutServicio.tramitar_pedido` vaciaba `carrito_detalle` al emitir la orden. Con CU16 en produccion el checkout dejo de ser el final del recorrido: la orden nace `pendiente` y el cobro ocurre despues, de modo que un pago rechazado, abandonado o a la espera del cajero (hasta 24 h) dejaba al cliente sin su seleccion y sin haber comprado nada. Web y Mobile ademas fingian una bolsa vacia en local.
+- **Solucion:** La bolsa sobrevive al checkout; las prendas se retiran solo al confirmarse el cobro (pasarela para tarjeta y Bizum/QR; `confirmar-efectivo` para el pago en caja). El retiro es selectivo por `(id_variante, id_sucursal)` y, en el pago en efectivo, se resuelve por `venta.id_cliente` y no por el cajero autenticado.
+- **Contrapartida:** guarda `409 ORDEN_PENDIENTE_EXISTENTE` para no emitir dos ordenes por las mismas prendas y retener el inventario dos veces; libera la orden anterior si su ventana ya vencio.
+- **Verificacion:** end-to-end contra Neon en transacciones revertidas, para tarjeta y para efectivo. Backend 432/432, Web 478/478, Mobile 173/173.
+
+#### 64. Checkout Caido con `GeneratedAlways` al Perderse el Mapeo de Solo Lectura de `subtotal_linea` (CU15)
+- **Causa:** `venta_detalle.subtotal_linea` es `GENERATED ALWAYS AS ((cantidad)::numeric * precio_unitario)` en PostgreSQL y rechaza cualquier valor explicito en el INSERT, **incluido NULL**. El commit `6325f6f` ("alineacion de modelos tras merge de main", 2026-09-22) consolido `VentaDetalleORM` desde `catalogo/modelos.py` hacia `comercial/cu28_ventas_reservas/modelos.py` y perdio el mapeo de solo lectura original (`server_default=FetchedValue()`, `server_onupdate=FetchedValue()`). Desde entonces SQLAlchemy incluia la columna con `None` en cada INSERT y **`POST /api/v1/ventas/checkout` respondia 500** (`psycopg.errors.GeneratedAlways`).
+- **Solucion:** La columna se declara con `Computed("cantidad * precio_unitario", persisted=True)`: queda fuera del INSERT/UPDATE y se recupera por `RETURNING`. Verificado end-to-end contra Neon con el checkout real sobre un carrito de 4 lineas, dentro de una transaccion revertida.
+- **Por que 424 pruebas en verde no lo detectaron:** toda la suite mockea la sesion de base de datos y las guardias de `test_esquema_bd.py` comparaban nombres y tipos, no la *escribibilidad*. Se anadieron dos regresiones (`test_las_columnas_generadas_se_mapean_en_solo_lectura` contra la base real y `test_subtotal_linea_se_mapea_como_columna_generada` sin base de datos), ambas verificadas revirtiendo el mapeo.
+
+#### 63. RenderFlex Overflowed en la Pantalla de Pago Seguro Movil (CU16, `Ec-mobile`)
+- **Causa:** En `CheckoutPaymentScreen` (`lib/src/modulos/compras_pagos/cu16_realizar_pago/presentacion/pantallas/checkout_payment_screen.dart`), la fila con el titulo "Selecciona Forma de Pago" y el badge "CIFRADO SEGURO" usaba `mainAxisAlignment: spaceBetween` sin `Expanded`, igual que la fila de la pantalla de confirmacion (`_filaResumen`) cuando el valor era largo (por ejemplo, "VISA terminada en 1111"). Es la sexta aparicion de este defecto en el proyecto (CHANGELOG, entradas 9, 20, 26 y 31).
+- **Solucion:** Envueltos los textos variables en `Expanded` con `overflow: TextOverflow.ellipsis`, sin reducir tamanos de fuente, siguiendo la practica ya fijada en `CLAUDE.md` para este defecto recurrente.
+
+---
+
 ## [2.7.0] - 2026-09-22
 
 ### Promocion a Baseline Permanente

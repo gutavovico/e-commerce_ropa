@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 from sqlalchemy import (
     BigInteger,
+    Computed,
     Date,
     DateTime,
     ForeignKey,
@@ -219,7 +220,16 @@ class VentaDetalleORM(Base):
     )
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
     precio_unitario: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    subtotal_linea: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+    # `subtotal_linea` es GENERATED ALWAYS en PostgreSQL: la base la calcula como
+    # `cantidad * precio_unitario` y rechaza cualquier valor explícito en el INSERT, incluido
+    # NULL. Mapearla como columna normal hacía que SQLAlchemy la incluyera con `None` y el
+    # checkout entero reventaba con `GeneratedAlways`. `Computed` la deja en solo lectura: queda
+    # fuera del INSERT/UPDATE y se recupera por RETURNING.
+    subtotal_linea: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(12, 2),
+        Computed("cantidad * precio_unitario", persisted=True),
+        nullable=True,
+    )
     id_sucursal: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("fashionstore.sucursales.id_sucursal"), nullable=True, index=True
     )

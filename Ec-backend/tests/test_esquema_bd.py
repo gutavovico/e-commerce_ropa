@@ -94,6 +94,28 @@ def columnas_reales(esquema_real) -> dict[str, set[str]]:
     return {tabla: set(columnas) for tabla, columnas in esquema_real.items()}
 
 
+@pytest.fixture(scope="module")
+def columnas_generadas() -> dict[str, set[str]]:
+    """Mapa {tabla: {columnas GENERATED ALWAYS}} leído de la base de datos real."""
+    try:
+        motor = create_engine(DATABASE_URL)
+        with motor.connect() as conexion:
+            filas = conexion.execute(
+                text(
+                    "SELECT table_name, column_name FROM information_schema.columns "
+                    "WHERE table_schema = :esquema AND is_generated <> 'NEVER'"
+                ),
+                {"esquema": ESQUEMA},
+            ).fetchall()
+    except SQLAlchemyError as exc:
+        pytest.skip(f"No se pudo conectar a la base de datos para verificar el esquema: {exc}")
+
+    mapa: dict[str, set[str]] = {}
+    for tabla, columna in filas:
+        mapa.setdefault(tabla, set()).add(columna)
+    return mapa
+
+
 # Familias de tipos que se consideran equivalentes entre el ORM y PostgreSQL. Se comparan
 # familias y no nombres exactos porque `VARCHAR(50)`, `character varying` y `TEXT` son
 # intercambiables para el ORM, mientras que DATE frente a TIMESTAMPTZ no lo son.
@@ -201,6 +223,43 @@ def test_los_tipos_del_orm_son_compatibles_con_la_base_de_datos(esquema_real):
         "El ORM declara tipos incompatibles con la base de datos. Ajusta el tipo del "
         "`mapped_column` al real para que SQLAlchemy devuelva el objeto Python esperado:\n"
         f"{incompatibles}"
+    )
+
+
+def test_las_columnas_generadas_se_mapean_en_solo_lectura(columnas_generadas):
+    """Una columna GENERATED ALWAYS nunca puede viajar en un INSERT del ORM.
+
+    El 2026-09-27 el checkout entero (`POST /api/v1/ventas/checkout`) respondía 500 en
+    producción con `GeneratedAlways: cannot insert a non-DEFAULT value into column
+    "subtotal_linea"`. PostgreSQL calcula esa columna como `cantidad * precio_unitario` y
+    rechaza cualquier valor explícito, incluido NULL; el ORM la declaraba como columna normal,
+    así que SQLAlchemy la incluía con `None` en cada INSERT.
+
+    Las dos guardias anteriores no lo veían: la columna existe y su tipo es el correcto. Lo que
+    fallaba era la *escribibilidad*, que es justo lo que comprueba este test.
+    """
+    base = _cargar_todos_los_modelos()
+
+    escribibles: dict[str, str] = {}
+    for tabla in base.metadata.tables.values():
+        generadas = columnas_generadas.get(tabla.name)
+        if not generadas:
+            continue
+
+        for columna in tabla.columns:
+            if columna.name not in generadas:
+                continue
+            # `Computed` (o, en su defecto, un `server_default`/`FetchedValue`) es lo que hace
+            # que SQLAlchemy excluya la columna del INSERT y la recupere por RETURNING.
+            if columna.computed is None and columna.server_default is None:
+                escribibles[f"{tabla.name}.{columna.name}"] = (
+                    "mapeada como columna escribible; PostgreSQL la genera y rechazará el INSERT"
+                )
+
+    assert not escribibles, (
+        "Hay columnas GENERATED ALWAYS mapeadas como escribibles. Declara el `mapped_column` con "
+        "`Computed(\"<expresión>\", persisted=True)` para dejarlas en solo lectura:\n"
+        f"{escribibles}"
     )
 
 

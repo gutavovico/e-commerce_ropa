@@ -119,6 +119,47 @@ class CarritoRepositorio:
         db.flush()
         return len(lineas)
 
+    @staticmethod
+    def buscar_carrito(db: Session, id_cliente: int) -> Optional[CarritoORM]:
+        """Localiza el carrito del cliente **sin crearlo** si no existe.
+
+        Se usa al confirmar un pago: allí no procede materializar una bolsa vacía para un cliente
+        que quizá nunca tuvo una, y el actor puede ser un cajero y no el propio titular.
+        """
+        stmt = (
+            select(CarritoORM)
+            .where(CarritoORM.id_cliente == id_cliente)
+            .order_by(CarritoORM.id_carrito.desc())
+            .limit(1)
+        )
+        return db.execute(stmt).scalars().first()
+
+    @staticmethod
+    def retirar_lineas_compradas(db: Session, id_carrito: int, detalles) -> int:
+        """Descuenta de la bolsa las unidades que acaban de pagarse. Devuelve cuántas retiró.
+
+        No se vacía el carrito entero a propósito: desde que la bolsa sobrevive al checkout, el
+        cliente puede haber añadido otras prendas mientras el pago estaba pendiente, y esas no se
+        han comprado. Se descuenta por `(id_variante, id_sucursal)` —la clave única real de
+        `carrito_detalle`— y la línea solo desaparece cuando su cantidad llega a cero.
+        """
+        retiradas = 0
+        for detalle in detalles:
+            linea = CarritoRepositorio.buscar_linea_equivalente(
+                db, id_carrito, detalle.id_variante, detalle.id_sucursal
+            )
+            if not linea:
+                continue
+
+            if linea.cantidad > detalle.cantidad:
+                linea.cantidad -= detalle.cantidad
+            else:
+                db.delete(linea)
+            retiradas += 1
+
+        db.flush()
+        return retiradas
+
     # ------------------------------------------------------------------
     # Catálogo e inventario
     # ------------------------------------------------------------------

@@ -4,6 +4,7 @@ Cada prueba cita el escenario Gherkin que verifica, definido en
 `.specs/changes/change-carrito-checkout.md`, sección A.6.
 """
 
+from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -16,6 +17,7 @@ from main import app
 from modules.catalogo.modelos import PromocionORM, VentaDetalleORM, VentaORM
 from modules.compras_pagos.cu11_gestionar_carrito.repositorio import CarritoRepositorio
 from modules.compras_pagos.cu15_comprar_plataforma.servicio import CheckoutServicio
+from modules.compras_pagos.cu16_realizar_pago.servicio import PagoServicio
 from modules.reservas.modelos import MovimientoInventarioORM
 
 PAYLOAD_DOMICILIO = {
@@ -162,15 +164,18 @@ def test_tramitacion_retiene_existencias_y_audita_el_movimiento(
     assert movimientos[0].referencia_documento.startswith("VENTA-")
 
 
-def test_tramitacion_vacia_la_bolsa(
+def test_tramitacion_conserva_la_bolsa_hasta_que_se_confirme_el_pago(
     client, sesion_autenticada, db_con_ids, usuario, carrito, linea, inventario
 ):
-    """Tras tramitar, el contenido vive en la orden y la bolsa queda vacía."""
-    vaciados = {}
+    """Tramitar deja la orden `pendiente`, pero la bolsa sigue intacta.
 
-    def vaciar(db, id_carrito):
-        vaciados["id"] = id_carrito
-        return 1
+    Hasta el 2026-09-28 el checkout vaciaba la bolsa en el acto. Con la pasarela por medio eso
+    significaba que un pago rechazado, abandonado o pendiente de caja dejaba al cliente sin su
+    selección y sin haber comprado nada. Las prendas salen de la bolsa al confirmarse el cobro
+    (CU16), nunca al tramitar.
+    """
+    vaciados = []
+    retiradas = []
 
     with patch.multiple(
         CarritoRepositorio,
@@ -179,12 +184,99 @@ def test_tramitacion_vacia_la_bolsa(
         obtener_lineas=lambda db, id_carrito: [linea],
         obtener_inventario=lambda db, v, s, cantidad=1, bloquear=False: inventario,
         obtener_promociones_por_producto=lambda db, ids: {},
-        vaciar_carrito=vaciar,
+        vaciar_carrito=lambda db, id_carrito: vaciados.append(id_carrito),
+        retirar_lineas_compradas=lambda db, id_carrito, detalles: retiradas.append(id_carrito),
     ):
         respuesta = client.post("/api/v1/ventas/checkout", json=PAYLOAD_DOMICILIO)
 
     assert respuesta.status_code == 201
-    assert vaciados["id"] == carrito.id_carrito
+    assert vaciados == [], "el checkout no debe vaciar la bolsa"
+    assert retiradas == [], "tampoco debe retirar líneas: eso ocurre al confirmar el pago"
+
+
+def test_segunda_tramitacion_con_orden_viva_responde_409(
+    client, sesion_autenticada, db_con_ids, usuario, carrito, linea, inventario
+):
+    """Con una orden pendiente aún viva no se puede emitir otra por las mismas prendas.
+
+    Es la contrapartida de conservar la bolsa: sin esta guarda, pulsar «TRAMITAR PEDIDO» dos
+    veces emitiría dos ventas y retendría el inventario dos veces, bloqueando existencias que
+    nadie va a comprar.
+    """
+    orden_viva = VentaORM(
+        id_venta=9,
+        numero_comprobante="FS-2026-000009",
+        id_cliente=usuario.cliente.id_cliente,
+        id_sucursal=1,
+        tipo_venta="digital_web",
+        estado="pendiente",
+        subtotal=Decimal("890.00"),
+        descuento=Decimal("0.00"),
+        total=Decimal("890.00"),
+    )
+    orden_viva.detalles = []
+    db_con_ids.execute.return_value.scalars.return_value.all.return_value = [orden_viva]
+
+    with patch.multiple(
+        CarritoRepositorio,
+        asegurar_cliente=lambda db, usuario: usuario.cliente,
+        obtener_o_crear_carrito=lambda db, id_cliente: carrito,
+        obtener_lineas=lambda db, id_carrito: [linea],
+        obtener_inventario=lambda db, v, s, cantidad=1, bloquear=False: inventario,
+        obtener_promociones_por_producto=lambda db, ids: {},
+    ), patch.object(
+        PagoServicio,
+        "_calcular_expiracion",
+        # Ventana todavía abierta: quedan 10 minutos de reserva.
+        staticmethod(lambda db, venta: CarritoRepositorio.ahora_utc() + timedelta(minutes=10)),
+    ):
+        respuesta = client.post("/api/v1/ventas/checkout", json=PAYLOAD_DOMICILIO)
+
+    assert respuesta.status_code == 409
+    assert respuesta.json()["code"] == "ORDEN_PENDIENTE_EXISTENTE"
+    assert "FS-2026-000009" in respuesta.json()["detail"]
+    # No se emite una segunda venta.
+    assert objetos_agregados(db_con_ids, VentaORM) == []
+
+
+def test_segunda_tramitacion_con_orden_vencida_libera_y_continua(
+    client, sesion_autenticada, db_con_ids, usuario, carrito, linea, inventario
+):
+    """Una orden abandonada no puede bloquear al cliente para siempre.
+
+    Si su ventana ya venció, se libera en el acto (verificación perezosa) y el nuevo checkout
+    sigue adelante.
+    """
+    orden_vencida = VentaORM(
+        id_venta=9,
+        numero_comprobante="FS-2026-000009",
+        id_cliente=usuario.cliente.id_cliente,
+        id_sucursal=1,
+        tipo_venta="digital_web",
+        estado="pendiente",
+        subtotal=Decimal("890.00"),
+        descuento=Decimal("0.00"),
+        total=Decimal("890.00"),
+    )
+    orden_vencida.detalles = []
+    db_con_ids.execute.return_value.scalars.return_value.all.return_value = [orden_vencida]
+
+    with patch.multiple(
+        CarritoRepositorio,
+        asegurar_cliente=lambda db, usuario: usuario.cliente,
+        obtener_o_crear_carrito=lambda db, id_cliente: carrito,
+        obtener_lineas=lambda db, id_carrito: [linea],
+        obtener_inventario=lambda db, v, s, cantidad=1, bloquear=False: inventario,
+        obtener_promociones_por_producto=lambda db, ids: {},
+    ), patch.object(
+        PagoServicio,
+        "_calcular_expiracion",
+        staticmethod(lambda db, venta: CarritoRepositorio.ahora_utc() - timedelta(minutes=1)),
+    ):
+        respuesta = client.post("/api/v1/ventas/checkout", json=PAYLOAD_DOMICILIO)
+
+    assert respuesta.status_code == 201
+    assert orden_vencida.estado == "anulada"
 
 
 # ---------------------------------------------------------------------------
@@ -588,3 +680,25 @@ def test_liberar_retencion_de_venta_pagada_responde_409(
 
     assert respuesta.status_code == 409
     assert respuesta.json()["code"] == "VENTA_NO_LIBERABLE"
+
+
+def test_subtotal_linea_se_mapea_como_columna_generada():
+    """`venta_detalle.subtotal_linea` es GENERATED ALWAYS: el ORM nunca debe escribirla.
+
+    El 2026-09-27 el checkout respondía 500 en producción con `GeneratedAlways: cannot insert a
+    non-DEFAULT value into column "subtotal_linea"`. El servicio nunca asignaba el atributo, pero
+    el `mapped_column` la declaraba como columna normal, así que la unidad de trabajo de
+    SQLAlchemy la incluía en el INSERT con `None` y PostgreSQL rechazaba la sentencia entera.
+
+    Toda la suite estaba en verde porque mockea la sesión de base de datos y ningún INSERT real
+    llega a compilarse. Este test comprueba la propiedad del mapeo, que es lo que decide si la
+    columna viaja o no en el INSERT; `tests/test_esquema_bd.py` lo contrasta además contra el
+    `information_schema` de la base real.
+    """
+    columna = VentaDetalleORM.__table__.c.subtotal_linea
+
+    assert columna.computed is not None, (
+        "subtotal_linea debe declararse con `Computed(...)` para quedar fuera del INSERT."
+    )
+    # Control de que la prueba no es vacua: una columna normal sí es escribible.
+    assert VentaDetalleORM.__table__.c.precio_unitario.computed is None

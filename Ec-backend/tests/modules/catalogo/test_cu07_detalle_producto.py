@@ -167,6 +167,37 @@ def test_consultar_detalle_producto_endpoint_200(client):
         app.dependency_overrides.pop(get_db, None)
 
 
+def test_consultar_detalle_producto_sin_variantes_no_inventa_tallas_ni_colores():
+    """Una prenda sin variantes registradas no debe fabricar tallas ni colores ficticios.
+
+    Hasta el 2026-09-27 el servicio rellenaba `tallas_disponibles` y `colores_disponibles`
+    con 5 tallas y 4 colores fijos (36-42, "Seda Marfil Natural", "Obsidian Negro"...) que no
+    existían en `variantes_producto`, incumpliendo la regla de dominio «cero datos inventados»
+    (CP-20 del cambio CU07-CU08-CU09-CU12-detalle-producto).
+    """
+    db_mock = MagicMock()
+    producto_sin_variantes = ProductoORM(
+        id_producto=1,
+        id_categoria=1,
+        nombre="Prenda Sin Variantes",
+        precio_base=Decimal("500.00"),
+        activo=True,
+    )
+    producto_sin_variantes.variantes = []
+
+    db_mock.execute.return_value.scalar_one_or_none.side_effect = [
+        producto_sin_variantes,  # obtener_producto_con_variantes
+        None,  # obtener_promocion_activa
+    ]
+    db_mock.execute.return_value.scalars.return_value.all.return_value = []
+
+    res = ProductoDetalleServicio.consultar_detalle_producto(db_mock, id_producto=1)
+
+    assert res.variantes == []
+    assert res.tallas_disponibles == []
+    assert res.colores_disponibles == []
+
+
 def test_consultar_detalle_producto_inexistente_404(client):
     """Verifica que solicitar un producto inexistente devuelva 404 Not Found."""
     db_mock = MagicMock()

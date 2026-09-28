@@ -48,6 +48,12 @@ TIPOS_ENTREGA_VALIDOS = (TIPO_ENTREGA_DOMICILIO, TIPO_ENTREGA_RECOGIDA)
 # Ventana de garantía de existencias una vez tramitado el pedido (§1.4 de la especificación).
 MINUTOS_RETENCION_VENTA = 25
 
+# Ventana de espera para el pago en efectivo en sucursal (§1.5.2/§1.6 de
+# `.specs/changes/CU16-realizar-pago-electronico/spec.md`): tiempo que tiene el cliente para
+# presentarse en la boutique de recogida y liquidar en caja, distinto e independiente de los 25
+# minutos de retención de la bolsa. Se cuenta desde `pagos.creado_en`, no desde `ventas.fecha_venta`.
+HORAS_RETENCION_PAGO_EFECTIVO = 24
+
 
 class CarritoORM(Base):
     """Mapeo de la tabla `fashionstore.carritos`.
@@ -149,6 +155,7 @@ __all__ = [
     "TIPO_ENTREGA_RECOGIDA",
     "TIPOS_ENTREGA_VALIDOS",
     "MINUTOS_RETENCION_VENTA",
+    "HORAS_RETENCION_PAGO_EFECTIVO",
     "estado_pago_enum",
     "metodo_pago_enum",
 ]

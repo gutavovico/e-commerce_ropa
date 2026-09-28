@@ -329,9 +329,9 @@ def test_subtotal_menos_descuento_es_siempre_el_total(
         obtener_o_crear_carrito=lambda db, id_cliente: carrito,
         obtener_lineas=lambda db, id_carrito: [linea],
         obtener_inventario=lambda db, v, s, cantidad=1, bloquear=False: inventario,
-        # 15 % de Membresía Privé sobre el producto 1.
+        # 15 % de Seleccion Atelier sobre el producto 1.
         obtener_promociones_por_producto=lambda db, ids: {
-            1: (Decimal("15.00"), "Membresia Prive")
+            1: (Decimal("15.00"), "Seleccion Atelier")
         },
     ):
         respuesta = client.get("/api/v1/carrito")
@@ -344,4 +344,4 @@ def test_subtotal_menos_descuento_es_siempre_el_total(
     item = respuesta.json()["items"][0]
     assert item["precio_lista"] == "890.00"
     assert item["precio_unitario"] == "756.50"
-    assert item["motivo_descuento"] == "Membresia Prive"
+    assert item["motivo_descuento"] == "Seleccion Atelier"

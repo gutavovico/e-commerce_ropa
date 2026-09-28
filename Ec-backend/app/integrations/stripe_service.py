@@ -9,8 +9,16 @@ sin dependencias externas, y el entorno de desarrollo tiene hoy un marcador de 3
 lugar de una clave real (`sk_test_...` de Stripe ronda los 107). Un fallo de red o una clave
 ausente no pueden dejar el checkout inoperante.
 
-Ningún método de este módulo recibe, devuelve ni registra el PAN completo ni el CVV: solo la
-marca y los últimos cuatro dígitos, que es lo único que puede persistirse.
+**El backend nunca recibe el PAN ni el CVV** (revisado el 2026-09-28). El flujo es de dos pasos:
+
+1. `crear_intento` abre un `PaymentIntent` en Stripe (`automatic_payment_methods` habilitado, sin
+   `confirm`) y devuelve su `client_secret`. La tarjeta se recolecta y el cobro se confirma en el
+   navegador/app con Stripe.js o el SDK de Flutter, directamente contra Stripe: este servidor no
+   participa de esa confirmación ni ve el número de la tarjeta.
+2. `verificar_intento` recupera el `PaymentIntent` por su id y decide `aprobado` según lo que
+   Stripe diga que pasó — nunca según lo que el cliente afirme. Es la aplicación de la misma
+   regla que ya rige los importes de la orden: el servidor jamás confía en el cliente para el
+   desenlace de un cobro.
 """
 
 import logging
@@ -28,25 +36,13 @@ logger = logging.getLogger("fashionstore.stripe_service")
 # marcador de configuración y se usa el simulador.
 LONGITUD_MINIMA_CLAVE_REAL = 40
 
-# Sufijos de PAN que fuerzan un resultado concreto, al estilo de las tarjetas de prueba de
-# Stripe. Hacen que el escenario de tarjeta denegada sea reproducible en vez de aleatorio.
-#
-# IMPORTANTE: un PAN de prueba debe superar además la verificación de Luhn, porque `TarjetaIn`
-# la aplica antes de que el pago llegue a la pasarela. Los valores de `PANES_PRUEBA` cumplen
-# ambas condiciones; usar cualquier otro número terminado en estos sufijos puede ser rechazado
-# antes por el validador y no llegar nunca a ejercitar este simulador.
-SUFIJO_RECHAZO_GENERICO = "0000"
-SUFIJO_FONDOS_INSUFICIENTES = "9995"
-
-#: PAN de prueba válidos según Luhn, para pruebas y documentación de la API.
-PANES_PRUEBA = {
-    "aprobado": "4111111111111111",
-    "rechazado": "4100000050000000",
-    "fondos_insuficientes": "4000000000009995",
+#: Desenlaces deterministas que el simulador puede forzar en `verificar_intento`, para que las
+#: pruebas no dependan del azar. Con Stripe real este parámetro se ignora: el desenlace lo decide
+#: la pasarela, nunca el cliente.
+ESCENARIOS_PRUEBA = {
+    "rechazado": ("card_declined", "La entidad emisora ha rechazado la tarjeta."),
+    "fondos_insuficientes": ("insufficient_funds", "La tarjeta no dispone de fondos suficientes."),
 }
-
-# Tokens de prueba de Stripe admitidos por el simulador.
-TOKENS_RECHAZO = {"tok_chargeDeclined", "tok_chargeDeclinedInsufficientFunds"}
 
 
 class ErrorPasarela(Exception):
@@ -57,35 +53,18 @@ class ErrorPasarela(Exception):
     """
 
 
-@dataclass(frozen=True)
-class DatosTarjeta:
-    """Datos de tarjeta en tránsito. Nunca se persisten ni se registran en logs."""
+@dataclass
+class IntentoPago:
+    """Desenlace de la apertura de un `PaymentIntent`, ya normalizado para el servicio."""
 
-    numero: str
-    titular: str
-    mes_expiracion: int
-    anio_expiracion: int
-    cvv: str
-
-    @property
-    def ultimos_digitos(self) -> str:
-        return self.numero[-4:] if len(self.numero) >= 4 else self.numero
-
-    @property
-    def marca(self) -> str:
-        """Deduce la marca por el prefijo del PAN, como hace cualquier pasarela."""
-        if self.numero.startswith("4"):
-            return "VISA"
-        if self.numero[:2] in {"51", "52", "53", "54", "55"} or self.numero[:4] == "2221":
-            return "MASTERCARD"
-        if self.numero[:2] in {"34", "37"}:
-            return "AMEX"
-        return "DESCONOCIDA"
+    referencia: str
+    client_secret: Optional[str]
+    payload: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class ResultadoPasarela:
-    """Desenlace de un intento de cobro, ya normalizado para el servicio de dominio."""
+    """Desenlace de la verificación de un intento de cobro, ya normalizado para el dominio."""
 
     aprobado: bool
     referencia: Optional[str]
@@ -96,23 +75,6 @@ class ResultadoPasarela:
     payload: dict[str, Any] = field(default_factory=dict)
 
 
-def validar_luhn(numero: str) -> bool:
-    """Comprueba el dígito verificador de un PAN mediante el algoritmo de Luhn."""
-    digitos = [int(c) for c in numero if c.isdigit()]
-    if len(digitos) < 12:
-        return False
-
-    suma = 0
-    # Se recorre de derecha a izquierda duplicando uno de cada dos dígitos.
-    for indice, digito in enumerate(reversed(digitos)):
-        if indice % 2 == 1:
-            digito *= 2
-            if digito > 9:
-                digito -= 9
-        suma += digito
-    return suma % 10 == 0
-
-
 class PasarelaPagos:
     """Contrato que consume `PagoServicio`.
 
@@ -121,14 +83,21 @@ class PasarelaPagos:
     externas de la constitución de backend.
     """
 
-    def procesar_cargo(
+    def crear_intento(
         self,
         monto: Decimal,
         metodo_pago: str,
-        tarjeta: Optional[DatosTarjeta] = None,
-        token: Optional[str] = None,
         descripcion: str = "",
         metadatos: Optional[dict[str, Any]] = None,
+        idempotency_key: Optional[str] = None,
+    ) -> IntentoPago:
+        raise NotImplementedError
+
+    def recuperar_client_secret(self, referencia: str) -> Optional[str]:
+        raise NotImplementedError
+
+    def verificar_intento(
+        self, referencia: str, escenario_prueba: Optional[str] = None
     ) -> ResultadoPasarela:
         raise NotImplementedError
 
@@ -139,7 +108,7 @@ class StripeService(PasarelaPagos):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        latencia_simulada_ms: int = 800,
+        latencia_simulada_ms: int = 400,
     ):
         self.api_key = api_key if api_key is not None else settings.STRIPE_SECRET_KEY
         self.latencia_simulada_ms = latencia_simulada_ms
@@ -156,47 +125,61 @@ class StripeService(PasarelaPagos):
             return False
         return True
 
-    # ------------------------------------------------------------------
-    # API pública
-    # ------------------------------------------------------------------
-
-    def procesar_cargo(
-        self,
-        monto: Decimal,
-        metodo_pago: str,
-        tarjeta: Optional[DatosTarjeta] = None,
-        token: Optional[str] = None,
-        descripcion: str = "",
-        metadatos: Optional[dict[str, Any]] = None,
-    ) -> ResultadoPasarela:
-        """Cobra `monto` y devuelve el desenlace normalizado.
-
-        `monto` viaja como `Decimal` y solo se convierte a céntimos enteros en el borde de la
-        llamada a Stripe, que es la unidad que su API exige. El importe exacto que se persiste
-        en `pagos.monto` sigue siendo el `Decimal` original.
-        """
-        if self.usa_stripe_real:
-            return self._cobrar_con_stripe(monto, metodo_pago, tarjeta, token, descripcion, metadatos)
-        return self._cobrar_simulado(monto, metodo_pago, tarjeta, token, descripcion)
-
     @staticmethod
     def a_centimos(monto: Decimal) -> int:
         """Convierte un importe a la unidad mínima entera que exige la API de Stripe."""
         return int((monto * 100).quantize(Decimal("1")))
 
     # ------------------------------------------------------------------
-    # Stripe real (modo test)
+    # API pública
     # ------------------------------------------------------------------
 
-    def _cobrar_con_stripe(
+    def crear_intento(
         self,
         monto: Decimal,
         metodo_pago: str,
-        tarjeta: Optional[DatosTarjeta],
-        token: Optional[str],
+        descripcion: str = "",
+        metadatos: Optional[dict[str, Any]] = None,
+        idempotency_key: Optional[str] = None,
+    ) -> IntentoPago:
+        if self.usa_stripe_real:
+            return self._crear_intento_stripe(monto, descripcion, metadatos, idempotency_key)
+        return self._crear_intento_simulado(monto, metodo_pago, descripcion)
+
+    def recuperar_client_secret(self, referencia: str) -> Optional[str]:
+        """Recupera el `client_secret` de un intento ya abierto, para un reenvío idempotente."""
+        if self.usa_stripe_real:
+            import stripe
+
+            stripe.api_key = self.api_key
+            try:
+                intento = stripe.PaymentIntent.retrieve(referencia)
+            except Exception as exc:  # noqa: BLE001 - fallo técnico, no de tarjeta
+                logger.exception("Fallo técnico al recuperar el intento en Stripe", exc_info=exc)
+                raise ErrorPasarela(
+                    "No fue posible recuperar el cobro en curso. Inténtalo de nuevo."
+                ) from exc
+            return intento.get("client_secret")
+        return f"{referencia}_secret_sbx"
+
+    def verificar_intento(
+        self, referencia: str, escenario_prueba: Optional[str] = None
+    ) -> ResultadoPasarela:
+        if self.usa_stripe_real:
+            return self._verificar_intento_stripe(referencia)
+        return self._verificar_intento_simulado(referencia, escenario_prueba)
+
+    # ------------------------------------------------------------------
+    # Stripe real (modo test)
+    # ------------------------------------------------------------------
+
+    def _crear_intento_stripe(
+        self,
+        monto: Decimal,
         descripcion: str,
         metadatos: Optional[dict[str, Any]],
-    ) -> ResultadoPasarela:
+        idempotency_key: Optional[str],
+    ) -> IntentoPago:
         import stripe
 
         stripe.api_key = self.api_key
@@ -207,63 +190,53 @@ class StripeService(PasarelaPagos):
                 currency="eur",
                 description=descripcion or "FashionStore Atelier",
                 metadata=metadatos or {},
-                payment_method_data=self._construir_metodo_pago(tarjeta, token),
-                confirm=True,
-                automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
+                automatic_payment_methods={"enabled": True},
+                idempotency_key=idempotency_key or None,
             )
-
-            aprobado = intento.get("status") == "succeeded"
-            return ResultadoPasarela(
-                aprobado=aprobado,
-                referencia=intento.get("id"),
-                codigo_respuesta=intento.get("status", "desconocido"),
-                mensaje=(
-                    "Pago confirmado por la pasarela."
-                    if aprobado
-                    else "La pasarela no pudo completar el cargo."
-                ),
-                marca=tarjeta.marca if tarjeta else None,
-                ultimos_digitos=tarjeta.ultimos_digitos if tarjeta else None,
-                payload=self._sanear(dict(intento)),
-            )
-
-        except stripe.CardError as exc:  # type: ignore[attr-defined]
-            # Rechazo legítimo: la tarjeta fue evaluada y denegada.
-            cuerpo = getattr(exc, "json_body", None) or {}
-            error = cuerpo.get("error", {})
-            return ResultadoPasarela(
-                aprobado=False,
-                referencia=error.get("charge") or error.get("payment_intent", {}).get("id"),
-                codigo_respuesta=error.get("decline_code") or error.get("code", "card_declined"),
-                mensaje=error.get("message") or str(exc),
-                marca=tarjeta.marca if tarjeta else None,
-                ultimos_digitos=tarjeta.ultimos_digitos if tarjeta else None,
-                payload=self._sanear(cuerpo),
-            )
-
-        except Exception as exc:  # noqa: BLE001 - cualquier otro fallo es técnico, no de tarjeta
-            logger.exception("Fallo técnico al contactar con Stripe", exc_info=exc)
+        except Exception as exc:  # noqa: BLE001 - cualquier fallo aquí es técnico, no de tarjeta
+            logger.exception("Fallo técnico al abrir el intento en Stripe", exc_info=exc)
             raise ErrorPasarela(
-                "No fue posible contactar con la pasarela de pagos. Inténtalo de nuevo."
+                "No fue posible iniciar el cobro con la pasarela. Inténtalo de nuevo."
             ) from exc
 
-    @staticmethod
-    def _construir_metodo_pago(
-        tarjeta: Optional[DatosTarjeta], token: Optional[str]
-    ) -> dict[str, Any]:
-        if token:
-            return {"type": "card", "card": {"token": token}}
-        if tarjeta:
-            return {
-                "type": "card",
-                "card": {
-                    "number": tarjeta.numero,
-                    "exp_month": tarjeta.mes_expiracion,
-                    "exp_year": tarjeta.anio_expiracion,
-                    "cvc": tarjeta.cvv,
-                },
-            }
-        raise ErrorPasarela("No se aportaron datos de tarjeta ni token de pasarela.")
+        return IntentoPago(
+            referencia=intento["id"],
+            client_secret=intento.get("client_secret"),
+            payload=self._sanear(dict(intento)),
+        )
+
+    def _verificar_intento_stripe(self, referencia: str) -> ResultadoPasarela:
+        import stripe
+
+        stripe.api_key = self.api_key
+
+        try:
+            intento = stripe.PaymentIntent.retrieve(referencia, expand=["payment_method"])
+        except Exception as exc:  # noqa: BLE001 - cualquier fallo aquí es técnico, no de tarjeta
+            logger.exception("Fallo técnico al verificar el intento en Stripe", exc_info=exc)
+            raise ErrorPasarela(
+                "No fue posible confirmar el cobro con la pasarela. Inténtalo de nuevo."
+            ) from exc
+
+        aprobado = intento.get("status") == "succeeded"
+        metodo_pago = intento.get("payment_method")
+        tarjeta = (
+            metodo_pago.get("card") if isinstance(metodo_pago, dict) else None
+        )
+
+        return ResultadoPasarela(
+            aprobado=aprobado,
+            referencia=intento.get("id"),
+            codigo_respuesta=intento.get("status", "desconocido"),
+            mensaje=(
+                "Pago confirmado por la pasarela."
+                if aprobado
+                else "La pasarela no pudo completar el cargo."
+            ),
+            marca=tarjeta.get("brand", "").upper() if tarjeta else None,
+            ultimos_digitos=tarjeta.get("last4") if tarjeta else None,
+            payload=self._sanear(dict(intento)),
+        )
 
     @staticmethod
     def _sanear(payload: dict[str, Any]) -> dict[str, Any]:
@@ -272,7 +245,7 @@ class StripeService(PasarelaPagos):
         Stripe no devuelve el PAN completo, pero el saneado es explícito y no confiado: lo que
         se guarda en `pagos.payload_respuesta` queda en la base de datos para siempre.
         """
-        prohibidas = {"number", "cvc", "cvv", "card_number"}
+        prohibidas = {"number", "cvc", "cvv", "card_number", "client_secret"}
 
         def limpiar(valor: Any) -> Any:
             if isinstance(valor, dict):
@@ -290,42 +263,48 @@ class StripeService(PasarelaPagos):
     # Simulador determinista
     # ------------------------------------------------------------------
 
-    def _cobrar_simulado(
-        self,
-        monto: Decimal,
-        metodo_pago: str,
-        tarjeta: Optional[DatosTarjeta],
-        token: Optional[str],
-        descripcion: str,
+    def _crear_intento_simulado(
+        self, monto: Decimal, metodo_pago: str, descripcion: str
+    ) -> IntentoPago:
+        referencia = f"pi_sbx_{random.randint(10**9, 10**10 - 1)}"
+        return IntentoPago(
+            referencia=referencia,
+            client_secret=f"{referencia}_secret_sbx",
+            payload={
+                "simulado": True,
+                "id": referencia,
+                "status": "requires_payment_method",
+                "amount": self.a_centimos(monto),
+                "currency": "eur",
+                "description": descripcion,
+                "metodo_pago": metodo_pago,
+            },
+        )
+
+    def _verificar_intento_simulado(
+        self, referencia: str, escenario_prueba: Optional[str]
     ) -> ResultadoPasarela:
         """Reproduce el contrato de Stripe sin salir a la red.
 
-        El desenlace es **determinista**: lo fija el sufijo del PAN o el token de prueba. Una
-        prueba que dependiera del azar sería intermitente y acabaría desactivada.
+        El desenlace es **determinista**: lo fija `escenario_prueba`, que el simulador es el
+        único que consulta — con Stripe real este parámetro no existe en la API y se ignora.
         """
         if self.latencia_simulada_ms > 0:
             time.sleep(self.latencia_simulada_ms / 1000)
 
-        referencia = f"pi_sbx_{random.randint(10**9, 10**10 - 1)}"
-
-        motivo_rechazo = self._motivo_rechazo(tarjeta, token)
-        if motivo_rechazo:
-            codigo, mensaje = motivo_rechazo
+        motivo = ESCENARIOS_PRUEBA.get(escenario_prueba or "")
+        if motivo:
+            codigo, mensaje = motivo
             return ResultadoPasarela(
                 aprobado=False,
                 referencia=referencia,
                 codigo_respuesta=codigo,
                 mensaje=mensaje,
-                marca=tarjeta.marca if tarjeta else None,
-                ultimos_digitos=tarjeta.ultimos_digitos if tarjeta else None,
                 payload={
                     "simulado": True,
                     "id": referencia,
                     "status": "requires_payment_method",
                     "error": {"code": codigo, "message": mensaje},
-                    "amount": self.a_centimos(monto),
-                    "currency": "eur",
-                    "metodo_pago": metodo_pago,
                 },
             )
 
@@ -334,36 +313,11 @@ class StripeService(PasarelaPagos):
             referencia=referencia,
             codigo_respuesta="succeeded",
             mensaje="Pago confirmado por la pasarela.",
-            marca=tarjeta.marca if tarjeta else None,
-            ultimos_digitos=tarjeta.ultimos_digitos if tarjeta else None,
+            marca="VISA",
+            ultimos_digitos="4242",
             payload={
                 "simulado": True,
                 "id": referencia,
                 "status": "succeeded",
-                "amount": self.a_centimos(monto),
-                "currency": "eur",
-                "description": descripcion,
-                "metodo_pago": metodo_pago,
-                "ultimos_digitos": tarjeta.ultimos_digitos if tarjeta else None,
-                "marca": tarjeta.marca if tarjeta else None,
             },
         )
-
-    @staticmethod
-    def _motivo_rechazo(
-        tarjeta: Optional[DatosTarjeta], token: Optional[str]
-    ) -> Optional[tuple[str, str]]:
-        """Decide si el cargo simulado debe rechazarse y por qué motivo."""
-        if token in TOKENS_RECHAZO:
-            if token == "tok_chargeDeclinedInsufficientFunds":
-                return ("insufficient_funds", "La tarjeta no dispone de fondos suficientes.")
-            return ("card_declined", "La entidad emisora ha rechazado la tarjeta.")
-
-        if tarjeta is None:
-            return None
-
-        if tarjeta.numero.endswith(SUFIJO_FONDOS_INSUFICIENTES):
-            return ("insufficient_funds", "La tarjeta no dispone de fondos suficientes.")
-        if tarjeta.numero.endswith(SUFIJO_RECHAZO_GENERICO):
-            return ("card_declined", "La entidad emisora ha rechazado la tarjeta.")
-        return None

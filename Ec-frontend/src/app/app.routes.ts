@@ -99,6 +99,15 @@ export const routes: Routes = [
     title: 'FASHION STORE | Bolsa de Compra & Checkout',
   },
   {
+    path: 'pago/:idVenta',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import(
+        './modules/compras_pagos/cu16_realizar_pago/paginas/checkout-pago.component'
+      ).then((m) => m.CheckoutPagoComponent),
+    title: 'FASHION STORE | Pago Seguro & Pasarela Atelier',
+  },
+  {
     path: 'productos/:id',
     loadComponent: () =>
       import(

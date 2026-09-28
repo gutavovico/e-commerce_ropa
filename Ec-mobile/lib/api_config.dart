@@ -6,6 +6,17 @@ class ApiConfig {
   /// Permite sobreescribir la URL base mediante `--dart-define=API_URL=http://...`
   static const String _envApiUrl = String.fromEnvironment('API_URL', defaultValue: '');
 
+  /// Clave publicable de Stripe (`pk_test_...`/`pk_live_...`), vía
+  /// `--dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_...`. No es secreta —Stripe la diseña para
+  /// vivir en el cliente—, por eso vive aquí y no en el backend, que solo conoce
+  /// `STRIPE_SECRET_KEY`. Vacía por defecto: sin ella, `PagoBloc`/`CheckoutPaymentScreen` no
+  /// inicializan el SDK de Stripe y usan en su lugar el panel de «modo simulador», que refleja
+  /// lo que hace `StripeService` en el backend cuando tampoco tiene `STRIPE_SECRET_KEY` real.
+  static const String stripePublishableKey = String.fromEnvironment(
+    'STRIPE_PUBLISHABLE_KEY',
+    defaultValue: '',
+  );
+
   /// Puerto por defecto del backend FastAPI
   static const int port = 8000;
 

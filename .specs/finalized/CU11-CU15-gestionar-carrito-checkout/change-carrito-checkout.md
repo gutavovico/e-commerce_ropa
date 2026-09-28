@@ -410,7 +410,8 @@ Convierte el carrito en venta formal. **Transacción única.**
 9. **Retener stock:** `cantidad_disponible -= n`, `cantidad_reservada += n`, más un registro en
    `movimientos_inventario` por línea (`tipo_movimiento = 'reserva'`,
    `referencia_documento = 'VENTA-<id>'`, `id_usuario_responsable`).
-10. Vaciar `carrito_detalle`.
+10. ~~Vaciar `carrito_detalle`.~~ **Revocado el 2026-09-28** (ver nota al final de §H): la bolsa
+    sobrevive al checkout y solo se vacía cuando el cobro queda confirmado en CU16.
 11. `COMMIT`.
 
 ```jsonc
@@ -526,7 +527,7 @@ Característica: CU15 — Tramitación del pedido
     Y cada línea conserva su sucursal de expedición
     Y el inventario mueve las unidades de disponible a reservada
     Y se registra un movimiento de inventario por línea con el responsable
-    Y mi bolsa queda vacía
+    Y mi bolsa CONSERVA sus prendas   # revisado el 2026-09-28: se vacía al confirmarse el pago
 
   Escenario: Tramitación con bolsa vacía
     Dado que mi bolsa no tiene prendas
@@ -914,6 +915,38 @@ campo a campo entre el esquema Pydantic, el servicio Angular y el DTO de Flutter
 | 3 — Mobile | 🟢 Completado | `dart analyze` 0 incidencias · `flutter test` 133/133 |
 
 **Los 27 checkpoints (CP-01 a CP-27) quedan aprobados.**
+
+> **Nota posterior a la finalización (2026-09-27) — regresión en `subtotal_linea`, ya corregida.**
+> El aviso de §A.1 («`venta_detalle.subtotal_linea` es GENERATED ALWAYS; el ORM debe mapearla en
+> solo lectura») se cumplía cuando se aprobó CP-06, pero se perdió después: el commit `6325f6f`
+> («alineacion de modelos tras merge de main») trasladó `VentaDetalleORM` desde
+> `catalogo/modelos.py` a `comercial/cu28_ventas_reservas/modelos.py` y en el traslado desapareció
+> el `server_default=FetchedValue()`. Desde entonces SQLAlchemy incluía la columna con `None` en
+> cada INSERT y `POST /api/v1/ventas/checkout` respondía 500 (`psycopg.errors.GeneratedAlways`).
+> Se corrigió declarándola con `Computed("cantidad * precio_unitario", persisted=True)` y se
+> añadieron dos regresiones —una contra el `information_schema` real y otra sin base de datos—
+> porque ninguna de las 424 pruebas existentes podía verlo: todas mockean la sesión. Ver entrada
+> 64 del `CHANGELOG.md`.
+
+> **Nota posterior a la finalización (2026-09-28) — la bolsa ya no se vacía al tramitar.**
+> El paso 10 de §A.3 («Vaciar `carrito_detalle`») queda revocado. Cuando se especificó CU15 el
+> checkout era el final del recorrido; con CU16 en producción dejó de serlo, y vaciar la bolsa al
+> emitir una orden `pendiente` le costaba al cliente toda su selección si el pago se rechazaba, se
+> abandonaba o quedaba a la espera del cajero (pago en efectivo, hasta 24 h). Ahora las prendas se
+> retiran de la bolsa únicamente cuando el cobro se confirma: pasarela (tarjeta), Bizum/QR o
+> confirmación en caja. Como contrapartida se añadió la guarda `ORDEN_PENDIENTE_EXISTENTE`, que
+> impide emitir una segunda orden mientras la anterior siga viva —sin ella el inventario se
+> retendría dos veces por las mismas prendas—. Ver entrada 65 del `CHANGELOG.md`.
+
+> **Nota posterior a la finalización (2026-09-28) — la promoción «Membresía Privé» se renombró a
+> «Selección Atelier».** La tarea `T-BE-10` (tabla de más abajo) y el ejemplo de §A.4 citan el
+> nombre original, sembrado por la migración `0010`; ese texto documenta lo que existía en su
+> momento y no se reescribe. La fila real en `fashionstore.promociones` (`id_promocion = 2`) se
+> renombró porque el nombre sugería una membresía o segmentación de clientes que el sistema nunca
+> tuvo: el 15 % se aplica automáticamente a cualquiera que compre una de sus 3 prendas vinculadas,
+> sin cupón y sin distinguir quién compra. La mecánica no cambió, solo el nombre — en la base de
+> datos, en el seed de la migración `0010` y en cada literal de código/pruebas que lo citaba. Ver
+> entrada 66 del `CHANGELOG.md` y la nota equivalente en `spec.md` de CU16.
 
 ### Pendiente de decisión, fuera del alcance de este cambio
 

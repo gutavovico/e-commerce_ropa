@@ -154,8 +154,11 @@ export class CarritoService {
       codigo_cupon: this.cuponAplicado(),
     };
 
+    // La bolsa NO se vacía aquí. Tramitar solo emite la orden en estado `pendiente`; el backend
+    // conserva las prendas hasta que el pago se confirma, así que fingir una bolsa vacía en el
+    // cliente mostraría un contador a 0 y una bolsa desierta mientras el servidor dice lo
+    // contrario. El vaciado llega con el refresco posterior a la confirmación del cobro.
     return this.http.post<VentaCreada>(`${this.baseUrl}/ventas/checkout`, payload).pipe(
-      tap(() => this._carrito.set(CARRITO_VACIO)),
       catchError((err: HttpErrorResponse) => this.manejarError(err)),
       finalize(() => this.procesando.set(false))
     );

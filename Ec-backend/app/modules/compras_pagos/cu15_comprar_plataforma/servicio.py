@@ -2,7 +2,11 @@
 
 Transforma la bolsa en una venta formal en estado `pendiente`, lista para la pasarela de pago
 (CU16). Toda la operación ocurre en una única unidad de trabajo: si algo falla, no queda ni la
-venta, ni el movimiento de inventario, ni la bolsa vaciada.
+venta, ni la retención de inventario.
+
+**La bolsa sobrevive al checkout.** Tramitar el pedido solo emite la orden y retiene existencias;
+las prendas se retiran de la bolsa cuando el pago se confirma (CU16), nunca antes. Así, un pago
+rechazado, abandonado o pendiente de caja deja al cliente su selección intacta.
 
 Sobre el inventario: hasta la migración 0009 el descuento lo hacía el trigger
 `trg_descontar_inventario` al insertar en `venta_detalle`. Ese trigger resolvía el inventario por
@@ -52,7 +56,9 @@ class CheckoutServicio:
 
         Secuencia: validar entrega -> cargar bolsa -> bloquear inventario -> revalidar stock ->
         resolver cupón -> congelar precios -> generar comprobante -> persistir venta y líneas ->
-        retener existencias con auditoría -> vaciar la bolsa. Todo en una sola transacción.
+        retener existencias con auditoría. Todo en una sola transacción.
+
+        La bolsa **no** se vacía aquí: sobrevive hasta que el pago se confirma (CU16).
         """
         # 1. Validar la modalidad de entrega antes de tocar nada más.
         sucursal_retiro = CheckoutServicio._validar_entrega(db, payload)
@@ -67,6 +73,11 @@ class CheckoutServicio:
                 "Tu bolsa de compra está vacía. Añade prendas antes de tramitar el pedido.",
                 code="CARRITO_VACIO",
             )
+
+        # 2.b Una sola orden viva por cliente. Desde que la bolsa sobrevive al checkout, sin esta
+        #     guarda un segundo «TRAMITAR PEDIDO» emitiría otra venta por las mismas prendas y
+        #     retendría el inventario dos veces, dejando existencias bloqueadas sin contrapartida.
+        CheckoutServicio._rechazar_si_hay_orden_viva(db, cliente.id_cliente, usuario)
 
         # 3. Bloquear y revalidar el inventario de cada línea.
         #    `FOR UPDATE` serializa a los compradores que compiten por la misma prenda: sin él,
@@ -121,9 +132,9 @@ class CheckoutServicio:
             db, venta, lineas, items_calculados, inventarios, usuario
         )
 
-        # 10. La bolsa queda vacía: su contenido ya vive en la orden.
-        CarritoRepositorio.vaciar_carrito(db, carrito.id_carrito)
-
+        # 10. La bolsa NO se vacía aquí. Tramitar solo deja la orden en `pendiente`: mientras el
+        #     pago no se confirme, el cliente conserva sus prendas en la bolsa. El vaciado ocurre
+        #     al confirmarse el cobro (CU16), sea por pasarela o por caja en el pago en efectivo.
         db.commit()
 
         expira_en = ahora + timedelta(minutes=MINUTOS_RETENCION_VENTA)
@@ -241,6 +252,40 @@ class CheckoutServicio:
     # ------------------------------------------------------------------
     # Apoyo interno
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _rechazar_si_hay_orden_viva(db: Session, id_cliente: int, usuario: UsuarioORM) -> None:
+        """Impide tramitar una segunda orden mientras la anterior sigue viva.
+
+        Una orden `pendiente` mantiene existencias retenidas. Como la bolsa ya no se vacía al
+        tramitar, sin esta guarda el cliente podría emitir N órdenes por las mismas prendas y
+        retener el inventario N veces.
+
+        Si la ventana de la orden anterior ya venció, se libera aquí mismo —la misma verificación
+        perezosa que usan CU15 y CU16— y el checkout continúa: una orden abandonada no puede
+        bloquear al cliente para siempre.
+        """
+        # Import local a propósito: CU16 ya importa este servicio, y hacerlo al nivel del módulo
+        # crearía un ciclo. La ventana vigente la resuelve CU16 porque depende del método de pago
+        # (25 min de la bolsa frente a 24 h del pago en efectivo).
+        from modules.compras_pagos.cu16_realizar_pago.servicio import PagoServicio
+
+        stmt = (
+            select(VentaORM)
+            .options(selectinload(VentaORM.detalles))
+            .where(VentaORM.id_cliente == id_cliente, VentaORM.estado == "pendiente")
+            .order_by(VentaORM.id_venta.desc())
+        )
+
+        for venta in db.execute(stmt).scalars().all():
+            if CarritoRepositorio.ahora_utc() <= PagoServicio._calcular_expiracion(db, venta):
+                raise ConflictError(
+                    f"Ya tienes la orden {venta.numero_comprobante} pendiente de pago. "
+                    "Complétala o espera a que venza su reserva antes de tramitar otra.",
+                    code="ORDEN_PENDIENTE_EXISTENTE",
+                )
+            # Vencida: se devuelven sus existencias y deja de bloquear al cliente.
+            CheckoutServicio.liberar_existencias_de_venta(db, venta, usuario)
 
     @staticmethod
     def _validar_entrega(db: Session, payload: CheckoutIn):

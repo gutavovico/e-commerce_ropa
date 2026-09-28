@@ -355,8 +355,10 @@ class CarritoBloc extends ChangeNotifier {
         token: _token,
       );
 
+      // La bolsa se conserva: tramitar solo deja la orden en `pendiente`, y el backend no retira
+      // las prendas hasta que el pago se confirma. Vaciarla aquí mostraría una bolsa desierta
+      // mientras el servidor sigue teniendo las prendas del cliente.
       _estado = actual.copyWith(
-        carrito: CarritoDto.vacio,
         procesando: false,
         ordenConfirmada: venta,
       );

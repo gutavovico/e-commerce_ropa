@@ -5,6 +5,7 @@ import 'package:ec_mobile/src/modulos/compras_pagos/cu11_gestionar_carrito/datos
 import 'package:ec_mobile/src/modulos/compras_pagos/cu11_gestionar_carrito/datos/modelos/carrito_dto.dart';
 import 'package:ec_mobile/src/modulos/compras_pagos/cu11_gestionar_carrito/presentacion/bloc/carrito_bloc.dart';
 import 'package:ec_mobile/src/modulos/compras_pagos/cu11_gestionar_carrito/presentacion/pantallas/shopping_bag_screen.dart';
+import 'package:ec_mobile/src/modulos/compras_pagos/cu16_realizar_pago/presentacion/pantallas/checkout_payment_screen.dart';
 
 import 'mocks/mock_carrito_api.dart';
 
@@ -38,7 +39,7 @@ void main() {
       expect(item.precioLista, 890.00);
       expect(item.precioUnitario, 756.50);
       expect(item.descuentoLinea, 133.50);
-      expect(item.motivoDescuento, 'Membresia Prive');
+      expect(item.motivoDescuento, 'Seleccion Atelier');
     });
 
     test('CarritoResumenDto respeta la invariante total = subtotal - descuento', () {
@@ -277,7 +278,7 @@ void main() {
       expect((bloc.estado as CarritoCargado).puedeTramitar, true);
     });
 
-    test('tramitar vacía la bolsa y expone la orden confirmada', () async {
+    test('tramitar expone la orden confirmada y CONSERVA la bolsa', () async {
       final api = MockCarritoApi();
       final bloc = CarritoBloc(api: api, token: kToken);
       await bloc.cargarCarrito();
@@ -291,7 +292,10 @@ void main() {
 
       final estado = bloc.estado as CarritoCargado;
       expect(estado.ordenConfirmada?.numeroComprobante, 'FS-2026-000001');
-      expect(estado.carrito.estaVacia, true);
+      // Tramitar solo deja la orden en `pendiente`. El backend conserva las prendas hasta que
+      // el pago se confirma, así que el BLoC no debe fingir una bolsa vacía.
+      expect(estado.carrito.estaVacia, false);
+      expect(estado.items, hasLength(1));
     });
 
     test('retira el cupón cuando el backend lo rechaza, para permitir reintentar', () async {
@@ -389,7 +393,7 @@ void main() {
 
       expect(find.text('Vestido plisado en seda natural'), findsOneWidget);
       expect(find.textContaining('Atelier Serrano - Madrid'), findsWidgets);
-      expect(find.textContaining('Membresia Prive'), findsOneWidget);
+      expect(find.textContaining('Seleccion Atelier'), findsOneWidget);
       expect(find.text('Talla: 40 · Color: Rojo Carmín'), findsOneWidget);
     });
 
@@ -490,29 +494,37 @@ void main() {
       expect(botonActivo.onPressed, isNotNull);
     });
 
-    testWidgets('muestra la confirmación de la orden tras tramitar', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'abre la pantalla de Pago Seguro (CU16) tras tramitar, sin confirmación intermedia',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      final bloc = CarritoBloc(api: MockCarritoApi(), token: kToken);
-      await tester.pumpWidget(crearApp(
-        ShoppingBagScreen(token: kToken, bloc: bloc, habilitarImagenesRed: false),
-      ));
-      await tester.pumpAndSettle();
+        final bloc = CarritoBloc(api: MockCarritoApi(), token: kToken);
+        await tester.pumpWidget(crearApp(
+          ShoppingBagScreen(token: kToken, bloc: bloc, habilitarImagenesRed: false),
+        ));
+        await tester.pumpAndSettle();
 
-      bloc.actualizarDireccion('Calle de Claudio Coello 48, 28001 Madrid');
-      await bloc.tramitarPedido();
-      await tester.pumpAndSettle();
+        bloc.actualizarDireccion('Calle de Claudio Coello 48, 28001 Madrid');
+        await bloc.tramitarPedido();
+        await tester.pumpAndSettle();
 
-      expect(find.textContaining('FS-2026-000001'), findsOneWidget);
-      expect(find.text('CONTINUAR EXPLORANDO'), findsOneWidget);
-      // Con la orden ya emitida, la barra de acción desaparece.
-      expect(find.text('TRAMITAR PEDIDO'), findsNothing);
-    });
+        // La bolsa ya no muestra ni la confirmación en línea ni su barra de acción: en su
+        // lugar se abrió la pantalla de pago con la venta recién creada (id_venta: 1).
+        expect(find.byType(CheckoutPaymentScreen), findsOneWidget);
+        final pantallaDePago = tester.widget<CheckoutPaymentScreen>(
+          find.byType(CheckoutPaymentScreen),
+        );
+        expect(pantallaDePago.idVenta, 1);
+        expect(pantallaDePago.token, kToken);
+        expect(find.text('TRAMITAR PEDIDO'), findsNothing);
+      },
+    );
   });
 }
 

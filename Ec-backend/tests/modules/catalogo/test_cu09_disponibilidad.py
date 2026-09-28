@@ -120,6 +120,34 @@ def test_consultar_disponibilidad_exitosa_200(client):
         app.dependency_overrides.pop(get_db, None)
 
 
+def test_consultar_disponibilidad_sin_sucursales_devuelve_lista_vacia(client):
+    """Sin boutiques activas en la base, el endpoint no debe inventar ninguna.
+
+    Hasta el 2026-09-27 el servicio rellenaba la respuesta con tres boutiques ficticias
+    (Flagship Serrano, Boutique Saint-Honoré y un hub de Madrid inexistentes en
+    `fashionstore.sucursales`), incumpliendo la regla de dominio «cero datos inventados»
+    (CP-20 del cambio CU07-CU08-CU09-CU12-detalle-producto).
+    """
+    producto = crear_producto_con_inventario_fixture(id_producto=1)
+
+    db_mock = MagicMock()
+    db_mock.execute.return_value.scalar_one_or_none.return_value = producto
+    db_mock.execute.return_value.scalars.return_value.all.side_effect = [
+        [],  # obtener_sucursales_activas -> ninguna sucursal activa
+        [],  # obtener_inventario_variante
+    ]
+
+    app.dependency_overrides[get_db] = lambda: db_mock
+    try:
+        response = client.get("/api/v1/productos/1/disponibilidad?id_variante=10")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["sucursales"] == []
+        assert data["total_disponible_global"] == 0
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
 def test_consultar_disponibilidad_producto_inexistente_404(client):
     """Verifica error 404 al consultar disponibilidad de un producto no existente."""
     db_mock = MagicMock()

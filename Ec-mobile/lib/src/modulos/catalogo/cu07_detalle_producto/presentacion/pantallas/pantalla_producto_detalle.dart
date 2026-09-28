@@ -679,7 +679,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
             SizedBox(width: 6),
             Expanded(
               child: Text(
-                'Beneficio Membresía Atelier aplicado en liquidación privada',
+                'Beneficio Selección Atelier aplicado en pieza destacada',
                 style: TextStyle(
                   fontFamily: 'Outfit',
                   fontSize: 10.5,

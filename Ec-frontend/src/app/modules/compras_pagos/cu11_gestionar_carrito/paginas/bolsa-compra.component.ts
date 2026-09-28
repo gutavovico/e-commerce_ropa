@@ -189,6 +189,7 @@ export class BolsaCompraComponent implements OnInit, OnDestroy {
       next: (venta) => {
         this.ordenConfirmada.set(venta);
         this.detenerTemporizador();
+        this.router.navigate(['/pago', venta.id_venta]);
       },
       error: () => {
         // Si el cupón fue el motivo del rechazo, se retira para que el cliente pueda reintentar.

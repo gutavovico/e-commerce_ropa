@@ -1,17 +1,20 @@
 """Esquemas Pydantic para CU16: Realizar Pago Electrónico."""
 
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field
 
-from integrations.stripe_service import validar_luhn
-
-# Métodos que el checkout digital admite. `efectivo` y `transferencia` existen en el enum de
-# PostgreSQL para la venta presencial, pero no tienen sentido en una pasarela en línea.
+# Métodos que el checkout digital admite contra la pasarela sandbox. `transferencia` existe en
+# el enum de PostgreSQL para la venta presencial, pero no tiene sentido aquí.
 METODOS_DIGITALES = ("tarjeta_credito", "tarjeta_debito", "qr", "pasarela_digital")
 METODOS_CON_TARJETA = ("tarjeta_credito", "tarjeta_debito")
+
+# `efectivo` no pasa por la pasarela: se registra como pago `pendiente` hasta que un cajero lo
+# confirma en la boutique de recogida (§1.5.2/§1.6 de la especificación). Solo se ofrece cuando
+# `ventas.tipo_entrega == 'recogida_boutique'`.
+METODO_EFECTIVO = "efectivo"
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +69,13 @@ class ResumenPagoOut(BaseModel):
             "derivarlo de su propio reloj, que puede ir desfasado."
         ),
     )
-    metodos_disponibles: List[str] = Field(default_factory=lambda: list(METODOS_DIGITALES))
+    metodos_disponibles: List[str] = Field(
+        default_factory=lambda: list(METODOS_DIGITALES),
+        description=(
+            "Incluye 'efectivo' únicamente si tipo_entrega es 'recogida_boutique'; lo resuelve "
+            "el servicio, no este valor por defecto."
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -74,91 +83,79 @@ class ResumenPagoOut(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class TarjetaIn(BaseModel):
-    """Datos de tarjeta en tránsito.
+class PagoEfectivoIn(BaseModel):
+    """Payload para registrar la intención de pago en efectivo en sucursal.
 
-    **No se persisten.** Se usan para validar y cobrar, y se descartan; de la tarjeta solo
-    sobreviven la marca y los últimos cuatro dígitos. El CVV no se guarda ni se registra.
-    """
-
-    numero: str = Field(..., min_length=12, max_length=23)
-    titular: str = Field(..., min_length=2, max_length=150)
-    mes_expiracion: int = Field(..., ge=1, le=12)
-    anio_expiracion: int = Field(..., ge=2024, le=2099)
-    cvv: str = Field(..., min_length=3, max_length=4)
-
-    @field_validator("numero", mode="before")
-    @classmethod
-    def _normalizar_numero(cls, valor: str) -> str:
-        """Admite el PAN con espacios o guiones, como lo teclea cualquier persona."""
-        return "".join(c for c in str(valor) if c.isdigit())
-
-    @field_validator("numero")
-    @classmethod
-    def _validar_luhn(cls, valor: str) -> str:
-        if not validar_luhn(valor):
-            raise ValueError("El número de tarjeta no supera la verificación de Luhn.")
-        return valor
-
-    @field_validator("cvv")
-    @classmethod
-    def _validar_cvv(cls, valor: str) -> str:
-        if not valor.isdigit():
-            raise ValueError("El código CVV debe contener solo dígitos.")
-        return valor
-
-    @model_validator(mode="after")
-    def _validar_expiracion(self) -> "TarjetaIn":
-        """La tarjeta caduca el último día de su mes de expiración."""
-        hoy = date.today()
-        ultimo_dia_valido = date(self.anio_expiracion, self.mes_expiracion, 1)
-        if (ultimo_dia_valido.year, ultimo_dia_valido.month) < (hoy.year, hoy.month):
-            raise ValueError("La tarjeta está caducada.")
-        return self
-
-
-class PagoProcesarIn(BaseModel):
-    """Payload de cobro.
-
-    Deliberadamente **no admite importes**: el servidor los toma de la orden ya congelada. Una
-    cifra enviada por el cliente se ignora por completo.
-
-    Tampoco admite `guardar_tarjeta`: sin un token reutilizable de pasarela, guardar un medio de
-    pago exigiría almacenar el PAN, lo que queda descartado (decisión §1.2 de la especificación).
+    Deliberadamente **no admite importes**: el servidor los toma de la orden ya congelada.
     """
 
     id_venta: int
-    metodo_pago: Literal["tarjeta_credito", "tarjeta_debito", "qr", "pasarela_digital"]
-
-    tarjeta: Optional[TarjetaIn] = Field(
-        None, description="Obligatoria para métodos con tarjeta, salvo que se aporte un token"
-    )
-    token_pasarela: Optional[str] = Field(
-        None,
-        max_length=120,
-        description="Token de prueba de Stripe (tok_visa, tok_chargeDeclined…), alternativo a la tarjeta",
-    )
 
     clave_idempotencia: Optional[str] = Field(
         None,
         max_length=64,
         description=(
-            "Identificador único del intento. Reenviar la misma clave devuelve el pago ya "
-            "confirmado en lugar de cobrar dos veces."
+            "Identificador único del intento. Reenviar la misma clave devuelve el registro ya "
+            "creado en lugar de duplicarlo."
         ),
     )
 
-    @model_validator(mode="after")
-    def _validar_datos_del_metodo(self) -> "PagoProcesarIn":
-        if self.metodo_pago in METODOS_CON_TARJETA and not (self.tarjeta or self.token_pasarela):
-            raise ValueError(
-                "Los pagos con tarjeta requieren los datos de la tarjeta o un token de pasarela."
-            )
-        return self
+
+class PagoIniciarIn(BaseModel):
+    """Payload para abrir un cobro digital contra Stripe.
+
+    **No lleva ningún dato de tarjeta.** El backend nunca recibe el PAN ni el CVV: crea un
+    `PaymentIntent` en Stripe y devuelve su `client_secret`, que el cliente usa con Stripe.js
+    (Web) o el SDK de Flutter (Mobile) para recolectar la tarjeta y confirmar el cobro
+    directamente contra Stripe, sin pasar por este servidor. Ver «Renombrado a confirmación por
+    tokens» en `spec.md` de CU16.
+    """
+
+    id_venta: int
+    metodo_pago: Literal["tarjeta_credito", "tarjeta_debito", "qr", "pasarela_digital"]
+
+    clave_idempotencia: Optional[str] = Field(
+        None,
+        max_length=64,
+        description=(
+            "Identificador único del intento. Reenviar la misma clave devuelve el mismo "
+            "`PaymentIntent` en lugar de crear otro."
+        ),
+    )
+
+    escenario_prueba: Optional[Literal["aprobado", "rechazado", "fondos_insuficientes"]] = Field(
+        None,
+        description=(
+            "Solo tiene efecto cuando el simulador está activo (sin clave real de Stripe "
+            "configurada): fuerza el desenlace de la verificación para que las pruebas sean "
+            "deterministas. Con Stripe real se ignora; el desenlace lo decide la pasarela."
+        ),
+    )
+
+
+class PagoIntentoOut(BaseModel):
+    """Respuesta a la apertura de un cobro digital.
+
+    `client_secret` es lo único que el cliente necesita para confirmar el `PaymentIntent` con
+    Stripe.js/el SDK de Flutter. Si la orden ya estaba pagada (reenvío idempotente de un cobro ya
+    confirmado), `ya_confirmado` viene en `True` y `confirmacion` trae el resultado sin abrir un
+    intento nuevo.
+    """
+
+    id_pago: int
+    client_secret: Optional[str] = None
+    ya_confirmado: bool = False
+    confirmacion: Optional["PagoConfirmadoOut"] = None
 
 
 class PagoConfirmadoOut(BaseModel):
-    """Confirmación del cobro y del cierre del ciclo de compra."""
+    """Confirmación del cobro, o del registro pendiente si el método es `efectivo`.
+
+    Para tarjeta/Bizum/PayPal, `estado_pago` llega siempre `confirmado` y `confirmado_en`
+    resuelto. Para `efectivo`, el pago queda `pendiente` (`confirmado_en=None`) hasta que un
+    cajero lo confirme en la boutique de recogida (§1.5.2/§1.6 de la especificación) — la venta
+    permanece `pendiente`, no `pagada`, y el mensaje explica el siguiente paso al cliente.
+    """
 
     id_pago: int
     id_venta: int
@@ -174,7 +171,7 @@ class PagoConfirmadoOut(BaseModel):
     marca_tarjeta: Optional[str] = None
     ultimos_digitos: Optional[str] = None
 
-    confirmado_en: datetime
+    confirmado_en: Optional[datetime] = None
     mensaje_confirmacion: str = (
         "Pago confirmado. Tu orden entra en preparación en el atelier."
     )

@@ -24,7 +24,7 @@ function crearItem(sobrescribir: Partial<CarritoItem> = {}): CarritoItem {
     precio_lista: '890.00',
     precio_unitario: '756.50',
     descuento_linea: '133.50',
-    motivo_descuento: 'Membresia Prive',
+    motivo_descuento: 'Seleccion Atelier',
     cantidad: 1,
     id_sucursal: 1,
     nombre_sucursal: 'Atelier Serrano - Madrid',

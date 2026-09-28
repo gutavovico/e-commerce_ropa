@@ -1,11 +1,28 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'api_config.dart';
 import 'src/core/sesion_manager.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/repositorios/login_repositorio.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 import 'src/navegacion/pantalla_principal_hub.dart';
 
-void main() {
+Future<void> main() async {
+  // Sin STRIPE_PUBLISHABLE_KEY (--dart-define), no se inicializa el SDK: CU16 cae en su panel de
+  // «modo simulador» en vez de intentar montar un CardField sin clave configurada.
+  if (ApiConfig.stripePublishableKey.isNotEmpty) {
+    WidgetsFlutterBinding.ensureInitialized();
+    Stripe.publishableKey = ApiConfig.stripePublishableKey;
+    // Requerido por Stripe en cuanto el `PaymentIntent` admite algún método que pueda redirigir
+    // (§A.2 de `spec.md`: se quitó `allow_redirects: 'never'` a propósito, para permitir 3DS/SCA).
+    // A diferencia de Stripe.js en Web, que recibe `return_url` en cada llamada, el SDK nativo lo
+    // resuelve a partir de este esquema global. Para que un redirect real (p. ej. una tarjeta que
+    // exige 3D Secure) vuelva a la app, este esquema debe registrarse también en
+    // `android/app/src/main/AndroidManifest.xml` (intent-filter) e `ios/Runner/Info.plist`
+    // (`CFBundleURLSchemes`) — pendiente de verificar en un dispositivo/emulador real.
+    Stripe.urlScheme = 'fashionstore';
+    await Stripe.instance.applySettings();
+  }
   runApp(const EcMobileApp());
 }
 

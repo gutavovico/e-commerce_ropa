@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../cu16_realizar_pago/presentacion/pantallas/checkout_payment_screen.dart';
 import '../../datos/modelos/carrito_dto.dart';
 import '../bloc/carrito_bloc.dart';
 
@@ -35,6 +36,10 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
   Timer? _temporizador;
   int? _segundosRestantes;
   String? _ultimaNotificacion;
+
+  /// Evita empujar dos veces la pantalla de pago si el estado notifica más de una vez para la
+  /// misma orden confirmada.
+  int? _idVentaNavegada;
 
   static const Color _negro = Color(0xFF0F1116);
   static const Color _grisTexto = Color(0xFF52525B);
@@ -75,6 +80,12 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
         _mostrarAviso(mensaje);
       }
       if (mensaje == null) _ultimaNotificacion = null;
+
+      final orden = estado.ordenConfirmada;
+      if (orden != null && orden.idVenta != _idVentaNavegada) {
+        _idVentaNavegada = orden.idVenta;
+        _irAPantallaDePago(orden.idVenta);
+      }
     } else {
       _detenerTemporizador();
     }
@@ -103,6 +114,19 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
           duration: const Duration(seconds: 4),
         ),
       );
+  }
+
+  /// Abre la pantalla de Pago Seguro (CU16) en cuanto CU15 confirma la orden — sin pantalla
+  /// intermedia, igual que en Web. Al volver, se refresca la bolsa: el backend ya la vació.
+  Future<void> _irAPantallaDePago(int idVenta) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CheckoutPaymentScreen(idVenta: idVenta, token: widget.token),
+      ),
+    );
+    _idVentaNavegada = null;
+    if (mounted) _bloc.cargarCarrito();
   }
 
   // -------------------------------------------------------------------
@@ -203,8 +227,9 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
       CarritoInicial() || CarritoCargando() => _construirEsqueleto(),
       CarritoError(mensaje: final mensaje) => _construirError(mensaje),
       CarritoVacio() => _construirBolsaVacia(),
-      CarritoCargado(ordenConfirmada: final orden) when orden != null =>
-        _construirConfirmacion(orden),
+      // La orden ya se confirmó: `_alCambiarEstado` está a punto de abrir la pantalla de pago
+      // (CU16), sin pantalla intermedia. Este esqueleto solo cubre el frame de transición.
+      CarritoCargado(ordenConfirmada: final orden) when orden != null => _construirEsqueleto(),
       CarritoCargado() => _construirContenido(estado),
     };
   }
@@ -329,93 +354,6 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _construirConfirmacion(VentaCreadaDto orden) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 24),
-          const Icon(Icons.check_circle, size: 56, color: Color(0xFF16A34A)),
-          const SizedBox(height: 20),
-          Text(
-            orden.mensajeConfirmacion,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: 17,
-              fontWeight: FontWeight.w400,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'COMPROBANTE: ${orden.numeroComprobante}',
-                style: const TextStyle(
-                  fontFamily: 'Outfit',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: _camel,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _fondoSuave,
-              border: Border.all(color: _lineaClara),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: [
-                _filaResumen('Prendas', '${orden.totalPrendas}'),
-                const SizedBox(height: 8),
-                _filaResumen('Total', '${orden.total.toStringAsFixed(2)} €', destacado: true),
-                const SizedBox(height: 8),
-                _filaResumen(
-                  'Entrega',
-                  orden.tipoEntrega == 'domicilio' ? 'A domicilio' : 'Recogida en boutique',
-                ),
-                if (orden.nombreSucursalRetiro != null) ...[
-                  const SizedBox(height: 8),
-                  _filaResumen('Boutique', orden.nombreSucursalRetiro!),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _negro,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            ),
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              'CONTINUAR EXPLORANDO',
-              style: TextStyle(
-                fontFamily: 'Outfit',
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

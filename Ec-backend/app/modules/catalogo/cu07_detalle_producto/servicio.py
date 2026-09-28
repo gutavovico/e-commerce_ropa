@@ -296,26 +296,11 @@ class ProductoDetalleServicio:
                     if tiene_stock:
                         tallas_dict[tid].disponible = True
 
-        # Ordenar tallas por orden normativo
+        # Ordenar tallas por orden normativo. Si el producto no tiene variantes registradas
+        # en BD, tallas y colores quedan como listas vacías: la interfaz debe mostrar su
+        # estado vacío correspondiente, nunca datos fabricados (regla de "cero datos inventados").
         tallas_ordenadas = sorted(tallas_dict.values(), key=lambda t: t.orden)
         colores_lista = list(colores_dict.values())
-
-        # Si no había variantes en BD, suministrar variantes de fallback
-        if not tallas_ordenadas:
-            tallas_ordenadas = [
-                TallaResumenOut(id_talla=1, codigo="34", orden=1, disponible=True, stock_total=3),
-                TallaResumenOut(id_talla=2, codigo="36", orden=2, disponible=True, stock_total=5),
-                TallaResumenOut(id_talla=3, codigo="38", orden=3, disponible=True, stock_total=2),
-                TallaResumenOut(id_talla=4, codigo="40", orden=4, disponible=True, stock_total=4),
-                TallaResumenOut(id_talla=5, codigo="42", orden=5, disponible=False, stock_total=0),
-            ]
-        if not colores_lista:
-            colores_lista = [
-                ColorResumenOut(id_color=1, nombre="Seda Marfil Natural", codigo_hex="#F5F2EB", disponible=True),
-                ColorResumenOut(id_color=2, nombre="Obsidian Negro", codigo_hex="#1E1E1E", disponible=True),
-                ColorResumenOut(id_color=3, nombre="Camel Suave", codigo_hex="#C19A6B", disponible=True),
-                ColorResumenOut(id_color=4, nombre="Vino Borgoña", codigo_hex="#581825", disponible=True),
-            ]
 
         # 6. Prenda complementarias (Look Atelier)
         complementarias_orm = ProductoDetalleRepositorio.obtener_prendas_complementarias(

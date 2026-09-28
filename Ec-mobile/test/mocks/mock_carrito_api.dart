@@ -24,7 +24,7 @@ const Map<String, dynamic> respuestaCarritoBackend = {
       'precio_lista': '890.00',
       'precio_unitario': '756.50',
       'descuento_linea': '133.50',
-      'motivo_descuento': 'Membresia Prive',
+      'motivo_descuento': 'Seleccion Atelier',
       'cantidad': 2,
       'id_sucursal': 1,
       'nombre_sucursal': 'Atelier Serrano - Madrid',
@@ -64,7 +64,7 @@ const Map<String, dynamic> respuestaVentaBackend = {
   'iva_incluido': '262.62',
   'moneda': 'EUR',
   'cupon_aplicado': null,
-  'nombre_promocion': 'Membresia Prive',
+  'nombre_promocion': 'Seleccion Atelier',
   'items': [
     {
       'id_venta_detalle': 1,

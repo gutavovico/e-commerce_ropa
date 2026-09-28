@@ -33,7 +33,7 @@ const RESPUESTA_CARRITO: Carrito = {
       precio_lista: '890.00',
       precio_unitario: '756.50',
       descuento_linea: '133.50',
-      motivo_descuento: 'Membresia Prive',
+      motivo_descuento: 'Seleccion Atelier',
       cantidad: 1,
       id_sucursal: 1,
       nombre_sucursal: 'Atelier Serrano - Madrid',
@@ -210,7 +210,7 @@ describe('CarritoService (CU11 + CU15)', () => {
     peticion.flush({ id_venta: 1 });
   });
 
-  it('vacía la bolsa tras tramitar el pedido', () => {
+  it('conserva la bolsa tras tramitar: solo se vacía cuando el pago se confirma', () => {
     servicio.cargarCarrito().subscribe();
     httpMock.expectOne('/api/v1/carrito').flush(RESPUESTA_CARRITO);
     expect(servicio.estaVacia()).toBe(false);
@@ -220,7 +220,10 @@ describe('CarritoService (CU11 + CU15)', () => {
     servicio.tramitarPedido().subscribe();
     httpMock.expectOne('/api/v1/ventas/checkout').flush({ id_venta: 1 });
 
-    expect(servicio.estaVacia()).toBe(true);
-    expect(servicio.totalPrendas()).toBe(0);
+    // Tramitar solo deja la orden en `pendiente`. El backend conserva las prendas hasta que la
+    // pasarela (o el cajero, en el pago en efectivo) confirma el cobro; fingir aquí una bolsa
+    // vacía dejaría el contador de la cabecera a 0 mientras el servidor dice lo contrario.
+    expect(servicio.estaVacia()).toBe(false);
+    expect(servicio.totalPrendas()).toBe(1);
   });
 });

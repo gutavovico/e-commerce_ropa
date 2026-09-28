@@ -2,8 +2,9 @@
 
 **ID del Cambio:** `CU07-CU08-CU09-CU12-detalle-producto`  
 **Metodología:** Spec-Driven Development (SDD) & Proceso Unificado de Desarrollo de Software (PUDS)  
-**Estado:** 🟢 CP-01 a CP-18 aprobados (Backend, Web y Mobile) · ⏳ CP-19 y CP-20 pendientes  
-**Última verificación (2026-09-22):** `pytest` 123/123 · `ng test` 108/108 + `ng build` 0 errores · `dart analyze` 0 issues + `flutter test` 104/104. Verificación end-to-end contra Neon: catálogo, colecciones activas, filtros, recomendaciones, sucursales y productos responden HTTP 200 con datos reales.
+**Estado:** 🟢 CP-01 a CP-20 aprobados (Backend, Web y Mobile)  
+**Última verificación (2026-09-22):** `pytest` 123/123 · `ng test` 108/108 + `ng build` 0 errores · `dart analyze` 0 issues + `flutter test` 104/104. Verificación end-to-end contra Neon: catálogo, colecciones activas, filtros, recomendaciones, sucursales y productos responden HTTP 200 con datos reales.  
+**Corrección de CP-20 (2026-09-27):** eliminados los dos últimos focos de datos fabricados (D-09). `pytest` **413/413** en verde tras la corrección (incluye 2 pruebas de regresión nuevas). Ver §"Cierre de CP-19/CP-20" al final de este documento.
 
 ---
 
@@ -29,8 +30,8 @@
 | **CP-16** | Mobile Galería y AR | Galería con indicador `1/4`, 4 miniaturas táctiles y botón flotante en píldora oscura *"PROBAR EN AR"* maquetado. | Test de widget con hallazgo de elementos de galería. | ✅ Aprobado |
 | **CP-17** | Mobile Reserva Continua | Acordeón de disponibilidad muestra cada boutique con su propio botón directo *"RESERVAR EN ESTA BOUTIQUE"* (`image_2e3062.png`). | Test de widget sobre botón de reserva por sucursal. | ✅ Aprobado |
 | **CP-18** | Mobile Static Analysis | Código Flutter estricto, sin advertencias (`flutter analyze` 0 issues). | Ejecución de `flutter analyze`. | ✅ Aprobado |
-| **CP-19** | Catálogo Femenino | 100% indumentaria, modelos, descripciones y tallas de alta costura femenina exclusiva; cero contenido masculino. | Auditoría de assets y consultas en base de datos. | ⏳ Pendiente |
-| **CP-20** | Integridad BD Real | Todos los datos de prendas, sucursales y stock provienen estrictamente de PostgreSQL Neon. | Verificación de respuestas API con datos reales. | ⏳ Pendiente (ver Auditoría de Defectos, D-09) |
+| **CP-19** | Catálogo Femenino | 100% indumentaria, modelos, descripciones y tallas de alta costura femenina exclusiva; cero contenido masculino. | Auditoría de assets y consultas en base de datos. | ✅ Aprobado (2026-09-27) |
+| **CP-20** | Integridad BD Real | Todos los datos de prendas, sucursales y stock provienen estrictamente de PostgreSQL Neon. | Verificación de respuestas API con datos reales. | ✅ Aprobado (2026-09-27, ver D-09 y su cierre) |
 
 ---
 
@@ -53,9 +54,43 @@ invisibles mientras las 3 suites reportaban verde.
 | **D-08** | Medio | La interfaz web `ReservaConfirmacion` declaraba `codigo_confirmacion`, `total_prendas` y `mensaje_cortesia`, campos que `ReservaCreadaOut` no envía: el modal imprimía «CÓDIGO: » vacío y el toast `Cita confirmada (undefined)`. El spec mockeaba la interfaz propia del frontend, blindando el contrato incorrecto. | Corregido: modelo alineado campo a campo y spec reescrito con un payload real del backend. |
 | **D-09** | Medio | El registro web persistía la sesión como `fs_token_acceso`/`fs_usuario`, claves que ningún servicio lee: tras registrarse el usuario quedaba anónimo para el interceptor y `/perfil` rebotaba a `/login`. | Corregido: el registro delega en `LoginService.establecerSesion()`, único propietario de las claves. |
 
-**Deuda registrada, fuera del alcance de esta corrección:** datos fabricados servidos como reales
-(`/sucursales/activas` devuelve `cantidad_disponible=5` fijo e inventa boutiques si la tabla está
-vacía; `/productos/{id}/disponibilidad` inventa 3 boutiques; `/productos/{id}` inventa tallas y
-colores cuando el producto no tiene variantes). Esto bloquea **CP-20** y contradice la regla de
-«cero productos inventados» del skill de dominio, porque la UI ofrece existencias que la reserva
-luego rechaza.
+**Deuda registrada el 2026-09-21, cerrada el 2026-09-27 (ver sección siguiente):** datos fabricados
+servidos como reales (`/sucursales/activas` devolvía `cantidad_disponible=5` fijo e inventaba
+boutiques si la tabla estaba vacía; `/productos/{id}/disponibilidad` inventaba 3 boutiques;
+`/productos/{id}` inventaba tallas y colores cuando el producto no tenía variantes). Bloqueaba
+**CP-20** y contradecía la regla de «cero productos inventados» del skill de dominio, porque la UI
+ofrecía existencias que la reserva luego rechazaba.
+
+---
+
+## Cierre de CP-19/CP-20 (2026-09-27)
+
+`/api/v1/sucursales/activas` ya se había depurado en el cambio `CU11-CU15-gestionar-carrito-checkout`
+(tarea `T-BE-11`), pero quedaban dos focos vivos de datos fabricados dentro de este mismo cambio,
+confirmados leyendo el código, no solo la documentación:
+
+| Endpoint | Archivo | Problema | Corrección |
+| :--- | :--- | :--- | :--- |
+| `GET /api/v1/productos/{id}/disponibilidad` | `app/modules/catalogo/cu09_disponibilidad/servicio.py` | Si `obtener_sucursales_activas` no devolvía filas, el servicio sustituía la lista real por tres boutiques ficticias (`sucursales_mock`: Flagship Serrano, Boutique Saint-Honoré y un «Madrid Central Atelier Hub») con stock inventado. | Se eliminó la rama `if not sucursales`. Ahora, sin sucursales activas en `fashionstore.sucursales`, la respuesta trae `sucursales: []` y `total_disponible_global: 0`; el esquema `DisponibilidadSucursalesOut` ya admitía lista vacía por diseño. |
+| `GET /api/v1/productos/{id}` | `app/modules/catalogo/cu07_detalle_producto/servicio.py` | Si el producto no tenía `variantes_producto`, el servicio rellenaba `tallas_disponibles` con 5 tallas fijas (34–42) y `colores_disponibles` con 4 colores fijos (Seda Marfil, Obsidian Negro, Camel Suave, Vino Borgoña), ninguno vinculado a la prenda real. | Se eliminó el bloque de relleno. Un producto sin variantes ahora devuelve `variantes: []`, `tallas_disponibles: []` y `colores_disponibles: []`; la ficha muestra su estado vacío. |
+
+**Verificación de los clientes:** ni Angular ni Flutter necesitaron cambios. `producto-detalle.component.ts`
+condiciona la selección inicial de color a `colores_disponibles.length > 0` y su plantilla itera con
+`@for` (cero iteraciones sobre lista vacía); `producto_detalle_bloc.dart` y
+`pantalla_producto_detalle.dart` ya usan `isNotEmpty`/`isEmpty` antes de tocar `coloresDisponibles`,
+`tallasDisponibles` y `sucursales` (línea 1137 de `pantalla_producto_detalle.dart` ya renderiza
+«No hay disponibilidad confirmada en este momento.» cuando la lista viene vacía). Ambos degradan al
+estado vacío sin lanzar excepción.
+
+**Pruebas de regresión añadidas:**
+- `tests/modules/catalogo/test_cu09_disponibilidad.py::test_consultar_disponibilidad_sin_sucursales_devuelve_lista_vacia`
+- `tests/modules/catalogo/test_cu07_detalle_producto.py::test_consultar_detalle_producto_sin_variantes_no_inventa_tallas_ni_colores`
+
+`pytest -q` completo: **413/413** en verde.
+
+**CP-19** se aprueba en la misma auditoría: no se encontró contenido, texto ni fallback masculino en
+`Ec-backend`, `Ec-frontend` ni `Ec-mobile` (búsqueda de "masculin/hombre/caballero" solo halló el
+campo de género del perfil del cliente en `cu04_gestionar_perfil/esquemas.py`, ajeno al catálogo).
+
+Con esto, **los 20 checkpoints (CP-01 a CP-20) quedan aprobados** y el cambio
+`CU07-CU08-CU09-CU12-detalle-producto` puede consolidarse como finalizado.

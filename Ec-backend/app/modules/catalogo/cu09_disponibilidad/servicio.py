@@ -56,78 +56,40 @@ class DisponibilidadServicio:
         items_sucursal: List[DisponibilidadSucursalItemOut] = []
         total_global = 0
 
-        # Si no hay sucursales en BD, proveer las boutiques insignia de FashionStore por defecto
-        if not sucursales:
-            sucursales_mock = [
-                (1, "Flagship Serrano (Madrid)", "Madrid", "Calle de Serrano 44, Salamanca", "91 555 0123", 2, 0),
-                (2, "Boutique Saint-Honoré (París)", "París", "228 Rue du Faubourg Saint-Honoré", "+33 1 42 68 0000", 1, 0),
-                (3, "Madrid Central Atelier Hub", "Madrid", "Paseo de la Castellana 92", "91 555 0199", 0, 0),
-            ]
-            for sid, nom, ciu, dir_str, tel, disp, res in sucursales_mock:
-                cant_disp = stock_por_sucursal.get(sid, disp)
-                cant_res = reservado_por_sucursal.get(sid, res)
-                total_global += cant_disp
+        # Solo se reportan sucursales reales de la base de datos. Si no hay ninguna
+        # activa, la respuesta queda con "sucursales": [] (regla de "cero datos inventados").
+        for suc in sucursales:
+            cant_disp = stock_por_sucursal.get(suc.id_sucursal, 0)
+            cant_res = reservado_por_sucursal.get(suc.id_sucursal, 0)
+            total_global += cant_disp
 
-                if cant_disp >= 3:
-                    estado_stk = "disponible"
-                    badge_stk = f"{cant_disp} UDS EN STOCK"
-                elif cant_disp > 0:
-                    estado_stk = "ultimas_unidades"
-                    badge_stk = f"{cant_disp} UD EN STOCK" if cant_disp == 1 else f"{cant_disp} UDS EN STOCK"
-                else:
-                    estado_stk = "agotada"
-                    badge_stk = "CITA CON SASTRE JEFE"
+            if cant_disp >= 3:
+                estado_stk = "disponible"
+                badge_stk = f"{cant_disp} UDS EN STOCK"
+            elif cant_disp > 0:
+                estado_stk = "ultimas_unidades"
+                badge_stk = f"{cant_disp} UD EN STOCK" if cant_disp == 1 else f"{cant_disp} UDS EN STOCK"
+            else:
+                estado_stk = "agotada"
+                badge_stk = "CITA CON SASTRE JEFE"
 
-                items_sucursal.append(
-                    DisponibilidadSucursalItemOut(
-                        id_sucursal=sid,
-                        nombre=nom,
-                        ciudad=ciu,
-                        direccion=dir_str,
-                        telefono=tel,
-                        horario_apertura="09:00",
-                        horario_cierre="20:00",
-                        cantidad_disponible=cant_disp,
-                        cantidad_reservada=cant_res,
-                        estado_stock=estado_stk,
-                        badge_stock=badge_stk,
-                        citas_disponibles_texto="Citas de prueba disponibles hoy y mañana",
-                        permite_reserva_directa=cant_disp > 0,
-                    )
+            items_sucursal.append(
+                DisponibilidadSucursalItemOut(
+                    id_sucursal=suc.id_sucursal,
+                    nombre=suc.nombre,
+                    ciudad=suc.ciudad.nombre if suc.ciudad else "Madrid",
+                    direccion=suc.direccion,
+                    telefono=suc.telefono,
+                    horario_apertura=suc.horario_apertura or "09:00",
+                    horario_cierre=suc.horario_cierre or "20:00",
+                    cantidad_disponible=cant_disp,
+                    cantidad_reservada=cant_res,
+                    estado_stock=estado_stk,
+                    badge_stock=badge_stk,
+                    citas_disponibles_texto="Citas de prueba disponibles hoy y mañana",
+                    permite_reserva_directa=cant_disp > 0,
                 )
-        else:
-            for suc in sucursales:
-                cant_disp = stock_por_sucursal.get(suc.id_sucursal, 0)
-                cant_res = reservado_por_sucursal.get(suc.id_sucursal, 0)
-                total_global += cant_disp
-
-                if cant_disp >= 3:
-                    estado_stk = "disponible"
-                    badge_stk = f"{cant_disp} UDS EN STOCK"
-                elif cant_disp > 0:
-                    estado_stk = "ultimas_unidades"
-                    badge_stk = f"{cant_disp} UD EN STOCK" if cant_disp == 1 else f"{cant_disp} UDS EN STOCK"
-                else:
-                    estado_stk = "agotada"
-                    badge_stk = "CITA CON SASTRE JEFE"
-
-                items_sucursal.append(
-                    DisponibilidadSucursalItemOut(
-                        id_sucursal=suc.id_sucursal,
-                        nombre=suc.nombre,
-                        ciudad=suc.ciudad.nombre if suc.ciudad else "Madrid",
-                        direccion=suc.direccion,
-                        telefono=suc.telefono,
-                        horario_apertura=suc.horario_apertura or "09:00",
-                        horario_cierre=suc.horario_cierre or "20:00",
-                        cantidad_disponible=cant_disp,
-                        cantidad_reservada=cant_res,
-                        estado_stock=estado_stk,
-                        badge_stock=badge_stk,
-                        citas_disponibles_texto="Citas de prueba disponibles hoy y mañana",
-                        permite_reserva_directa=cant_disp > 0,
-                    )
-                )
+            )
 
         return DisponibilidadSucursalesOut(
             id_producto=id_producto,
