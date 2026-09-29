@@ -234,5 +234,50 @@ void main() {
         expect(api.llamadasConfirmarPago, 0);
       },
     );
+
+    test(
+      'un error inesperado que no es PagoException al cargar el resumen transiciona a PagoError sin congelar',
+      () async {
+        final bloc = PagoBloc(
+          api: _ApiQueLanzaErrorInesperado(),
+          token: kToken,
+        );
+
+        await bloc.cargarResumen(1);
+
+        expect(bloc.estado, isA<PagoError>());
+        expect((bloc.estado as PagoError).mensaje, contains('Error inesperado'));
+      },
+    );
+
+    test(
+      'un error inesperado o de plataforma durante confirmarYPagar transiciona a PagoRechazado sin congelar en PagoProcesando',
+      () async {
+        final api = _ApiQueFallaInesperadamenteEnIniciar();
+        final bloc = PagoBloc(api: api, token: kToken);
+        await bloc.cargarResumen(1);
+
+        final exito = await bloc.confirmarYPagar();
+
+        expect(exito, false);
+        expect(bloc.estado, isA<PagoRechazado>());
+        expect((bloc.estado as PagoRechazado).motivo, contains('Fallo inesperado'));
+      },
+    );
   });
 }
+
+class _ApiQueLanzaErrorInesperado extends MockPagoApi {
+  @override
+  Future<ResumenPagoDto> obtenerResumenPago(int idVenta, {required String token}) async {
+    throw const FormatException('Payload corrupto');
+  }
+}
+
+class _ApiQueFallaInesperadamenteEnIniciar extends MockPagoApi {
+  @override
+  Future<PagoIntentoOutDto> iniciarPago(PagoIniciarInDto datos, {required String token}) async {
+    throw Exception('Error nativo de plataforma');
+  }
+}
+

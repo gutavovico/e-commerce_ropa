@@ -46,6 +46,11 @@ class StripeGatewayReal implements StripeGateway {
         aprobado: false,
         mensajeError: e.error.localizedMessage ?? e.error.message,
       );
+    } catch (e) {
+      return StripeConfirmacionResultado(
+        aprobado: false,
+        mensajeError: 'Error al procesar el pago con la pasarela bancaria: $e',
+      );
     }
   }
 }

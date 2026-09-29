@@ -145,6 +145,8 @@ class CarritoBloc extends ChangeNotifier {
           : CarritoCargado(carrito: carrito, boutiques: boutiques);
     } on CarritoException catch (e) {
       _estado = CarritoError(e.mensaje);
+    } catch (e) {
+      _estado = CarritoError('Error inesperado al consultar la bolsa: $e');
     }
     notifyListeners();
   }
@@ -218,6 +220,17 @@ class CarritoBloc extends ChangeNotifier {
       );
       notifyListeners();
       return false;
+    } catch (e) {
+      if (_estado is CarritoCargado) {
+        _estado = (_estado as CarritoCargado).copyWith(
+          carrito: carritoPrevio,
+          procesando: false,
+          limpiarLineaEnCurso: true,
+          mensajeNotificacion: 'Error al actualizar cantidad: $e',
+        );
+        notifyListeners();
+      }
+      return false;
     }
   }
 
@@ -288,6 +301,14 @@ class CarritoBloc extends ChangeNotifier {
         procesando: false,
         limpiarLineaEnCurso: true,
         mensajeNotificacion: e.mensaje,
+      );
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _estado = actual.copyWith(
+        procesando: false,
+        limpiarLineaEnCurso: true,
+        mensajeNotificacion: 'Error al retirar prenda: $e',
       );
       notifyListeners();
       return false;
@@ -371,6 +392,13 @@ class CarritoBloc extends ChangeNotifier {
         procesando: false,
         limpiarCupon: e.esCuponInvalido,
         mensajeNotificacion: e.mensaje,
+      );
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _estado = actual.copyWith(
+        procesando: false,
+        mensajeNotificacion: 'Error al tramitar pedido: $e',
       );
       notifyListeners();
       return false;

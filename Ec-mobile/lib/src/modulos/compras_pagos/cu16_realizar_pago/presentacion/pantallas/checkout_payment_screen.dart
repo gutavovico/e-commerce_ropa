@@ -723,17 +723,17 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
             runSpacing: 8,
             children: [
               ChoiceChip(
-                label: const Text('✅ Pago Aprobado'),
+                label: const Text('Pago Aprobado'),
                 selected: escenarioActual == EscenarioPrueba.aprobado,
                 onSelected: (_) => _bloc.seleccionarEscenarioPrueba(EscenarioPrueba.aprobado),
               ),
               ChoiceChip(
-                label: const Text('❌ Rechazo Genérico'),
+                label: const Text('Rechazo Generico'),
                 selected: escenarioActual == EscenarioPrueba.rechazado,
                 onSelected: (_) => _bloc.seleccionarEscenarioPrueba(EscenarioPrueba.rechazado),
               ),
               ChoiceChip(
-                label: const Text('⚠️ Fondos Insuficientes'),
+                label: const Text('Fondos Insuficientes'),
                 selected: escenarioActual == EscenarioPrueba.fondosInsuficientes,
                 onSelected: (_) =>
                     _bloc.seleccionarEscenarioPrueba(EscenarioPrueba.fondosInsuficientes),

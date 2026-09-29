@@ -427,7 +427,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
                 ),
               ),
 
-              // Botón Flotante CU10: [ 👁 PROBAR EN AR ]
+              // Boton Flotante CU10: [ PROBAR EN AR ]
               Positioned(
                 bottom: 12,
                 right: 12,
@@ -1123,7 +1123,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
     );
   }
 
-  /// Lista continua de boutiques con botón directo [ 🏢 RESERVAR EN ESTA BOUTIQUE ]
+  /// Lista continua de boutiques con boton directo [ RESERVAR EN ESTA BOUTIQUE ]
   Widget _contenidoBoutiques(ProductoDetalleCargado estado) {
     if (estado.cargandoDisponibilidad) {
       return const Padding(
@@ -1225,7 +1225,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
               ),
               const SizedBox(height: 10),
 
-              // Botón Directo: [ 🏢 RESERVAR EN ESTA BOUTIQUE ]
+              // Boton Directo: [ RESERVAR EN ESTA BOUTIQUE ]
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(

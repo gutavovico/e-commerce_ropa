@@ -280,7 +280,9 @@ class VarianteDetalleDto {
       colorHex: json['color_hex'] as String? ?? '#000000',
       sku: json['sku'] as String? ?? 'SKU-VAR',
       precioExtra: ProductoDetalleDto._toDouble(json['precio_extra']),
-      precioFinalVariante: ProductoDetalleDto._toDouble(json['precio_final_variante']),
+      precioFinalVariante: ProductoDetalleDto._toDouble(
+        json['precio_final_variante'] ?? json['precio_final'] ?? json['precio'],
+      ),
       stockTotalDisponible: json['stock_total_disponible'] as int? ?? 0,
       tieneStock: json['tiene_stock'] as bool? ?? false,
       imagenUrl: json['imagen_url'] as String?,

@@ -107,7 +107,7 @@ const Map<String, dynamic> respuestaCarritoVacioBackend = {
 /// Doble de [CarritoApi] que deserializa payloads reales del backend.
 class MockCarritoApi implements CarritoApi {
   /// Si se indica, toda operación de escritura la lanza.
-  final CarritoException? excepcion;
+  final Exception? excepcion;
 
   /// Cuando es cierto, `obtenerCarrito` devuelve una bolsa sin prendas.
   final bool bolsaVacia;

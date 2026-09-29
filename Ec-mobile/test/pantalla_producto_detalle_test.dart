@@ -13,6 +13,7 @@ class MockProductoDetalleApi implements ProductoDetalleApi {
   final List<SucursalDisponibilidadDto> mockSucursales;
   final ReservaCreadaOutDto mockReserva;
   bool shouldThrow;
+  final Object? excepcionAlCrearReserva;
 
   MockProductoDetalleApi({
     ProductoDetalleDto? mockDetalle,
@@ -20,6 +21,7 @@ class MockProductoDetalleApi implements ProductoDetalleApi {
     List<SucursalDisponibilidadDto>? mockSucursales,
     ReservaCreadaOutDto? mockReserva,
     this.shouldThrow = false,
+    this.excepcionAlCrearReserva,
   })  : mockDetalle = mockDetalle ?? _crearDetalleMock(),
         mockDisponibilidad = mockDisponibilidad ?? _crearDisponibilidadMock(),
         mockSucursales = mockSucursales ?? _crearSucursalesMock(),
@@ -307,6 +309,9 @@ class MockProductoDetalleApi implements ProductoDetalleApi {
     ReservaCrearInDto datos, {
     String? token,
   }) async {
+    if (excepcionAlCrearReserva != null) {
+      throw excepcionAlCrearReserva!;
+    }
     if (shouldThrow) {
       throw const ProductoDetalleException('Error simulado al reservar cita.');
     }
@@ -452,6 +457,42 @@ void main() {
       final estado = bloc.estado as ProductoDetalleCargado;
       expect(estado.ultimaReserva?.codigoReserva, 'RES-2026-0501');
       expect(estado.mensajeNotificacion, contains('RES-2026-0501'));
+    });
+
+    test('confirmarReserva maneja excepciones inesperadas reseteando reservaEnCurso a false', () async {
+      final bloc = ProductoDetalleBloc(
+        api: MockProductoDetalleApi(
+          excepcionAlCrearReserva: Exception('Error inesperado de red'),
+        ),
+      );
+      await bloc.cargarDetalle(1);
+
+      final exito = await bloc.confirmarReserva(
+        idSucursal: 1,
+        fechaReserva: DateTime.now().add(const Duration(days: 1)),
+      );
+
+      expect(exito, false);
+      final estado = bloc.estado as ProductoDetalleCargado;
+      expect(estado.reservaEnCurso, false);
+      expect(estado.mensajeNotificacion, contains('Fallo al solicitar reserva'));
+    });
+
+    test('agregarABolsa captura excepciones no controladas sin propagar error', () async {
+      final carritoApi = MockCarritoApi(
+        excepcion: Exception('Excepcion generica no controlada'),
+      );
+      final bloc = ProductoDetalleBloc(
+        api: MockProductoDetalleApi(),
+        carritoApi: carritoApi,
+      );
+      await bloc.cargarDetalle(1);
+
+      final exito = await bloc.agregarABolsa(token: 'jwt-de-prueba');
+
+      expect(exito, false);
+      final estado = bloc.estado as ProductoDetalleCargado;
+      expect(estado.mensajeNotificacion, contains('Error al agregar a la bolsa'));
     });
   });
 
@@ -732,6 +773,59 @@ void main() {
       );
       expect(producto.galeriaAngulos, hasLength(2));
       expect(producto.galeriaAngulos.first.etiqueta, 'FRONTAL');
+    });
+
+    test('VarianteDetalleDto.fromJson lee precio_final_variante, precio_final o precio segun disponibilidad', () {
+      final v1 = VarianteDetalleDto.fromJson(const {
+        'id_variante': 1,
+        'id_producto': 10,
+        'id_talla': 2,
+        'talla_codigo': '38',
+        'talla_orden': 1,
+        'id_color': 3,
+        'color_nombre': 'Azul',
+        'color_hex': '#0000FF',
+        'sku': 'SKU-001',
+        'precio_extra': 0.0,
+        'precio_final_variante': '120.50',
+        'stock_total_disponible': 5,
+        'tiene_stock': true,
+      });
+      expect(v1.precioFinalVariante, 120.50);
+
+      final v2 = VarianteDetalleDto.fromJson(const {
+        'id_variante': 2,
+        'id_producto': 10,
+        'id_talla': 2,
+        'talla_codigo': '38',
+        'talla_orden': 1,
+        'id_color': 3,
+        'color_nombre': 'Azul',
+        'color_hex': '#0000FF',
+        'sku': 'SKU-002',
+        'precio_extra': 0.0,
+        'precio_final': 130.0,
+        'stock_total_disponible': 5,
+        'tiene_stock': true,
+      });
+      expect(v2.precioFinalVariante, 130.0);
+
+      final v3 = VarianteDetalleDto.fromJson(const {
+        'id_variante': 3,
+        'id_producto': 10,
+        'id_talla': 2,
+        'talla_codigo': '38',
+        'talla_orden': 1,
+        'id_color': 3,
+        'color_nombre': 'Azul',
+        'color_hex': '#0000FF',
+        'sku': 'SKU-003',
+        'precio_extra': 0.0,
+        'precio': 140,
+        'stock_total_disponible': 5,
+        'tiene_stock': true,
+      });
+      expect(v3.precioFinalVariante, 140.0);
     });
   });
 }

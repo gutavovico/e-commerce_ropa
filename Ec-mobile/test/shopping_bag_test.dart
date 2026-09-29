@@ -330,6 +330,28 @@ void main() {
       bloc.aplicarCupon('  MAISON-2025  ');
       expect((bloc.estado as CarritoCargado).cuponAplicado, 'MAISON-2025');
     });
+
+    test('error inesperado al cargar carrito emite CarritoError sin congelar estado', () async {
+      final bloc = CarritoBloc(api: _ApiQueFallaInesperadamenteEnCarga(), token: kToken);
+      await bloc.cargarCarrito();
+
+      expect(bloc.estado, isA<CarritoError>());
+      expect((bloc.estado as CarritoError).mensaje, contains('Error inesperado'));
+    });
+
+    test('error inesperado al tramitar pedido restablece procesando a false sin congelar la UI', () async {
+      final api = _ApiQueFallaInesperadamenteEnTramitar();
+      final bloc = CarritoBloc(api: api, token: kToken);
+      await bloc.cargarCarrito();
+
+      bloc.actualizarDireccion('Calle Serrano 48');
+      final exito = await bloc.tramitarPedido();
+
+      expect(exito, false);
+      final estado = bloc.estado as CarritoCargado;
+      expect(estado.procesando, false);
+      expect(estado.mensajeNotificacion, contains('Error al tramitar pedido'));
+    });
   });
 
   // =========================================================================
@@ -561,3 +583,21 @@ class _ApiQueFalla implements CarritoApi {
   @override
   Future<List<BoutiqueRecogidaDto>> obtenerBoutiques() async => [];
 }
+
+class _ApiQueFallaInesperadamenteEnCarga extends MockCarritoApi {
+  @override
+  Future<CarritoDto> obtenerCarrito({required String token}) async {
+    throw const FormatException('JSON no valido');
+  }
+}
+
+class _ApiQueFallaInesperadamenteEnTramitar extends MockCarritoApi {
+  @override
+  Future<VentaCreadaDto> tramitarPedido(
+    CheckoutInDto datos, {
+    required String token,
+  }) async {
+    throw Exception('Error inesperado de red');
+  }
+}
+

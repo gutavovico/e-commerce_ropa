@@ -120,6 +120,8 @@ class PagoBloc extends ChangeNotifier {
       _estado = PagoListo(resumen: resumen);
     } on PagoException catch (e) {
       _estado = PagoError(e.mensaje);
+    } catch (e) {
+      _estado = PagoError('Error inesperado al cargar el resumen de pago: $e');
     }
     notifyListeners();
   }
@@ -163,7 +165,7 @@ class PagoBloc extends ChangeNotifier {
 
     final esTarjeta = metodo == 'tarjeta_credito' || metodo == 'tarjeta_debito';
     // Bizum/QR y PayPal son simulaciones decorativas del proyecto: nunca pasan por Stripe, con
-    // o sin SDK real inicializado, así que siempre se abren con el desenlace "aprobado".
+    // o sin SDK real inicializado, asi que siempre se abren con el desenlace aprobado.
     final usaStripeReal = esTarjeta && stripeDisponible;
 
     _claveIdempotencia ??= _generarClaveIdempotencia();
@@ -191,7 +193,7 @@ class PagoBloc extends ChangeNotifier {
       if (usaStripeReal) {
         final clientSecret = intento.clientSecret;
         if (clientSecret == null) {
-          _estado = PagoError('La pasarela no devolvió un cobro que confirmar.');
+          _estado = PagoError('La pasarela no devolvio un cobro que confirmar.');
           notifyListeners();
           return false;
         }
@@ -210,20 +212,30 @@ class PagoBloc extends ChangeNotifier {
       }
 
       // El servidor decide el desenlace final por su cuenta, nunca por lo que este cliente
-      // reporte: recupera el `PaymentIntent` de Stripe y lo compara.
+      // reporte: recupera el PaymentIntent de Stripe y lo compara.
       final confirmacion = await _api.confirmarPago(intento.idPago, token: _token);
       _estado = PagoExitoso(confirmacion);
       notifyListeners();
       return true;
     } on PagoException catch (e) {
       if (e.esPagoRechazado) {
-        // La orden sigue viva: se permite reintentar con el mismo u otro método.
+        // La orden sigue viva: se permite reintentar con el mismo u otro metodo.
         _claveIdempotencia = null;
         _estado = PagoRechazado(resumen: resumen, metodoSeleccionado: metodo, motivo: e.mensaje);
       } else {
-        // Orden expirada, ya liquidada o cualquier otro fallo: no hay nada que reintentar aquí.
+        // Orden expirada, ya liquidada o cualquier otro fallo: no hay nada que reintentar aqui.
         _estado = PagoError(e.mensaje);
       }
+      notifyListeners();
+      return false;
+    } catch (e) {
+      // Previene que la interfaz quede congelada en PagoProcesando ante excepciones de plataforma
+      _claveIdempotencia = null;
+      _estado = PagoRechazado(
+        resumen: resumen,
+        metodoSeleccionado: metodo,
+        motivo: 'Fallo inesperado durante el cobro: $e',
+      );
       notifyListeners();
       return false;
     }

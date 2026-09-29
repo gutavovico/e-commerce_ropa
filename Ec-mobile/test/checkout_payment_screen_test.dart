@@ -82,7 +82,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.textContaining('Modo simulador'), findsOneWidget);
-        expect(find.text('✅ Pago Aprobado'), findsOneWidget);
+        expect(find.text('Pago Aprobado'), findsOneWidget);
         // El backend nunca recibe datos de tarjeta (revisado el 2026-09-28): tampoco hay ningún
         // campo que pueda recolectarlos aquí cuando no hay SDK de Stripe real inicializado.
         expect(find.widgetWithText(TextField, 'Número de tarjeta'), findsNothing);
@@ -98,7 +98,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // "✅ Pago Aprobado" ya viene seleccionado por defecto.
+      // "Pago Aprobado" ya viene seleccionado por defecto.
       await tester.tap(find.textContaining('CONFIRMAR Y PAGAR'));
       await tester.pumpAndSettle();
 
@@ -125,7 +125,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('❌ Rechazo Genérico'));
+      await tester.tap(find.text('Rechazo Generico'));
       await tester.pump();
       await tester.tap(find.textContaining('CONFIRMAR Y PAGAR'));
       await tester.pumpAndSettle();

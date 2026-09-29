@@ -424,6 +424,10 @@ class ProductoDetalleBloc extends ChangeNotifier {
       _estado = actual.copyWith(mensajeNotificacion: e.mensaje);
       notifyListeners();
       return false;
+    } catch (e) {
+      _estado = actual.copyWith(mensajeNotificacion: 'Error al agregar a la bolsa: $e');
+      notifyListeners();
+      return false;
     }
   }
 
@@ -464,20 +468,24 @@ class ProductoDetalleBloc extends ChangeNotifier {
 
       final resultado = await _api.crearReserva(payload, token: token);
 
-      _estado = actual.copyWith(
-        reservaEnCurso: false,
-        ultimaReserva: resultado,
-        mensajeNotificacion:
-            'Cita de prueba confirmada: ${resultado.codigoReserva}',
-      );
-      notifyListeners();
+      if (_estado is ProductoDetalleCargado) {
+        _estado = (_estado as ProductoDetalleCargado).copyWith(
+          reservaEnCurso: false,
+          ultimaReserva: resultado,
+          mensajeNotificacion:
+              'Cita de prueba confirmada: ${resultado.codigoReserva}',
+        );
+        notifyListeners();
+      }
       return true;
     } catch (e) {
-      _estado = actual.copyWith(
-        reservaEnCurso: false,
-        mensajeNotificacion: 'Fallo al solicitar reserva: $e',
-      );
-      notifyListeners();
+      if (_estado is ProductoDetalleCargado) {
+        _estado = (_estado as ProductoDetalleCargado).copyWith(
+          reservaEnCurso: false,
+          mensajeNotificacion: 'Fallo al solicitar reserva: $e',
+        );
+        notifyListeners();
+      }
       return false;
     }
   }
