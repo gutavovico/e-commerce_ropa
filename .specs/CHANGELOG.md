@@ -16,6 +16,13 @@ Ver documento principal en [../../CHANGELOG.md](../../CHANGELOG.md).
 
 ### Errores Corregidos y Soluciones Tecnicas Aplicadas
 
+#### 74. Despliegue en Render Fallaba al Arrancar: `openpyxl`/`reportlab` Ausentes de `requirements.txt`
+- **Causa:** CU31 importa `openpyxl`/`reportlab`, declaradas en `pyproject.toml` pero nunca propagadas a `requirements.txt` (el archivo real que usa el `buildCommand` de `render.yaml`). El build completaba sin error (`pip install` no valida imports); `uvicorn app.main:app` fallaba al arrancar con `ModuleNotFoundError: No module named 'openpyxl'`, visible en Render solo como `Exited with status 1`.
+- **Diagnostico:** reproducido localmente instalando las mismas versiones exactas que Render resolvio (Python 3.14, deps sin pinnear) e importando `app.main` directamente.
+- **Solucion:** `openpyxl>=3.1.0` y `reportlab>=4.0.0` anadidas a `requirements.txt`.
+- **Verificacion:** import exitoso con las versiones reales de Render; backend 487/487 sin cambios de codigo.
+- **Leccion:** `requirements.txt` y `pyproject.toml` se mantienen a mano por separado — toda dependencia nueva debe anadirse a ambos.
+
 #### 61. Datos Fabricados en Disponibilidad Multisede (CP-20, `CU07-CU08-CU09-CU12-detalle-producto`)
 - **Causa:** `DisponibilidadServicio.consultar_disponibilidad` (`app/modules/catalogo/cu09_disponibilidad/servicio.py`) sustituia la lista real de `obtener_sucursales_activas` por tres boutiques ficticias (`sucursales_mock`: Flagship Serrano, Boutique Saint-Honore y un "Madrid Central Atelier Hub") cuando `fashionstore.sucursales` no devolvia filas, ofreciendo existencias inventadas que la reserva rechazaba despues.
 - **Solucion:** Eliminada la rama de relleno; sin sucursales activas la respuesta trae `sucursales: []` y `total_disponible_global: 0`, conforme a la regla de dominio "cero datos inventados". Prueba de regresion: `tests/modules/catalogo/test_cu09_disponibilidad.py::test_consultar_disponibilidad_sin_sucursales_devuelve_lista_vacia`.
