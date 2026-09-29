@@ -72,7 +72,7 @@ describe('BolsaCompraComponent (CU11 + CU15)', () => {
     await TestBed.configureTestingModule({
       imports: [BolsaCompraComponent],
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: 'pago/:idVenta', component: class {} }]),
         { provide: CarritoService, useValue: mockCarrito },
       ],
     }).compileComponents();
