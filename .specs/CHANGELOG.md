@@ -2,6 +2,38 @@
 
 Ver documento principal en [../../CHANGELOG.md](../../CHANGELOG.md).
 
+## [2.9.0] - 2026-09-28
+
+### Promocion a Baseline Permanente: Modulo de Caja ([CU17] y [CU18])
+- **CU17 - Registrar cobro en caja:** Promovido oficialmente a especificacion tecnica permanente en [`modules/comercial/CU17-registrar-cobro-caja.md`](modules/comercial/CU17-registrar-cobro-caja.md).
+- **CU18 - Atender entrega de reserva en boutique:** Promovido oficialmente a especificacion tecnica permanente en [`modules/reservas/CU18-atender-entrega-reserva.md`](modules/reservas/CU18-atender-entrega-reserva.md).
+- **Cierre de Ciclo de Cambio:** Archivados los artefactos en `finalized/CU17-CU18-caja/` (`spec.md`, `design.md`, `tasks.md`); limpiado el directorio temporal `changes/CU17-CU18-caja/` preservando `changes/.gitkeep`.
+- **Exclusion Formal Justificada de Ec-mobile:** Ratificada documentalmente la exclusion de la aplicacion movil (`Ec-mobile`). La operacion de punto de venta fisico (POS), recaudacion de efectivo, cuadre de caja de mostrador, recepcion presencial en probadores y conversion a ventas presenciales corresponden con caracter exclusivo a las estaciones de trabajo de boutique sobre el frontend web (`Ec-frontend`). Cero modificaciones en Flutter.
+
+### Incremento Funcional Arquitectonico y Entregables
+- **Backend (`Ec-backend`):**
+  - Implementacion del servicio transaccional `ServicioCobroCaja` para cobro en mostrador (efectivo con calculo de cambio, tarjeta POS, QR estatico), aislamiento por sucursal del cajero, descuento de stock con `FOR UPDATE` y movimiento Kardex.
+  - Implementacion del servicio transaccional `ServicioEntregaReserva` para busqueda de citas de fitting room, entrega de prendas, marcado de inasistencia con reposicion de stock y conversion atomica a orden de venta presencial.
+  - Endpoints REST custodiados bajo `/api/v1/caja/...` con proteccion RBAC (`cajero`, `encargado_sucursal`, `administrador`, `admin`).
+  - Emision de eventos de auditoria `COBRO_CAJA` y `ENTREGA_RESERVA` en `fashionstore.bitacora`.
+  - Cobertura: 486/486 pruebas pasando en pytest (`test_cu17_cobro_caja.py` y `test_cu18_entrega_reserva.py`).
+- **Frontend Web (`Ec-frontend`):**
+  - Vistas Standalone de mostrador `CobroCajaComponent` en `/caja/cobro` y `EntregaReservasComponent` en `/caja/reservas`.
+  - Toolbar corporativa de mostrador en `MainLayoutComponent` (`#toolbar-caja-corporativa`) con selector rapido de pestanas "Cobro de Ventas" y "Entrega de Reservas", e indicador de sucursal asignada (`#badge-sucursal-operador`).
+  - Redireccion automatica del rol `cajero` a `/caja/cobro` tras el inicio de sesion en `login.component.ts`.
+  - Regla Anti-Botones Estaticos con directiva dual `routerLink` + `(click)` y verificacion unitaria con despacho de clics en el DOM.
+  - Cobertura: 532/532 pruebas pasando en vitest (`caja.service.spec.ts`, `cobro-caja.component.spec.ts`, `entrega-reservas.component.spec.ts`, `main-layout.component.spec.ts`, `login.component.spec.ts`, `role.guard.spec.ts`).
+  - Compilacion de produccion limpia con `npm run build` (codigo de salida 0).
+- **Mobile (`Ec-mobile` - Flutter):**
+  - Correccion de incompatibilidad nativa Android en `MainActivity.kt` heredando de `FlutterFragmentActivity` e incorporando `intent-filter` con esquema `fashionstore` en `AndroidManifest.xml` para soporte de 3D Secure / SCA.
+  - Ejecucion incondicional de `WidgetsFlutterBinding.ensureInitialized()` en `main.dart`.
+  - Blindaje y resiliencia de BLoCs (`PagoBloc`, `CarritoBloc`, `ProductoDetalleBloc`) ante excepciones inesperadas con reinicio obligatorio de banderas de procesamiento (`procesando: false`, `reservaEnCurso: false`, `PagoRechazado`), erradicando botones estaticos o congelados.
+  - Normalizacion del contrato DTO en `VarianteDetalleDto.fromJson` con fallbacks defensivos de lectura de precios (`precio_final_variante`, `precio_final`, `precio`).
+  - Cobertura: 197/197 pruebas pasando en `flutter test` y 0 advertencias en `flutter analyze`.
+- **Gobernanza y Calidad:**
+  - Auditoria estricta de Cero Emojis en todo el codigo fuente, plantillas, estilos y documentacion.
+  - Trabajo 100% local sin interaccion con repositorios remotos.
+
 ## [2.8.0] - 2026-09-27
 
 ### Promocion a Baseline Permanente
