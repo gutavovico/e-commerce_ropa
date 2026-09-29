@@ -278,7 +278,34 @@ export const routes: Routes = [
   },
 
   // =========================================================================
-  // 5. RUTA COMODÍN (404)
+  // 5. TERMINAL DE CAJA Y MOSTRADOR OPERATIVO (CU17 & CU18)
+  // =========================================================================
+  {
+    path: 'caja/cobro',
+    canActivate: [authGuard, roleGuard(['cajero', 'encargado_sucursal', 'administrador', 'admin'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/caja/paginas/cobro-caja/cobro-caja.component'
+      ).then((m) => m.CobroCajaComponent),
+    title: 'FASHION STORE | Registrar cobro en caja',
+  },
+  {
+    path: 'caja/reservas',
+    canActivate: [authGuard, roleGuard(['cajero', 'encargado_sucursal', 'administrador', 'admin'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/caja/paginas/entrega-reservas/entrega-reservas.component'
+      ).then((m) => m.EntregaReservasComponent),
+    title: 'FASHION STORE | Atender entrega de reserva en boutique',
+  },
+  {
+    path: 'caja',
+    redirectTo: 'caja/cobro',
+    pathMatch: 'full',
+  },
+
+  // =========================================================================
+  // 6. RUTA COMODÍN (404)
   // =========================================================================
   {
     path: '**',

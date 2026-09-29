@@ -1,0 +1,369 @@
+<!-- Contenedor Principal: Modulo de Caja - Atender entrega de reserva en boutique [CU18] -->
+<div class="min-h-screen bg-slate-50 text-[#111111] font-sans antialiased pb-16">
+
+  <!-- Header Superior con Migas de Pan y Contexto -->
+  <header class="bg-white border-b border-[#ECEAE6] sticky top-0 z-20 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Barra de contexto operativo -->
+      <div class="flex items-center justify-between py-3 border-b border-slate-100 text-xs">
+        <nav class="flex items-center space-x-2 text-slate-500" aria-label="Breadcrumb">
+          <a
+            routerLink="/admin"
+            (click)="navegar('/admin', $event)"
+            class="hover:text-black transition-colors"
+          >
+            Inicio
+          </a>
+          <span>/</span>
+          <span class="text-slate-400">Caja</span>
+          <span>/</span>
+          <span class="font-medium text-black">Atender entrega de reserva en boutique</span>
+        </nav>
+
+        <div class="flex items-center space-x-4">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-full text-slate-700 font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+            <span>Mostrador de Citas Activo</span>
+            @if (sucursalId()) {
+              <span class="text-slate-400">|</span>
+              <span class="text-slate-900 font-semibold">Sucursal #{{ sucursalId() }}</span>
+            }
+          </div>
+          <div class="hidden sm:block text-slate-600">
+            Operador: <strong class="text-black font-semibold">{{ cajeroNombre() }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Titulo H1 y Pestanas de Navegacion Dual -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between py-4 gap-4">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-[#111111] uppercase font-serif">
+            Atender entrega de reserva en boutique
+          </h1>
+          <p class="text-xs text-slate-500 mt-1">
+            Recepcion de clientas, atencion en probador privado, entrega de prendas apartadas y conversion a venta.
+          </p>
+        </div>
+
+        <!-- Selector de Pestanas Rapidas (Dual Directive) -->
+        <nav class="flex items-center space-x-2 bg-slate-100 p-1 rounded-lg text-xs font-semibold uppercase tracking-wider" aria-label="Tabs de Caja">
+          <a
+            routerLink="/caja/cobro"
+            (click)="navegar('/caja/cobro', $event)"
+            class="px-4 py-2 rounded-md text-slate-600 hover:text-black transition-all"
+          >
+            Cobro de Ventas
+          </a>
+          <a
+            routerLink="/caja/reservas"
+            (click)="navegar('/caja/reservas', $event)"
+            class="px-4 py-2 rounded-md bg-white text-black shadow-xs font-bold transition-all"
+          >
+            Entrega de Reservas
+          </a>
+        </nav>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Contenido Central -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+
+    <!-- Banners de Alerta o Error -->
+    @if (errorMensaje()) {
+      <div class="mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{{ errorMensaje() }}</span>
+        </div>
+        <button
+          type="button"
+          (click)="cerrarAlertaError()"
+          class="text-rose-600 hover:text-rose-900 font-bold ml-4"
+          title="Cerrar alerta"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- Banner de Exito -->
+    @if (mensajeExito()) {
+      <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-sm flex items-center justify-between animate-fade-in">
+        <div class="flex items-center gap-2 font-medium">
+          <span class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+            </svg>
+          </span>
+          <span>{{ mensajeExito() }}</span>
+        </div>
+        <button
+          type="button"
+          (click)="cerrarMensajeExito()"
+          class="text-emerald-700 hover:text-emerald-900 font-bold ml-4"
+          title="Cerrar mensaje"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- Layout en 2 Columnas: Busqueda de Citas & Ficha de Fitting Room -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+      <!-- Columna Izquierda: Buscador & Listado de Citas / Reservas -->
+      <section class="lg:col-span-7 space-y-6">
+
+        <!-- Barra de Busqueda -->
+        <div class="bg-white p-4 rounded-xl border border-[#ECEAE6] shadow-xs">
+          <form (submit)="onBuscar($event)" class="flex gap-2">
+            <div class="relative flex-1">
+              <input
+                type="text"
+                id="input-busqueda-reservas"
+                name="terminoBusqueda"
+                [ngModel]="terminoBusqueda()"
+                (ngModelChange)="terminoBusqueda.set($event)"
+                placeholder="Buscar cita por codigo RES-2026-XXXX o clienta..."
+                class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:outline-hidden focus:border-[#AD8C63] focus:bg-white transition-all text-black"
+              />
+            </div>
+            <button
+              type="submit"
+              id="btn-buscar-reservas"
+              class="px-4 py-2.5 bg-[#111111] text-white hover:bg-black text-xs font-bold uppercase tracking-wider rounded-md transition-colors"
+            >
+              Buscar
+            </button>
+          </form>
+        </div>
+
+        <!-- Listado de Citas Pendientes -->
+        <div class="bg-white rounded-xl border border-[#ECEAE6] shadow-xs overflow-hidden">
+          <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800">
+              Citas y Reservas Activas ({{ reservas().length }})
+            </h2>
+            <button
+              type="button"
+              (click)="cargarReservas()"
+              class="text-xs text-[#AD8C63] hover:underline font-semibold"
+              title="Refrescar listado"
+            >
+              Actualizar
+            </button>
+          </div>
+
+          <!-- Spinner de Carga -->
+          @if (cargando() && reservas().length === 0) {
+            <div class="p-12 text-center text-slate-400 text-xs">
+              <div class="inline-block w-6 h-6 border-2 border-[#AD8C63] border-t-transparent rounded-full animate-spin mb-2"></div>
+              <p>Consultando citas de fitting room programadas...</p>
+            </div>
+          } @else if (reservas().length === 0) {
+            <!-- Empty State -->
+            <div class="p-12 text-center text-slate-500 text-xs">
+              <p class="font-semibold text-slate-700">No hay reservas pendientes de atencion.</p>
+              <p class="text-slate-400 mt-1">Las citas de prueba concertadas en boutique apareceran aqui.</p>
+            </div>
+          } @else {
+            <!-- Lista de Reservas -->
+            <ul class="divide-y divide-slate-100">
+              @for (reserva of reservas(); track reserva.id_reserva) {
+                <li
+                  class="p-4 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-between gap-4"
+                  [class.bg-amber-50]="reservaSeleccionada()?.id_reserva === reserva.id_reserva"
+                  (click)="seleccionarReserva(reserva)"
+                >
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-bold text-black font-mono">
+                        {{ reserva.codigo_reserva }}
+                      </span>
+                      <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded uppercase">
+                        {{ reserva.estado }}
+                      </span>
+                      <span class="text-[10px] text-slate-400 uppercase">
+                        Origen: {{ reserva.canal_origen }}
+                      </span>
+                    </div>
+
+                    <div class="text-xs text-slate-600">
+                      Clienta: <span class="font-medium text-black">{{ reserva.cliente_nombre }}</span>
+                      @if (reserva.cliente_telefono) {
+                        <span class="text-slate-400">({{ reserva.cliente_telefono }})</span>
+                      }
+                    </div>
+
+                    <div class="text-[11px] text-slate-500 flex items-center gap-3">
+                      <span>Cita: <strong>{{ reserva.fecha_hora_atencion | date:'dd/MM/yyyy HH:mm' }}</strong></span>
+                      <span>Prendas: {{ reserva.prendas.length }} unidad(es)</span>
+                    </div>
+                  </div>
+
+                  <div class="text-right">
+                    <button
+                      type="button"
+                      [id]="'btn-seleccionar-reserva-' + reserva.id_reserva"
+                      class="px-3.5 py-1.5 bg-slate-900 hover:bg-black text-[#AD8C63] text-[11px] font-bold uppercase tracking-wider rounded transition-colors"
+                      (click)="seleccionarReserva(reserva); $event.stopPropagation()"
+                    >
+                      Atender
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+
+      <!-- Columna Derecha: Ficha de Cita y Botones de Accion -->
+      <section class="lg:col-span-5">
+        @if (reservaSeleccionada()) {
+          <div class="bg-white rounded-xl border-2 border-black p-6 shadow-md sticky top-24 space-y-6">
+
+            <!-- Encabezado de Ficha -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <span class="text-[10px] text-slate-400 uppercase tracking-widest block">Atencion en Boutique</span>
+                <h3 class="text-sm font-bold text-black font-mono">
+                  {{ reservaSeleccionada()?.codigo_reserva }}
+                </h3>
+              </div>
+              <button
+                type="button"
+                id="btn-cancelar-reserva"
+                (click)="cancelarSeleccion()"
+                class="text-xs text-slate-400 hover:text-black font-semibold"
+                title="Descartar seleccion"
+              >
+                Cerrar Ficha
+              </button>
+            </div>
+
+            <!-- Ficha de la Clienta y Cita -->
+            <div class="space-y-1.5 bg-slate-50 p-3 rounded-lg text-xs">
+              <div class="flex justify-between">
+                <span class="text-slate-500">Clienta:</span>
+                <span class="font-bold text-black">{{ reservaSeleccionada()?.cliente_nombre }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">Fecha de Cita:</span>
+                <span class="font-medium text-black">{{ reservaSeleccionada()?.fecha_hora_atencion | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              @if (reservaSeleccionada()?.observacion) {
+                <div class="pt-1 border-t border-slate-200 text-slate-600 italic">
+                  "{{ reservaSeleccionada()?.observacion }}"
+                </div>
+              }
+            </div>
+
+            <!-- Prendas Apartadas con Ubicacion / Percha -->
+            <div class="space-y-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-700 block">
+                Prendas Apartadas en Vestidor
+              </span>
+              <div class="divide-y divide-slate-100 border border-slate-100 rounded-md p-2 bg-slate-50 max-h-48 overflow-y-auto">
+                @for (item of reservaSeleccionada()?.prendas; track item.id_reserva_detalle) {
+                  <div class="py-2 flex justify-between items-center text-xs">
+                    <div>
+                      <p class="font-medium text-black">{{ item.nombre_producto }}</p>
+                      <p class="text-[10px] text-slate-500">
+                        Talla: {{ item.talla }} | Color: {{ item.color }} | SKU: {{ item.sku }}
+                      </p>
+                      <p class="text-[10px] text-[#AD8C63] font-medium">
+                        Ubicacion: {{ item.ubicacion_percha || 'Mostrador Fitting Room' }}
+                      </p>
+                    </div>
+                    <div class="text-right">
+                      <span class="font-mono font-bold text-black block">
+                        BOB {{ item.precio_unitario | number:'1.2-2' }}
+                      </span>
+                      <span class="text-[10px] text-slate-400">Cant: {{ item.cantidad }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Observaciones de Atencion -->
+            <div>
+              <label for="input-observaciones-entrega" class="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-1">
+                Anotaciones de Fitting (Opcional)
+              </label>
+              <input
+                type="text"
+                id="input-observaciones-entrega"
+                [ngModel]="observacionesEntrega()"
+                (ngModelChange)="observacionesEntrega.set($event)"
+                placeholder="Observaciones de prueba, talle o asesoria..."
+                class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded text-black focus:bg-white focus:outline-hidden"
+              />
+            </div>
+
+            <!-- Botonera de Accion Tripartita (Anti-Botones Estaticos) -->
+            <div class="pt-4 border-t border-slate-200 space-y-2.5">
+              
+              <!-- 1. Confirmar Entrega en Fitting -->
+              <button
+                type="button"
+                id="btn-confirmar-entrega-reserva"
+                (click)="confirmarEntrega($event)"
+                [disabled]="cargando()"
+                class="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs uppercase tracking-wider rounded-md transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <span>Confirmar Entrega de Prendas</span>
+              </button>
+
+              <!-- 2. Convertir y Liquidar en Caja -->
+              <button
+                type="button"
+                id="btn-convertir-venta-reserva"
+                (click)="convertirAVenta($event)"
+                [disabled]="cargando()"
+                class="w-full py-3 px-4 bg-[#111111] hover:bg-black text-[#AD8C63] font-bold text-xs uppercase tracking-wider rounded-md transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <span>Cobrar y Liquidar en Caja</span>
+              </button>
+
+              <!-- 3. Marcar No Asistio -->
+              <button
+                type="button"
+                id="btn-marcar-no-asistio-reserva"
+                (click)="marcarNoAsistio($event)"
+                [disabled]="cargando()"
+                class="w-full py-2.5 px-4 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 font-semibold text-xs uppercase tracking-wider rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <span>Marcar No Asistio (Liberar Stock)</span>
+              </button>
+
+            </div>
+
+          </div>
+        } @else {
+          <!-- Placeholder cuando no hay reserva seleccionada -->
+          <div class="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400 space-y-2">
+            <svg class="w-12 h-12 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p class="text-xs font-semibold text-slate-600">Seleccione una cita para atencion</p>
+            <p class="text-[11px] text-slate-400">Seleccione una clienta de la lista para gestionar la entrega de prendas, enviar a caja para compra o registrar inasistencia.</p>
+          </div>
+        }
+      </section>
+
+    </div>
+  </main>
+
+</div>

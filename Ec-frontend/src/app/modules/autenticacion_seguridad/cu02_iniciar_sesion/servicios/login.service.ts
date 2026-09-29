@@ -27,6 +27,10 @@ export class LoginService {
     const rol = this.usuarioActual()?.rol?.toLowerCase()?.trim();
     return rol === 'administrador' || rol === 'admin';
   });
+  readonly esCajeroOAdmin = computed(() => {
+    const rol = this.usuarioActual()?.rol?.toLowerCase()?.trim();
+    return ['cajero', 'encargado_sucursal', 'administrador', 'admin'].includes(rol || '');
+  });
 
   /**
    * Envía las credenciales al backend de FastAPI y emite la respuesta.

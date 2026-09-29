@@ -1,0 +1,450 @@
+<!-- Contenedor Principal: Modulo de Caja - Registrar cobro en caja [CU17] -->
+<div class="min-h-screen bg-slate-50 text-[#111111] font-sans antialiased pb-16">
+
+  <!-- Header Superior de Caja con Migas de Pan y Contexto de Sucursal -->
+  <header class="bg-white border-b border-[#ECEAE6] sticky top-0 z-20 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Barra de contexto operativo -->
+      <div class="flex items-center justify-between py-3 border-b border-slate-100 text-xs">
+        <nav class="flex items-center space-x-2 text-slate-500" aria-label="Breadcrumb">
+          <a
+            routerLink="/admin"
+            (click)="navegar('/admin', $event)"
+            class="hover:text-black transition-colors"
+          >
+            Inicio
+          </a>
+          <span>/</span>
+          <span class="text-slate-400">Caja</span>
+          <span>/</span>
+          <span class="font-medium text-black">Registrar cobro en caja</span>
+        </nav>
+
+        <div class="flex items-center space-x-4">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-full text-slate-700 font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+            <span>Terminal POS Activa</span>
+            @if (sucursalId()) {
+              <span class="text-slate-400">|</span>
+              <span class="text-slate-900 font-semibold">Sucursal #{{ sucursalId() }}</span>
+            }
+          </div>
+          <div class="hidden sm:block text-slate-600">
+            Operador: <strong class="text-black font-semibold">{{ cajeroNombre() }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Titulo H1 y Pestanas de Navegacion Dual de Mostrador -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between py-4 gap-4">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-[#111111] uppercase font-serif">
+            Registrar cobro en caja
+          </h1>
+          <p class="text-xs text-slate-500 mt-1">
+            Cobro presencial de ordenes en boutique, recepcion de efectivo, tarjeta POS fisico y QR.
+          </p>
+        </div>
+
+        <!-- Selector de Pestanas Rapidas (Dual Directive) -->
+        <nav class="flex items-center space-x-2 bg-slate-100 p-1 rounded-lg text-xs font-semibold uppercase tracking-wider" aria-label="Tabs de Caja">
+          <a
+            routerLink="/caja/cobro"
+            (click)="navegar('/caja/cobro', $event)"
+            class="px-4 py-2 rounded-md bg-white text-black shadow-xs font-bold transition-all"
+          >
+            Cobro de Ventas
+          </a>
+          <a
+            routerLink="/caja/reservas"
+            (click)="navegar('/caja/reservas', $event)"
+            class="px-4 py-2 rounded-md text-slate-600 hover:text-black transition-all"
+          >
+            Entrega de Reservas
+          </a>
+        </nav>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Contenido Central -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+
+    <!-- Banners de Alerta o Error -->
+    @if (errorMensaje()) {
+      <div class="mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{{ errorMensaje() }}</span>
+        </div>
+        <button
+          type="button"
+          (click)="cerrarAlertaError()"
+          class="text-rose-600 hover:text-rose-900 font-bold ml-4"
+          title="Cerrar alerta"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- Modal / Recibo de Confirmacion Exitosa -->
+    @if (comprobanteExito()) {
+      <div class="mb-8 p-6 bg-white border-2 border-[#AD8C63] rounded-xl shadow-lg animate-fade-in">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-black uppercase tracking-wide">
+                Cobro Asentado Exitosamente
+              </h2>
+              <p class="text-xs text-slate-500">
+                Comprobante: <strong class="text-black">{{ comprobanteExito()?.numero_comprobante }}</strong>
+              </p>
+            </div>
+          </div>
+          <span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full uppercase tracking-wider">
+            Venta Pagada
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-3 bg-slate-50 p-4 rounded-lg text-xs mb-4">
+          <div>
+            <span class="text-slate-500 block">Total Cobrado</span>
+            <span class="text-sm font-bold text-black font-mono">BOB {{ comprobanteExito()?.monto_total | number:'1.2-2' }}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Monto Recibido</span>
+            <span class="text-sm font-bold text-slate-700 font-mono">BOB {{ comprobanteExito()?.monto_recibido | number:'1.2-2' }}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Cambio Devuelto</span>
+            <span class="text-sm font-bold text-[#AD8C63] font-mono">BOB {{ comprobanteExito()?.cambio_devuelto | number:'1.2-2' }}</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Metodo</span>
+            <span class="text-sm font-bold uppercase text-slate-800">{{ comprobanteExito()?.metodo_pago }}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            id="btn-nueva-operacion"
+            (click)="nuevaOperacion()"
+            class="px-5 py-2.5 bg-[#111111] text-[#AD8C63] hover:bg-black font-bold text-xs uppercase tracking-wider rounded-md transition-colors"
+          >
+            Nueva Operacion de Caja
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Layout en 2 Columnas: Buscador & Listado de Ordenes / Panel de Liquidacion -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+      <!-- Columna Izquierda: Busqueda y Listado de Ordenes Pendientes -->
+      <section class="lg:col-span-7 space-y-6">
+
+        <!-- Barra de Busqueda con Debounce y Filtros -->
+        <div class="bg-white p-4 rounded-xl border border-[#ECEAE6] shadow-xs">
+          <form (submit)="onBuscar($event)" class="flex gap-2">
+            <div class="relative flex-1">
+              <input
+                type="text"
+                id="input-busqueda-caja"
+                name="terminoBusqueda"
+                [ngModel]="terminoBusqueda()"
+                (ngModelChange)="terminoBusqueda.set($event)"
+                placeholder="Buscar por comprobante FS-2026-XXXX o clienta..."
+                class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:outline-hidden focus:border-[#AD8C63] focus:bg-white transition-all text-black"
+              />
+            </div>
+            <button
+              type="submit"
+              id="btn-buscar-caja"
+              class="px-4 py-2.5 bg-[#111111] text-white hover:bg-black text-xs font-bold uppercase tracking-wider rounded-md transition-colors"
+            >
+              Buscar
+            </button>
+          </form>
+        </div>
+
+        <!-- Listado de Ordenes Pendientes -->
+        <div class="bg-white rounded-xl border border-[#ECEAE6] shadow-xs overflow-hidden">
+          <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-800">
+              Ordenes Pendientes de Cobro ({{ ordenes().length }})
+            </h2>
+            <button
+              type="button"
+              (click)="cargarOrdenes()"
+              class="text-xs text-[#AD8C63] hover:underline font-semibold"
+              title="Refrescar listado"
+            >
+              Actualizar
+            </button>
+          </div>
+
+          <!-- Spinner de Carga -->
+          @if (cargando() && ordenes().length === 0) {
+            <div class="p-12 text-center text-slate-400 text-xs">
+              <div class="inline-block w-6 h-6 border-2 border-[#AD8C63] border-t-transparent rounded-full animate-spin mb-2"></div>
+              <p>Consultando ordenes pendientes en boutique...</p>
+            </div>
+          } @else if (ordenes().length === 0) {
+            <!-- Empty State -->
+            <div class="p-12 text-center text-slate-500 text-xs">
+              <p class="font-semibold text-slate-700">No hay ordenes pendientes de cobro.</p>
+              <p class="text-slate-400 mt-1">Las nuevas ventas presenciales o pagos en efectivo apareceran aqui.</p>
+            </div>
+          } @else {
+            <!-- Lista de Tarjetas de Orden -->
+            <ul class="divide-y divide-slate-100">
+              @for (orden of ordenes(); track orden.id_venta) {
+                <li
+                  class="p-4 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-between gap-4"
+                  [class.bg-amber-50]="ordenSeleccionada()?.id_venta === orden.id_venta"
+                  (click)="seleccionarOrden(orden)"
+                >
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-bold text-black font-mono">
+                        {{ orden.numero_comprobante }}
+                      </span>
+                      <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded uppercase">
+                        {{ orden.estado }}
+                      </span>
+                      <span class="text-[10px] text-slate-400">
+                        {{ orden.tipo_venta }}
+                      </span>
+                    </div>
+
+                    <div class="text-xs text-slate-600">
+                      Cliente: <span class="font-medium text-black">{{ orden.cliente_nombre }}</span>
+                      @if (orden.cliente_telefono) {
+                        <span class="text-slate-400">({{ orden.cliente_telefono }})</span>
+                      }
+                    </div>
+
+                    <div class="text-[11px] text-slate-400">
+                      Prendas: {{ orden.detalles.length }} linea(s)
+                    </div>
+                  </div>
+
+                  <div class="text-right">
+                    <div class="text-sm font-bold text-black font-mono">
+                      BOB {{ orden.total | number:'1.2-2' }}
+                    </div>
+                    <button
+                      type="button"
+                      [id]="'btn-seleccionar-orden-' + orden.id_venta"
+                      class="mt-1 px-3 py-1 bg-slate-900 hover:bg-black text-[#AD8C63] text-[11px] font-bold uppercase tracking-wider rounded transition-colors"
+                      (click)="seleccionarOrden(orden); $event.stopPropagation()"
+                    >
+                      Cobrar
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+
+      <!-- Columna Derecha: Panel de Liquidacion / Calculadora de Cambio -->
+      <section class="lg:col-span-5">
+        @if (ordenSeleccionada()) {
+          <div class="bg-white rounded-xl border-2 border-black p-6 shadow-md sticky top-24 space-y-6">
+            
+            <!-- Encabezado de Ficha de Cobro -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <span class="text-[10px] text-slate-400 uppercase tracking-widest block">Liquidacion en Mostrador</span>
+                <h3 class="text-sm font-bold text-black font-mono">
+                  {{ ordenSeleccionada()?.numero_comprobante }}
+                </h3>
+              </div>
+              <button
+                type="button"
+                id="btn-cancelar-cobro"
+                (click)="cancelarSeleccion()"
+                class="text-xs text-slate-400 hover:text-black font-semibold"
+                title="Descartar seleccion"
+              >
+                Cancelar
+              </button>
+            </div>
+
+            <!-- Desglose de Prendas -->
+            <div class="space-y-2 text-xs">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                Prendas a Entregar
+              </span>
+              <div class="max-h-40 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-md p-2 bg-slate-50">
+                @for (item of ordenSeleccionada()?.detalles; track item.id_venta_detalle) {
+                  <div class="py-1.5 flex justify-between items-center text-xs">
+                    <div>
+                      <p class="font-medium text-black">{{ item.nombre_producto }}</p>
+                      <p class="text-[10px] text-slate-500">
+                        Talla: {{ item.talla }} | Color: {{ item.color }} | Cant: {{ item.cantidad }}
+                      </p>
+                    </div>
+                    <span class="font-mono font-bold text-slate-800">
+                      BOB {{ item.subtotal_linea | number:'1.2-2' }}
+                    </span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Selector de Metodo de Pago -->
+            <div class="space-y-2">
+              <label class="text-[11px] font-bold uppercase tracking-wider text-slate-700 block">
+                Metodo de Pago
+              </label>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  (click)="cambiarMetodo('efectivo')"
+                  class="py-2.5 px-2 text-center text-xs font-bold uppercase tracking-wider rounded border transition-all"
+                  [class.bg-black]="metodoSeleccionado() === 'efectivo'"
+                  [class.text-white]="metodoSeleccionado() === 'efectivo'"
+                  [class.border-black]="metodoSeleccionado() === 'efectivo'"
+                  [class.bg-slate-50]="metodoSeleccionado() !== 'efectivo'"
+                  [class.text-slate-700]="metodoSeleccionado() !== 'efectivo'"
+                  [class.border-slate-200]="metodoSeleccionado() !== 'efectivo'"
+                >
+                  Efectivo
+                </button>
+                <button
+                  type="button"
+                  (click)="cambiarMetodo('tarjeta_pos')"
+                  class="py-2.5 px-2 text-center text-xs font-bold uppercase tracking-wider rounded border transition-all"
+                  [class.bg-black]="metodoSeleccionado() === 'tarjeta_pos'"
+                  [class.text-white]="metodoSeleccionado() === 'tarjeta_pos'"
+                  [class.border-black]="metodoSeleccionado() === 'tarjeta_pos'"
+                  [class.bg-slate-50]="metodoSeleccionado() !== 'tarjeta_pos'"
+                  [class.text-slate-700]="metodoSeleccionado() !== 'tarjeta_pos'"
+                  [class.border-slate-200]="metodoSeleccionado() !== 'tarjeta_pos'"
+                >
+                  Tarjeta POS
+                </button>
+                <button
+                  type="button"
+                  (click)="cambiarMetodo('qr_estatico')"
+                  class="py-2.5 px-2 text-center text-xs font-bold uppercase tracking-wider rounded border transition-all"
+                  [class.bg-black]="metodoSeleccionado() === 'qr_estatico'"
+                  [class.text-white]="metodoSeleccionado() === 'qr_estatico'"
+                  [class.border-black]="metodoSeleccionado() === 'qr_estatico'"
+                  [class.bg-slate-50]="metodoSeleccionado() !== 'qr_estatico'"
+                  [class.text-slate-700]="metodoSeleccionado() !== 'qr_estatico'"
+                  [class.border-slate-200]="metodoSeleccionado() !== 'qr_estatico'"
+                >
+                  QR Estatico
+                </button>
+              </div>
+            </div>
+
+            <!-- Calculadora de Efectivo y Vuelto -->
+            @if (metodoSeleccionado() === 'efectivo') {
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+                <div>
+                  <label for="input-monto-recibido" class="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-1">
+                    Dinero Recibido (BOB)
+                  </label>
+                  <input
+                    type="number"
+                    id="input-monto-recibido"
+                    step="0.50"
+                    min="0"
+                    [ngModel]="montoRecibido()"
+                    (ngModelChange)="onMontoRecibidoChange($event)"
+                    class="w-full px-3.5 py-2.5 text-base font-bold font-mono bg-white border rounded-md text-black focus:outline-hidden"
+                    [class.border-rose-400]="!montoSuficiente()"
+                    [class.border-slate-300]="montoSuficiente()"
+                  />
+                </div>
+
+                @if (!montoSuficiente()) {
+                  <p class="text-[11px] text-rose-600 font-semibold">
+                    Monto insuficiente para cubrir el total de BOB {{ ordenSeleccionada()?.total | number:'1.2-2' }}.
+                  </p>
+                }
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+                  <span class="text-xs font-semibold text-slate-600 uppercase">Cambio a Devolver:</span>
+                  <span class="text-lg font-bold font-mono text-[#AD8C63]">
+                    BOB {{ cambioDevuelto() | number:'1.2-2' }}
+                  </span>
+                </div>
+              </div>
+            }
+
+            <!-- Observaciones Opcionales -->
+            <div>
+              <label for="input-observaciones-caja" class="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-1">
+                Observaciones (Opcional)
+              </label>
+              <input
+                type="text"
+                id="input-observaciones-caja"
+                [ngModel]="observaciones()"
+                (ngModelChange)="observaciones.set($event)"
+                placeholder="Anotaciones de billetes, cliente o terminal..."
+                class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded text-black focus:bg-white focus:outline-hidden"
+              />
+            </div>
+
+            <!-- Resumen Total y Boton de Cobro (Dual Directive) -->
+            <div class="pt-4 border-t border-slate-200 space-y-4">
+              <div class="flex items-baseline justify-between">
+                <span class="text-xs uppercase font-bold text-slate-500">Total a Liquidar:</span>
+                <span class="text-2xl font-bold font-mono text-black">
+                  BOB {{ ordenSeleccionada()?.total | number:'1.2-2' }}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                id="btn-confirmar-cobro-caja"
+                (click)="confirmarCobro($event)"
+                [disabled]="!puedeCobrar()"
+                class="w-full py-3.5 px-4 bg-[#111111] hover:bg-black text-[#AD8C63] font-bold text-xs uppercase tracking-widest rounded-md transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                @if (cargando()) {
+                  <span class="w-4 h-4 border-2 border-[#AD8C63] border-t-transparent rounded-full animate-spin"></span>
+                  <span>Procesando Cobro...</span>
+                } @else {
+                  <span>Confirmar Cobro en Caja</span>
+                }
+              </button>
+            </div>
+
+          </div>
+        } @else {
+          <!-- Placeholder cuando no hay orden seleccionada -->
+          <div class="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400 space-y-2">
+            <svg class="w-12 h-12 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <p class="text-xs font-semibold text-slate-600">Seleccione una orden para cobrar</p>
+            <p class="text-[11px] text-slate-400">Haga clic en una de las ordenes pendientes de la columna izquierda para abrir la calculadora y liquidar el comprobante.</p>
+          </div>
+        }
+      </section>
+
+    </div>
+  </main>
+
+</div>

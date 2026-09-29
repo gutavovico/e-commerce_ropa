@@ -5,7 +5,7 @@ import { LoginService } from '../servicios/login.service';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { LoginRespuesta } from '../modelos/login.dto';
+import { LoginRespuesta, UsuarioSesion } from '../modelos/login.dto';
 
 describe('LoginComponent (CU02 - Iniciar Sesión)', () => {
   let component: LoginComponent;
@@ -23,7 +23,7 @@ describe('LoginComponent (CU02 - Iniciar Sesión)', () => {
   };
 
   const mockLoginService = {
-    usuarioActual: signal(null),
+    usuarioActual: signal<UsuarioSesion | null>(null),
     iniciarSesion: vi.fn(),
   };
 
@@ -94,5 +94,43 @@ describe('LoginComponent (CU02 - Iniciar Sesión)', () => {
     component.onSubmit();
     expect(component.cargando()).toBe(false);
     expect(component.mensajeError()).toBe('Correo electrónico o contraseña incorrectos.');
+  });
+
+  it('debe iniciar sesion exitosamente y REDIRIGIR a /caja/cobro si el rol es cajero', () => {
+    vi.useFakeTimers();
+    mockLoginService.iniciarSesion.mockReturnValue(
+      of({
+        ...mockLoginRespuesta,
+        rol: 'cajero',
+      })
+    );
+
+    component.formulario.setValue({
+      email: 'cajero@fashionstore.com',
+      password: 'Password123!',
+      recordarDispositivo: true,
+    });
+
+    component.onSubmit();
+    expect(component.cargando()).toBe(false);
+    expect(component.exito()).toBe(true);
+
+    vi.advanceTimersByTime(600);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/caja/cobro']);
+  });
+
+  it('debe redirigir directamente a /caja/cobro en ngOnInit si el usuario ya autenticado es cajero', () => {
+    mockLoginService.usuarioActual.set({
+      id_usuario: 5,
+      email: 'cajero@fs.com',
+      nombres: 'Cajero',
+      apellidos: 'Boutique',
+      rol: 'cajero',
+      token: 'jwt_cajero',
+    });
+
+    component.ngOnInit();
+    expect(router.navigate).toHaveBeenCalledWith(['/caja/cobro']);
   });
 });

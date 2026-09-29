@@ -32,7 +32,10 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     const usuario = typeof this.loginService.usuarioActual === 'function' ? this.loginService.usuarioActual() : null;
     if (usuario) {
-      if (usuario.rol === 'administrador') {
+      const rol = String(usuario.rol || '').toLowerCase().trim();
+      if (rol === 'cajero') {
+        this.router.navigate(['/caja/cobro']);
+      } else if (rol === 'administrador' || rol === 'admin' || rol === 'encargado_sucursal') {
         this.router.navigate(['/admin']);
       } else {
         this.router.navigate(['/inicio']);
@@ -95,7 +98,9 @@ export class LoginComponent implements OnInit {
         // Redirigir segun el rol del usuario autenticado
         setTimeout(() => {
           const rol = String(resp.rol || '').toLowerCase().trim();
-          if (rol === 'administrador' || rol === 'admin' || rol === 'encargado_sucursal') {
+          if (rol === 'cajero') {
+            this.router.navigate(['/caja/cobro']);
+          } else if (rol === 'administrador' || rol === 'admin' || rol === 'encargado_sucursal') {
             this.router.navigate(['/admin']);
           } else {
             this.router.navigate(['/inicio']);
