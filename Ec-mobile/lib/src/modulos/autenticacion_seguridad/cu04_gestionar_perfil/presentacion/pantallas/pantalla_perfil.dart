@@ -5,10 +5,13 @@ import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesio
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu06_buscar_filtrar/presentacion/pantallas/pantalla_buscar_productos.dart';
 import 'package:ec_mobile/src/modulos/comercial/cu31_reportes_voz/presentacion/pantallas/pantalla_reportes_voz.dart';
+import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/bloc/mis_reservas_bloc.dart';
+import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/pantallas/pantalla_mis_reservas.dart';
 
 class PantallaPerfil extends StatefulWidget {
   final String token;
   final PerfilBloc? bloc;
+  final MisReservasBloc? misReservasBloc;
   final VoidCallback? alCerrarSesion;
   final bool habilitarImagenesRed;
   final VoidCallback? alIrAInicio;
@@ -20,6 +23,7 @@ class PantallaPerfil extends StatefulWidget {
     super.key,
     this.token = 'demo_token_haute_couture',
     this.bloc,
+    this.misReservasBloc,
     this.alCerrarSesion,
     this.habilitarImagenesRed = true,
     this.alIrAInicio,
@@ -34,6 +38,7 @@ class PantallaPerfil extends StatefulWidget {
 
 class _PantallaPerfilState extends State<PantallaPerfil> {
   late final PerfilBloc _bloc;
+  late final MisReservasBloc _reservasBloc;
   int _tabSeleccionado = 3; // Pestaña 'PERFIL' activa por defecto
 
   // Datos mock iniciales en caso de carga o demo sin conexión directa
@@ -106,6 +111,10 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
     _bloc = widget.bloc ?? PerfilBloc();
     _bloc.addListener(_alCambiarEstado);
     _bloc.cargarPerfil(widget.token);
+
+    _reservasBloc = widget.misReservasBloc ?? MisReservasBloc(token: widget.token);
+    _reservasBloc.addListener(_alCambiarEstadoReservas);
+    _reservasBloc.cargarMisReservas();
   }
 
   @override
@@ -114,7 +123,43 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
     if (widget.bloc == null) {
       _bloc.dispose();
     }
+    _reservasBloc.removeListener(_alCambiarEstadoReservas);
+    if (widget.misReservasBloc == null) {
+      _reservasBloc.dispose();
+    }
     super.dispose();
+  }
+
+  void _alCambiarEstadoReservas() {
+    if (mounted) setState(() {});
+  }
+
+  void _abrirMisReservas() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaMisReservas(
+          token: widget.token,
+          habilitarImagenesRed: widget.habilitarImagenesRed,
+        ),
+      ),
+    );
+  }
+
+  int _activasReservas() {
+    final estado = _reservasBloc.estado;
+    return estado is ReservasListo ? estado.misReservas.resumen.activas : 0;
+  }
+
+  String _subtituloReservas() {
+    final estado = _reservasBloc.estado;
+    if (estado is! ReservasListo) return 'Consultando tus citas…';
+
+    final resumen = estado.misReservas.resumen;
+    if (resumen.activas == 0) return 'Sin citas agendadas';
+
+    final proxima = resumen.proxima;
+    if (proxima != null) return 'Próxima: ${proxima.nombreSucursal}';
+    return resumen.activas == 1 ? '1 reserva activa' : '${resumen.activas} reservas activas';
   }
 
   void _alCambiarEstado() {
@@ -676,42 +721,48 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                 ),
                 const SizedBox(width: 12),
 
-                // Bolsa
+                // Mis Reservas (CU13/CU14) — antes "Bolsa", con el literal fijo "3 Artículos ·
+                // 1.250 €" que no reflejaba la bolsa real. Ver CHANGELOG.
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 20),
-                            Text(
-                              'BOLSA',
-                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          '3',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        Text(
-                          'Artículos · 1.250 €',
-                          style: TextStyle(fontSize: 11, color: Colors.grey),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'IR AL CHECKOUT →',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
-                        ),
-                      ],
+                  child: GestureDetector(
+                    onTap: _abrirMisReservas,
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Icon(Icons.calendar_today_outlined, color: Colors.white, size: 18),
+                              Text(
+                                'RESERVAS',
+                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            '${_activasReservas()}',
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          Text(
+                            _subtituloReservas(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'VER MIS RESERVAS →',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

@@ -108,6 +108,15 @@ export const routes: Routes = [
     title: 'FASHION STORE | Pago Seguro & Pasarela Atelier',
   },
   {
+    path: 'reservas',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import(
+        './modules/reservas/cu13_consultar_cancelar_reservas/paginas/mis-reservas.component'
+      ).then((m) => m.MisReservasComponent),
+    title: 'FASHION STORE | Mis Reservas de Probador',
+  },
+  {
     path: 'productos/:id',
     loadComponent: () =>
       import(

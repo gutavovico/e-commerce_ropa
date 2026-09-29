@@ -89,6 +89,26 @@ describe('app.routes', () => {
     expect(bolsa?.canActivate?.length).toBeGreaterThan(0);
   });
 
+  it('declara /reservas como pantalla secundaria, fuera del layout principal', () => {
+    // Patrón Hub-and-Spoke: "Mis Reservas" (CU13/CU14) es una hoja abierta desde la tarjeta
+    // del Perfil, no una de las 4 pantallas raíz.
+    const layout = routes.find(
+      (ruta) => ruta.path === '' && ruta.component === MainLayoutComponent
+    );
+    const hijasDelLayout = (layout?.children ?? []).map((hija) => hija.path);
+    expect(hijasDelLayout).not.toContain('reservas');
+
+    const reservas = routes.find((ruta) => ruta.path === 'reservas');
+    expect(reservas).toBeDefined();
+    expect(reservas?.loadComponent).toBeDefined();
+  });
+
+  it('protege /reservas con el guard de autenticación', () => {
+    const reservas = routes.find((ruta) => ruta.path === 'reservas');
+    expect(reservas?.canActivate).toBeDefined();
+    expect(reservas?.canActivate?.length).toBeGreaterThan(0);
+  });
+
   it('existe una ruta comodín que evita la pantalla en blanco ante una URL desconocida', () => {
     const comodin = routes.find((ruta) => ruta.path === '**');
 

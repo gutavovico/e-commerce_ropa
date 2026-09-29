@@ -9,6 +9,7 @@ import { PerfilComponent } from './perfil.component';
 import { PerfilService } from '../servicios/perfil.service';
 import { LoginService } from '../../cu02_iniciar_sesion/servicios/login.service';
 import { PerfilCliente } from '../modelos/perfil.dto';
+import { MisReservasService } from '../../../reservas/cu13_consultar_cancelar_reservas/servicios/mis-reservas.service';
 
 describe('PerfilComponent (CU04)', () => {
   const mockPerfil: PerfilCliente = {
@@ -34,6 +35,7 @@ describe('PerfilComponent (CU04)', () => {
 
   let mockPerfilService: any;
   let mockLoginService: any;
+  let mockMisReservasService: any;
   let router: Router;
 
   beforeEach(async () => {
@@ -56,6 +58,14 @@ describe('PerfilComponent (CU04)', () => {
       cerrarSesion: vi.fn().mockReturnValue(of(void 0)),
     };
 
+    mockMisReservasService = {
+      resumen: signal({ activas: 0, proxima: null }),
+      cargando: signal(false),
+      cargarMisReservas: vi.fn().mockReturnValue(
+        of({ resumen: { activas: 0, proxima: null }, proximas: [], historial: [] })
+      ),
+    };
+
     await TestBed.configureTestingModule({
       imports: [PerfilComponent],
       providers: [
@@ -64,6 +74,7 @@ describe('PerfilComponent (CU04)', () => {
         provideRouter([]),
         { provide: PerfilService, useValue: mockPerfilService },
         { provide: LoginService, useValue: mockLoginService },
+        { provide: MisReservasService, useValue: mockMisReservasService },
       ],
     }).compileComponents();
 
@@ -99,5 +110,42 @@ describe('PerfilComponent (CU04)', () => {
     comp.cerrarSesion();
     expect(mockLoginService.cerrarSesion).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('carga el resumen de reservas al iniciar', () => {
+    const fixture = TestBed.createComponent(PerfilComponent);
+    fixture.detectChanges();
+    expect(mockMisReservasService.cargarMisReservas).toHaveBeenCalled();
+  });
+
+  it('la tarjeta de reservas muestra el resumen real y enlaza a /reservas, sin literales de bolsa', () => {
+    mockMisReservasService.resumen.set({
+      activas: 2,
+      proxima: { id_reserva: 5, fecha_hora_atencion: '2026-10-05T16:00:00Z', nombre_sucursal: 'Atelier Serrano - Madrid' },
+    });
+
+    const fixture = TestBed.createComponent(PerfilComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Mis Reservas');
+    expect(compiled.textContent).toContain('2 reservas activas');
+    expect(compiled.textContent).toContain('Atelier Serrano - Madrid');
+    expect(compiled.textContent).toContain('VER MIS RESERVAS');
+    // El literal de la bolsa que ocultaba una bolsa siempre vacía ya no existe.
+    expect(compiled.textContent).not.toContain('Bolsa de Compra');
+    expect(compiled.textContent).not.toContain('3 Artículos seleccionados');
+    expect(compiled.textContent).not.toContain('IR AL CHECKOUT');
+
+    const enlace = compiled.querySelector('a[routerLink="/reservas"]');
+    expect(enlace).not.toBeNull();
+  });
+
+  it('la tarjeta de reservas muestra su estado vacío cuando no hay citas agendadas', () => {
+    const fixture = TestBed.createComponent(PerfilComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Sin citas agendadas');
   });
 });

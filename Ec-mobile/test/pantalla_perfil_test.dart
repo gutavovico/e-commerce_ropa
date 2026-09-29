@@ -4,6 +4,23 @@ import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu04_gestionar_per
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu04_gestionar_perfil/dominio/repositorios/perfil_repositorio.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu04_gestionar_perfil/presentacion/bloc/perfil_bloc.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu04_gestionar_perfil/presentacion/pantallas/pantalla_perfil.dart';
+import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/datos/datasources/reservas_api.dart';
+import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/datos/modelos/reserva_dto.dart';
+import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/bloc/mis_reservas_bloc.dart';
+
+/// Doble de [ReservasApi] sin reservas activas: evita que `PantallaPerfil` salga a la red al
+/// crear su propio `MisReservasBloc` en las pruebas que no lo inyectan explícitamente.
+class MockReservasApiVacio implements ReservasApi {
+  @override
+  Future<MisReservasDto> obtenerMisReservas({required String token}) async {
+    return const MisReservasDto();
+  }
+
+  @override
+  Future<ReservaDto> cancelarReserva(int idReserva, String motivo, {required String token}) {
+    throw UnimplementedError();
+  }
+}
 
 class MockPerfilRepositorioPruebas implements PerfilRepositorio {
   @override
@@ -59,11 +76,13 @@ class MockPerfilRepositorioPruebas implements PerfilRepositorio {
 void main() {
   testWidgets('PantallaPerfil renderiza elementos visuales clave de Fashion Store', (tester) async {
     final bloc = PerfilBloc(repositorio: MockPerfilRepositorioPruebas());
+    final reservasBloc = MisReservasBloc(api: MockReservasApiVacio(), token: 'token_prueba');
 
     await tester.pumpWidget(
       MaterialApp(
         home: PantallaPerfil(
           bloc: bloc,
+          misReservasBloc: reservasBloc,
           habilitarImagenesRed: false,
         ),
       ),
@@ -89,11 +108,13 @@ void main() {
     expect(find.text('100%'), findsOneWidget);
     expect(find.text('SEDA & LANA'), findsOneWidget);
 
-    // 4. Tarjetas gemelas Wishlist y Bolsa
+    // 4. Tarjetas gemelas Wishlist y Reservas (CU13/CU14; antes "Bolsa" con un literal
+    // "3 Artículos · 1.250 €" fijo, sin relación con el carrito real — ver CHANGELOG).
     expect(find.text('WISHLIST'), findsOneWidget);
-    expect(find.text('BOLSA'), findsOneWidget);
+    expect(find.text('RESERVAS'), findsOneWidget);
     expect(find.text('EXPLORAR PIEZAS →'), findsOneWidget);
-    expect(find.text('IR AL CHECKOUT →'), findsOneWidget);
+    expect(find.text('VER MIS RESERVAS →'), findsOneWidget);
+    expect(find.text('Sin citas agendadas'), findsOneWidget);
 
     // 5. Histórico y Preferencias
     expect(find.text('Compras Anteriores y Pedidos'), findsOneWidget);
@@ -110,6 +131,7 @@ void main() {
   testWidgets('PantallaPerfil botón CERRAR SESIÓN ejecuta alCerrarSesion callback', (tester) async {
     final mockRepo = MockPerfilRepositorioPruebas();
     final bloc = PerfilBloc(repositorio: mockRepo);
+    final reservasBloc = MisReservasBloc(api: MockReservasApiVacio(), token: 'token_prueba');
     var cerrado = false;
 
     await tester.pumpWidget(
@@ -117,6 +139,7 @@ void main() {
         home: PantallaPerfil(
           token: 'token_prueba',
           bloc: bloc,
+          misReservasBloc: reservasBloc,
           alCerrarSesion: () => cerrado = true,
           habilitarImagenesRed: false,
         ),

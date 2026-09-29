@@ -18,6 +18,7 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { PerfilService } from '../servicios/perfil.service';
 import { LoginService } from '../../cu02_iniciar_sesion/servicios/login.service';
 import { PedidoHistorico, PerfilClienteActualizar } from '../modelos/perfil.dto';
+import { MisReservasService } from '../../../reservas/cu13_consultar_cancelar_reservas/servicios/mis-reservas.service';
 
 @Component({
   selector: 'app-perfil',
@@ -29,6 +30,7 @@ import { PedidoHistorico, PerfilClienteActualizar } from '../modelos/perfil.dto'
 })
 export class PerfilComponent implements OnInit {
   protected readonly perfilService = inject(PerfilService);
+  protected readonly misReservasService = inject(MisReservasService);
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -79,6 +81,7 @@ export class PerfilComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarDatos();
+    this.misReservasService.cargarMisReservas().subscribe({ error: () => undefined });
   }
 
   /**

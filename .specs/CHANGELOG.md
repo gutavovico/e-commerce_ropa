@@ -24,6 +24,23 @@ Ver documento principal en [../../CHANGELOG.md](../../CHANGELOG.md).
 - **Causa:** `ProductoDetalleServicio.consultar_detalle_producto` (`app/modules/catalogo/cu07_detalle_producto/servicio.py`) rellenaba `tallas_disponibles` con 5 tallas fijas (34-42) y `colores_disponibles` con 4 colores fijos (Seda Marfil Natural, Obsidian Negro, Camel Suave, Vino Borgona) cuando el producto no tenia `variantes_producto` en base de datos, sin vinculo alguno con la prenda real.
 - **Solucion:** Eliminado el bloque de relleno; un producto sin variantes ahora devuelve `variantes`, `tallas_disponibles` y `colores_disponibles` como listas vacias, y la interfaz muestra su estado vacio. Prueba de regresion: `tests/modules/catalogo/test_cu07_detalle_producto.py::test_consultar_detalle_producto_sin_variantes_no_inventa_tallas_ni_colores`.
 
+#### 73. Mobile: Pantalla "Mis Reservas" y Tarjeta del Perfil sin Datos Inventados (CU13/CU14, Mobile)
+- **Causa:** la tarjeta de "Bolsa" en `pantalla_perfil.dart` mostraba literales fijos sin relación con la bolsa real, y CU12/CU13/CU14 nunca se habían construido en Mobile.
+- **Solucion:** modulo `modulos/reservas/cu13_consultar_cancelar_reservas/` completo (DTOs con `fromJson`, `ReservasApiImpl` espejo de `PagoApiImpl`, `MisReservasBloc` con estados sellados y `cancelando`/`errorCancelacion` separados). Tarjeta "Mis Reservas" en el Perfil con datos reales, abre `PantallaMisReservas` por `Navigator.push` (hoja: `BackButton`, sin `bottomNavigationBar`, pestañas Proximas/Historial, `RefreshIndicator`) y una hoja inferior de cancelacion con motivo obligatorio.
+- **Verificacion:** Mobile 209/209 (19 nuevas), `dart analyze` limpio. Confirmado que `pantalla_principal_hub_test.dart` sigue en verde sin mockear el nuevo bloc, igual que ya ocurria con `PerfilBloc`.
+- **Cierre de ciclo:** CU13/CU14 completo en los tres stacks — pendiente de promocion a `.specs/finalized/`.
+
+#### 72. Web: Pantalla "Mis Reservas" y Tarjeta del Perfil sin Datos Inventados (CU13/CU14, Web)
+- **Causa:** la tarjeta "Bolsa de Compra" del Perfil mostraba un literal fijo ("3 Artículos · 1.250 €") sin relación con la bolsa real, y no existia pantalla para consultar/cancelar reservas.
+- **Solucion:** tarjeta "Mis Reservas" con datos reales de `MisReservasService`; nueva pantalla `/reservas` (hoja Hub-and-Spoke) con pestañas Proximas/Historial, badges de estado y modal de cancelacion con motivo obligatorio. Tras cancelar, se recarga la lista completa del servidor en vez de derivar el estado en cliente.
+- **Verificacion:** Web 538/538 (31 nuevas), `tsc`/`ng build` limpios.
+
+#### 71. Reservas Pendientes Retenian Stock Indefinidamente al no Vencer Nunca (CU13/CU14, Backend)
+- **Causa:** no habia endpoint para listar/cancelar reservas de CU12, ni proceso que venciera una cita ya pasada. Verificado en Neon: las 9 reservas existentes seguian `pendiente` con la cita vencida, reteniendo 9 unidades para siempre.
+- **Solucion:** `GET /reservas/mias` (cubre CU13 y CU14) y `POST /reservas/{id}/cancelar` (motivo obligatorio). Vencimiento perezoso a las 2h de la cita, liberando stock en la fila exacta que aparto CU12 (localizada por su movimiento, nunca recalculada).
+- **Verificacion:** Backend 487/487 (25 nuevas). End-to-end contra Neon: vencimiento real de 7 reservas del cliente #2, y ciclo reservar->cancelar simetrico (13->11->13).
+- **Pendiente:** Web y Mobile.
+
 #### 70. Verificacion end-to-end contra Stripe real (modo test) y correccion del `urlScheme` en Mobile (CU16)
 - **Contexto:** con claves de prueba ya configuradas, se corrio el flujo completo (carrito -> checkout -> `pagos/intentos` -> confirmacion real con `stripe.PaymentIntent.confirm()` -> `pagos/confirmar`) contra la API real de Stripe. Dos ordenes pagadas (una con un rechazo intermedio y reintento exitoso), inventario consolidado correctamente, `referencia_pasarela` con el `PaymentIntent` real.
 - **Defecto encontrado:** Stripe exige `return_url` en cuanto `allow_redirects` no es `'never'`. Web ya lo resolvia; Mobile no, porque `flutter_stripe` lo espera como ajuste global (`Stripe.urlScheme`), no por llamada. Se anadio `Stripe.urlScheme = 'fashionstore'` en `main.dart`; falta registrar el mismo esquema en `AndroidManifest.xml`/`Info.plist`, sin verificar en dispositivo real (no disponible en este entorno).

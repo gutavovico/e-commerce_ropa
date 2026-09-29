@@ -12,6 +12,7 @@ from modules.reservas.cu12_reservar_prendas.esquemas import (
     ReservaCrearIn,
     ReservaItemOut,
 )
+from modules.reservas.utilidades import formatear_codigo_reserva
 from modules.reservas.cu12_reservar_prendas.repositorio import ReservaRepositorio
 
 # Tope de unidades de una misma variante por cita, alineado con `ReservaItemIn.cantidad` (le=5).
@@ -163,7 +164,7 @@ class ReservaServicio:
 
         res_id = reserva.id_reserva or 1
         res_creado = reserva.creado_en or ahora
-        cod_reserva = f"RES-{res_creado.year}-{res_id:04d}"
+        cod_reserva = formatear_codigo_reserva(res_id, res_creado)
 
         # 8. Persistencia en Bitacora de Auditoria (CU30)
         from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria

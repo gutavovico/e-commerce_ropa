@@ -257,30 +257,43 @@
           </a>
         </div>
 
-        <!-- Tarjeta Bolsa de Compra -->
+        <!-- Tarjeta Mis Reservas -->
         <div class="bg-white rounded-3xl p-6 border border-neutral-100 shadow-sm flex items-center justify-between gap-4">
           <div class="flex items-center space-x-4">
             <div class="w-12 h-12 rounded-2xl bg-neutral-950 text-white flex items-center justify-center shrink-0">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <div>
               <p class="text-[10px] text-neutral-400 font-semibold tracking-widest uppercase">
-                ORDEN EN CURSO
+                CITAS DE PROBADOR
               </p>
               <h3 class="text-base font-bold text-neutral-950 mt-0.5">
-                Bolsa de Compra
+                Mis Reservas
               </h3>
               <p class="text-xs text-neutral-400 mt-0.5">
-                3 Artículos seleccionados · 1.250 €
+                @if (misReservasService.cargando()) {
+                  Consultando tus citas…
+                } @else if (misReservasService.resumen().activas > 0) {
+                  {{ misReservasService.resumen().activas }}
+                  {{ misReservasService.resumen().activas === 1 ? 'reserva activa' : 'reservas activas' }}
+                  @if (misReservasService.resumen().proxima; as proxima) {
+                    · Próxima: {{ proxima.nombre_sucursal }}
+                  }
+                } @else {
+                  Sin citas agendadas
+                }
               </p>
             </div>
           </div>
 
-          <button type="button" class="bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold tracking-wider uppercase px-5 py-3 rounded-2xl transition shadow-sm shrink-0">
-            IR AL CHECKOUT
-          </button>
+          <a
+            routerLink="/reservas"
+            class="bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold tracking-wider uppercase px-5 py-3 rounded-2xl transition shadow-sm shrink-0"
+          >
+            VER MIS RESERVAS
+          </a>
         </div>
       </section>
 
