@@ -7,9 +7,9 @@ que comparten una única base de datos PostgreSQL desplegada en Neon.
 
 | Directorio | Stack | Rol |
 | :--- | :--- | :--- |
-| `Ec-backend/` | Python 3.12 · FastAPI · SQLAlchemy 2.0 · Alembic | API REST, única fuente de verdad de datos e importes |
+| `Ec-backend/` | Python ≥ 3.11 · FastAPI · SQLAlchemy 2.0 · Alembic | API REST, única fuente de verdad de datos e importes |
 | `Ec-frontend/` | Angular 21 · standalone · Signals · Tailwind | Cliente web |
-| `Ec-mobile/` | Flutter 3.x · Dart 3 | Cliente móvil (rol Cliente) |
+| `Ec-mobile/` | Flutter 3.x · Dart 3 | Cliente móvil (rol Cliente; incluye además la pantalla de reportes por voz de CU31) |
 
 El idioma del dominio es el español: nombres de clase, variables, comentarios y documentación.
 
@@ -78,6 +78,13 @@ El desarrollo se organiza por **caso de uso** (CU01, CU05, CU11…), no por capa
 - `CHANGELOG.md` — bitácora numerada de defectos corregidos. Al arreglar un bug real, añade su
   entrada con causa y solución.
 
+**Colisión de numeración de CU.** En `SI2-Parcial1.md`, CU31 es «Registrar venta presencial» y
+CU32 «Procesar venta presencial y emitir comprobante» (POS de caja, **sin implementar**), mientras que
+CU34 es «Reportes» (con comandos de voz) y CU35 «Exportar». El código y las specs usan el nombre
+`cu31_reportes_voz` (`.specs/finalized/CU31/`) para el módulo que cubre CU34 + CU35. Cuando el usuario
+diga «CU31», aclara a cuál se refiere. El `design.md` de esa spec afirma que `Ec-mobile` queda
+excluido, pero el móvil sí tiene `PantallaReportesVoz`: la spec está desactualizada en ese punto.
+
 **Flujo de gate:** el usuario aprueba la especificación antes de que se escriba código, y aprueba
 cada bloque (Backend → Web → Mobile) antes de pasar al siguiente. No cruces ese límite sin permiso
 explícito.
@@ -86,14 +93,15 @@ explícito.
 
 ## Reglas que esta base de código ya ha pagado caro
 
-### La base de datos manda, no las migraciones
+### La base de datos manda, no la migración inicial
 
-`alembic/versions/0001_base_ddl.py` **no describe el esquema desplegado**. Difiere en nombres de
-columna (`estado_activo` frente a `activa`, `nit_rut` frente a `nit`) y en tipos (`TIMESTAMPTZ`
-frente a `DATE`). Confiar en la migración ya tumbó catálogo, búsqueda y colecciones en producción
-(defecto 34 del `CHANGELOG.md`).
+`alembic/versions/0001_base_ddl.py` **por sí sola no describe el esquema desplegado**: recoge el DDL
+inicial de la especificación y difiere del estado final en nombres de columna (`estado_activo`
+frente a `activa`, `nit_rut` frente a `nit`), en tipos (`TIMESTAMPTZ` frente a `DATE`) y en las
+tablas y columnas añadidas por `0002`–`0011`. Confiar en `0001` aisladamente ya tumbó catálogo,
+búsqueda y colecciones en producción (defecto 34 del `CHANGELOG.md`).
 
-Antes de mapear una tabla, **consulta el esquema real**:
+Antes de mapear una tabla, **consulta el esquema real** (o `Ec-backend/specs/diseno_fisico_neon.sql`):
 
 ```bash
 ./.venv/Scripts/python.exe -c "
@@ -114,10 +122,16 @@ conserva el atributo Python: `mapped_column("estado_activo", Boolean, ...)`.
 `information_schema` y falla ante columnas inexistentes o familias de tipo incompatibles. Se salta
 sola cuando no hay `DATABASE_URL` en `Ec-backend/.env`.
 
-**La cadena de Alembic está rota:** la base declara `alembic_version = '0010'`, pero las revisiones
-`0004`–`0008` no existen como archivos. `alembic upgrade head` no puede resolverla, y `render.yaml`
-la invoca en `preDeployCommand`. Las migraciones `0009` y `0010` se aplicaron ejecutando su DDL de
-forma idempotente. Reconciliar la cadena es una decisión de esquema pendiente.
+**La cadena de Alembic es lineal desde el defecto 45 del `CHANGELOG.md`:**
+`0001 → … → 0008 → 0009 → 0009a → 0010 → 0010a → 0011`. `0009a` (CU28) y `0010a` (CU29) son
+marcadores vacíos; los IDs llevan sufijo porque `0009` y `0010` ya pertenecían a migraciones con DDL
+real. La base de Neon está sellada en `0011` (la única cabeza), por lo que `alembic upgrade head`
+—que `render.yaml` ejecuta en `preDeployCommand`— es un no-op sobre ella. **Nueva migración:**
+`down_revision = "0011"` e ID nuevo y único (`0012`); comprueba `alembic heads` antes de enviarla.
+La cadena completa `0001 → 0011` sí reproduce el esquema desplegado en Neon (las 31 tablas, 236
+columnas, 10 enums, 46 índices, 3 vistas y el trigger); cuatro tablas de Neon aún no tienen modelo
+ORM (`sesiones_vestidor_virtual`, `interacciones_chatbot`, `historial_navegacion` y
+`solicitudes_reporte_ia`), por lo que cualquier `--autogenerate` debe revisarse antes de aplicarse.
 
 ### Los tests verdes no prueban que el contrato funcione
 
@@ -168,7 +182,10 @@ app/modules/<paquete_dominio>/modelos.py      # ORM a nivel de paquete
 app/core/{config,database,deps,errors,security,token_blacklist}.py
 ```
 
-Paquetes actuales: `autenticacion_seguridad`, `catalogo`, `reservas`, `compras_pagos`.
+Paquetes actuales: `autenticacion_seguridad`, `catalogo`, `reservas`, `compras_pagos`, `comercial`
+(CU27–CU29 y `cu31_reportes_voz`), `gestion_operativa` (CU21–CU26) y `seguridad` (CU30 bitácora).
+Las integraciones externas viven en `app/integrations/` (`stripe_service.py` y `gemini_service.py`,
+ambos con simulador/fallback determinista cuando falta la clave).
 
 - **Router:** solo HTTP. Sin lógica de negocio ni consultas ORM.
 - **Servicio:** negocio y transacción; una unidad de trabajo por caso de uso. No importa `fastapi`;

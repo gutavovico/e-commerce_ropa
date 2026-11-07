@@ -346,14 +346,17 @@ ejercitar nunca `fromJson`, de modo que ningún desajuste de nombres de campo er
   `/api/v1/catalogo/filtros-disponibles`, `/api/v1/catalogo/recomendaciones/personalizadas`,
   `/api/v1/sucursales/activas` y `/api/v1/productos` devuelven HTTP 200 con datos de Neon.
 
-### Deuda Técnica Registrada
-- **`alembic/versions/0001_base_ddl.py` no describe la base de datos real.** Declara `activa`,
-  `activo` y `nit` donde PostgreSQL tiene `estado_activo` y `nit_rut`, y omite columnas que sí
-  existen (`actualizado_en`, `anio`, `codigo_cupon`, `alcance`, `limite_usos`, `direccion`,
-  `ciudad`, `rubro`, entre otras). Mientras siga así, cualquiera que consulte la migración para
-  saber cómo es una tabla obtendrá la respuesta incorrecta, y `alembic revision --autogenerate`
-  propondrá cambios destructivos. Reconciliarla implica una decisión sobre el esquema y queda
-  pendiente de autorización explícita.
+### Deuda Técnica Registrada (Resuelta documentalmente — Opción A)
+- **`alembic/versions/0001_base_ddl.py` por sí sola refleja el DDL inicial, no el estado final.**
+  Declara `activa`, `activo` y `nit` donde PostgreSQL tiene `estado_activo` y `nit_rut`, y no
+  incluye las columnas y tablas introducidas después (`bitacora`, `codigos_recuperacion`,
+  `actualizado_en`, `anio`, `codigo_cupon`, `alcance`, `limite_usos`, `direccion`, `ciudad`,
+  `rubro`, entre otras). Sin embargo, **la cadena completa `0001 → 0011` sí reproduce el esquema
+  real de Neon** (las 31 tablas, 236 columnas, 10 enums, 46 índices, 3 vistas y el trigger): las
+  migraciones `0002`–`0011` aplican todos los `ALTER` y creaciones que compensan el desfase de
+  `0001`. Se actualizó el DDL de `SI2-Parcial1.md` para reflejar el esquema vigente en producción
+  (Opción A). Para consultar el esquema de una tabla debe usarse `information_schema` o
+  `Ec-backend/specs/diseno_fisico_neon.sql`, nunca `0001` de forma aislada.
 
 ### Registro de Errores Corregidos y Soluciones Aplicadas
 34. **HTTP 500 en Catálogo, Búsqueda y Colecciones por Deriva entre el ORM y el Esquema Real de PostgreSQL**:
@@ -391,6 +394,10 @@ ejercitar nunca `fromJson`, de modo que ningún desajuste de nombres de campo er
 44. **Landing Page Pública Inalcanzable en la URL Raíz**:
     - *Causa:* La ruta `{ path: '', component: MainLayoutComponent, children: [...] }` introducida con CU05 quedó declarada por delante de `{ path: '', loadComponent: landing, pathMatch: 'full' }`. Angular resuelve las rutas en orden: la URL raíz entraba en el layout y, al no existir ningún hijo con `path: ''`, la landing dejaba de mostrarse. El proyecto seguía compilando sin errores.
     - *Solución:* La landing se declara primero en `app.routes.ts`; su `pathMatch: 'full'` garantiza que solo capture la URL vacía exacta. Se añadió además la ruta comodín `{ path: '**' }` que faltaba —sin ella, cualquier URL desconocida producía un `NG04002` y una pantalla en blanco, agravado porque `vercel.json` reescribe todo a `index.html`— y el guard `src/app/app.routes.spec.ts`, que navega a `/` y verifica el orden de declaración.
+45. **Cadena de Alembic Irresoluble por Revisiones `0009` y `0010` Duplicadas**:
+    - *Causa:* Había dos archivos con `revision = "0009"` (`0009_checkout_ddl.py` y `0009_cu28_ventas_reservas.py`) y dos con `revision = "0010"` (`0010_seed_promociones.py` y `0010_cu29_indicadores.py`), con el mismo `down_revision` cada par. Alembic avisaba «Revision 0010 is present more than once» y `alembic history` / `alembic upgrade head` fallaban con «overlaps with other requested revisions», aunque `render.yaml` invoca `alembic upgrade head` en `preDeployCommand`. Los marcadores de CU28 y CU29 son revisiones vacías (`pass`) que se numeraron sin comprobar que el ID ya estaba tomado. Un diagnóstico anterior achacaba el fallo a que faltaban las revisiones `0004`–`0008`, pero esos archivos ya existían.
+    - *Solución:* Se encadenaron con IDs únicos, sin borrar ni reordenar el DDL real: `0008 → 0009 (checkout) → 0009a (CU28) → 0010 (seed promociones) → 0010a (CU29) → 0011 (bitácora)`. `0011.down_revision` pasó a `0010a`. La base de Neon está sellada en `0011`, que sigue siendo la única cabeza, así que **no requirió tocar la base de datos** y `alembic upgrade head` es un no-op sobre ella.
+    - *Verificación:* `alembic heads` → una sola cabeza (`0011`); `alembic history` lineal de `<base>` a `0011`; `alembic current` contra Neon → `0011 (head)`; `alembic upgrade 0001:head --sql` genera los 12 pasos en orden sin avisos; `pytest` 487/487.
 
 ## [1.8.0] - 2026-09-21
 

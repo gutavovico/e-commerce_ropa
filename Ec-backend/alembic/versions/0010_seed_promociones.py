@@ -19,7 +19,7 @@ un beneficio de cliente VIP que el mecanismo real no ofrece.
 Todos los importes son inserciones de datos: esta revision no altera el esquema.
 
 Revision ID: 0010
-Revises: 0009
+Revises: 0009a
 Create Date: 2026-09-22
 """
 
@@ -28,7 +28,7 @@ from typing import Sequence, Union
 from alembic import op
 
 revision: str = "0010"
-down_revision: Union[str, None] = "0009"
+down_revision: Union[str, None] = "0009a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -16,16 +16,13 @@ Cambios aprobados en `.specs/changes/change-carrito-checkout.md` (secciones 1.1,
    abortaba el checkout completo. La retencion de stock pasa a `CheckoutServicio`, de forma
    transaccional y con auditoria en `movimientos_inventario`, replicando el patron de CU12.
 
-ADVERTENCIA SOBRE LA CADENA DE MIGRACIONES
-------------------------------------------
-La base desplegada declara `alembic_version = '0008'`, pero este repositorio solo contiene los
-archivos `0001`, `0002` y `0003`: las revisiones 0004 a 0008 no estan versionadas aqui. Por eso
-`alembic upgrade head` NO puede resolver esta cadena y esta revision se aplico ejecutando su DDL
-de forma directa e idempotente contra PostgreSQL, actualizando despues `alembic_version` a '0009'.
-
-Este archivo es el registro reversible y auditable del cambio. Reconciliar la cadena completa de
-migraciones con el esquema real sigue siendo deuda abierta (ver `CHANGELOG.md`, seccion
-"Deuda Tecnica Registrada"); es una decision de esquema pendiente de autorizacion.
+NOTA SOBRE LA CADENA DE MIGRACIONES
+-----------------------------------
+Historicamente esta revision se aplico ejecutando su DDL de forma directa e idempotente contra
+PostgreSQL, porque en ese momento el repositorio no tenia versionadas las revisiones 0004 a 0008.
+Esa carencia ya esta resuelta: hoy existen 0001 a 0008 y la cadena es lineal
+(`0008 -> 0009 -> 0009a -> 0010 -> 0010a -> 0011`). El DDL es idempotente, de modo que reejecutarlo
+sobre la base desplegada (sellada en '0011') no tiene efecto.
 
 Revision ID: 0009
 Revises: 0008

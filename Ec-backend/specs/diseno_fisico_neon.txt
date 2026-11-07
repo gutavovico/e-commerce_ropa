@@ -1,0 +1,653 @@
+================================================================================
+          DISEÑO FÍSICO REAL DE LA BASE DE DATOS (POSTGRESQL - NEON)
+                      SISTEMA E-COMMERCE: FASHIONSTORE
+================================================================================
+
+Gestor de Base de Datos: PostgreSQL 16+ en Neon Cloud (Serverless)
+Esquema de Base de Datos: fashionstore
+Extensiones Activas: pgcrypto, citext, pg_trgm, unaccent
+Total de Tablas Físicas: 32 (excluyendo alembic_version)
+Total de Vistas: 3
+Total de Tipos Enumerados (ENUM): 10
+Triggers / Funciones: fn_actualizar_estado_inventario (BEFORE INSERT/UPDATE en inventario_sucursal)
+
+================================================================================
+1. TIPOS ENUMERADOS (ENUMS)
+================================================================================
+
+CREATE TYPE fashionstore.canal_origen AS ENUM ('web', 'movil', 'sucursal');
+CREATE TYPE fashionstore.estado_pago AS ENUM ('pendiente', 'autorizado', 'confirmado', 'rechazado', 'reembolsado');
+CREATE TYPE fashionstore.estado_prenda_stock AS ENUM ('disponible', 'reservada', 'vendida', 'agotada', 'proxima_ingreso', 'devuelta');
+CREATE TYPE fashionstore.estado_reserva AS ENUM ('pendiente', 'confirmada', 'en_atencion', 'atendida', 'cancelada', 'vencida');
+CREATE TYPE fashionstore.estado_venta AS ENUM ('pendiente', 'pagada', 'anulada', 'devuelta');
+CREATE TYPE fashionstore.metodo_pago AS ENUM ('efectivo', 'tarjeta_debito', 'tarjeta_credito', 'pasarela_digital', 'qr', 'transferencia');
+CREATE TYPE fashionstore.rol_usuario AS ENUM ('cliente', 'administrador', 'encargado_sucursal', 'cajero', 'proveedor');
+CREATE TYPE fashionstore.tipo_movimiento_inv AS ENUM ('ingreso_proveedor', 'reserva', 'liberacion_reserva', 'venta', 'devolucion', 'ajuste', 'transferencia_salida', 'transferencia_entrada', 'ajuste_positivo', 'ajuste_negativo', 'venta_confirmada', 'cancelacion_pedido');
+CREATE TYPE fashionstore.tipo_temporada AS ENUM ('primavera_verano', 'otono_invierno', 'escolar', 'promocion_especial', 'nueva_coleccion');
+CREATE TYPE fashionstore.tipo_venta AS ENUM ('presencial', 'digital_web', 'digital_movil');
+
+================================================================================
+2. DICCIONARIO DE DATOS FÍSICO POR TABLA
+================================================================================
+
+TABLA: fashionstore.bitacora
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_bitacora                  | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_usuario                   | INTEGER                | NULL     |  [FK -> usuarios(id_usuario)]
+usuario_nombre               | VARCHAR(255)           | NULL     | 
+accion                       | VARCHAR(100)           | NOT NULL | 
+tabla_modulo                 | VARCHAR(100)           | NOT NULL | 
+direccion_ip                 | VARCHAR(45)            | NULL     | 
+severidad                    | VARCHAR(20)            | NOT NULL | 'INFO'
+payload_anterior             | JSONB                  | NULL     | 
+payload_nuevo                | JSONB                  | NULL     | 
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_bitacora)
+  • FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON UPDATE NO ACTION ON DELETE SET NULL
+  • ÍNDICES:
+    - idx_bitacora_creado_en: USING btree (creado_en DESC)
+    - idx_bitacora_modulo: USING btree (tabla_modulo)
+    - idx_bitacora_severidad: USING btree (severidad)
+    - idx_bitacora_usuario: USING btree (id_usuario)
+
+
+TABLA: fashionstore.carrito_detalle
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_carrito_detalle           | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_carrito                   | BIGINT                 | NOT NULL |  [FK -> carritos(id_carrito)]
+id_variante                  | BIGINT                 | NOT NULL |  [FK -> variantes_producto(id_variante)]
+id_sucursal                  | INTEGER                | NOT NULL |  [FK -> sucursales(id_sucursal)]
+cantidad                     | INTEGER                | NOT NULL | 1
+agregado_en                  | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_carrito_detalle)
+  • FOREIGN KEY (id_carrito) REFERENCES carritos(id_carrito) ON UPDATE NO ACTION ON DELETE CASCADE
+  • FOREIGN KEY (id_sucursal) REFERENCES sucursales(id_sucursal) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_variante) REFERENCES variantes_producto(id_variante) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (id_carrito, id_variante, id_sucursal)
+  • CHECK: (cantidad > 0)
+
+
+TABLA: fashionstore.carritos
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_carrito                   | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_cliente                   | BIGINT                 | NOT NULL |  [FK -> clientes(id_cliente)]
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+actualizado_en               | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_carrito)
+  • FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (id_cliente)
+
+
+TABLA: fashionstore.categorias
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_categoria                 | INTEGER                | NOT NULL | SERIAL [PK]
+nombre                       | VARCHAR(100)           | NOT NULL | 
+id_categoria_padre           | INTEGER                | NULL     |  [FK -> categorias(id_categoria)]
+  • PRIMARY KEY: (id_categoria)
+  • FOREIGN KEY (id_categoria_padre) REFERENCES categorias(id_categoria) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (nombre)
+
+
+TABLA: fashionstore.ciudades
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_ciudad                    | INTEGER                | NOT NULL | SERIAL [PK]
+nombre                       | VARCHAR(100)           | NOT NULL | 
+pais                         | VARCHAR(100)           | NOT NULL | 'Bolivia'
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_ciudad)
+  • UNIQUE: (nombre)
+
+
+TABLA: fashionstore.clientes
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_cliente                   | BIGINT                 | NOT NULL | [PK, FK -> usuarios(id_usuario)]
+fecha_nacimiento             | DATE                   | NULL     | 
+genero                       | VARCHAR(20)            | NULL     | 
+talla_preferida              | VARCHAR(10)            | NULL     | 
+ciudad_preferida             | INTEGER                | NULL     |  [FK -> ciudades(id_ciudad)]
+acepta_marketing             | BOOLEAN                | NOT NULL | true
+  • PRIMARY KEY: (id_cliente)
+  • FOREIGN KEY (id_cliente) REFERENCES usuarios(id_usuario) ON UPDATE NO ACTION ON DELETE CASCADE
+  • FOREIGN KEY (ciudad_preferida) REFERENCES ciudades(id_ciudad) ON UPDATE NO ACTION ON DELETE NO ACTION
+
+
+TABLA: fashionstore.codigos_recuperacion
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_codigo                    | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_usuario                   | BIGINT                 | NOT NULL |  [FK -> usuarios(id_usuario)]
+codigo_hash                  | VARCHAR(64)            | NOT NULL | 
+expira_en                    | TIMESTAMPTZ            | NOT NULL | 
+usado                        | BOOLEAN                | NOT NULL | false
+intentos_fallidos            | INTEGER                | NOT NULL | 0
+ip_solicitante               | VARCHAR(45)            | NULL     | 
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_codigo)
+  • FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON UPDATE NO ACTION ON DELETE CASCADE
+  • ÍNDICES:
+    - ix_fashionstore_codigos_recuperacion_codigo_hash: USING btree (codigo_hash)
+    - ix_fashionstore_codigos_recuperacion_id_usuario: USING btree (id_usuario)
+
+
+TABLA: fashionstore.colecciones
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_coleccion                 | INTEGER                | NOT NULL | SERIAL [PK]
+id_temporada                 | INTEGER                | NOT NULL |  [FK -> temporadas(id_temporada)]
+id_proveedor                 | INTEGER                | NULL     |  [FK -> proveedores(id_proveedor)]
+nombre                       | VARCHAR(150)           | NOT NULL | 
+descripcion                  | TEXT                   | NULL     | 
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+estado_activo                | BOOLEAN                | NOT NULL | true
+actualizado_en               | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_coleccion)
+  • FOREIGN KEY (id_temporada) REFERENCES temporadas(id_temporada) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • ÍNDICES:
+    - idx_colecciones_estado: USING btree (estado_activo)
+    - idx_colecciones_temporada: USING btree (id_temporada)
+    - uq_colecciones_temporada_nombre_lower: UNIQUE USING btree (id_temporada, lower(TRIM(nombre)))
+
+
+TABLA: fashionstore.colores
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_color                     | INTEGER                | NOT NULL | SERIAL [PK]
+nombre                       | VARCHAR(50)            | NOT NULL | 
+codigo_hex                   | CHAR(7)                | NULL     | 
+  • PRIMARY KEY: (id_color)
+  • UNIQUE: (nombre)
+
+
+TABLA: fashionstore.empleados
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_empleado                  | BIGINT                 | NOT NULL | [PK, FK -> usuarios(id_usuario)]
+codigo_empleado              | VARCHAR(20)            | NOT NULL | 
+fecha_contratacion           | DATE                   | NOT NULL | CURRENT_DATE
+cargo                        | VARCHAR(100)           | NULL     | 
+  • PRIMARY KEY: (id_empleado)
+  • FOREIGN KEY (id_empleado) REFERENCES usuarios(id_usuario) ON UPDATE NO ACTION ON DELETE CASCADE
+  • UNIQUE: (codigo_empleado)
+
+
+TABLA: fashionstore.historial_navegacion
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_historial                 | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_cliente                   | BIGINT                 | NOT NULL |  [FK -> clientes(id_cliente)]
+id_producto                  | BIGINT                 | NOT NULL |  [FK -> productos(id_producto)]
+tipo_evento                  | VARCHAR(30)            | NOT NULL | 'vista'
+fecha_hora                   | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_historial)
+  • FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • ÍNDICES:
+    - idx_hist_nav_cliente: USING btree (id_cliente)
+    - idx_hist_nav_producto: USING btree (id_producto)
+
+
+TABLA: fashionstore.interacciones_chatbot
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_interaccion               | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_cliente                   | BIGINT                 | NULL     |  [FK -> clientes(id_cliente)]
+mensaje_usuario              | TEXT                   | NOT NULL | 
+respuesta_ia                 | TEXT                   | NULL     | 
+canal                        | ENUM(canal_origen)     | NOT NULL | 
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_interaccion)
+  • FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON UPDATE NO ACTION ON DELETE NO ACTION
+
+
+TABLA: fashionstore.inventario_sucursal
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_inventario                | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_variante                  | BIGINT                 | NOT NULL |  [FK -> variantes_producto(id_variante)]
+id_sucursal                  | INTEGER                | NOT NULL |  [FK -> sucursales(id_sucursal)]
+id_temporada                 | INTEGER                | NOT NULL |  [FK -> temporadas(id_temporada)]
+cantidad_disponible          | INTEGER                | NOT NULL | 0
+cantidad_reservada           | INTEGER                | NOT NULL | 0
+stock_minimo                 | INTEGER                | NOT NULL | 0
+stock_alerta                 | INTEGER                | NOT NULL | 5
+estado                       | ENUM(estado_prenda_stock) | NOT NULL | 'disponible'
+actualizado_en               | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_inventario)
+  • FOREIGN KEY (id_variante) REFERENCES variantes_producto(id_variante) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_sucursal) REFERENCES sucursales(id_sucursal) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_temporada) REFERENCES temporadas(id_temporada) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (id_variante, id_sucursal, id_temporada)
+  • CHECKS:
+    - (cantidad_disponible >= 0)
+    - (cantidad_reservada >= 0)
+  • TRIGGER: trg_inventario_estado BEFORE INSERT OR UPDATE EXECUTE FUNCTION fn_actualizar_estado_inventario()
+  • ÍNDICES:
+    - idx_inventario_estado: USING btree (estado)
+    - idx_inventario_sucursal: USING btree (id_sucursal)
+    - idx_inventario_variante: USING btree (id_variante)
+
+
+TABLA: fashionstore.movimientos_inventario
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_movimiento                | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_inventario                | BIGINT                 | NOT NULL |  [FK -> inventario_sucursal(id_inventario)]
+tipo_movimiento              | ENUM(tipo_movimiento_inv) | NOT NULL | 
+cantidad                     | INTEGER                | NOT NULL | 
+saldo_anterior               | INTEGER                | NOT NULL | 0
+saldo_nuevo                  | INTEGER                | NOT NULL | 0
+id_usuario_responsable       | BIGINT                 | NULL     |  [FK -> usuarios(id_usuario)]
+referencia_documento         | VARCHAR(100)           | NULL     | 
+observacion                  | TEXT                   | NULL     | 
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_movimiento)
+  • FOREIGN KEY (id_inventario) REFERENCES inventario_sucursal(id_inventario) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_usuario_responsable) REFERENCES usuarios(id_usuario) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • CHECK: (cantidad <> 0)
+  • ÍNDICES:
+    - idx_mov_inv_inventario: USING btree (id_inventario)
+    - idx_mov_inv_tipo: USING btree (tipo_movimiento)
+
+
+TABLA: fashionstore.pagos
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_pago                      | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_venta                     | BIGINT                 | NOT NULL |  [FK -> ventas(id_venta)]
+metodo_pago                  | ENUM(metodo_pago)      | NOT NULL | 
+monto                        | NUMERIC(12,2)          | NOT NULL | 
+estado                       | ENUM(estado_pago)      | NOT NULL | 'pendiente'
+referencia_pasarela          | VARCHAR(150)           | NULL     | 
+payload_respuesta            | JSONB                  | NULL     | 
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+confirmado_en                | TIMESTAMPTZ            | NULL     | 
+  • PRIMARY KEY: (id_pago)
+  • FOREIGN KEY (id_venta) REFERENCES ventas(id_venta) ON UPDATE NO ACTION ON DELETE CASCADE
+  • CHECK: (monto >= 0)
+  • ÍNDICES:
+    - idx_pagos_estado: USING btree (estado)
+    - idx_pagos_venta: USING btree (id_venta)
+
+
+TABLA: fashionstore.productos
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_producto                  | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_categoria                 | INTEGER                | NOT NULL |  [FK -> categorias(id_categoria)]
+id_coleccion                 | INTEGER                | NULL     |  [FK -> colecciones(id_coleccion)]
+id_proveedor                 | INTEGER                | NULL     |  [FK -> proveedores(id_proveedor)]
+nombre                       | VARCHAR(200)           | NOT NULL | 
+descripcion                  | TEXT                   | NULL     | 
+precio_base                  | NUMERIC(10,2)          | NOT NULL | 
+imagen_url                   | VARCHAR(500)           | NULL     | 
+modelo_ar_url                | VARCHAR(500)           | NULL     | 
+activo                       | BOOLEAN                | NOT NULL | true
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_producto)
+  • FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_coleccion) REFERENCES colecciones(id_coleccion) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • CHECK: (precio_base >= 0)
+  • ÍNDICES:
+    - idx_productos_categoria: USING btree (id_categoria)
+    - idx_productos_coleccion: USING btree (id_coleccion)
+    - idx_productos_nombre_trgm: USING gin (nombre gin_trgm_ops)
+
+
+TABLA: fashionstore.promocion_producto
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_promocion                 | INTEGER                | NOT NULL | [PK, FK -> promociones(id_promocion)]
+id_producto                  | BIGINT                 | NOT NULL | [PK, FK -> productos(id_producto)]
+  • PRIMARY KEY: (id_promocion, id_producto)
+  • FOREIGN KEY (id_promocion) REFERENCES promociones(id_promocion) ON UPDATE NO ACTION ON DELETE CASCADE
+  • FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON UPDATE NO ACTION ON DELETE CASCADE
+
+
+TABLA: fashionstore.promociones
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_promocion                 | INTEGER                | NOT NULL | SERIAL [PK]
+nombre                       | VARCHAR(150)           | NOT NULL | 
+descripcion                  | TEXT                   | NULL     | 
+porcentaje_descuento         | NUMERIC(5,2)           | NULL     | 
+fecha_inicio                 | TIMESTAMPTZ            | NOT NULL | 
+fecha_fin                    | TIMESTAMPTZ            | NOT NULL | 
+estado_activo                | BOOLEAN                | NOT NULL | true
+codigo_cupon                 | VARCHAR(50)            | NULL     | 
+tipo_descuento               | VARCHAR(20)            | NOT NULL | 'porcentaje'
+valor_descuento              | NUMERIC(10,2)          | NOT NULL | 0.00
+tope_descuento               | NUMERIC(10,2)          | NULL     | 
+limite_usos                  | INTEGER                | NULL     | 
+usos_actuales                | INTEGER                | NOT NULL | 0
+alcance                      | VARCHAR(20)            | NOT NULL | 'global'
+id_categoria                 | INTEGER                | NULL     |  [FK -> categorias(id_categoria)]
+id_producto                  | BIGINT                 | NULL     |  [FK -> productos(id_producto)]
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+actualizado_en               | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_promocion)
+  • FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria) ON UPDATE NO ACTION ON DELETE SET NULL
+  • FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON UPDATE NO ACTION ON DELETE SET NULL
+  • CHECKS:
+    - alcance IN ('global', 'categoria', 'producto')
+    - fecha_fin > fecha_inicio
+    - limite_usos IS NULL OR limite_usos > 0
+    - tipo_descuento <> 'porcentaje' OR (valor_descuento >= 1.00 AND valor_descuento <= 100.00)
+    - tipo_descuento IN ('porcentaje', 'monto_fijo')
+    - tope_descuento IS NULL OR tope_descuento >= 0
+    - usos_actuales >= 0
+    - valor_descuento > 0
+  • ÍNDICES:
+    - ix_promociones_alcance: USING btree (alcance, id_categoria, id_producto)
+    - ix_promociones_fechas_vigencia: USING btree (fecha_inicio, fecha_fin, estado_activo)
+    - uq_promociones_codigo_cupon_lower: UNIQUE USING btree (lower(TRIM(codigo_cupon))) WHERE (codigo_cupon IS NOT NULL)
+
+
+TABLA: fashionstore.proveedores
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_proveedor                 | INTEGER                | NOT NULL | SERIAL [PK]
+id_usuario                   | BIGINT                 | NULL     |  [FK -> usuarios(id_usuario)]
+razon_social                 | VARCHAR(200)           | NOT NULL | 
+nit_rut                      | VARCHAR(30)            | NULL     | 
+contacto_nombre              | VARCHAR(150)           | NULL     | 
+telefono                     | VARCHAR(30)            | NULL     | 
+email                        | CITEXT                 | NULL     | 
+direccion                    | VARCHAR(255)           | NULL     | 'Direccion no registrada'
+ciudad                       | VARCHAR(80)            | NULL     | 'La Paz'
+rubro                        | VARCHAR(80)            | NULL     | 'Confeccion Textil'
+estado_activo                | BOOLEAN                | NOT NULL | true
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+actualizado_en               | TIMESTAMPTZ            | NULL     | now()
+  • PRIMARY KEY: (id_proveedor)
+  • FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (nit_rut)
+  • ÍNDICES:
+    - idx_proveedores_estado: USING btree (estado_activo)
+    - idx_proveedores_rubro: USING btree (rubro)
+    - uq_proveedores_nit_rut: UNIQUE USING btree (nit_rut)
+    - uq_proveedores_razon_social: UNIQUE USING btree (lower(razon_social))
+
+
+TABLA: fashionstore.recomendaciones_ia
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_recomendacion             | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_cliente                   | BIGINT                 | NOT NULL |  [FK -> clientes(id_cliente)]
+id_producto                  | BIGINT                 | NOT NULL |  [FK -> productos(id_producto)]
+score_relevancia             | NUMERIC(5,4)           | NOT NULL | 
+motivo                       | VARCHAR(255)           | NULL     | 
+generado_en                  | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_recomendacion)
+  • FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • CHECK: (score_relevancia >= 0 AND score_relevancia <= 1)
+  • ÍNDICE: idx_recom_cliente: USING btree (id_cliente, score_relevancia DESC)
+
+
+TABLA: fashionstore.reserva_detalle
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_reserva_detalle           | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_reserva                   | BIGINT                 | NOT NULL |  [FK -> reservas(id_reserva)]
+id_variante                  | BIGINT                 | NOT NULL |  [FK -> variantes_producto(id_variante)]
+cantidad                     | INTEGER                | NOT NULL | 1
+  • PRIMARY KEY: (id_reserva_detalle)
+  • FOREIGN KEY (id_reserva) REFERENCES reservas(id_reserva) ON UPDATE NO ACTION ON DELETE CASCADE
+  • FOREIGN KEY (id_variante) REFERENCES variantes_producto(id_variante) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (id_reserva, id_variante)
+  • CHECK: (cantidad > 0)
+
+
+TABLA: fashionstore.reservas
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_reserva                   | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_cliente                   | BIGINT                 | NOT NULL |  [FK -> clientes(id_cliente)]
+id_sucursal                  | INTEGER                | NOT NULL |  [FK -> sucursales(id_sucursal)]
+fecha_hora_atencion          | TIMESTAMPTZ            | NOT NULL | 
+estado                       | ENUM(estado_reserva)   | NOT NULL | 'pendiente'
+canal_origen                 | ENUM(canal_origen)     | NOT NULL | 
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+atendido_por                 | BIGINT                 | NULL     |  [FK -> empleados(id_empleado)]
+atendido_en                  | TIMESTAMPTZ            | NULL     | 
+observacion                  | TEXT                   | NULL     | 
+  • PRIMARY KEY: (id_reserva)
+  • FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_sucursal) REFERENCES sucursales(id_sucursal) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (atendido_por) REFERENCES empleados(id_empleado) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • ÍNDICES:
+    - idx_reservas_cliente: USING btree (id_cliente)
+    - idx_reservas_estado: USING btree (estado)
+    - idx_reservas_sucursal: USING btree (id_sucursal, fecha_hora_atencion)
+
+
+TABLA: fashionstore.sesiones_vestidor_virtual
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_sesion_ar                 | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_cliente                   | BIGINT                 | NOT NULL |  [FK -> clientes(id_cliente)]
+id_producto                  | BIGINT                 | NOT NULL |  [FK -> productos(id_producto)]
+dispositivo                  | VARCHAR(50)            | NULL     | 
+fecha_hora                   | TIMESTAMPTZ            | NOT NULL | now()
+resultado_url                | VARCHAR(500)           | NULL     | 
+genero_interes               | BOOLEAN                | NOT NULL | false
+  • PRIMARY KEY: (id_sesion_ar)
+  • FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • ÍNDICES:
+    - idx_ar_cliente: USING btree (id_cliente)
+    - idx_ar_producto: USING btree (id_producto)
+
+
+TABLA: fashionstore.solicitudes_reporte_ia
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_solicitud                 | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_usuario                   | BIGINT                 | NOT NULL |  [FK -> usuarios(id_usuario)]
+comando_voz_texto            | TEXT                   | NOT NULL | 
+tipo_reporte                 | VARCHAR(100)           | NULL     | 
+resultado_url                | VARCHAR(500)           | NULL     | 
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_solicitud)
+  • FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON UPDATE NO ACTION ON DELETE NO ACTION
+
+
+TABLA: fashionstore.sucursales
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_sucursal                  | INTEGER                | NOT NULL | SERIAL [PK]
+id_ciudad                    | INTEGER                | NOT NULL |  [FK -> ciudades(id_ciudad)]
+nombre                       | VARCHAR(150)           | NOT NULL | 
+direccion                    | VARCHAR(255)           | NOT NULL | 
+telefono                     | VARCHAR(30)            | NULL     | 
+horario_apertura             | TIME                   | NOT NULL | '09:00:00'
+horario_cierre               | TIME                   | NOT NULL | '20:00:00'
+activa                       | BOOLEAN                | NOT NULL | true
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_sucursal)
+  • FOREIGN KEY (id_ciudad) REFERENCES ciudades(id_ciudad) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (id_ciudad, nombre)
+
+
+TABLA: fashionstore.tallas
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_talla                     | INTEGER                | NOT NULL | SERIAL [PK]
+codigo                       | VARCHAR(10)            | NOT NULL | 
+orden                        | SMALLINT               | NOT NULL | 0
+  • PRIMARY KEY: (id_talla)
+  • UNIQUE: (codigo)
+
+
+TABLA: fashionstore.temporadas
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_temporada                 | INTEGER                | NOT NULL | SERIAL [PK]
+nombre                       | VARCHAR(100)           | NOT NULL | 
+tipo                         | ENUM(tipo_temporada)   | NULL     | 
+fecha_inicio                 | DATE                   | NOT NULL | 
+fecha_fin                    | DATE                   | NOT NULL | 
+estado_activo                | BOOLEAN                | NOT NULL | true
+anio                         | INTEGER                | NOT NULL | EXTRACT(year FROM CURRENT_DATE)
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+actualizado_en               | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_temporada)
+  • CHECKS:
+    - (anio >= 2020)
+    - (fecha_fin > fecha_inicio)
+  • ÍNDICES:
+    - idx_temporadas_anio: USING btree (anio)
+    - idx_temporadas_estado: USING btree (estado_activo)
+    - uq_temporadas_nombre_lower: UNIQUE USING btree (lower(TRIM(nombre)))
+
+
+TABLA: fashionstore.usuarios
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_usuario                   | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+email                        | CITEXT                 | NOT NULL | 
+password_hash                | VARCHAR(255)           | NOT NULL | 
+nombres                      | VARCHAR(100)           | NOT NULL | 
+apellidos                    | VARCHAR(100)           | NOT NULL | 
+telefono                     | VARCHAR(30)            | NULL     | 
+rol                          | ENUM(rol_usuario)      | NOT NULL | 'cliente'
+id_sucursal                  | INTEGER                | NULL     |  [FK -> sucursales(id_sucursal)]
+activo                       | BOOLEAN                | NOT NULL | true
+fecha_registro               | TIMESTAMPTZ            | NOT NULL | now()
+ultimo_acceso                | TIMESTAMPTZ            | NULL     | 
+  • PRIMARY KEY: (id_usuario)
+  • FOREIGN KEY (id_sucursal) REFERENCES sucursales(id_sucursal) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (email)
+  • ÍNDICES:
+    - idx_usuarios_rol: USING btree (rol)
+    - idx_usuarios_sucursal: USING btree (id_sucursal)
+
+
+TABLA: fashionstore.variantes_producto
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_variante                  | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_producto                  | BIGINT                 | NOT NULL |  [FK -> productos(id_producto)]
+id_talla                     | INTEGER                | NOT NULL |  [FK -> tallas(id_talla)]
+id_color                     | INTEGER                | NOT NULL |  [FK -> colores(id_color)]
+sku                          | VARCHAR(50)            | NOT NULL | 
+precio_extra                 | NUMERIC(10,2)          | NOT NULL | 0
+activo                       | BOOLEAN                | NOT NULL | true
+creado_en                    | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_variante)
+  • FOREIGN KEY (id_producto) REFERENCES productos(id_producto) ON UPDATE NO ACTION ON DELETE CASCADE
+  • FOREIGN KEY (id_talla) REFERENCES tallas(id_talla) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_color) REFERENCES colores(id_color) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (sku)
+  • UNIQUE: (id_producto, id_talla, id_color)
+
+
+TABLA: fashionstore.venta_detalle
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_venta_detalle             | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+id_venta                     | BIGINT                 | NOT NULL |  [FK -> ventas(id_venta)]
+id_variante                  | BIGINT                 | NOT NULL |  [FK -> variantes_producto(id_variante)]
+id_sucursal                  | INTEGER                | NULL     |  [FK -> sucursales(id_sucursal)]
+cantidad                     | INTEGER                | NOT NULL | 
+precio_unitario              | NUMERIC(10,2)          | NOT NULL | 
+subtotal_linea               | NUMERIC(12,2)          | NULL     | 
+  • PRIMARY KEY: (id_venta_detalle)
+  • FOREIGN KEY (id_venta) REFERENCES ventas(id_venta) ON UPDATE NO ACTION ON DELETE CASCADE
+  • FOREIGN KEY (id_variante) REFERENCES variantes_producto(id_variante) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_sucursal) REFERENCES sucursales(id_sucursal) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • CHECKS:
+    - (cantidad > 0)
+    - (precio_unitario >= 0)
+  • ÍNDICES:
+    - idx_venta_detalle_venta: USING btree (id_venta)
+    - ix_venta_detalle_id_sucursal: USING btree (id_sucursal)
+
+
+TABLA: fashionstore.ventas
+--------------------------------------------------------------------------------
+COLUMNA                      | TIPO FÍSICO            | NULO     | DEFAULT / EXTRA
+--------------------------------------------------------------------------------
+id_venta                     | BIGINT                 | NOT NULL | BIGSERIAL [PK]
+numero_comprobante           | VARCHAR(30)            | NOT NULL | 
+id_cliente                   | BIGINT                 | NULL     |  [FK -> clientes(id_cliente)]
+id_sucursal                  | INTEGER                | NOT NULL |  [FK -> sucursales(id_sucursal)]
+id_cajero                    | BIGINT                 | NULL     |  [FK -> empleados(id_empleado)]
+id_reserva                   | BIGINT                 | NULL     |  [FK -> reservas(id_reserva)]
+id_promocion                 | INTEGER                | NULL     |  [FK -> promociones(id_promocion)]
+tipo_venta                   | ENUM(tipo_venta)       | NOT NULL | 
+estado                       | ENUM(estado_venta)     | NOT NULL | 'pendiente'
+subtotal                     | NUMERIC(12,2)          | NOT NULL | 0
+descuento                    | NUMERIC(12,2)          | NOT NULL | 0
+total                        | NUMERIC(12,2)          | NOT NULL | 0
+tipo_entrega                 | VARCHAR(20)            | NOT NULL | 'domicilio'
+id_sucursal_retiro           | INTEGER                | NULL     |  [FK -> sucursales(id_sucursal)]
+direccion_envio              | TEXT                   | NULL     | 
+fecha_venta                  | TIMESTAMPTZ            | NOT NULL | now()
+  • PRIMARY KEY: (id_venta)
+  • FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_sucursal) REFERENCES sucursales(id_sucursal) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_cajero) REFERENCES empleados(id_empleado) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_reserva) REFERENCES reservas(id_reserva) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_promocion) REFERENCES promociones(id_promocion) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • FOREIGN KEY (id_sucursal_retiro) REFERENCES sucursales(id_sucursal) ON UPDATE NO ACTION ON DELETE NO ACTION
+  • UNIQUE: (numero_comprobante)
+  • CHECKS:
+    - (tipo_entrega IN ('domicilio', 'recogida_boutique'))
+    - (total >= 0)
+  • ÍNDICES:
+    - idx_ventas_cliente: USING btree (id_cliente)
+    - idx_ventas_estado: USING btree (estado)
+    - idx_ventas_sucursal: USING btree (id_sucursal, fecha_venta)
+    - idx_ventas_tipo: USING btree (tipo_venta)
+
+================================================================================
+3. VISTAS DEL SISTEMA (VIEWS)
+================================================================================
+
+VISTA: fashionstore.vw_inventario_consolidado
+Columnas: id_sucursal, sucursal, id_producto, producto, talla, color, temporada, cantidad_disponible, cantidad_reservada, estado
+
+VISTA: fashionstore.vw_reservas_pendientes
+Columnas: id_reserva, id_sucursal, sucursal, cliente, fecha_hora_atencion, estado
+
+VISTA: fashionstore.vw_ventas_por_sucursal
+Columnas: id_sucursal, sucursal, tipo_venta, fecha, cantidad_ventas, total_vendido
