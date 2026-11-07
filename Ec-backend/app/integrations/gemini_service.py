@@ -21,7 +21,8 @@ logger = logging.getLogger("fashionstore.gemini_service")
 class GeminiService:
     """Cliente ligero y desacoplado para servicios de IA y explicabilidad."""
 
-    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+    GEMINI_FALLBACK_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or settings.IA_API_KEY
@@ -60,6 +61,71 @@ class GeminiService:
             sucursal_nombre=sucursal_nombre,
         )
 
+    def generar_respuesta_chat(
+        self,
+        mensaje_usuario: str,
+        contexto_prendas: list,
+        contexto_sucursales: list,
+    ) -> Optional[str]:
+        """Genera una respuesta en lenguaje natural para el asistente de estilo."""
+        if not self.api_key:
+            return None
+
+        url = f"{self.GEMINI_API_URL}?key={self.api_key}"
+
+        resumen_prendas = "\n".join(
+            f"- {p.get('nombre')} (Categoría: {p.get('categoria')}, Precio: Bs. {p.get('precio')})"
+            for p in contexto_prendas
+        ) or "Prendas selectas de alta costura y sastrería."
+
+        resumen_sucursales = "\n".join(
+            f"- {getattr(s, 'nombre', str(s))}: {getattr(s, 'direccion', '')} (Horario: {getattr(s, 'horario_apertura', '09:00')} a {getattr(s, 'horario_cierre', '20:00')})"
+            for s in contexto_sucursales
+        ) or "Boutiques Atelier Serrano y Equipetrol."
+
+        prompt = (
+            "Eres el Asistente de Estilo y Atención al Cliente de 'Fashion Store', una firma europea de alta costura.\n"
+            "Responde en español con un tono cortés, refinado, conciso (máximo 2 párrafos breves, menos de 80 palabras).\n"
+            "REGLA ESTRICTA: No inventes precios ni prendas fuera de la información provista a continuación.\n\n"
+            f"[PRENDAS REALES DEL CATÁLOGO]:\n{resumen_prendas}\n\n"
+            f"[SUCURSALES Y HORARIOS REALES]:\n{resumen_sucursales}\n\n"
+            f"[CONSULTA DEL CLIENTE]:\n{mensaje_usuario}\n\n"
+            "Respuesta:"
+        )
+
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.4,
+                "maxOutputTokens": 500,
+                "thinkingConfig": {"thinkingBudget": 0},
+            },
+        }
+
+        data_bytes = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data_bytes,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=6.0) as response:
+                if response.status == 200:
+                    body = json.loads(response.read().decode("utf-8"))
+                    candidates = body.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and "text" in parts[0]:
+                            texto = parts[0]["text"].strip()
+                            if texto:
+                                return texto.strip('"')
+        except Exception as e:
+            logger.warning("Fallo al consultar Gemini para asistente chatbot (%s).", str(e))
+
+        return None
+
     def _consultar_gemini(
         self,
         categoria_principal: str,
@@ -89,7 +155,8 @@ class GeminiService:
             ],
             "generationConfig": {
                 "temperature": 0.3,
-                "maxOutputTokens": 40,
+                "maxOutputTokens": 100,
+                "thinkingConfig": {"thinkingBudget": 0},
             },
         }
 
@@ -101,7 +168,7 @@ class GeminiService:
             method="POST",
         )
 
-        with urllib.request.urlopen(req, timeout=3.0) as response:
+        with urllib.request.urlopen(req, timeout=5.0) as response:
             if response.status == 200:
                 body = json.loads(response.read().decode("utf-8"))
                 candidates = body.get("candidates", [])

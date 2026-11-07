@@ -124,6 +124,11 @@ export const routes: Routes = [
       ).then((m) => m.ProductoDetalleComponent),
     title: 'FASHION STORE | Detalle de Prenda de Alta Costura',
   },
+  {
+    path: 'catalogo/:id',
+    redirectTo: 'productos/:id',
+    pathMatch: 'full',
+  },
 
   // =========================================================================
   // 3. FLUJOS DE AUTENTICACIÓN Y SEGURIDAD

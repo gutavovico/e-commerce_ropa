@@ -6,6 +6,8 @@ import '../modulos/catalogo/cu06_buscar_filtrar/presentacion/pantallas/pantalla_
 import '../modulos/catalogo/cu18_recomendaciones/presentacion/pantallas/pantalla_inicio.dart';
 import '../modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../modulos/catalogo/cu36_consultar_colecciones/presentacion/pantallas/colecciones_screen.dart';
+import '../modulos/catalogo/cu19_asistente_chatbot/presentacion/bloc/chatbot_bloc.dart';
+import '../modulos/catalogo/cu19_asistente_chatbot/presentacion/pantallas/pantalla_asistente_estilo.dart';
 import '../modulos/compras_pagos/cu11_gestionar_carrito/presentacion/pantallas/shopping_bag_screen.dart';
 
 /// Contenedor Principal (Hub) que orquesta las 4 pantallas raíz del sistema FashionStore:
@@ -40,16 +42,24 @@ class PantallaPrincipalHub extends StatefulWidget {
 class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
   late int _indiceActual;
   late String _nombreUsuarioActual;
+  late final ChatbotBloc _chatbotBloc;
 
   @override
   void initState() {
     super.initState();
     _indiceActual = widget.indiceInicial;
     _nombreUsuarioActual = widget.nombreUsuario ?? '';
+    _chatbotBloc = ChatbotBloc.obtenerInstanciaCompartida(token: widget.token);
 
     if (_nombreUsuarioActual.isEmpty && widget.token.isNotEmpty) {
       _cargarNombreUsuario(widget.token);
     }
+  }
+
+  @override
+  void dispose() {
+    ChatbotBloc.purgarSesion();
+    super.dispose();
   }
 
   Future<void> _cargarNombreUsuario(String token) async {
@@ -88,6 +98,20 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
         ),
       ),
     );
+  }
+
+  Future<void> _abrirAsistente() async {
+    _chatbotBloc.marcarChatAbierto();
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PantallaAsistenteEstilo(
+          token: widget.token,
+          habilitarImagenesRed: widget.habilitarImagenesRed,
+          bloc: _chatbotBloc,
+        ),
+      ),
+    );
+    _chatbotBloc.marcarChatCerrado();
   }
 
   void _abrirColecciones() {
@@ -156,7 +180,10 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
         alIrAInicio: () => _cambiarTab(0),
         alIrABuscar: () => _cambiarTab(1),
         alIrACatalogo: () => _cambiarTab(2),
-        alCerrarSesion: widget.alCerrarSesion,
+        alCerrarSesion: () {
+          ChatbotBloc.purgarSesion();
+          widget.alCerrarSesion?.call();
+        },
       ),
     ];
 
@@ -165,6 +192,49 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
       body: IndexedStack(
         index: _indiceActual,
         children: pestanas,
+      ),
+      floatingActionButton: AnimatedBuilder(
+        animation: _chatbotBloc,
+        builder: (context, _) {
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              FloatingActionButton(
+                onPressed: _abrirAsistente,
+                backgroundColor: const Color(0xFF1A1A1A),
+                foregroundColor: const Color(0xFFC5A880),
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                  side: const BorderSide(color: Color(0xFFC5A880), width: 1.5),
+                ),
+                tooltip: 'Asistente de Estilo',
+                child: const Icon(Icons.auto_awesome),
+              ),
+              if (_chatbotBloc.mensajesNoLeidos)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFAD8C63), // Camel dorado alta costura
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 3,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _indiceActual,

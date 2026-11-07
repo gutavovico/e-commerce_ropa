@@ -1,0 +1,220 @@
+<!-- Botón Flotante del Asistente Inteligente (Bottom Right) -->
+<aside aria-label="Asistente de estilo y atención" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+  
+  <!-- Ventana Flotante del Chat -->
+  @if (chatbotService.abierto()) {
+    <div
+      class="mb-4 w-[380px] sm:w-[420px] max-w-[calc(100vw-2rem)] h-[580px] max-h-[calc(100vh-7rem)] bg-white rounded-3xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden animate-fadeIn"
+      style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);"
+    >
+      <!-- Cabecera de Lujo (Obsidian & Gold) -->
+      <header class="bg-[#111111] text-white p-4 flex items-center justify-between border-b border-[#AD8C63]/30">
+        <div class="flex items-center space-x-3">
+          <!-- Monograma -->
+          <div class="w-10 h-10 rounded-full bg-[#AD8C63] text-black font-serif font-black flex items-center justify-center text-xs tracking-wider shadow-md">
+            FS
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 class="text-xs font-bold tracking-widest uppercase text-white font-serif">
+                Fashion Store
+              </h2>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="En línea"></span>
+            </div>
+            <p class="text-[11px] text-[#AD8C63] tracking-wide">
+              Asistente de Estilo & Atención
+            </p>
+          </div>
+        </div>
+
+        <!-- Botones de Acción de Cabecera -->
+        <div class="flex items-center space-x-1">
+          <button
+            type="button"
+            (click)="chatbotService.limpiarConversacion()"
+            title="Reiniciar conversación"
+            class="p-2 text-stone-400 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            (click)="chatbotService.cerrarChat()"
+            title="Cerrar asistente"
+            class="p-2 text-stone-400 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Lista de Mensajes con Scroll -->
+      <div
+        #scrollContainer
+        class="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FAF9F7] text-xs"
+      >
+        @for (msg of chatbotService.mensajes(); track msg.id) {
+          @if (msg.emisor === 'usuario') {
+            <!-- Burbuja del Usuario -->
+            <div class="flex flex-col items-end">
+              <div class="max-w-[85%] bg-[#111111] text-white px-4 py-2.5 rounded-2xl rounded-br-none shadow-sm leading-relaxed">
+                {{ msg.texto }}
+              </div>
+              <span class="text-[10px] text-stone-400 mt-1 px-1">{{ msg.hora }}</span>
+            </div>
+          } @else {
+            <!-- Burbuja del Asistente -->
+            <div class="flex flex-col items-start space-y-2 max-w-[92%]">
+              <div class="bg-white text-stone-800 border border-stone-200/80 px-4 py-3 rounded-2xl rounded-bl-none shadow-sm leading-relaxed space-y-3">
+                <p class="whitespace-pre-line">{{ msg.texto }}</p>
+
+                <!-- Tarjetas de Productos Sugeridos -->
+                @if (msg.productos && msg.productos.length > 0) {
+                  <div class="space-y-2 pt-2 border-t border-stone-100">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-[#AD8C63]">
+                      Prendas recomendadas del catálogo
+                    </span>
+                    <div class="space-y-1.5">
+                      @for (prod of msg.productos; track prod.id_producto) {
+                        <div
+                          class="flex items-center space-x-2.5 p-2 rounded-xl bg-stone-50 hover:bg-stone-100/80 border border-stone-200/60 transition-all cursor-pointer group"
+                          (click)="irAProducto(prod.id_producto)"
+                        >
+                          <img
+                            [src]="prod.imagen_url || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80'"
+                            [alt]="prod.nombre"
+                            class="w-12 h-12 object-cover rounded-lg bg-stone-200 shrink-0 border border-stone-200"
+                          />
+                          <div class="flex-1 min-w-0">
+                            <p class="font-medium text-stone-900 truncate group-hover:text-[#AD8C63] transition-colors">
+                              {{ prod.nombre }}
+                            </p>
+                            <div class="flex items-center justify-between mt-0.5">
+                              <span class="font-bold text-stone-900">Bs. {{ prod.precio }}</span>
+                              @if (prod.disponible) {
+                                <span class="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                  En stock
+                                </span>
+                              }
+                            </div>
+                          </div>
+                          <svg class="w-4 h-4 text-stone-400 group-hover:text-[#AD8C63] transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <!-- Tarjetas de Sucursales Sugeridas -->
+                @if (msg.sucursales && msg.sucursales.length > 0) {
+                  <div class="space-y-1.5 pt-2 border-t border-stone-100">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-[#AD8C63]">
+                      Boutiques Fashion Store
+                    </span>
+                    @for (suc of msg.sucursales; track suc.id_sucursal) {
+                      <div class="p-2 rounded-xl bg-stone-50 border border-stone-200/60 text-[11px] space-y-0.5">
+                        <div class="flex items-center space-x-1.5 font-bold text-stone-900">
+                          <svg class="w-3.5 h-3.5 text-[#AD8C63] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>{{ suc.nombre }}</span>
+                        </div>
+                        <p class="text-stone-600 pl-5">{{ suc.direccion }}</p>
+                        <p class="text-stone-500 pl-5 text-[10px]">Horario: {{ suc.horario }}</p>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+              <span class="text-[10px] text-stone-400 px-1">{{ msg.hora }}</span>
+            </div>
+          }
+        }
+
+        <!-- Indicador de Carga / Asesor escribiendo -->
+        @if (chatbotService.cargando()) {
+          <div class="flex items-center space-x-2 p-3 bg-white border border-stone-200/80 rounded-2xl rounded-bl-none shadow-sm w-fit animate-pulse">
+            <span class="text-stone-500 text-[11px] italic">Asesor de alta costura redactando</span>
+            <div class="flex space-x-1">
+              <span class="w-1.5 h-1.5 bg-[#AD8C63] rounded-full animate-bounce"></span>
+              <span class="w-1.5 h-1.5 bg-[#AD8C63] rounded-full animate-bounce [animation-delay:0.2s]"></span>
+              <span class="w-1.5 h-1.5 bg-[#AD8C63] rounded-full animate-bounce [animation-delay:0.4s]"></span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Píldoras de Sugerencias Rápidas -->
+      @if (chatbotService.sugerenciasRapidas().length > 0) {
+        <div class="px-3 py-2 bg-stone-100/90 border-t border-stone-200 overflow-x-auto flex items-center space-x-1.5 no-scrollbar">
+          @for (sug of chatbotService.sugerenciasRapidas(); track sug) {
+            <button
+              type="button"
+              (click)="seleccionarSugerencia(sug)"
+              [disabled]="chatbotService.cargando()"
+              class="whitespace-nowrap px-2.5 py-1 rounded-full bg-white hover:bg-[#AD8C63] hover:text-black text-stone-700 text-[11px] font-medium border border-stone-200 shadow-2xs transition-colors shrink-0 disabled:opacity-50"
+            >
+              {{ sug }}
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Barra de Entrada de Mensaje -->
+      <footer class="p-3 bg-white border-t border-stone-200">
+        <form (ngSubmit)="enviar()" class="flex items-center space-x-2">
+          <input
+            type="text"
+            [(ngModel)]="nuevoMensaje"
+            name="mensajeInput"
+            placeholder="Pregunte sobre vestidos, tallas, boutiques..."
+            [disabled]="chatbotService.cargando()"
+            class="flex-1 px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 focus:bg-white transition-all text-stone-900 disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            [disabled]="!nuevoMensaje().trim() || chatbotService.cargando()"
+            aria-label="Enviar mensaje al asistente"
+            class="w-9 h-9 rounded-xl bg-[#111111] hover:bg-[#AD8C63] text-white hover:text-black flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none shrink-0 shadow-sm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </button>
+        </form>
+      </footer>
+    </div>
+  }
+
+  <!-- Botón Circular Flotante -->
+  <button
+    type="button"
+    (click)="chatbotService.alternarChat()"
+    [attr.aria-label]="chatbotService.abierto() ? 'Cerrar asistente inteligente' : 'Abrir asistente de estilo y atención'"
+    class="relative w-14 h-14 rounded-full bg-[#111111] text-white hover:bg-black flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-105 border-2 border-[#AD8C63] group"
+    style="box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.4);"
+  >
+    @if (chatbotService.abierto()) {
+      <svg class="w-6 h-6 transition-transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    } @else {
+      <!-- Icono de Asistente de Alta Costura / Chispa de Estilo -->
+      <svg class="w-6 h-6 text-[#AD8C63] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      </svg>
+      <!-- Indicador de Respuesta No Leída (Solo cuando llega una respuesta y el chat está cerrado) -->
+      @if (chatbotService.mensajesNoLeidos()) {
+        <span class="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-[#AD8C63] border-2 border-white animate-pulse"></span>
+      }
+    }
+  </button>
+</aside>
+

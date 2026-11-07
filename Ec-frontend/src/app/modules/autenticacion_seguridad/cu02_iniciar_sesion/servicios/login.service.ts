@@ -7,6 +7,7 @@ import {
   LoginRespuesta,
   UsuarioSesion,
 } from '../modelos/login.dto';
+import { ChatbotService } from '../../../catalogo/cu19_asistente_chatbot/servicios/chatbot.service';
 
 @Injectable({
   providedIn: 'root',
@@ -14,6 +15,7 @@ import {
 export class LoginService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly chatbotService = inject(ChatbotService, { optional: true });
   private readonly endpoint = '/api/v1/autenticacion/login';
   private readonly logoutEndpoint = '/api/v1/autenticacion/logout';
 
@@ -193,6 +195,7 @@ export class LoginService {
   purgarSesionLocal(redirigir: boolean = true): void {
     this.usuarioActual.set(null);
     this.limpiarStorage();
+    this.chatbotService?.limpiarConversacion();
     if (redirigir) {
       this.router.navigate(['/login']);
     }
@@ -205,6 +208,8 @@ export class LoginService {
         localStorage.removeItem(this.USER_KEY);
         sessionStorage.removeItem(this.TOKEN_KEY);
         sessionStorage.removeItem(this.USER_KEY);
+        sessionStorage.removeItem('fashionstore_chat_mensajes');
+        sessionStorage.removeItem('fashionstore_chat_sugerencias');
       }
     } catch {
       // Ignorar errores de storage
