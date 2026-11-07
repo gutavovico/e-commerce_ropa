@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ec_mobile/src/modulos/compras_pagos/cu16_realizar_pago/datos/datasources/pago_api.dart';
+import 'package:ec_mobile/src/modulos/compras_pagos/cu16_realizar_pago/datos/modelos/pago_dto.dart';
 import 'package:ec_mobile/src/modulos/compras_pagos/cu16_realizar_pago/presentacion/bloc/pago_bloc.dart';
 import 'package:ec_mobile/src/modulos/compras_pagos/cu16_realizar_pago/presentacion/pantallas/checkout_payment_screen.dart';
 
@@ -166,5 +167,61 @@ void main() {
       expect(find.textContaining('La orden ya fue liquidada.'), findsOneWidget);
       expect(find.text('VOLVER A LA BOLSA'), findsOneWidget);
     });
+
+    testWidgets('la opción "Pago en Efectivo en Sucursal" no aparece con entrega a domicilio',
+        (tester) async {
+      agrandarViewport(tester);
+      final bloc = PagoBloc(api: MockPagoApi(), token: kToken);
+      await tester.pumpWidget(crearApp(
+        CheckoutPaymentScreen(idVenta: 1, token: kToken, bloc: bloc, habilitarImagenesRed: false),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pago en Efectivo en Sucursal'), findsNothing);
+    });
+
+    testWidgets(
+      'la opción "Pago en Efectivo en Sucursal" aparece con recogida en boutique y confirma la reserva',
+      (tester) async {
+        agrandarViewport(tester);
+        final api = _MockPagoApiBoutique();
+        final bloc = PagoBloc(api: api, token: kToken);
+        await tester.pumpWidget(crearApp(
+          CheckoutPaymentScreen(idVenta: 1, token: kToken, bloc: bloc, habilitarImagenesRed: false),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Pago en Efectivo en Sucursal'), findsOneWidget);
+
+        // Seleccionar efectivo
+        await tester.tap(find.text('Pago en Efectivo en Sucursal'));
+        await tester.pumpAndSettle();
+
+        // Aviso de 24 horas y boutique visible
+        expect(find.textContaining('24 horas'), findsWidgets);
+        expect(find.textContaining('Atelier Serrano - Madrid'), findsWidgets);
+        expect(find.text('CONFIRMAR RESERVA Y ABONAR EN TIENDA'), findsOneWidget);
+
+        // Confirmar reserva en tienda
+        await tester.tap(find.text('CONFIRMAR RESERVA Y ABONAR EN TIENDA'));
+        await tester.pumpAndSettle();
+
+        expect(api.llamadasRegistrarEfectivo, 1);
+        expect(find.text('¡Orden Registrada con Éxito!'), findsOneWidget);
+        expect(find.text('Reserva en Sucursal · Pago Pendiente en Boutique'), findsOneWidget);
+        expect(find.textContaining('24 Horas de Reserva'), findsOneWidget);
+        expect(find.textContaining('Total a abonar en tienda'), findsOneWidget);
+      },
+    );
   });
+}
+
+class _MockPagoApiBoutique extends MockPagoApi {
+  @override
+  Future<ResumenPagoDto> obtenerResumenPago(int idVenta, {required String token}) async {
+    final mapa = Map<String, dynamic>.from(respuestaResumenPagoBackend);
+    mapa['tipo_entrega'] = 'recogida_boutique';
+    mapa['nombre_sucursal_retiro'] = 'Atelier Serrano - Madrid';
+    return ResumenPagoDto.fromJson(mapa);
+  }
 }

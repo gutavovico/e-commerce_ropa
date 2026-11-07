@@ -49,6 +49,12 @@ export class VentasReservasAdminComponent implements OnInit {
   readonly esEncargado = computed(
     () => this.rolUsuario() === 'encargado_sucursal'
   );
+  readonly esCajero = computed(
+    () => this.rolUsuario() === 'cajero'
+  );
+  readonly puedeGestionarCaja = computed(
+    () => this.esAdmin() || this.esEncargado() || this.esCajero()
+  );
 
   // --- Estado Reactivo de Consulta ---
   readonly transacciones = computed(() => this.servicio.transacciones());
@@ -76,8 +82,10 @@ export class VentasReservasAdminComponent implements OnInit {
   readonly detalleVenta = signal<VentaDetalleCompleto | null>(null);
   readonly detalleReserva = signal<ReservaDetalleCompleto | null>(null);
 
-  // --- Banners Contextuales (Luxury Banners) ---
+  // --- Banners Contextuales (Luxury Banners) y Caja ---
   readonly errorBanner = signal<string | null>(null);
+  readonly exitoBanner = signal<string | null>(null);
+  readonly procesandoCaja = signal<boolean>(false);
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -297,14 +305,75 @@ export class VentasReservasAdminComponent implements OnInit {
       .replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
-  // --- Banners Contextuales ---
+  // --- Banners Contextuales y Caja ---
   mostrarError(mensaje: string): void {
     this.errorBanner.set(mensaje);
+    this.exitoBanner.set(null);
+    this.cdr.markForCheck();
+  }
+
+  mostrarExito(mensaje: string): void {
+    this.exitoBanner.set(mensaje);
+    this.errorBanner.set(null);
     this.cdr.markForCheck();
   }
 
   limpiarBanners(): void {
     this.errorBanner.set(null);
+    this.exitoBanner.set(null);
+  }
+
+  // --- Operaciones de Caja (CU16 - Efectivo en Mostrador) ---
+  confirmarCobroEfectivo(idPago: number): void {
+    const venta = this.detalleVenta();
+    if (!venta) return;
+
+    this.procesandoCaja.set(true);
+    this.servicio.confirmarPagoEfectivo(idPago).subscribe({
+      next: () => {
+        this.procesandoCaja.set(false);
+        this.mostrarExito('Cobro en efectivo confirmado exitosamente. Venta liquidada.');
+        this.servicio.obtenerDetalleVenta(venta.id_venta).subscribe({
+          next: (det) => {
+            this.detalleVenta.set(det);
+            this.cdr.markForCheck();
+          },
+        });
+        this.servicio.listarTransacciones().subscribe();
+      },
+      error: (err) => {
+        this.procesandoCaja.set(false);
+        this.mostrarError(
+          err.error?.detail || err.message || 'Error al confirmar el cobro en efectivo.'
+        );
+      },
+    });
+  }
+
+  cancelarCobroEfectivo(idPago: number): void {
+    const venta = this.detalleVenta();
+    if (!venta) return;
+
+    this.procesandoCaja.set(true);
+    this.servicio.cancelarPagoEfectivo(idPago).subscribe({
+      next: () => {
+        this.procesandoCaja.set(false);
+        this.mostrarExito('Reserva en efectivo cancelada y existencias liberadas.');
+        this.servicio.obtenerDetalleVenta(venta.id_venta).subscribe({
+          next: (det) => {
+            this.detalleVenta.set(det);
+            this.cdr.markForCheck();
+          },
+        });
+        this.servicio.listarTransacciones().subscribe();
+      },
+      error: (err) => {
+        this.procesandoCaja.set(false);
+        this.mostrarError(
+          err.error?.detail || err.message || 'Error al cancelar la reserva en efectivo.'
+        );
+      },
+    });
   }
 
   // --- Paginacion rango de paginas ---

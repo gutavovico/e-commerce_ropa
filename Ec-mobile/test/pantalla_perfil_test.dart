@@ -23,6 +23,12 @@ class MockReservasApiVacio implements ReservasApi {
 }
 
 class MockPerfilRepositorioPruebas implements PerfilRepositorio {
+  final HistorialComprasMovilDto historialSimulado;
+
+  MockPerfilRepositorioPruebas({
+    this.historialSimulado = const HistorialComprasMovilDto(),
+  });
+
   @override
   Future<PerfilClienteDto> obtenerPerfil(String token) async {
     return const PerfilClienteDto(
@@ -71,10 +77,15 @@ class MockPerfilRepositorioPruebas implements PerfilRepositorio {
       ),
     );
   }
+
+  @override
+  Future<HistorialComprasMovilDto> obtenerHistorialCompras(String token) async {
+    return historialSimulado;
+  }
 }
 
 void main() {
-  testWidgets('PantallaPerfil renderiza elementos visuales clave de Fashion Store', (tester) async {
+  testWidgets('PantallaPerfil renderiza elementos visuales clave y estado vacío de historial (CU17)', (tester) async {
     final bloc = PerfilBloc(repositorio: MockPerfilRepositorioPruebas());
     final reservasBloc = MisReservasBloc(api: MockReservasApiVacio(), token: 'token_prueba');
 
@@ -108,16 +119,18 @@ void main() {
     expect(find.text('100%'), findsOneWidget);
     expect(find.text('SEDA & LANA'), findsOneWidget);
 
-    // 4. Tarjetas gemelas Wishlist y Reservas (CU13/CU14; antes "Bolsa" con un literal
-    // "3 Artículos · 1.250 €" fijo, sin relación con el carrito real — ver CHANGELOG).
+    // 4. Tarjetas gemelas Wishlist y Reservas (CU13/CU14)
     expect(find.text('WISHLIST'), findsOneWidget);
     expect(find.text('RESERVAS'), findsOneWidget);
     expect(find.text('EXPLORAR PIEZAS →'), findsOneWidget);
     expect(find.text('VER MIS RESERVAS →'), findsOneWidget);
     expect(find.text('Sin citas agendadas'), findsOneWidget);
 
-    // 5. Histórico y Preferencias
+    // 5. Histórico (CU17: estado vacío, cero datos inventados) y Preferencias
     expect(find.text('Compras Anteriores y Pedidos'), findsOneWidget);
+    expect(find.text('0 pedidos completados'), findsOneWidget);
+    expect(find.text('Sin compras registradas'), findsOneWidget);
+    expect(find.text('REF: MAD-77894'), findsNothing);
     expect(find.text('Preferencias y Configuración'), findsOneWidget);
     expect(find.text('Direcciones de entrega'), findsOneWidget);
     expect(find.text('Métodos de pago'), findsOneWidget);
@@ -126,6 +139,70 @@ void main() {
     // 6. Botón de cierre y BottomNavigationBar
     expect(find.text('CERRAR SESIÓN'), findsOneWidget);
     expect(find.text('PERFIL'), findsOneWidget);
+  });
+
+  testWidgets('PantallaPerfil muestra pedidos reales y abre comprobante digital (CU17)', (tester) async {
+    const historialConPedido = HistorialComprasMovilDto(
+      totalPedidos: 1,
+      pedidosCompletados: 1,
+      pedidos: [
+        PedidoMovilDto(
+          idVenta: 42,
+          numeroComprobante: 'FS-2026-000042',
+          fechaVenta: '2026-04-11T15:30:00Z',
+          tipoVenta: 'digital_movil',
+          estado: 'pagada',
+          tipoEntrega: 'domicilio',
+          nombreSucursal: 'Boutique Equipetrol',
+          subtotal: '890.00',
+          descuento: '0.00',
+          total: '890.00',
+          metodoPago: 'tarjeta_credito',
+          items: [
+            ItemPedidoMovilDto(
+              idVentaDetalle: 101,
+              idProducto: 7,
+              idVariante: 19,
+              sku: 'FS-ABR-007-M-NEG',
+              nombreProducto: 'Abrigo de Lana Merino',
+              talla: 'M',
+              color: 'Negro',
+              cantidad: 1,
+              precioUnitario: '890.00',
+              subtotalLinea: '890.00',
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final bloc = PerfilBloc(
+      repositorio: MockPerfilRepositorioPruebas(historialSimulado: historialConPedido),
+    );
+    final reservasBloc = MisReservasBloc(api: MockReservasApiVacio(), token: 'token_prueba');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PantallaPerfil(
+          bloc: bloc,
+          misReservasBloc: reservasBloc,
+          habilitarImagenesRed: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 pedido completado'), findsOneWidget);
+    expect(find.text('Abrigo de Lana Merino'), findsOneWidget);
+    expect(find.text('FS-2026-000042'), findsOneWidget);
+
+    final botonFactura = find.text('VER FACTURA / TICKET');
+    await tester.ensureVisible(botonFactura);
+    await tester.tap(botonFactura);
+    await tester.pumpAndSettle();
+
+    expect(find.text('FASHION STORE · COMPROBANTE DIGITAL'), findsOneWidget);
+    expect(find.text('CERRAR COMPROBANTE'), findsOneWidget);
   });
 
   testWidgets('PantallaPerfil botón CERRAR SESIÓN ejecuta alCerrarSesion callback', (tester) async {

@@ -211,7 +211,7 @@ export class CheckoutPagoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Punto de entrada único del botón «Confirmar y Pagar», para los cuatro métodos.
+   * Punto de entrada único del botón «Confirmar y Pagar», para los métodos soportados.
    */
   protected confirmarYPagar(): void {
     const metodo = this.metodoSeleccionado();
@@ -222,6 +222,18 @@ export class CheckoutPagoComponent implements OnInit, OnDestroy {
       } else {
         this.pagarEnModoSimulador(metodo);
       }
+      return;
+    }
+
+    if (metodo === 'efectivo') {
+      this.pagoService.registrarPagoEfectivo(this.idVenta()).subscribe({
+        next: () => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        error: () => {
+          window.scrollTo({ top: 120, behavior: 'smooth' });
+        },
+      });
       return;
     }
 

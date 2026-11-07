@@ -63,54 +63,13 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
     ),
   );
 
-  final List<PedidoMovilDto> _pedidos = const [
-    PedidoMovilDto(
-      id: 'PED-01',
-      titulo: 'Vestido plisado en seda',
-      origen: 'Flagship Serrano (Madrid)',
-      descripcion: 'Seda natural mora 100% · Talla 38',
-      talla: 'T. 38',
-      color: 'Marfil',
-      precio: 890,
-      fecha: '14 Oct 2024 · ENTREGADO EN TIENDA',
-      estado: 'ENTREGADO',
-      referencia: 'REF: MAD-77894',
-      imagen: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=400&q=80',
-    ),
-    PedidoMovilDto(
-      id: 'PED-02',
-      titulo: 'Blazer estructurado lan...',
-      origen: 'Boutique Saint-Honoré (París)',
-      descripcion: 'Lana virgen italiana · Talla 40',
-      talla: 'T. 40',
-      color: 'Camel',
-      precio: 740,
-      fecha: '28 Sep 2024 · A DOMICILIO',
-      estado: 'ENTREGADO',
-      referencia: 'REF: PAR-20411',
-      imagen: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=400&q=80',
-    ),
-    PedidoMovilDto(
-      id: 'PED-03',
-      titulo: 'Blusa de satén fluido ma...',
-      origen: 'Madrid Central Hub (Online)',
-      descripcion: 'Satén de seda marfil · Talla 38',
-      talla: 'T. 38',
-      color: 'Marfil',
-      precio: 310,
-      fecha: '10 Ago 2024 · ENTREGADO',
-      estado: 'ENTREGADO',
-      referencia: 'REF: ONL-09552',
-      imagen: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=400&q=80',
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
     _bloc = widget.bloc ?? PerfilBloc();
     _bloc.addListener(_alCambiarEstado);
     _bloc.cargarPerfil(widget.token);
+    _bloc.cargarHistorialCompras(widget.token);
 
     _reservasBloc = widget.misReservasBloc ?? MisReservasBloc(token: widget.token);
     _reservasBloc.addListener(_alCambiarEstadoReservas);
@@ -163,6 +122,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
   }
 
   void _alCambiarEstado() {
+    if (!mounted) return;
     final estado = _bloc.estado;
     if (estado is PerfilCargado) {
       setState(() {
@@ -180,6 +140,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
         ),
       );
     } else if (estado is PerfilError) {
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(estado.mensaje),
@@ -187,7 +148,187 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
           duration: const Duration(seconds: 4),
         ),
       );
+    } else {
+      setState(() {});
     }
+  }
+
+  String _tituloPrincipalPedido(PedidoMovilDto pedido) {
+    if (pedido.items.isEmpty) {
+      return 'Orden ${pedido.numeroComprobante}';
+    }
+    final primero = pedido.items.first.nombreProducto;
+    final restantes = pedido.items.length - 1;
+    return restantes > 0 ? '$primero (+$restantes más)' : primero;
+  }
+
+  String _descripcionResumenPedido(PedidoMovilDto pedido) {
+    if (pedido.items.isEmpty) {
+      return 'Sin desglose de artículos';
+    }
+    final item = pedido.items.first;
+    return 'SKU ${item.sku} · Talla ${item.talla} · ${item.color} · Cant. ${item.cantidad}';
+  }
+
+  String _etiquetaEstadoPedido(String estado) {
+    switch (estado) {
+      case 'pagada':
+        return 'PAGADO';
+      case 'pendiente':
+        return 'PENDIENTE DE PAGO';
+      case 'anulada':
+        return 'ANULADO';
+      case 'devuelta':
+        return 'DEVUELTO';
+      default:
+        return estado.toUpperCase();
+    }
+  }
+
+  void _abrirComprobanteDigital(PedidoMovilDto pedido) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'FASHION STORE · COMPROBANTE DIGITAL',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  pedido.numeroComprobante,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Estado: ${_etiquetaEstadoPedido(pedido.estado)}',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Boutique / Entrega: ${pedido.nombreSucursalRetiro ?? pedido.nombreSucursal ?? 'Atelier Digital'}',
+                        style: const TextStyle(fontSize: 11, color: Colors.black87),
+                      ),
+                      if (pedido.metodoPago != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Método de pago: ${pedido.metodoPago}',
+                          style: const TextStyle(fontSize: 11, color: Colors.black87),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'ARTÍCULOS ADQUIRIDOS',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                ...pedido.items.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.nombreProducto,
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                'Talla ${item.talla} · ${item.color} · Cant. ${item.cantidad}',
+                                style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '${item.subtotalLinea} €',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Comprobante',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '${pedido.total} €',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('CERRAR COMPROBANTE'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _abrirModalEdicion() {
@@ -770,7 +911,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
             ),
             const SizedBox(height: 24),
 
-            // 3. Registro Histórico de Compras y Pedidos
+            // 3. Registro Histórico de Compras y Pedidos (CU17)
             const Text(
               'REGISTRO HISTÓRICO',
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: Colors.grey),
@@ -784,18 +925,33 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
                 ),
                 Text(
-                  '3 pedidos',
+                  '${_bloc.historial.pedidosCompletados} ${_bloc.historial.pedidosCompletados == 1 ? 'pedido completado' : 'pedidos completados'}',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
               ],
             ),
             const SizedBox(height: 12),
 
-            // Lista de Pedidos
-            ..._pedidos.map((pedido) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
+            if (_bloc.cargandoHistorial)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Consultando tu historial de compras...',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              )
+            else if (_bloc.pedidos.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -803,149 +959,172 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                 ),
                 child: Column(
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Imagen con overlay de talla
-                        Stack(
-                          children: [
-                            Container(
-                              width: 70,
-                              height: 90,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(12),
-                                image: widget.habilitarImagenesRed
-                                    ? DecorationImage(
-                                        image: NetworkImage(pedido.imagen),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                              ),
-                              child: widget.habilitarImagenesRed
-                                  ? null
-                                  : const Icon(Icons.checkroom, color: Colors.grey, size: 28),
-                            ),
-                            Positioned(
-                              bottom: 4,
-                              right: 4,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.black87,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  pedido.talla,
-                                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 12),
+                    const Text(
+                      'Sin compras registradas',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tus adquisiciones en boutique y plataforma digital aparecerán aquí.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              )
+            else
+              // Lista de Pedidos Reales
+              ..._bloc.pedidos.map((pedido) {
+                final primerItem = pedido.items.isNotEmpty ? pedido.items.first : null;
+                final imagenUrl = primerItem?.imagenUrl;
+                final tallaEtiqueta = primerItem != null ? 'T. ${primerItem.talla}' : 'ATELIER';
 
-                        // Info del Pedido
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Imagen con overlay de talla
+                          Stack(
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      pedido.titulo,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${pedido.precio} €',
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
+                              Container(
+                                width: 70,
+                                height: 90,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(12),
+                                  image: (widget.habilitarImagenesRed && imagenUrl != null && imagenUrl.isNotEmpty)
+                                      ? DecorationImage(
+                                          image: NetworkImage(imagenUrl),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
+                                ),
+                                child: (widget.habilitarImagenesRed && imagenUrl != null && imagenUrl.isNotEmpty)
+                                    ? null
+                                    : const Icon(Icons.checkroom, color: Colors.grey, size: 28),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                pedido.descripcion,
-                                style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.storefront, size: 12, color: Colors.grey),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      pedido.origen,
-                                      style: const TextStyle(fontSize: 10, color: Colors.black87),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                              Positioned(
+                                bottom: 4,
+                                right: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black87,
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Text(
-                                    pedido.fecha,
-                                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                  child: Text(
+                                    tallaEtiqueta,
+                                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                                   ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    const Divider(height: 1),
-                    const SizedBox(height: 8),
+                          const SizedBox(width: 12),
 
-                    // Fila Inferior: Referencia y Botón Factura
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          pedido.referencia,
-                          style: const TextStyle(fontSize: 10, color: Colors.grey, fontFamily: 'monospace'),
-                        ),
-                        InkWell(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Descargando comprobante ${pedido.referencia}...'),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Row(
+                          // Info del Pedido
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.receipt_long, size: 12, color: Colors.black87),
-                                SizedBox(width: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _tituloPrincipalPedido(pedido),
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${pedido.total} €',
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
                                 Text(
-                                  'VER FACTURA / TICKET',
-                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.black87),
+                                  _descripcionResumenPedido(pedido),
+                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.storefront, size: 12, color: Colors.grey),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        pedido.nombreSucursalRetiro ?? pedido.nombreSucursal ?? 'Atelier Digital',
+                                        style: const TextStyle(fontSize: 10, color: Colors.black87),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      '${pedido.fechaVenta.split('T').first} · ${_etiquetaEstadoPedido(pedido.estado)}',
+                                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      const Divider(height: 1),
+                      const SizedBox(height: 8),
+
+                      // Fila Inferior: Referencia y Botón Factura
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            pedido.numeroComprobante,
+                            style: const TextStyle(fontSize: 10, color: Colors.grey, fontFamily: 'monospace'),
+                          ),
+                          InkWell(
+                            onTap: () => _abrirComprobanteDigital(pedido),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.receipt_long, size: 12, color: Colors.black87),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'VER FACTURA / TICKET',
+                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.black87),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
             const SizedBox(height: 16),
 
             // 4. Preferencias y Configuración

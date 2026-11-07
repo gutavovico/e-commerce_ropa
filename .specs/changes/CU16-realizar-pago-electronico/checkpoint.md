@@ -3,7 +3,8 @@
 **ID del Cambio:** `CU16-realizar-pago-electronico`
 **Caso de Uso:** CU16 — Realizar Pago Electrónico
 **Metodología:** Spec-Driven Development (SDD) & Proceso Unificado de Desarrollo de Software (PUDS)
-**Estado:** 🟢 CP-01 a CP-32 y CP-34 a CP-36 aprobados (Backend + Web + Mobile) · ⏳ solo CP-33 pendiente (pago en efectivo en sucursal, fuera de alcance de este ciclo)
+**Estado:** 🟢 CP-01 a CP-32 y CP-34 a CP-36 aprobados · 🟡 Ronda 3 en ejecución: CP-33 (efectivo en sucursal en clientes Web y Mobile), CP-37 (webhook Stripe) y CP-38 (panel administrativo de caja)
+**Actualización 2026-11-07 (Ronda 3):** inicio de ejecución del cierre de pago en efectivo en sucursal (Web y Mobile, CP-33), panel administrativo de cobro/cancelación en caja para cajeros/encargados (CU28, CP-38) y reconciliación asíncrona mediante Webhook de Stripe (CP-37).
 **Actualización 2026-09-27 (Backend):** se añadió el pago en efectivo en sucursal completo —
 `PagoServicio._registrar_pago_efectivo`, `confirmar_pago_efectivo`, `cancelar_pago_efectivo` y los
 dos endpoints administrativos, con RBAC acotado por sucursal y expiración perezosa a 24h. `pytest`
@@ -72,7 +73,9 @@ resuelto (§1.6 de `spec.md`) y el Backend ya lo implementa, pero ningún client
 | **CP-30** | Transversal | La navegación desde «TRAMITAR PEDIDO» en la Bolsa de Compra abre esta pantalla en `/pago/:idVenta` sin pantalla intermedia. | Inspección + Vitest/test de widget | ✅ |
 | **CP-31** | Web + Mobile | Seleccionar Bizum/Código QR expande un QR real con cuenta atrás propia e instrucciones numeradas. | Vitest + test de widget | ✅ |
 | **CP-32** | Transversal | El checkbox «Guardar tarjeta» **no existe en ningún cliente** (descartado en §1.5.1 de `spec.md`); `guardar_tarjeta` nunca se envía en el payload. | Auditoría de código | ✅ |
-| **CP-33** *(nuevo)* | Web + Mobile | La opción «Pago en efectivo en sucursal» solo aparece cuando `tipo_entrega: recogida_boutique`; con `domicilio` queda oculta. | Vitest + test de widget | ⏳ |
+| **CP-33** | Web + Mobile | La opción «Pago en efectivo en sucursal» solo aparece cuando `tipo_entrega: recogida_boutique`; con `domicilio` queda oculta; despliega recibo con boutique y plazo de 24h. | Vitest + test de widget | ✅ |
 | **CP-34** | Backend | Un pago `efectivo` registrado como `pendiente` conserva la retención de inventario durante **24 horas** desde `pagos.creado_en`, no durante los 25 minutos de CU15; expira por verificación perezosa. | Pytest | ✅ |
 | **CP-35** | Backend | `POST /api/v1/admin/pagos/{id_pago}/confirmar-efectivo` consolida el inventario (`venta_confirmada`, saldos reales) igual que la aprobación online, restringido a `encargado_sucursal`/`cajero` de la boutique de recogida o `administrador`. | Pytest | ✅ |
 | **CP-36** | Backend | `POST /api/v1/admin/pagos/{id_pago}/cancelar-efectivo` libera la retención de inmediato (`cancelacion_pedido`, venta `anulada`) antes de que expiren las 24h. | Pytest | ✅ |
+| **CP-37** | Backend | `POST /api/v1/pagos/webhook` reconcilia asíncronamente eventos de Stripe (`payment_intent.succeeded` liquida y consolida, `payment_intent.payment_failed` rechaza) con validación criptográfica de firma. | Pytest | ✅ |
+| **CP-38** | Web Admin | Modal de detalle de venta en `ventas-reservas-admin` permite a cajeros/encargados de boutique confirmar cobro en mostrador o cancelar la reserva en efectivo. | Vitest | ✅ |

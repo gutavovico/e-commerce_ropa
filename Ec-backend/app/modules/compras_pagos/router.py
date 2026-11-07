@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from modules.compras_pagos.cu11_gestionar_carrito.router import router as cu11_router
 from modules.compras_pagos.cu15_comprar_plataforma.router import router as cu15_router
 from modules.compras_pagos.cu16_realizar_pago.router import router as cu16_router
+from modules.compras_pagos.cu17_historial_compras.router import router as cu17_router
 
 router = APIRouter()
 
@@ -12,3 +13,4 @@ router = APIRouter()
 router.include_router(cu11_router)
 router.include_router(cu15_router)
 router.include_router(cu16_router)
+router.include_router(cu17_router)

@@ -8,10 +8,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PerfilComponent } from './perfil.component';
 import { PerfilService } from '../servicios/perfil.service';
 import { LoginService } from '../../cu02_iniciar_sesion/servicios/login.service';
-import { PerfilCliente } from '../modelos/perfil.dto';
+import { PedidoHistorico, PerfilCliente } from '../modelos/perfil.dto';
 import { MisReservasService } from '../../../reservas/cu13_consultar_cancelar_reservas/servicios/mis-reservas.service';
 
-describe('PerfilComponent (CU04)', () => {
+describe('PerfilComponent (CU04 + CU17)', () => {
   const mockPerfil: PerfilCliente = {
     id_usuario: 8402,
     numero_socio: '#8402',
@@ -33,6 +33,41 @@ describe('PerfilComponent (CU04)', () => {
     },
   };
 
+  const mockPedido: PedidoHistorico = {
+    id_venta: 42,
+    numero_comprobante: 'FS-2026-000042',
+    fecha_venta: '2026-04-11T15:30:00Z',
+    tipo_venta: 'digital_web',
+    estado: 'pagada',
+    tipo_entrega: 'domicilio',
+    nombre_sucursal: 'Boutique Equipetrol',
+    nombre_sucursal_retiro: null,
+    direccion_envio: 'Av. San Martín #450',
+    codigo_promocion: null,
+    subtotal: '890.00',
+    descuento: '0.00',
+    total: '890.00',
+    metodo_pago: 'tarjeta_credito',
+    referencia_pasarela: 'pi_test_42',
+    items: [
+      {
+        id_venta_detalle: 101,
+        id_producto: 7,
+        id_variante: 19,
+        sku: 'FS-ABR-007-M-NEG',
+        nombre_producto: 'Abrigo de Lana Merino',
+        imagen_url: 'https://cdn.fashionstore.test/abrigo.jpg',
+        talla: 'M',
+        color: 'Negro',
+        color_hex: '#111111',
+        cantidad: 1,
+        precio_unitario: '890.00',
+        subtotal_linea: '890.00',
+        nombre_sucursal: 'Boutique Equipetrol',
+      },
+    ],
+  };
+
   let mockPerfilService: any;
   let mockLoginService: any;
   let mockMisReservasService: any;
@@ -46,8 +81,14 @@ describe('PerfilComponent (CU04)', () => {
       error: signal<string | null>(null),
       mensajeExito: signal<string | null>(null),
       modalEdicionAbierto: signal<boolean>(false),
-      pedidos: signal<any[]>([]),
+      pedidos: signal<PedidoHistorico[]>([]),
+      totalPedidos: signal<number>(0),
+      pedidosCompletados: signal<number>(0),
+      cargandoPedidos: signal<boolean>(false),
       cargarPerfil: vi.fn().mockReturnValue(of(mockPerfil)),
+      cargarHistorialCompras: vi.fn().mockReturnValue(
+        of({ total_pedidos: 0, pedidos_completados: 0, pedidos: [] })
+      ),
       actualizarPerfil: vi.fn().mockReturnValue(of(mockPerfil)),
       abrirModalEdicion: vi.fn(),
       cerrarModalEdicion: vi.fn(),
@@ -88,10 +129,11 @@ describe('PerfilComponent (CU04)', () => {
     expect(comp).toBeTruthy();
   });
 
-  it('debe cargar los datos del perfil al inicializarse', () => {
+  it('debe cargar los datos del perfil y el historial de compras al inicializarse', () => {
     const fixture = TestBed.createComponent(PerfilComponent);
     fixture.detectChanges();
     expect(mockPerfilService.cargarPerfil).toHaveBeenCalled();
+    expect(mockPerfilService.cargarHistorialCompras).toHaveBeenCalled();
   });
 
   it('debe abrir y cerrar el modal de edición de datos', () => {
@@ -132,7 +174,6 @@ describe('PerfilComponent (CU04)', () => {
     expect(compiled.textContent).toContain('2 reservas activas');
     expect(compiled.textContent).toContain('Atelier Serrano - Madrid');
     expect(compiled.textContent).toContain('VER MIS RESERVAS');
-    // El literal de la bolsa que ocultaba una bolsa siempre vacía ya no existe.
     expect(compiled.textContent).not.toContain('Bolsa de Compra');
     expect(compiled.textContent).not.toContain('3 Artículos seleccionados');
     expect(compiled.textContent).not.toContain('IR AL CHECKOUT');
@@ -147,5 +188,37 @@ describe('PerfilComponent (CU04)', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Sin citas agendadas');
+  });
+
+  it('CU17: muestra el estado vacío del historial cuando el cliente no tiene compras', () => {
+    const fixture = TestBed.createComponent(PerfilComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('0 PEDIDOS COMPLETADOS');
+    expect(compiled.textContent).toContain('Sin compras registradas');
+    expect(compiled.textContent).not.toContain('PED-001');
+  });
+
+  it('CU17: renderiza pedidos reales y abre el modal de comprobante digital', () => {
+    mockPerfilService.pedidos.set([mockPedido]);
+    mockPerfilService.totalPedidos.set(1);
+    mockPerfilService.pedidosCompletados.set(1);
+
+    const fixture = TestBed.createComponent(PerfilComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('1 PEDIDO COMPLETADO');
+    expect(compiled.textContent).toContain('Abrigo de Lana Merino');
+    expect(compiled.textContent).toContain('FS-2026-000042');
+    expect(compiled.textContent).toContain('890.00 €');
+
+    fixture.componentInstance.descargarFactura(mockPedido);
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain('FASHION STORE · COMPROBANTE DIGITAL');
+    expect(compiled.textContent).toContain('Tarjeta de crédito');
+    expect(compiled.textContent).toContain('pi_test_42');
   });
 });

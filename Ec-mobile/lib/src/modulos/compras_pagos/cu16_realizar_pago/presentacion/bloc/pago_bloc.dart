@@ -172,6 +172,17 @@ class PagoBloc extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (metodo == 'efectivo') {
+        final confirmacion = await _api.registrarPagoEfectivo(
+          resumen.idVenta,
+          claveIdempotencia: _claveIdempotencia,
+          token: _token,
+        );
+        _estado = PagoExitoso(confirmacion);
+        notifyListeners();
+        return true;
+      }
+
       final intento = await _api.iniciarPago(
         PagoIniciarInDto(
           idVenta: resumen.idVenta,

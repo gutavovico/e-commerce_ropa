@@ -66,6 +66,46 @@ class PerfilRemotoDatasource {
     }
   }
 
+  Future<HistorialComprasMovilDto> obtenerHistorialCompras(String token) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/v1/ventas/mias');
+
+    try {
+      final response = await _client.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final Map<String, dynamic> body;
+      try {
+        body = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        throw const PerfilExcepcion(
+          'Respuesta del servidor no válida al consultar el historial.',
+          statusCode: 500,
+        );
+      }
+
+      if (response.statusCode == 200) {
+        return HistorialComprasMovilDto.fromJson(body);
+      } else if (response.statusCode == 401) {
+        final detalle = body['detail'] as String? ?? 'Sesión expirada o token no válido.';
+        SesionManager.instancia.notificarSesionExpirada(mensaje: detalle);
+        throw PerfilExcepcion(detalle, statusCode: 401);
+      } else {
+        final detalle = body['detail'] as String? ?? 'Error al consultar historial de compras.';
+        throw PerfilExcepcion(detalle, statusCode: response.statusCode);
+      }
+    } on PerfilExcepcion {
+      rethrow;
+    } catch (e) {
+      throw PerfilExcepcion('Error de conexión al consultar historial: $e');
+    }
+  }
+
   Future<PerfilClienteDto> actualizarPerfil(
     String token,
     PerfilClienteUpdateDto datos,

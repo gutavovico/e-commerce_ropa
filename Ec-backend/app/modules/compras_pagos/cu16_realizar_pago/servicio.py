@@ -11,11 +11,12 @@ consolidada de una cancelación, donde sí vuelven a estar disponibles.
 import logging
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from core.config import settings
 from core.errors import (
     AuthorizationError,
     ConflictError,
@@ -464,13 +465,23 @@ class PagoServicio:
         CarritoRepositorio.retirar_lineas_compradas(db, carrito.id_carrito, venta.detalles)
 
     @staticmethod
-    def _consolidar_inventario(db: Session, venta: VentaORM, usuario: UsuarioORM) -> None:
+    def _consolidar_inventario(
+        db: Session,
+        venta: VentaORM,
+        usuario: Optional[UsuarioORM] = None,
+        id_usuario_responsable: Optional[int] = None,
+    ) -> None:
         """Descuenta las unidades retenidas y deja constancia auditable.
 
         Las unidades salen de `cantidad_reservada` y no vuelven a `cantidad_disponible`: la
         prenda se vendió. El saldo que registra la bitácora es el de existencias reservadas,
         que es la magnitud que este movimiento altera.
         """
+        responsable_id = (
+            usuario.id_usuario
+            if usuario is not None
+            else (id_usuario_responsable or venta.id_cliente)
+        )
         for detalle in venta.detalles:
             inventario = CarritoRepositorio.obtener_inventario(
                 db,
@@ -502,7 +513,7 @@ class PagoServicio:
                     tipo_movimiento="venta_confirmada",
                     # Cantidad negativa: la prenda sale definitivamente del almacén.
                     cantidad=-detalle.cantidad,
-                    id_usuario_responsable=usuario.id_usuario,
+                    id_usuario_responsable=responsable_id,
                     referencia_documento=f"VENTA-{venta.id_venta}",
                     observacion=(
                         f"Salida definitiva por pago confirmado de la orden "
@@ -774,3 +785,160 @@ class PagoServicio:
         if mensaje is not None:
             datos["mensaje_confirmacion"] = mensaje
         return PagoConfirmadoOut(**datos)
+
+    @staticmethod
+    def _buscar_pago_por_referencia(
+        db: Session, referencia: str, bloquear: bool = False
+    ) -> Optional[PagoORM]:
+        """Localiza un pago por su referencia de pasarela (PaymentIntent de Stripe)."""
+        stmt = select(PagoORM).where(PagoORM.referencia_pasarela == referencia)
+        if bloquear:
+            stmt = stmt.with_for_update(of=PagoORM)
+        return db.execute(stmt).scalars().first()
+
+    # ------------------------------------------------------------------
+    # Reconciliación Asíncrona: Webhook de Stripe (Ronda 3)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def procesar_webhook_stripe(
+        db: Session,
+        cuerpo: bytes,
+        firma_stripe: Optional[str] = None,
+        secreto_webhook: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Procesa notificaciones asíncronas de webhook emitidas por Stripe.
+
+        Reconcilia eventos como `payment_intent.succeeded` y `payment_intent.payment_failed`
+        garantizando que la venta quede liquidada y las existencias consolidadas incluso si el
+        cliente cerró el navegador tras la autorización en 3D Secure.
+        """
+        import json
+
+        secreto = (
+            secreto_webhook
+            if secreto_webhook is not None
+            else settings.STRIPE_WEBHOOK_SECRET
+        )
+
+        evento: dict[str, Any]
+        if secreto and len(secreto) >= 10:
+            if not firma_stripe:
+                raise DomainError(
+                    "Cabecera Stripe-Signature ausente en petición de webhook.",
+                    code="WEBHOOK_SIN_FIRMA",
+                )
+            try:
+                import stripe
+
+                evento = stripe.Webhook.construct_event(cuerpo, firma_stripe, secreto)
+            except stripe.SignatureVerificationError as exc:
+                logger.warning("Firma inválida en webhook de Stripe: %s", exc)
+                raise DomainError(
+                    "Firma de webhook inválida.",
+                    code="FIRMA_WEBHOOK_INVALIDA",
+                ) from exc
+            except Exception as exc:
+                logger.warning("Payload malformado en webhook de Stripe: %s", exc)
+                raise DomainError(
+                    "Payload de webhook inválido.",
+                    code="PAYLOAD_WEBHOOK_INVALIDO",
+                ) from exc
+        else:
+            try:
+                evento = json.loads(cuerpo.decode("utf-8"))
+            except Exception as exc:
+                raise DomainError(
+                    "Payload JSON de webhook inválido.",
+                    code="PAYLOAD_WEBHOOK_INVALIDO",
+                ) from exc
+
+        tipo_evento = evento.get("type")
+        data_object = evento.get("data", {}).get("object", {})
+        pi_id = data_object.get("id")
+
+        if not pi_id or not isinstance(pi_id, str):
+            return {"recibido": True, "ignorado": True, "motivo": "Sin id de objeto"}
+
+        if tipo_evento == "payment_intent.succeeded":
+            pago = PagoServicio._buscar_pago_por_referencia(db, pi_id, bloquear=True)
+            if not pago:
+                logger.info("Webhook: PaymentIntent %s no encontrado en pagos.", pi_id)
+                return {"recibido": True, "encontrado": False, "referencia": pi_id}
+
+            if pago.estado == "confirmado":
+                return {"recibido": True, "estado": "ya_confirmado", "id_pago": pago.id_pago}
+
+            if pago.estado != "pendiente":
+                logger.warning(
+                    "Webhook: Pago #%s con referencia %s está en estado %s, no se confirma.",
+                    pago.id_pago,
+                    pi_id,
+                    pago.estado,
+                )
+                return {"recibido": True, "estado": pago.estado, "id_pago": pago.id_pago}
+
+            venta = PagoServicio._cargar_venta(db, pago.id_venta, bloquear=True)
+            if not venta:
+                return {"recibido": True, "error": "Venta no encontrada"}
+
+            confirmado_en = CarritoRepositorio.ahora_utc()
+            pago.estado = "confirmado"
+            pago.confirmado_en = confirmado_en
+
+            charges = data_object.get("charges", {}).get("data", [])
+            marca = None
+            ultimos_digitos = None
+            if charges and isinstance(charges, list):
+                pm_details = charges[0].get("payment_method_details", {})
+                if isinstance(pm_details, dict) and pm_details.get("type") == "card":
+                    card = pm_details.get("card", {})
+                    if isinstance(card, dict):
+                        marca = (card.get("brand") or "").upper() or None
+                        ultimos_digitos = card.get("last4")
+
+            pago.payload_respuesta = {
+                **(pago.payload_respuesta or {}),
+                "webhook_evento": tipo_evento,
+                "marca": marca,
+                "ultimos_digitos": ultimos_digitos,
+                "reconciliado_por_webhook": True,
+            }
+            db.add(pago)
+
+            venta.estado = "pagada"
+            PagoServicio._consolidar_inventario(db, venta, id_usuario_responsable=venta.id_cliente)
+            PagoServicio._retirar_de_la_bolsa(db, venta)
+
+            db.commit()
+            db.refresh(pago)
+            logger.info(
+                "Webhook: Pago #%s y Venta #%s confirmados exitosamente por reconciliación asíncrona.",
+                pago.id_pago,
+                venta.id_venta,
+            )
+            return {"recibido": True, "estado": "confirmado", "id_pago": pago.id_pago}
+
+        elif tipo_evento == "payment_intent.payment_failed":
+            pago = PagoServicio._buscar_pago_por_referencia(db, pi_id, bloquear=True)
+            if not pago:
+                return {"recibido": True, "encontrado": False, "referencia": pi_id}
+
+            if pago.estado == "pendiente":
+                last_error = data_object.get("last_payment_error", {})
+                motivo = last_error.get("message") or "El cargo fue rechazado por Stripe."
+                pago.estado = "rechazado"
+                pago.payload_respuesta = {
+                    **(pago.payload_respuesta or {}),
+                    "webhook_evento": tipo_evento,
+                    "motivo_rechazo": motivo,
+                    "rechazado_por_webhook": True,
+                }
+                db.add(pago)
+                db.commit()
+                logger.info("Webhook: Pago #%s marcado como rechazado.", pago.id_pago)
+                return {"recibido": True, "estado": "rechazado", "id_pago": pago.id_pago}
+
+            return {"recibido": True, "estado": pago.estado, "id_pago": pago.id_pago}
+
+        return {"recibido": True, "ignorado": True, "tipo_evento": tipo_evento}

@@ -1326,3 +1326,185 @@ def test_saneado_elimina_datos_sensibles_del_payload():
     assert limpio["cvc"] == "[REDACTADO]"
     assert limpio["client_secret"] == "[REDACTADO]"
     assert limpio["status"] == "succeeded"
+
+
+# ==============================================================================
+# Webhook de Stripe: Reconciliación Asíncrona (Ronda 3 - T-BE-21 / T-BE-22)
+# ==============================================================================
+
+
+def test_webhook_payment_intent_succeeded_confirma_y_liquida(client, db_con_ids):
+    """Evento payment_intent.succeeded liquida la venta y consolida existencias."""
+    venta = crear_venta()
+    pago = pago_pendiente_digital()
+
+    payload_evento = {
+        "id": "evt_test_123",
+        "type": "payment_intent.succeeded",
+        "data": {
+            "object": {
+                "id": "pi_test_123456789",
+                "status": "succeeded",
+                "charges": {
+                    "data": [
+                        {
+                            "payment_method_details": {
+                                "type": "card",
+                                "card": {"brand": "visa", "last4": "4242"},
+                            }
+                        }
+                    ]
+                },
+            }
+        },
+    }
+
+    app.dependency_overrides[get_db] = lambda: db_con_ids
+    try:
+        with patch.object(
+            PagoServicio, "_buscar_pago_por_referencia", return_value=pago
+        ), patch.object(
+            PagoServicio, "_cargar_venta", return_value=venta
+        ), patch.object(
+            PagoServicio, "_consolidar_inventario"
+        ) as mock_consolidar, patch.object(
+            PagoServicio, "_retirar_de_la_bolsa"
+        ) as mock_bolsa:
+            resp = client.post(
+                "/api/v1/pagos/webhook",
+                json=payload_evento,
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert resp.status_code == 200
+    cuerpo = resp.json()
+    assert cuerpo["recibido"] is True
+    assert cuerpo["estado"] == "confirmado"
+    assert cuerpo["id_pago"] == pago.id_pago
+    assert pago.estado == "confirmado"
+    assert venta.estado == "pagada"
+    mock_consolidar.assert_called_once()
+    mock_bolsa.assert_called_once()
+
+
+def test_webhook_payment_intent_succeeded_idempotente(client, db_con_ids):
+    """Reenvío de payment_intent.succeeded sobre pago ya confirmado responde 200 sin repetir consolidación."""
+    venta = crear_venta(estado="pagada")
+    pago = pago_pendiente_digital()
+    pago.estado = "confirmado"
+    pago.confirmado_en = datetime.now(timezone.utc)
+
+    payload_evento = {
+        "id": "evt_test_124",
+        "type": "payment_intent.succeeded",
+        "data": {"object": {"id": "pi_test_123456789", "status": "succeeded"}},
+    }
+
+    app.dependency_overrides[get_db] = lambda: db_con_ids
+    try:
+        with patch.object(
+            PagoServicio, "_buscar_pago_por_referencia", return_value=pago
+        ), patch.object(
+            PagoServicio, "_consolidar_inventario"
+        ) as mock_consolidar:
+            resp = client.post(
+                "/api/v1/pagos/webhook",
+                json=payload_evento,
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert resp.status_code == 200
+    assert resp.json()["estado"] == "ya_confirmado"
+    mock_consolidar.assert_not_called()
+
+
+def test_webhook_payment_intent_failed_marca_rechazado(client, db_con_ids):
+    """Evento payment_intent.payment_failed transiciona el pago a rechazado sin alterar inventario."""
+    venta = crear_venta()
+    pago = pago_pendiente_digital()
+
+    payload_evento = {
+        "id": "evt_test_125",
+        "type": "payment_intent.payment_failed",
+        "data": {
+            "object": {
+                "id": "pi_test_123456789",
+                "status": "requires_payment_method",
+                "last_payment_error": {
+                    "message": "Fondos insuficientes",
+                    "code": "card_declined",
+                },
+            }
+        },
+    }
+
+    app.dependency_overrides[get_db] = lambda: db_con_ids
+    try:
+        with patch.object(
+            PagoServicio, "_buscar_pago_por_referencia", return_value=pago
+        ), patch.object(
+            PagoServicio, "_consolidar_inventario"
+        ) as mock_consolidar:
+            resp = client.post(
+                "/api/v1/pagos/webhook",
+                json=payload_evento,
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert resp.status_code == 200
+    assert resp.json()["estado"] == "rechazado"
+    assert pago.estado == "rechazado"
+    mock_consolidar.assert_not_called()
+
+
+def test_webhook_evento_desconocido_ignorado_con_gracia(client, db_con_ids):
+    """Eventos no relevantes para el checkout responden 200 ignorados."""
+    payload_evento = {
+        "id": "evt_test_126",
+        "type": "customer.created",
+        "data": {"object": {"id": "cus_123"}},
+    }
+    app.dependency_overrides[get_db] = lambda: db_con_ids
+    try:
+        resp = client.post("/api/v1/pagos/webhook", json=payload_evento)
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 200
+    assert resp.json()["ignorado"] is True
+
+
+def test_webhook_payload_invalido_responde_400(client, db_con_ids):
+    """Un cuerpo no parseable como JSON responde HTTP 400."""
+    app.dependency_overrides[get_db] = lambda: db_con_ids
+    try:
+        resp = client.post(
+            "/api/v1/pagos/webhook",
+            content=b"esto-no-es-json",
+            headers={"Content-Type": "application/json"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 400
+    assert resp.json()["code"] == "PAYLOAD_WEBHOOK_INVALIDO"
+
+
+def test_webhook_firma_invalida_cuando_secreto_configurado_responde_400(client, db_con_ids):
+    """Con secreto configurado, la firma ausente o errónea responde HTTP 400."""
+    app.dependency_overrides[get_db] = lambda: db_con_ids
+    try:
+        with patch(
+            "modules.compras_pagos.cu16_realizar_pago.servicio.settings.STRIPE_WEBHOOK_SECRET",
+            "whsec_clave_secreta_de_prueba_de_mas_de_10_caracteres",
+        ):
+            resp = client.post(
+                "/api/v1/pagos/webhook",
+                content=b'{"type": "payment_intent.succeeded"}',
+                headers={"Content-Type": "application/json"},
+            )
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 400
+    assert resp.json()["code"] in ("WEBHOOK_SIN_FIRMA", "FIRMA_WEBHOOK_INVALIDA")

@@ -44,6 +44,10 @@ export class PerfilComponent implements OnInit {
   protected readonly mensajeExito = this.perfilService.mensajeExito;
   protected readonly modalAbierto = this.perfilService.modalEdicionAbierto;
   protected readonly pedidos = this.perfilService.pedidos;
+  protected readonly totalPedidos = this.perfilService.totalPedidos;
+  protected readonly pedidosCompletados = this.perfilService.pedidosCompletados;
+  protected readonly cargandoPedidos = this.perfilService.cargandoPedidos;
+  protected readonly pedidoComprobanteSeleccionado = signal<PedidoHistorico | null>(null);
   protected readonly cerrandoSesion = signal<boolean>(false);
   protected readonly esAdmin = computed(() => {
     const rolPerfil = this.perfil()?.rol?.toLowerCase()?.trim();
@@ -81,6 +85,7 @@ export class PerfilComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarDatos();
+    this.cargarHistorialCompras();
     this.misReservasService.cargarMisReservas().subscribe({ error: () => undefined });
   }
 
@@ -96,6 +101,19 @@ export class PerfilComponent implements OnInit {
       error: () => {
         this.cdr.markForCheck();
       },
+    });
+  }
+
+  /**
+   * Carga el historial de compras del cliente desde GET /api/v1/ventas/mias (CU17).
+   */
+  cargarHistorialCompras(): void {
+    if (typeof this.perfilService.cargarHistorialCompras !== 'function') {
+      return;
+    }
+    this.perfilService.cargarHistorialCompras().subscribe({
+      next: () => this.cdr.markForCheck(),
+      error: () => this.cdr.markForCheck(),
     });
   }
 
@@ -186,10 +204,75 @@ export class PerfilComponent implements OnInit {
   }
 
   /**
-   * Acción para simular descarga o visualización de ticket digital.
+   * Abre el modal de comprobante digital para el pedido seleccionado (CU17).
    */
   descargarFactura(pedido: PedidoHistorico): void {
-    alert(`Generando comprobante digital y factura para el pedido ${pedido.id} (${pedido.referencia}).`);
+    this.pedidoComprobanteSeleccionado.set(pedido);
+    this.cdr.markForCheck();
+  }
+
+  cerrarComprobante(): void {
+    this.pedidoComprobanteSeleccionado.set(null);
+    this.cdr.markForCheck();
+  }
+
+  imprimirComprobante(): void {
+    if (typeof window !== 'undefined' && typeof window.print === 'function') {
+      window.print();
+    }
+  }
+
+  tituloPrincipalPedido(pedido: PedidoHistorico): string {
+    const primero = pedido.items?.[0];
+    if (!primero) {
+      return `Orden ${pedido.numero_comprobante}`;
+    }
+    const restantes = (pedido.items?.length ?? 1) - 1;
+    return restantes > 0
+      ? `${primero.nombre_producto} (+${restantes} más)`
+      : primero.nombre_producto;
+  }
+
+  descripcionResumenPedido(pedido: PedidoHistorico): string {
+    const primero = pedido.items?.[0];
+    if (!primero) {
+      return 'Sin desglose de artículos';
+    }
+    return `SKU ${primero.sku} · Talla ${primero.talla} · Color ${primero.color} · Cant. ${primero.cantidad}`;
+  }
+
+  etiquetaEstadoPedido(estado: string): string {
+    switch (estado) {
+      case 'pagada':
+        return 'PAGADO';
+      case 'pendiente':
+        return 'PENDIENTE DE PAGO';
+      case 'anulada':
+        return 'ANULADO';
+      case 'devuelta':
+        return 'DEVUELTO';
+      default:
+        return (estado || '').toUpperCase();
+    }
+  }
+
+  etiquetaMetodoPago(metodo?: string | null): string {
+    switch (metodo) {
+      case 'tarjeta_credito':
+        return 'Tarjeta de crédito';
+      case 'tarjeta_debito':
+        return 'Tarjeta de débito';
+      case 'qr':
+        return 'Pago QR';
+      case 'pasarela_digital':
+        return 'Pasarela digital';
+      case 'efectivo':
+        return 'Efectivo en boutique';
+      case 'transferencia':
+        return 'Transferencia bancaria';
+      default:
+        return 'Pendiente de confirmación';
+    }
   }
 
   /**

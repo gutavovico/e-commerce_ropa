@@ -86,13 +86,36 @@
           </svg>
         </div>
 
-        <span class="text-xs font-semibold tracking-[0.25em] text-[#B38E5D] uppercase">Transacción Aprobada por Pasarela Central</span>
-        <h1 class="text-2xl sm:text-3xl font-serif uppercase tracking-wider text-neutral-900 mt-2 mb-4">
-          ¡Orden Confirmada con Éxito!
-        </h1>
-        <p class="text-sm text-neutral-600 max-w-md mx-auto mb-8 leading-relaxed">
-          {{ pago.mensaje_confirmacion }}
-        </p>
+        @if (pago.metodo_pago === 'efectivo') {
+          <span class="text-xs font-semibold tracking-[0.25em] text-[#8B6533] uppercase">Reserva en Sucursal · Pago Pendiente en Boutique</span>
+          <h1 class="text-2xl sm:text-3xl font-serif uppercase tracking-wider text-neutral-900 mt-2 mb-4">
+            ¡Orden Registrada con Éxito!
+          </h1>
+          <p class="text-sm text-neutral-600 max-w-md mx-auto mb-6 leading-relaxed">
+            {{ pago.mensaje_confirmacion }}
+          </p>
+
+          <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded p-4 mb-6 text-left text-xs space-y-2">
+            <div class="flex items-center gap-2 font-bold uppercase tracking-wider text-[11px] text-amber-800">
+              <svg class="w-4 h-4 text-amber-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Plazo de Cortesía: 24 Horas de Reserva</span>
+            </div>
+            <p class="leading-relaxed">
+              Tus prendas quedan reservadas en <strong>{{ resumen()?.nombre_sucursal_retiro || 'la boutique de recogida' }}</strong>.
+              Presenta tu número de comprobante en la caja de la sucursal para realizar el pago en efectivo y retirar tus prendas.
+            </p>
+          </div>
+        } @else {
+          <span class="text-xs font-semibold tracking-[0.25em] text-[#B38E5D] uppercase">Transacción Aprobada por Pasarela Central</span>
+          <h1 class="text-2xl sm:text-3xl font-serif uppercase tracking-wider text-neutral-900 mt-2 mb-4">
+            ¡Orden Confirmada con Éxito!
+          </h1>
+          <p class="text-sm text-neutral-600 max-w-md mx-auto mb-8 leading-relaxed">
+            {{ pago.mensaje_confirmacion }}
+          </p>
+        }
 
         <!-- Recibo formal de alta costura -->
         <div class="bg-[#FBF9F7] border border-neutral-200 rounded p-6 mb-8 text-left text-xs space-y-3 font-mono">
@@ -115,13 +138,21 @@
                 Bizum / Código QR
               } @else if (pago.metodo_pago === 'pasarela_digital') {
                 PayPal
+              } @else if (pago.metodo_pago === 'efectivo') {
+                Efectivo en mostrador (Boutique de retiro)
               } @else {
                 {{ pago.metodo_pago }}
               }
             </span>
           </div>
           <div class="flex justify-between pt-1 text-sm font-bold">
-            <span class="text-neutral-900 font-sans">Total Liquidado:</span>
+            <span class="text-neutral-900 font-sans">
+              @if (pago.metodo_pago === 'efectivo') {
+                Total a abonar en tienda:
+              } @else {
+                Total Liquidado:
+              }
+            </span>
             <span class="text-neutral-900">{{ pago.monto }} €</span>
           </div>
         </div>
@@ -491,6 +522,78 @@
           </div>
 
           <!-- ===================================================================== -->
+          <!-- MÉTODO 4: PAGO EN EFECTIVO EN SUCURSAL (CP-33 — SOLO RECOGIDA EN BOUTIQUE) -->
+          <!-- ===================================================================== -->
+          @if (esRecogidaBoutique()) {
+            <div
+              class="border rounded-sm transition-colors"
+              [class.border-neutral-900]="metodoSeleccionado() === 'efectivo'"
+              [class.border-neutral-200]="metodoSeleccionado() !== 'efectivo'"
+              [class.bg-white]="metodoSeleccionado() === 'efectivo'"
+            >
+              <label
+                (click)="seleccionarMetodo('efectivo')"
+                class="p-4 sm:p-5 flex items-center justify-between cursor-pointer select-none"
+              >
+                <div class="flex items-center gap-3">
+                  <span
+                    class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                    [class.border-neutral-900]="metodoSeleccionado() === 'efectivo'"
+                    [class.border-neutral-300]="metodoSeleccionado() !== 'efectivo'"
+                  >
+                    @if (metodoSeleccionado() === 'efectivo') {
+                      <span class="w-2 h-2 rounded-full bg-neutral-900"></span>
+                    }
+                  </span>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-semibold tracking-wide text-neutral-900">
+                        Pago en Efectivo en Sucursal
+                      </span>
+                      <span class="px-2 py-0.5 text-[9px] font-bold tracking-widest uppercase bg-amber-100 text-amber-800 rounded">
+                        EN TIENDA
+                      </span>
+                    </div>
+                    <p class="text-xs text-neutral-500 mt-0.5">
+                      Abono presencial en mostrador al recoger tus prendas en boutique
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Icono Efectivo -->
+                <svg class="w-6 h-6 text-neutral-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </label>
+
+              <!-- Panel expandido de Pago en Efectivo -->
+              @if (metodoSeleccionado() === 'efectivo') {
+                <div class="px-5 pb-5 pt-1 border-t border-neutral-100 space-y-4">
+                  <div class="bg-[#FBF9F7] border border-neutral-200 rounded p-4 text-xs space-y-2">
+                    <div class="flex items-center gap-2 font-bold text-neutral-900 uppercase tracking-wider text-[11px]">
+                      <svg class="w-4 h-4 text-[#8B6533]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <span>Boutique de Liquidación y Retiro</span>
+                    </div>
+                    <p class="text-neutral-700 font-medium">
+                      {{ resumen()?.nombre_sucursal_retiro || 'Boutique seleccionada' }}
+                    </p>
+                    <div class="flex items-start gap-2 pt-2 border-t border-neutral-200/60 text-neutral-600">
+                      <svg class="w-4 h-4 text-neutral-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p class="leading-relaxed">
+                        Tus prendas permanecerán reservadas durante <strong>24 horas</strong>. Presenta tu número de comprobante en la caja de la boutique para realizar el pago en efectivo y retirar tu paquete.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- ===================================================================== -->
           <!-- TRILOGÍA DE BADGES DE SEGURIDAD (IDÉNTICO AL PROTOTIPO) -->
           <!-- ===================================================================== -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
@@ -645,6 +748,11 @@
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                   </svg>
                   <span>Procesando Pago Seguro...</span>
+                } @else if (metodoSeleccionado() === 'efectivo') {
+                  <svg class="w-4 h-4 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Confirmar Reserva y Pago en Boutique</span>
                 } @else {
                   <svg class="w-4 h-4 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

@@ -3,7 +3,7 @@
 **ID del Cambio:** `CU16-realizar-pago-electronico`
 **Caso de Uso:** CU16 — Realizar Pago Electrónico
 **Metodología:** Spec-Driven Development (SDD)
-**Estado:** 🟢 Los 3 bloques implementados para tarjeta/Bizum-QR/PayPal (Backend, Web y Mobile). El pago en efectivo en sucursal (`T-FE-15`/`T-MO-12`) queda para un ciclo posterior.
+**Estado:** 🟡 Ronda 3 en especificación/planificación: Cierre de pago en efectivo en sucursal (Web y Mobile, CP-33), Panel Admin de caja mostrador (CU28) y Webhook de Stripe en Backend.
 
 ---
 
@@ -103,6 +103,17 @@ verificado en un emulador/dispositivo real** — este entorno no tiene uno dispo
 la cobertura de ese camino se limita a `StripeGateway` mockeado vía `TestBed`-equivalente
 (inyección directa en `PagoBloc`), igual que en Web con `StripeLoaderService`.
 
-**Pendiente de decisión, fuera de esta ronda:** el webhook de Stripe (`payment_intent.succeeded`)
-que reconciliaría un pago aprobado en Stripe pero nunca reportado a `confirmar_pago` por un cierre
-de pestaña/app a mitad de camino. Ver la nota al final de §A.2 de `spec.md`.
+## Ronda 3 — Cierre de Efectivo en Boutique, Caja Admin y Webhook Stripe (2026-11-07)
+
+### Bloque 1 — Backend
+- [x] **T-BE-21**: Implementar endpoint `POST /api/v1/pagos/webhook` en `cu16_realizar_pago/router.py` y reconciliación de eventos Stripe (`payment_intent.succeeded` y `payment_intent.payment_failed`) en `PagoServicio.procesar_webhook_stripe` con verificación de firma criptográfica y modo simulador seguro si la firma no está configurada.
+- [x] **T-BE-22**: Suite de pruebas del webhook en `test_cu16_pagos.py` (éxito, rechazo, firma inválida, evento ignorado, idempotencia; 55/55 pruebas en verde).
+
+### Bloque 2 — Frontend Web
+- [x] **T-FE-15**: Habilitar tarjeta de método «Pago en efectivo en sucursal» en `CheckoutPagoComponent` condicionada a `resumen.tipo_entrega === 'recogida_boutique'`, enlazar `confirmarYPagar()` con `pagoService.registrarPagoEfectivo(idVenta)`, y desplegar la vista de confirmación con datos de boutique y aviso de 24 horas de reserva (CP-33).
+- [x] **T-FE-20**: Integrar en el modal de detalle de venta de `VentasReservasAdminComponent` (CU28) los botones operativos para confirmar cobro en caja (`confirmar-efectivo`) y cancelar reserva (`cancelar-efectivo`), con sus métodos correspondientes en `ventas-reservas-admin.service.ts`.
+- [x] **T-FE-21**: Pruebas Vitest de `CheckoutPagoComponent` (flujo de efectivo, condición de visualización CP-33) y `VentasReservasAdminComponent` (confirmación y cancelación de cobro en efectivo). 548/548 pruebas unitarias pasando y build exitoso.
+
+### Bloque 3 — Mobile
+- [x] **T-MO-12**: Implementar `PagoApi.registrarPagoEfectivo` en `pago_api.dart`, soporte para efectivo en `PagoBloc.confirmarYPagar()`, y opción de método «Pago en efectivo en sucursal» en `CheckoutPaymentScreen` condicionada a `resumen.esRecogidaBoutique` con vista de confirmación de 24h (CP-33).
+- [x] **T-MO-17**: Pruebas en Mobile: `MockPagoApi` con soporte de efectivo en `mock_pago_api.dart`, pruebas de estado en `pago_bloc_test.dart`, y pruebas de widget en `checkout_payment_screen_test.dart` cubriendo la visibilidad condicional, aviso de 24h y la confirmación de efectivo. 216/216 pruebas en verde y `flutter analyze` limpio.

@@ -1,8 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Observable, catchError, tap, throwError } from 'rxjs';
+import { Observable, catchError, finalize, tap, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import {
+  HistorialCompras,
   PedidoHistorico,
   PerfilCliente,
   PerfilClienteActualizar,
@@ -15,6 +16,7 @@ export class PerfilService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly endpoint = '/api/v1/perfil';
+  private readonly historialEndpoint = '/api/v1/ventas/mias';
 
   private readonly TOKEN_KEY = 'fashionstore_token';
 
@@ -26,51 +28,11 @@ export class PerfilService {
   readonly mensajeExito = signal<string | null>(null);
   readonly modalEdicionAbierto = signal<boolean>(false);
 
-  // Pedidos históricos conforme al mockup de alta costura
-  readonly pedidos = signal<PedidoHistorico[]>([
-    {
-      id: 'PED-001',
-      titulo: 'Vestido plisado en seda natural',
-      boutique: 'FLAGSHIP SERRANO (MADRID)',
-      iconoBoutique: 'flagship',
-      descripcion: 'Seda natural mora 100% · Talla 38 · Color Marfil',
-      talla: '38',
-      color: 'Marfil',
-      precio: 890,
-      fecha: '24 OCT 2024 · ENTREGADO EN TIENDA',
-      estado: 'ENTREGADO',
-      referencia: 'REF: MAD-70614',
-      imagen: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      id: 'PED-002',
-      titulo: 'Blazer estructurado lana virgen',
-      boutique: 'BOUTIQUE SAINT-HONORÉ (PARÍS)',
-      iconoBoutique: 'paris',
-      descripcion: 'Lana virgen italiana · Talla 40 · Color Camel',
-      talla: '40',
-      color: 'Camel',
-      precio: 740,
-      fecha: '28 SEP 2024 · A DOMICILIO',
-      estado: 'ENTREGADO',
-      referencia: 'REF: PAR-20412',
-      imagen: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      id: 'PED-003',
-      titulo: 'Blusa de satén fluido marfil',
-      boutique: 'MADRID CENTRAL HUB (ONLINE)',
-      iconoBoutique: 'online',
-      descripcion: 'Satén de seda marfil · Talla 38',
-      talla: '38',
-      color: 'Marfil',
-      precio: 310,
-      fecha: '10 AGO 2024 · ENTREGADO',
-      estado: 'ENTREGADO',
-      referencia: 'REF: ONL-07832',
-      imagen: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=400&q=80',
-    },
-  ]);
+  // --- Estado Reactivo de CU17: Historial de Compras (Cero datos inventados) ---
+  readonly pedidos = signal<PedidoHistorico[]>([]);
+  readonly totalPedidos = signal<number>(0);
+  readonly pedidosCompletados = signal<number>(0);
+  readonly cargandoPedidos = signal<boolean>(false);
 
   /**
    * Obtiene el token JWT persistido en localStorage o sessionStorage.
@@ -124,6 +86,26 @@ export class PerfilService {
 
           return throwError(() => new Error(errorMsg));
         })
+      );
+  }
+
+  /**
+   * Carga el historial real de compras del cliente autenticado (CU17: GET /api/v1/ventas/mias).
+   */
+  cargarHistorialCompras(): Observable<HistorialCompras> {
+    this.cargandoPedidos.set(true);
+
+    return this.http
+      .get<HistorialCompras>(this.historialEndpoint, {
+        headers: this.obtenerHeaders(),
+      })
+      .pipe(
+        tap((datos) => {
+          this.pedidos.set(datos.pedidos ?? []);
+          this.totalPedidos.set(datos.total_pedidos ?? 0);
+          this.pedidosCompletados.set(datos.pedidos_completados ?? 0);
+        }),
+        finalize(() => this.cargandoPedidos.set(false))
       );
   }
 

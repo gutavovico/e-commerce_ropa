@@ -1,4 +1,4 @@
-/// Modelos y DTOs para CU04: Gestionar Perfil del Cliente en Flutter.
+/// Modelos y DTOs para CU04 (Gestionar Perfil) y CU17 (Consultar Historial de Compras) en Flutter.
 /// Mapeo tipado 1:1 con la respuesta JSON de FastAPI.
 library;
 
@@ -152,30 +152,137 @@ class PerfilClienteUpdateDto {
   }
 }
 
-class PedidoMovilDto {
-  final String id;
-  final String titulo;
-  final String origen;
-  final String descripcion;
+class ItemPedidoMovilDto {
+  final int idVentaDetalle;
+  final int idProducto;
+  final int idVariante;
+  final String sku;
+  final String nombreProducto;
+  final String? imagenUrl;
   final String talla;
   final String color;
-  final int precio;
-  final String fecha;
-  final String estado;
-  final String referencia;
-  final String imagen;
+  final String? colorHex;
+  final int cantidad;
+  final String precioUnitario;
+  final String subtotalLinea;
+  final String? nombreSucursal;
 
-  const PedidoMovilDto({
-    required this.id,
-    required this.titulo,
-    required this.origen,
-    required this.descripcion,
+  const ItemPedidoMovilDto({
+    required this.idVentaDetalle,
+    required this.idProducto,
+    required this.idVariante,
+    required this.sku,
+    required this.nombreProducto,
+    this.imagenUrl,
     required this.talla,
     required this.color,
-    required this.precio,
-    required this.fecha,
-    required this.estado,
-    required this.referencia,
-    required this.imagen,
+    this.colorHex,
+    required this.cantidad,
+    required this.precioUnitario,
+    required this.subtotalLinea,
+    this.nombreSucursal,
   });
+
+  factory ItemPedidoMovilDto.fromJson(Map<String, dynamic> json) {
+    return ItemPedidoMovilDto(
+      idVentaDetalle: json['id_venta_detalle'] as int? ?? 0,
+      idProducto: json['id_producto'] as int? ?? 0,
+      idVariante: json['id_variante'] as int? ?? 0,
+      sku: json['sku'] as String? ?? '',
+      nombreProducto: json['nombre_producto'] as String? ?? 'Prenda FashionStore',
+      imagenUrl: json['imagen_url'] as String?,
+      talla: json['talla'] as String? ?? '-',
+      color: json['color'] as String? ?? '-',
+      colorHex: json['color_hex'] as String?,
+      cantidad: json['cantidad'] as int? ?? 1,
+      precioUnitario: '${json['precio_unitario'] ?? '0.00'}',
+      subtotalLinea: '${json['subtotal_linea'] ?? '0.00'}',
+      nombreSucursal: json['nombre_sucursal'] as String?,
+    );
+  }
+}
+
+class PedidoMovilDto {
+  final int idVenta;
+  final String numeroComprobante;
+  final String fechaVenta;
+  final String tipoVenta;
+  final String estado;
+  final String tipoEntrega;
+  final String? nombreSucursal;
+  final String? nombreSucursalRetiro;
+  final String? direccionEnvio;
+  final String? codigoPromocion;
+  final String subtotal;
+  final String descuento;
+  final String total;
+  final String? metodoPago;
+  final String? referenciaPasarela;
+  final List<ItemPedidoMovilDto> items;
+
+  const PedidoMovilDto({
+    required this.idVenta,
+    required this.numeroComprobante,
+    required this.fechaVenta,
+    required this.tipoVenta,
+    required this.estado,
+    required this.tipoEntrega,
+    this.nombreSucursal,
+    this.nombreSucursalRetiro,
+    this.direccionEnvio,
+    this.codigoPromocion,
+    required this.subtotal,
+    required this.descuento,
+    required this.total,
+    this.metodoPago,
+    this.referenciaPasarela,
+    this.items = const [],
+  });
+
+  factory PedidoMovilDto.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'] as List<dynamic>? ?? const [];
+    return PedidoMovilDto(
+      idVenta: json['id_venta'] as int? ?? 0,
+      numeroComprobante: json['numero_comprobante'] as String? ?? '',
+      fechaVenta: json['fecha_venta'] as String? ?? '',
+      tipoVenta: json['tipo_venta'] as String? ?? 'digital_movil',
+      estado: json['estado'] as String? ?? 'pendiente',
+      tipoEntrega: json['tipo_entrega'] as String? ?? 'domicilio',
+      nombreSucursal: json['nombre_sucursal'] as String?,
+      nombreSucursalRetiro: json['nombre_sucursal_retiro'] as String?,
+      direccionEnvio: json['direccion_envio'] as String?,
+      codigoPromocion: json['codigo_promocion'] as String?,
+      subtotal: '${json['subtotal'] ?? '0.00'}',
+      descuento: '${json['descuento'] ?? '0.00'}',
+      total: '${json['total'] ?? '0.00'}',
+      metodoPago: json['metodo_pago'] as String?,
+      referenciaPasarela: json['referencia_pasarela'] as String?,
+      items: rawItems
+          .map((e) => ItemPedidoMovilDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class HistorialComprasMovilDto {
+  final int totalPedidos;
+  final int pedidosCompletados;
+  final List<PedidoMovilDto> pedidos;
+
+  const HistorialComprasMovilDto({
+    this.totalPedidos = 0,
+    this.pedidosCompletados = 0,
+    this.pedidos = const [],
+  });
+
+  factory HistorialComprasMovilDto.fromJson(Map<String, dynamic> json) {
+    final rawPedidos = json['pedidos'] as List<dynamic>? ?? const [];
+    return HistorialComprasMovilDto(
+      totalPedidos: json['total_pedidos'] as int? ?? 0,
+      pedidosCompletados: json['pedidos_completados'] as int? ?? 0,
+      pedidos: rawPedidos
+          .map((e) => PedidoMovilDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }

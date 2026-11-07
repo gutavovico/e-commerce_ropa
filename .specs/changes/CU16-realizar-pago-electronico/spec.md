@@ -554,13 +554,74 @@ Sin cuerpo — el `id_pago` en la ruta basta.
 | `404` | `PAGO_NO_ENCONTRADO` |
 | `409` | `PAGO_NO_PENDIENTE` · `METODO_NO_SOPORTADO` · `VENTA_YA_LIQUIDADA` · `VENTA_ANULADA` · `ORDEN_EXPIRADA` |
 
-> **Limitación conocida, pendiente de decisión:** `automatic_payment_methods` sin restricción deja
-> que Stripe pida 3D Secure cuando la tarjeta lo exige, pero **no existe todavía un webhook** que
-> reciba `payment_intent.succeeded` de forma asíncrona (`STRIPE_WEBHOOK_SECRET` está declarada en
-> `config.py`/`render.yaml` pero ningún endpoint la consume). Si el cliente cierra la pestaña o la
-> app entre la confirmación en Stripe y la llamada a `confirmar_pago`, el pago queda aprobado en
-> Stripe pero sin reflejarse en `pagos`/`ventas` hasta que alguien vuelva a llamar a ese endpoint.
-> Añadir el webhook como fuente de verdad secundaria queda fuera de esta ronda.
+> **Reconciliación Asíncrona (Ronda 3):** Para evitar inconsistencias ante desconexiones, cierres de
+> ventana tras autorizaciones 3D Secure o deserciones del navegador/app antes de invocar
+> `/confirmar`, se añade el webhook oficial `POST /api/v1/pagos/webhook` (§A.2.1).
+
+---
+
+#### A.2.1 `POST /api/v1/pagos/webhook` (Reconciliación Asíncrona con Stripe)
+
+Endpoint público (sin autenticación Bearer de usuario) protegido por validación criptográfica de firma
+con `Stripe-Signature` y `STRIPE_WEBHOOK_SECRET` usando `stripe.Webhook.construct_event`.
+
+**Eventos procesados:**
+1. `payment_intent.succeeded`:
+   - Extrae el ID del PaymentIntent (`pi_...`).
+   - Bloquea el registro en `pagos` por `referencia_pasarela = pi_...`.
+   - Si el pago ya está `confirmado`, responde `200` inmediatamente (idempotencia ante reintentos de Stripe).
+   - Si está `pendiente`:
+     - Transiciona `pagos.estado = 'confirmado'` y `confirmado_en = now()`.
+     - Extrae datos de tarjeta (`brand`, `last4`) de `charges.data[0].payment_method_details.card` o `payment_method`.
+     - Actualiza `ventas.estado = 'pagada'`.
+     - Descuenta `cantidad_reservada -= cantidad` en inventario registrando un movimiento `venta_confirmada` con saldos reales por cada ítem.
+     - Remueve del carrito (`carrito_detalle`) los ítems correspondientes a las variantes de la venta.
+     - `COMMIT`.
+2. `payment_intent.payment_failed`:
+   - Bloquea el registro en `pagos`. Si está `pendiente`, transiciona a `pagos.estado = 'rechazado'`, registrando el código y motivo de error devueltos por Stripe en `payload_respuesta`.
+3. Otros eventos: responde `200` ignorándolos de forma segura.
+
+Si `STRIPE_WEBHOOK_SECRET` no está configurado en el entorno (por ejemplo, modo simulador o tests locales sin firma), responde `200` indicando que el webhook está inactivo o simulado.
+
+---
+
+#### A.2.2 Flujo de Cliente para «Pago en Efectivo en Sucursal» (Web y Mobile — CP-33)
+
+**Condición de visualización:**
+- La opción de pago en efectivo **únicamente se muestra** si `resumen.tipo_entrega === 'recogida_boutique'`.
+- Si `tipo_entrega === 'domicilio'`, el método queda oculto en Web y Mobile (o explícitamente no elegible).
+
+**Acción de checkout presencial:**
+1. El usuario selecciona la opción «Pago en efectivo en sucursal» (badge `EN TIENDA`).
+2. Al pulsar «Confirmar orden con pago en boutique»:
+   - Frontend Web invoca `pagoService.registrarPagoEfectivo(idVenta)`.
+   - Frontend Mobile invoca `PagoApi.registrarPagoEfectivo(idVenta)` vía `PagoBloc`.
+3. El backend procesa `POST /api/v1/pagos/efectivo`, devolviendo un pago en `estado = 'pendiente'` y la venta en `estado = 'pendiente'`.
+4. La interfaz despliega la pantalla de confirmación personalizada para efectivo:
+   - Número de comprobante (`FS-2026-XXXXXX`).
+   - Monto total en efectivo a liquidar.
+   - Nombre de la boutique y dirección física de recogida.
+   - Mensaje destacado: **«Tus prendas están reservadas durante 24 horas. Acércate a la boutique con tu comprobante para realizar el pago en efectivo y retirar tu pedido.»**
+
+---
+
+#### A.2.3 Flujo Operativo de Caja en Panel Administrativo (Web Admin — CU28)
+
+**Ubicación:** Modal de detalle de venta en `ventas-reservas-admin` (`VentasReservasAdminComponent`).
+**Condición:**
+- El usuario autenticado posee rol `administrador`, o `encargado_sucursal` / `cajero` con asignación coincidente con la boutique de la venta (`venta.id_sucursal == usuario.id_sucursal`).
+- La venta posee un pago en `metodo_pago === 'efectivo'` y `estado === 'pendiente'`.
+
+**Acciones operativas disponibles en el detalle del pago:**
+1. **Botón «Confirmar Cobro en Caja»**:
+   - Invoca `POST /api/v1/admin/pagos/{id_pago}/confirmar-efectivo`.
+   - Backend consolida la venta a `pagada`, existencias `venta_confirmada` con el cajero como responsable y vacía los ítems del carrito.
+   - La interfaz actualiza el estado del pago a `confirmado`, la venta a `pagada` y muestra notificación de éxito.
+2. **Botón «Cancelar por Desistimiento/Vencimiento»**:
+   - Solicita confirmación al usuario en modal/diálogo rápido.
+   - Invoca `POST /api/v1/admin/pagos/{id_pago}/cancelar-efectivo`.
+   - Backend anula la venta (`anulada`), libera el stock retenido a disponible con `cancelacion_pedido`.
+   - La interfaz actualiza el modal reflejando la anulación y actualiza la lista maestra de transacciones.
 
 ### A.3 Mapeo de `PagoORM`
 
@@ -713,3 +774,10 @@ Con esto, la especificación completa de `POST /pagos/procesar` con `metodo_pago
 confirmación/cancelación administrativa queda lista para implementarse en un ciclo posterior.
 Ninguna de estas decisiones bloquea tarjeta, Bizum/QR ni PayPal, que siguen con el flujo ya
 aprobado en §A.2 y son las que deben implementarse primero en los Bloques 2 y 3.
+
+### Gate Ronda 3 — Cierre de Efectivo, Caja Admin y Webhook Stripe (Aprobado 2026-11-07)
+
+Aprobado por el usuario:
+1. **Efectivo en Tienda (Clientes Web y Móvil):** habilitar «Pago en efectivo en sucursal» exclusivamente cuando `tipo_entrega === 'recogida_boutique'`, con recibo claro indicando 24 horas de reserva de stock y boutique de retiro. Cumple **CP-33** (`T-FE-15` y `T-MO-12`).
+2. **Caja Administrativa (Web Admin CU28):** integrar en el modal de detalle de venta de `VentasReservasAdminComponent` las acciones operativas de confirmación (`confirmar-efectivo`) y cancelación (`cancelar-efectivo`) para cajeros y encargados asignados a esa boutique.
+3. **Webhook Asíncrono de Stripe:** implementar `POST /api/v1/pagos/webhook` en el Backend con reconciliación de eventos `payment_intent.succeeded` y `payment_intent.payment_failed` protegiendo contra cierres de sesión intempestivos o deserciones post-3DSecure.

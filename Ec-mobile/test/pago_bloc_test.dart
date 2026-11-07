@@ -234,5 +234,37 @@ void main() {
         expect(api.llamadasConfirmarPago, 0);
       },
     );
+
+    test('confirmarYPagar con efectivo llama a registrarPagoEfectivo y transiciona a PagoExitoso', () async {
+      final api = MockPagoApi();
+      final bloc = PagoBloc(api: api, token: kToken);
+      await bloc.cargarResumen(1);
+
+      bloc.seleccionarMetodo('efectivo');
+      final exito = await bloc.confirmarYPagar();
+
+      expect(exito, true);
+      expect(bloc.estado, isA<PagoExitoso>());
+      expect(api.llamadasRegistrarEfectivo, 1);
+      expect(api.ultimoIdVentaEfectivo, 1);
+      expect(api.ultimaClaveIdempotenciaEfectivo, isNotNull);
+      expect(api.llamadasIniciarPago, 0);
+      expect(api.llamadasConfirmarPago, 0);
+    });
+
+    test('fallo al registrarPagoEfectivo transiciona a PagoError', () async {
+      final api = MockPagoApi(
+        excepcionAlRegistrarEfectivo: const PagoException('No hay suficiente stock en sucursal.'),
+      );
+      final bloc = PagoBloc(api: api, token: kToken);
+      await bloc.cargarResumen(1);
+
+      bloc.seleccionarMetodo('efectivo');
+      final exito = await bloc.confirmarYPagar();
+
+      expect(exito, false);
+      expect(bloc.estado, isA<PagoError>());
+      expect((bloc.estado as PagoError).mensaje, 'No hay suficiente stock en sucursal.');
+    });
   });
 }

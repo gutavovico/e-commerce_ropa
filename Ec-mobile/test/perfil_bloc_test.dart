@@ -5,8 +5,12 @@ import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu04_gestionar_per
 
 class MockPerfilRepositorioExitoso implements PerfilRepositorio {
   final PerfilClienteDto perfilSimulado;
+  final HistorialComprasMovilDto historialSimulado;
 
-  MockPerfilRepositorioExitoso(this.perfilSimulado);
+  MockPerfilRepositorioExitoso(
+    this.perfilSimulado, {
+    this.historialSimulado = const HistorialComprasMovilDto(),
+  });
 
   @override
   Future<PerfilClienteDto> obtenerPerfil(String token) async {
@@ -34,6 +38,11 @@ class MockPerfilRepositorioExitoso implements PerfilRepositorio {
       resumenAtelier: perfilSimulado.resumenAtelier,
     );
   }
+
+  @override
+  Future<HistorialComprasMovilDto> obtenerHistorialCompras(String token) async {
+    return historialSimulado;
+  }
 }
 
 class MockPerfilRepositorioFallido implements PerfilRepositorio {
@@ -51,6 +60,11 @@ class MockPerfilRepositorioFallido implements PerfilRepositorio {
     String token,
     PerfilClienteUpdateDto datos,
   ) async {
+    throw Exception(mensajeError);
+  }
+
+  @override
+  Future<HistorialComprasMovilDto> obtenerHistorialCompras(String token) async {
     throw Exception(mensajeError);
   }
 }
@@ -123,6 +137,38 @@ void main() {
       final estadoCargado = bloc.estado as PerfilCargado;
       expect(estadoCargado.perfil.nombres, 'Ana María');
       expect(estadoCargado.perfil.tallaPreferida, '40');
+    });
+
+    test('CU17: cargarHistorialCompras popula pedidos y contadores', () async {
+      const historial = HistorialComprasMovilDto(
+        totalPedidos: 1,
+        pedidosCompletados: 1,
+        pedidos: [
+          PedidoMovilDto(
+            idVenta: 42,
+            numeroComprobante: 'FS-2026-000042',
+            fechaVenta: '2026-04-11T15:30:00Z',
+            tipoVenta: 'digital_movil',
+            estado: 'pagada',
+            tipoEntrega: 'domicilio',
+            subtotal: '890.00',
+            descuento: '0.00',
+            total: '890.00',
+          ),
+        ],
+      );
+      final bloc = PerfilBloc(
+        repositorio: MockPerfilRepositorioExitoso(
+          perfilPrueba,
+          historialSimulado: historial,
+        ),
+      );
+
+      await bloc.cargarHistorialCompras('token');
+
+      expect(bloc.historial.pedidosCompletados, 1);
+      expect(bloc.pedidos.length, 1);
+      expect(bloc.pedidos.first.numeroComprobante, 'FS-2026-000042');
     });
   });
 }

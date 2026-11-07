@@ -238,4 +238,42 @@ export class VentasReservasAdminService {
       )
       .subscribe();
   }
+
+  // --- Operaciones de Caja (CU16 - Pago en Efectivo en Mostrador) ---
+
+  confirmarPagoEfectivo(idPago: number): Observable<any> {
+    this.cargando.set(true);
+    this.limpiarError();
+
+    return this.http
+      .post<any>(
+        `/api/v1/admin/pagos/${idPago}/confirmar-efectivo`,
+        {},
+        {
+          headers: this.obtenerHeaders(),
+        }
+      )
+      .pipe(
+        catchError((err) => this.manejarError(err)),
+        finalize(() => this.cargando.set(false))
+      );
+  }
+
+  cancelarPagoEfectivo(idPago: number): Observable<any> {
+    this.cargando.set(true);
+    this.limpiarError();
+
+    return this.http
+      .post<any>(
+        `/api/v1/admin/pagos/${idPago}/cancelar-efectivo`,
+        {},
+        {
+          headers: this.obtenerHeaders(),
+        }
+      )
+      .pipe(
+        catchError((err) => this.manejarError(err)),
+        finalize(() => this.cargando.set(false))
+      );
+  }
 }

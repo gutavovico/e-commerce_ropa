@@ -1,5 +1,5 @@
 /**
- * DTOs e interfaces TypeScript para CU04: Gestionar Perfil del Cliente.
+ * DTOs e interfaces TypeScript para CU04 (Gestionar Perfil) y CU17 (Consultar Historial de Compras).
  * Mapeo estricto 1:1 con los esquemas Pydantic del backend de FastAPI.
  */
 
@@ -47,17 +47,43 @@ export interface PerfilClienteActualizar {
   acepta_marketing?: boolean;
 }
 
-export interface PedidoHistorico {
-  id: string;
-  titulo: string;
-  boutique: string;
-  iconoBoutique: 'flagship' | 'paris' | 'online';
-  descripcion: string;
+export interface ItemHistorialCompra {
+  id_venta_detalle: number;
+  id_producto: number;
+  id_variante: number;
+  sku: string;
+  nombre_producto: string;
+  imagen_url?: string | null;
   talla: string;
   color: string;
-  precio: number;
-  fecha: string;
+  color_hex?: string | null;
+  cantidad: number;
+  precio_unitario: string | number;
+  subtotal_linea: string | number;
+  nombre_sucursal?: string | null;
+}
+
+export interface PedidoHistorico {
+  id_venta: number;
+  numero_comprobante: string;
+  fecha_venta: string;
+  tipo_venta: string;
   estado: string;
-  referencia: string;
-  imagen: string;
+  tipo_entrega: string;
+  nombre_sucursal?: string | null;
+  nombre_sucursal_retiro?: string | null;
+  direccion_envio?: string | null;
+  codigo_promocion?: string | null;
+  subtotal: string | number;
+  descuento: string | number;
+  total: string | number;
+  metodo_pago?: string | null;
+  referencia_pasarela?: string | null;
+  items: ItemHistorialCompra[];
+}
+
+export interface HistorialCompras {
+  total_pedidos: number;
+  pedidos_completados: number;
+  pedidos: PedidoHistorico[];
 }

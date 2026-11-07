@@ -82,4 +82,51 @@ void main() {
       expect(json.containsKey('telefono'), isFalse);
     });
   });
+
+  group('HistorialComprasMovilDto Tests (CU17)', () {
+    test('deserializa respuesta de GET /api/v1/ventas/mias con items', () {
+      final json = {
+        'total_pedidos': 1,
+        'pedidos_completados': 1,
+        'pedidos': [
+          {
+            'id_venta': 42,
+            'numero_comprobante': 'FS-2026-000042',
+            'fecha_venta': '2026-04-11T15:30:00Z',
+            'tipo_venta': 'digital_movil',
+            'estado': 'pagada',
+            'tipo_entrega': 'domicilio',
+            'nombre_sucursal': 'Boutique Equipetrol',
+            'subtotal': '890.00',
+            'descuento': '0.00',
+            'total': '890.00',
+            'metodo_pago': 'tarjeta_credito',
+            'referencia_pasarela': 'pi_test_42',
+            'items': [
+              {
+                'id_venta_detalle': 101,
+                'id_producto': 7,
+                'id_variante': 19,
+                'sku': 'FS-ABR-007-M-NEG',
+                'nombre_producto': 'Abrigo de Lana Merino',
+                'talla': 'M',
+                'color': 'Negro',
+                'cantidad': 1,
+                'precio_unitario': '890.00',
+                'subtotal_linea': '890.00',
+              },
+            ],
+          },
+        ],
+      };
+
+      final dto = HistorialComprasMovilDto.fromJson(json);
+
+      expect(dto.totalPedidos, 1);
+      expect(dto.pedidosCompletados, 1);
+      expect(dto.pedidos.length, 1);
+      expect(dto.pedidos.first.numeroComprobante, 'FS-2026-000042');
+      expect(dto.pedidos.first.items.first.nombreProducto, 'Abrigo de Lana Merino');
+    });
+  });
 }

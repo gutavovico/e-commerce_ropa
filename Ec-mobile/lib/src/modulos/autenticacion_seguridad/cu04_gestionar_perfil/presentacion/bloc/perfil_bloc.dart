@@ -36,7 +36,7 @@ class PerfilError extends PerfilEstado {
   const PerfilError(this.mensaje, {this.codigo});
 }
 
-/// BLoC / ChangeNotifier para coordinar la lógica de negocio de perfil en UI
+/// BLoC / ChangeNotifier para coordinar la lógica de negocio de perfil y el historial CU17 en UI
 class PerfilBloc extends ChangeNotifier {
   final PerfilRepositorio _repositorio;
 
@@ -45,6 +45,13 @@ class PerfilBloc extends ChangeNotifier {
 
   PerfilEstado _estado = const PerfilInicial();
   PerfilEstado get estado => _estado;
+
+  HistorialComprasMovilDto _historial = const HistorialComprasMovilDto();
+  HistorialComprasMovilDto get historial => _historial;
+  List<PedidoMovilDto> get pedidos => _historial.pedidos;
+
+  bool _cargandoHistorial = false;
+  bool get cargandoHistorial => _cargandoHistorial;
 
   bool get estaCargando => _estado is PerfilCargando || _estado is PerfilActualizando;
 
@@ -58,6 +65,20 @@ class PerfilBloc extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _estado = PerfilError(e.toString());
+      notifyListeners();
+    }
+  }
+
+  Future<void> cargarHistorialCompras(String token) async {
+    _cargandoHistorial = true;
+    notifyListeners();
+
+    try {
+      _historial = await _repositorio.obtenerHistorialCompras(token);
+    } catch (_) {
+      _historial = const HistorialComprasMovilDto();
+    } finally {
+      _cargandoHistorial = false;
       notifyListeners();
     }
   }
@@ -87,6 +108,8 @@ class PerfilBloc extends ChangeNotifier {
 
   void reiniciar() {
     _estado = const PerfilInicial();
+    _historial = const HistorialComprasMovilDto();
+    _cargandoHistorial = false;
     notifyListeners();
   }
 }

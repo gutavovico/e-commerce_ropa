@@ -143,13 +143,13 @@ Ec-backend/
 | `autenticacion_seguridad` | CU01 registro · CU02 login · CU03 logout · CU04 perfil · CU20 usuarios y roles · CU33 recuperar acceso |
 | `catalogo` | CU05 catálogo · CU06 búsqueda y filtros · CU07 detalle (incluye CU08) · CU09 disponibilidad · CU18 recomendaciones · CU24 temporadas y colecciones · CU36 colecciones |
 | `reservas` | CU12 reservar prendas · CU13 consultar y cancelar (incluye CU14) |
-| `compras_pagos` | CU11 carrito · CU15 checkout · CU16 pago electrónico |
+| `compras_pagos` | CU11 carrito · CU15 checkout · CU16 pago electrónico · CU17 historial de compras |
 | `comercial` | CU27 promociones · CU28 ventas y reservas · CU29 indicadores · `cu31_reportes_voz` (reportes y exportación por voz: equivale a CU34 + CU35) |
 | `gestion_operativa` | CU21 sucursales y ciudades · CU22 prendas y variantes · CU23 categorías, tallas y colores · CU24 inventario y stock · CU25 proveedores · CU26 inventario global |
 | `seguridad` | CU30 bitácora de auditoría |
 
-Todos los routers cuelgan de `/api/v1`. Sin implementar aún: CU10 (vestidor), CU17 (historial de
-compras), CU19 (asistente) y CU31/CU32 del documento maestro (venta presencial / POS).
+Todos los routers cuelgan de `/api/v1`. Sin implementar aún: CU10 (vestidor), CU19 (asistente) y
+CU31/CU32 del documento maestro (venta presencial / POS).
 
 ## Reglas de dominio que el backend garantiza
 

@@ -259,7 +259,7 @@ La guía completa para trabajar con el agente está en [`CLAUDE.md`](CLAUDE.md).
 
 ## Estado de los casos de uso
 
-Terminados en los tres stacks (o en los que aplican): CU01–CU09, CU11–CU15, CU18, CU20–CU30, CU33 y
+Terminados en los tres stacks (o en los que aplican): CU01–CU09, CU11–CU18, CU20–CU30, CU33 y
 CU36, además del módulo de reportes y exportación por voz (`cu31_reportes_voz`, equivale a CU34 + CU35).
 
 Pendientes o incompletos:
@@ -267,8 +267,6 @@ Pendientes o incompletos:
 | CU | Estado |
 | :--- | :--- |
 | CU10 Vestidor virtual | Solo un modal informativo; sin backend ni integración AR |
-| CU16 Pago electrónico | Falta el webhook de Stripe y la opción «efectivo en tienda» en web y móvil |
-| CU17 Historial de compras | Las pantallas existen pero con datos estáticos; no hay endpoint |
 | CU19 Asistente inteligente | Sin implementar |
 | CU31 / CU32 Venta presencial (POS) | Sin implementar; solo existen los endpoints de confirmación de pago en efectivo |
 

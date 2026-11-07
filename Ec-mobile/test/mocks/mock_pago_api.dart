@@ -68,6 +68,23 @@ const Map<String, dynamic> respuestaPagoConfirmadoBackend = {
   'mensaje_confirmacion': 'Pago confirmado. Tu orden entra en preparación en el atelier.',
 };
 
+/// Payload literal de `POST /api/v1/pagos/efectivo`.
+const Map<String, dynamic> respuestaPagoEfectivoBackend = {
+  'id_pago': 506,
+  'id_venta': 1,
+  'numero_comprobante': 'FS-2026-000001',
+  'estado_pago': 'pendiente',
+  'estado_venta': 'pendiente',
+  'metodo_pago': 'efectivo',
+  'referencia_pasarela': null,
+  'monto': '1940.00',
+  'moneda': 'EUR',
+  'marca_tarjeta': null,
+  'ultimos_digitos': null,
+  'confirmado_en': '2026-09-22T10:05:00Z',
+  'mensaje_confirmacion': 'Orden reservada para pago y recogida en boutique.',
+};
+
 /// Doble de [PagoApi] que deserializa payloads reales del backend.
 class MockPagoApi implements PagoApi {
   /// Si se indica, `iniciarPago` la lanza en vez de abrir el intento.
@@ -79,18 +96,25 @@ class MockPagoApi implements PagoApi {
   /// Si se indica, `obtenerResumenPago` la lanza en vez de devolver el resumen.
   final PagoException? excepcionAlCargar;
 
+  /// Si se indica, `registrarPagoEfectivo` la lanza.
+  final PagoException? excepcionAlRegistrarEfectivo;
+
   /// Si se indica, sustituye la respuesta por defecto de `iniciarPago`.
   final Map<String, dynamic>? respuestaIniciar;
 
   int llamadasIniciarPago = 0;
   int llamadasConfirmarPago = 0;
+  int llamadasRegistrarEfectivo = 0;
   Map<String, dynamic>? ultimoPayloadIniciar;
   int? ultimoIdPagoConfirmado;
+  int? ultimoIdVentaEfectivo;
+  String? ultimaClaveIdempotenciaEfectivo;
 
   MockPagoApi({
     this.excepcionAlIniciar,
     this.excepcionAlConfirmar,
     this.excepcionAlCargar,
+    this.excepcionAlRegistrarEfectivo,
     this.respuestaIniciar,
   });
 
@@ -114,5 +138,18 @@ class MockPagoApi implements PagoApi {
     ultimoIdPagoConfirmado = idPago;
     if (excepcionAlConfirmar != null) throw excepcionAlConfirmar!;
     return PagoConfirmadoDto.fromJson(respuestaPagoConfirmadoBackend);
+  }
+
+  @override
+  Future<PagoConfirmadoDto> registrarPagoEfectivo(
+    int idVenta, {
+    String? claveIdempotencia,
+    required String token,
+  }) async {
+    llamadasRegistrarEfectivo++;
+    ultimoIdVentaEfectivo = idVenta;
+    ultimaClaveIdempotenciaEfectivo = claveIdempotencia;
+    if (excepcionAlRegistrarEfectivo != null) throw excepcionAlRegistrarEfectivo!;
+    return PagoConfirmadoDto.fromJson(respuestaPagoEfectivoBackend);
   }
 }

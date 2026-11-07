@@ -300,7 +300,7 @@
       <!-- 6. Layout Dividido: Historial de Compras (60%) y Preferencias/Servicios (40%) -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <!-- Columna Izquierda (60%): Registro Histórico -->
+        <!-- Columna Izquierda (60%): Registro Histórico (CU17) -->
         <div class="lg:col-span-7">
           
           <!-- Encabezado de la Sección -->
@@ -314,66 +314,98 @@
               </span>
             </div>
             <span class="bg-neutral-100 text-neutral-600 text-[10px] font-semibold tracking-widest px-3 py-1 rounded-full uppercase">
-              5 PEDIDOS COMPLETADOS
+              {{ pedidosCompletados() }} {{ pedidosCompletados() === 1 ? 'PEDIDO COMPLETADO' : 'PEDIDOS COMPLETADOS' }}
             </span>
           </div>
 
-          <!-- Lista de Tarjetas de Pedidos -->
-          <div class="space-y-4">
-            @for (pedido of pedidos(); track pedido.id) {
-              <article class="bg-white rounded-3xl p-5 border border-neutral-100 shadow-sm flex flex-col sm:flex-row gap-5 transition hover:border-neutral-200">
-                
-                <!-- Imagen Miniatura -->
-                <div class="w-full sm:w-24 h-32 rounded-2xl overflow-hidden bg-neutral-100 shrink-0">
-                  <img [src]="pedido.imagen" [alt]="pedido.titulo" class="w-full h-full object-cover" />
-                </div>
+          @if (cargandoPedidos()) {
+            <div class="bg-white rounded-3xl p-8 border border-neutral-100 shadow-sm text-center text-xs text-neutral-400">
+              Consultando tu historial de compras...
+            </div>
+          } @else if (pedidos().length === 0) {
+            <div class="bg-white rounded-3xl p-8 border border-neutral-100 shadow-sm text-center">
+              <p class="text-sm font-bold text-neutral-900 mb-1">
+                Sin compras registradas
+              </p>
+              <p class="text-xs text-neutral-500 mb-5">
+                Aún no registras pedidos en tu historial. Tus adquisiciones en boutique y plataforma digital aparecerán aquí.
+              </p>
+              <a
+                routerLink="/catalogo"
+                class="inline-block bg-neutral-950 hover:bg-neutral-800 text-white text-[11px] font-semibold tracking-widest uppercase px-5 py-2.5 rounded-xl transition"
+              >
+                EXPLORAR COLECCIÓN
+              </a>
+            </div>
+          } @else {
+            <!-- Lista de Tarjetas de Pedidos Reales -->
+            <div class="space-y-4">
+              @for (pedido of pedidos(); track pedido.id_venta) {
+                <article class="bg-white rounded-3xl p-5 border border-neutral-100 shadow-sm flex flex-col sm:flex-row gap-5 transition hover:border-neutral-200">
+                  
+                  <!-- Imagen Miniatura -->
+                  <div class="w-full sm:w-24 h-32 rounded-2xl overflow-hidden bg-neutral-100 shrink-0 flex items-center justify-center">
+                    @if (pedido.items.length > 0 && pedido.items[0].imagen_url) {
+                      <img [src]="pedido.items[0].imagen_url" [alt]="tituloPrincipalPedido(pedido)" class="w-full h-full object-cover" />
+                    } @else {
+                      <span class="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">ATELIER</span>
+                    }
+                  </div>
 
-                <!-- Detalles de la Prenda y Boutique -->
-                <div class="flex-grow flex flex-col justify-between">
-                  <div>
-                    <div class="flex items-center space-x-1.5 text-[10px] font-semibold text-neutral-400 tracking-wider uppercase mb-1">
-                      <span>{{ pedido.boutique }}</span>
+                  <!-- Detalles de la Prenda y Boutique -->
+                  <div class="flex-grow flex flex-col justify-between">
+                    <div>
+                      <div class="flex items-center space-x-1.5 text-[10px] font-semibold text-neutral-400 tracking-wider uppercase mb-1">
+                        <span>{{ pedido.nombre_sucursal_retiro || pedido.nombre_sucursal || 'ATELIER DIGITAL' }}</span>
+                      </div>
+                      <h4 class="text-base font-bold text-neutral-950 tracking-tight">
+                        {{ tituloPrincipalPedido(pedido) }}
+                      </h4>
+                      <p class="text-xs text-neutral-500 mt-1 leading-relaxed">
+                        {{ descripcionResumenPedido(pedido) }}
+                      </p>
                     </div>
-                    <h4 class="text-base font-bold text-neutral-950 tracking-tight">
-                      {{ pedido.titulo }}
-                    </h4>
-                    <p class="text-xs text-neutral-500 mt-1 leading-relaxed">
-                      {{ pedido.descripcion }}
+
+                    <!-- Fecha, Estado y Referencia -->
+                    <div class="mt-3 pt-3 border-t border-neutral-50 flex flex-wrap items-center justify-between gap-2">
+                      <div class="text-[11px] font-medium text-neutral-700 flex items-center space-x-2">
+                        <span
+                          class="w-2 h-2 rounded-full"
+                          [ngClass]="{
+                            'bg-emerald-500': pedido.estado === 'pagada',
+                            'bg-amber-500': pedido.estado === 'pendiente',
+                            'bg-neutral-400': pedido.estado === 'anulada' || pedido.estado === 'devuelta'
+                          }"
+                        ></span>
+                        <span>{{ pedido.fecha_venta | date:'dd MMM yyyy' }} · {{ etiquetaEstadoPedido(pedido.estado) }}</span>
+                      </div>
+                      <span class="text-[10px] text-neutral-400 uppercase tracking-wider font-mono">
+                        {{ pedido.numero_comprobante }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Precio y Acción de Factura -->
+                  <div class="sm:border-l sm:border-neutral-100 sm:pl-5 flex sm:flex-col justify-between items-end shrink-0">
+                    <p class="text-lg font-bold text-neutral-950">
+                      {{ pedido.total }} €
                     </p>
+
+                    <button
+                      type="button"
+                      (click)="descargarFactura(pedido)"
+                      class="text-xs font-semibold text-neutral-600 hover:text-black transition flex items-center space-x-1.5 uppercase tracking-wider py-1"
+                    >
+                      <svg class="w-3.5 h-3.5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>VER FACTURA DIGITAL</span>
+                    </button>
                   </div>
-
-                  <!-- Fecha, Estado y Referencia -->
-                  <div class="mt-3 pt-3 border-t border-neutral-50 flex flex-wrap items-center justify-between gap-2">
-                    <div class="text-[11px] font-medium text-neutral-700 flex items-center space-x-2">
-                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      <span>{{ pedido.fecha }}</span>
-                    </div>
-                    <span class="text-[10px] text-neutral-400 uppercase tracking-wider font-mono">
-                      {{ pedido.referencia }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Precio y Acción de Factura -->
-                <div class="sm:border-l sm:border-neutral-100 sm:pl-5 flex sm:flex-col justify-between items-end shrink-0">
-                  <p class="text-lg font-bold text-neutral-950">
-                    {{ pedido.precio }} €
-                  </p>
-
-                  <button
-                    type="button"
-                    (click)="descargarFactura(pedido)"
-                    class="text-xs font-semibold text-neutral-600 hover:text-black transition flex items-center space-x-1.5 uppercase tracking-wider py-1"
-                  >
-                    <svg class="w-3.5 h-3.5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span>VER FACTURA DIGITAL</span>
-                  </button>
-                </div>
-              </article>
-            }
-          </div>
+                </article>
+              }
+            </div>
+          }
         </div>
 
         <!-- Columna Derecha (40%): Preferencias y Servicios -->
@@ -659,6 +691,118 @@
           </div>
 
         </form>
+      </div>
+    </div>
+  }
+
+  <!-- 7b. Modal de Comprobante / Factura Digital (CU17) -->
+  @if (pedidoComprobanteSeleccionado(); as comp) {
+    <div
+      class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-comprobante-titulo"
+    >
+      <div class="bg-white rounded-3xl max-w-xl w-full p-7 sm:p-8 shadow-2xl border border-neutral-100 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-start justify-between pb-4 border-b border-neutral-100 mb-6">
+          <div>
+            <p class="text-[10px] font-semibold text-neutral-400 tracking-widest uppercase mb-1">
+              FASHION STORE · COMPROBANTE DIGITAL
+            </p>
+            <h3 id="modal-comprobante-titulo" class="text-xl font-bold text-neutral-950 font-mono tracking-tight">
+              {{ comp.numero_comprobante }}
+            </h3>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarComprobante()"
+            class="text-neutral-400 hover:text-black text-xl p-1 transition"
+            aria-label="Cerrar comprobante"
+          >
+            &times;
+          </button>
+        </div>
+
+        <!-- Metadatos de la orden -->
+        <div class="grid grid-cols-2 gap-4 text-xs mb-6 bg-neutral-50 rounded-2xl p-4">
+          <div>
+            <p class="text-[10px] text-neutral-400 uppercase tracking-wider">Fecha</p>
+            <p class="font-semibold text-neutral-900 mt-0.5">{{ comp.fecha_venta | date:'dd MMM yyyy, HH:mm' }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] text-neutral-400 uppercase tracking-wider">Estado</p>
+            <p class="font-semibold text-neutral-900 mt-0.5">{{ etiquetaEstadoPedido(comp.estado) }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] text-neutral-400 uppercase tracking-wider">Boutique / Entrega</p>
+            <p class="font-semibold text-neutral-900 mt-0.5">
+              {{ comp.nombre_sucursal_retiro || comp.nombre_sucursal || 'Atelier Digital' }}
+            </p>
+            @if (comp.direccion_envio) {
+              <p class="text-[11px] text-neutral-500 mt-0.5">{{ comp.direccion_envio }}</p>
+            }
+          </div>
+          <div>
+            <p class="text-[10px] text-neutral-400 uppercase tracking-wider">Método de Pago</p>
+            <p class="font-semibold text-neutral-900 mt-0.5">{{ etiquetaMetodoPago(comp.metodo_pago) }}</p>
+            @if (comp.referencia_pasarela) {
+              <p class="text-[10px] font-mono text-neutral-400 mt-0.5">{{ comp.referencia_pasarela }}</p>
+            }
+          </div>
+        </div>
+
+        <!-- Desglose de artículos -->
+        <div class="space-y-3 mb-6">
+          <p class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
+            Artículos Adquiridos ({{ comp.items.length }})
+          </p>
+          @for (item of comp.items; track item.id_venta_detalle) {
+            <div class="flex items-center justify-between py-2.5 border-b border-neutral-100 text-xs">
+              <div>
+                <p class="font-bold text-neutral-900">{{ item.nombre_producto }}</p>
+                <p class="text-[11px] text-neutral-500">
+                  SKU {{ item.sku }} · Talla {{ item.talla }} · {{ item.color }} · Cant. {{ item.cantidad }}
+                </p>
+              </div>
+              <p class="font-semibold text-neutral-950 shrink-0 ml-4">
+                {{ item.subtotal_linea }} €
+              </p>
+            </div>
+          }
+        </div>
+
+        <!-- Totales -->
+        <div class="space-y-1.5 text-xs border-t border-neutral-200 pt-4 mb-6">
+          <div class="flex justify-between text-neutral-500">
+            <span>Subtotal</span>
+            <span>{{ comp.subtotal }} €</span>
+          </div>
+          <div class="flex justify-between text-neutral-500">
+            <span>Descuento</span>
+            <span>-{{ comp.descuento }} €</span>
+          </div>
+          <div class="flex justify-between text-sm font-bold text-neutral-950 pt-1">
+            <span>Total</span>
+            <span>{{ comp.total }} €</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3">
+          <button
+            type="button"
+            (click)="cerrarComprobante()"
+            class="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-neutral-600 hover:text-black rounded-xl transition"
+          >
+            CERRAR
+          </button>
+          <button
+            type="button"
+            (click)="imprimirComprobante()"
+            class="bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold tracking-wider uppercase px-6 py-3.5 rounded-xl transition shadow-sm"
+          >
+            IMPRIMIR / DESCARGAR
+          </button>
+        </div>
       </div>
     </div>
   }

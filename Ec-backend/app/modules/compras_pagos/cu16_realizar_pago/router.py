@@ -1,6 +1,8 @@
 """Router HTTP de FastAPI para CU16: Realizar Pago Electrónico."""
 
-from fastapi import APIRouter, Depends, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Header, Request, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db
@@ -156,3 +158,23 @@ def cancelar_pago_efectivo(
 ) -> RetencionLiberadaOut:
     """Endpoint administrativo de cancelación del pago en efectivo (§1.6)."""
     return PagoServicio.cancelar_pago_efectivo(db, usuario, id_pago)
+
+
+@router.post(
+    "/pagos/webhook",
+    status_code=status.HTTP_200_OK,
+    summary="Webhook asíncrono para eventos de Stripe",
+    description=(
+        "Endpoint público de reconciliación asíncrona. Recibe notificaciones directas "
+        "de Stripe (payment_intent.succeeded, payment_intent.payment_failed) y valida la "
+        "firma criptográfica Stripe-Signature con STRIPE_WEBHOOK_SECRET."
+    ),
+)
+async def webhook_stripe(
+    request: Request,
+    stripe_signature: Optional[str] = Header(None, alias="Stripe-Signature"),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Reconcilia asíncronamente cobros de Stripe protegiendo contra cierres de sesión."""
+    cuerpo = await request.body()
+    return PagoServicio.procesar_webhook_stripe(db, cuerpo, stripe_signature)

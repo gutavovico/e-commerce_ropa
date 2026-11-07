@@ -306,11 +306,13 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
   }
 
   Widget _construirConfirmacion(PagoConfirmadoDto pago) {
+    final esEfectivo = pago.metodoPago == 'efectivo';
     final etiquetaMetodo = pago.marcaTarjeta != null
         ? '${pago.marcaTarjeta} terminada en ${pago.ultimosDigitos}'
         : switch (pago.metodoPago) {
             'qr' => 'Bizum / Código QR',
             'pasarela_digital' => 'PayPal',
+            'efectivo' => 'Efectivo en mostrador (Boutique de retiro)',
             _ => pago.metodoPago,
           };
 
@@ -320,14 +322,64 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 24),
-          const Icon(Icons.check_circle, size: 56, color: Color(0xFF16A34A)),
+          Icon(
+            esEfectivo ? Icons.storefront : Icons.check_circle,
+            size: 56,
+            color: esEfectivo ? const Color(0xFFD97706) : const Color(0xFF16A34A),
+          ),
           const SizedBox(height: 20),
+          if (esEfectivo) ...[
+            const Text(
+              '¡Orden Registrada con Éxito!',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: 'Outfit', fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Reserva en Sucursal · Pago Pendiente en Boutique',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: 'Outfit', fontSize: 13, color: Color(0xFFD97706), fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+          ],
           Text(
             pago.mensajeConfirmacion,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontFamily: 'Outfit', fontSize: 17, height: 1.4),
+            style: const TextStyle(fontFamily: 'Outfit', fontSize: 16, height: 1.4),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          if (esEfectivo)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.schedule, size: 16, color: Color(0xFFB45309)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Plazo de Cortesía: 24 Horas de Reserva',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontFamily: 'Outfit', fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Tus prendas quedan reservadas. Presenta tu número de comprobante en la caja de la sucursal para realizar el pago en efectivo y retirar tus prendas.',
+                    style: TextStyle(fontFamily: 'Outfit', fontSize: 11, color: Color(0xFF92400E), height: 1.3),
+                  ),
+                ],
+              ),
+            ),
           Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -350,7 +402,11 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
               children: [
                 _filaResumen('Medio de pago', etiquetaMetodo),
                 const SizedBox(height: 8),
-                _filaResumen('Total liquidado', '${pago.monto.toStringAsFixed(2)} €', destacado: true),
+                _filaResumen(
+                  esEfectivo ? 'Total a abonar en tienda' : 'Total liquidado',
+                  '${pago.monto.toStringAsFixed(2)} €',
+                  destacado: true,
+                ),
               ],
             ),
           ),
@@ -558,6 +614,16 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
           metodoActivo: metodo,
           contenidoExpandido: null,
         ),
+        if (resumen.esRecogidaBoutique) ...[
+          const SizedBox(height: 12),
+          _construirOpcionMetodo(
+            codigo: 'efectivo',
+            titulo: 'Pago en Efectivo en Sucursal',
+            subtitulo: 'Abono presencial en mostrador al recoger',
+            metodoActivo: metodo,
+            contenidoExpandido: _construirBloqueEfectivo(resumen),
+          ),
+        ],
         const SizedBox(height: 20),
 
         _construirInsignias(),
@@ -827,6 +893,46 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
     );
   }
 
+  Widget _construirBloqueEfectivo(ResumenPagoDto resumen) {
+    final boutique = resumen.nombreSucursalRetiro ?? 'la boutique de retiro';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _fondoSuave,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: _lineaClara),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.storefront, size: 16, color: _camel),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Retiro y abono en $boutique',
+                  style: const TextStyle(fontFamily: 'Outfit', fontSize: 12, fontWeight: FontWeight.w600, color: _camel),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Al confirmar esta orden, tus prendas quedan apartadas con un plazo de cortesía de 24 horas para que pases a abonar en caja en efectivo.',
+            style: TextStyle(fontFamily: 'Outfit', fontSize: 11, color: _grisTexto, height: 1.3),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Si no se liquida en el mostrador dentro de las 24 horas, las existencias retornarán automáticamente al inventario general.',
+            style: TextStyle(fontFamily: 'Outfit', fontSize: 10, color: _grisSuave, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _construirInsignias() {
     Widget insignia(String titulo, String subtitulo) {
       return Expanded(
@@ -863,6 +969,13 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
     if (resumen == null) return const SizedBox.shrink();
 
     final procesando = _bloc.estado is PagoProcesando;
+    final metodo = switch (_bloc.estado) {
+      PagoListo(metodoSeleccionado: final m) => m,
+      PagoRechazado(metodoSeleccionado: final m) => m,
+      PagoProcesando(metodoSeleccionado: final m) => m,
+      _ => '',
+    };
+    final esEfectivo = metodo == 'efectivo';
 
     return SafeArea(
       child: Container(
@@ -887,7 +1000,9 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
                 )
               : Text(
-                  'CONFIRMAR Y PAGAR ${resumen.total.toStringAsFixed(2)} €',
+                  esEfectivo
+                      ? 'CONFIRMAR RESERVA Y ABONAR EN TIENDA'
+                      : 'CONFIRMAR Y PAGAR ${resumen.total.toStringAsFixed(2)} €',
                   style: const TextStyle(fontFamily: 'Outfit', fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.6),
                 ),
         ),

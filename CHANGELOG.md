@@ -2,6 +2,22 @@
 
 Todas las modificaciones notables, correcciones de errores de infraestructura y promociones de especificaciones del proyecto se documentan en este archivo.
 
+## [Unreleased] - 2026-11-07
+
+### Implementación y Cierre Integral — CU17 (Historial de Compras) y CU16 (Pagos, Webhook y Caja Mostrador)
+- **CU17 - Consultar historial de compras personales (Fullstack):**
+  - **Backend (`Ec-backend`):** Implementado endpoint `GET /api/v1/ventas/historial` con paginación, filtros opcionales de estado y fecha, retorno de líneas con SKU, producto, variante, precio y subtotales reales de base de datos PostgreSQL. Suite de pruebas con 4 tests específicos (`test_cu17_historial_compras.py`).
+  - **Frontend Web (`Ec-frontend`):** Vista de historial de compras en `/perfil` (`PerfilComponent`, `PerfilService`), eliminando datos estáticos y renderizando compras pagadas/pendientes, comprobantes, montos y prendas reales. 9 pruebas unitarias actualizadas.
+  - **Mobile (`Ec-mobile`):** Modelos `PerfilDto`, repositorio `PerfilRepositorio`, `PerfilBloc` y `PantallaPerfil` consumiendo el historial real paginado sin datos inventados. Pruebas de BLoC y widgets actualizadas.
+- **CU16 - Realizar Pago Electrónico (Ronda 3 - Webhook Stripe, Efectivo en Boutique y Caja Mostrador):**
+  - **Backend (`Ec-backend`):** Endpoint `POST /api/v1/pagos/webhook` para reconciliación asíncrona de Stripe (`payment_intent.succeeded` y `payment_intent.payment_failed`) con validación criptográfica de firma `Stripe-Signature` y fallback de simulación. Consolidación de inventario y auditoría idempotente. 6 pruebas nuevas de webhook en `test_cu16_pagos.py` (55/55 pruebas en verde).
+  - **Frontend Web (`Ec-frontend`):** Opción de «Pago en Efectivo en Sucursal» (CP-33) en `CheckoutPagoComponent` restringida a `tipo_entrega === 'recogida_boutique'`, con recibo de 24 horas de reserva de cortesía. Acciones de caja en mostrador (CP-38) integradas en el modal de detalle de `VentasReservasAdminComponent` (CU28) para confirmar o cancelar cobros en efectivo con actualización reactiva. Pruebas Vitest ampliadas (548/548 en verde).
+  - **Mobile (`Ec-mobile`):** Datasource `pago_api.dart` (`registrarPagoEfectivo`), orquestación en `PagoBloc.confirmarYPagar()`, opción condicional de efectivo en `CheckoutPaymentScreen` con aviso de reserva de 24 horas y recibo adaptado. Corrección de restricción de layout horizontal en encabezados de aviso con `Expanded`. Pruebas en verde (216/216).
+- **Métricas globales de validación:**
+  - Backend: 497/497 pasados (`pytest`).
+  - Frontend Web: 548/548 pasados (`vitest`) y build de producción exitoso.
+  - Mobile: 216/216 pasados (`flutter test`) y `flutter analyze` con 0 incidencias.
+
 ## [2.8.0] - 2026-09-27
 
 ### Promocion a Baseline Permanente

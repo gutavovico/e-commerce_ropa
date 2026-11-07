@@ -1,4 +1,9 @@
-export type MetodoPago = 'tarjeta_credito' | 'tarjeta_debito' | 'qr' | 'pasarela_digital';
+export type MetodoPago =
+  | 'tarjeta_credito'
+  | 'tarjeta_debito'
+  | 'qr'
+  | 'pasarela_digital'
+  | 'efectivo';
 
 export interface PagoItem {
   id_variante: number;

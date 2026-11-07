@@ -38,6 +38,13 @@ abstract class PagoApi {
   /// Verifica y cierra un cobro digital ya confirmado con Stripe. El servidor decide el
   /// desenlace según lo que Stripe le devuelva, nunca según lo que este cliente reporte.
   Future<PagoConfirmadoDto> confirmarPago(int idPago, {required String token});
+
+  /// Registra una orden como reserva pendiente de pago en efectivo en mostrador (boutique).
+  Future<PagoConfirmadoDto> registrarPagoEfectivo(
+    int idVenta, {
+    String? claveIdempotencia,
+    required String token,
+  });
 }
 
 class PagoApiImpl implements PagoApi {
@@ -145,5 +152,32 @@ class PagoApiImpl implements PagoApi {
         _procesar(respuesta, 'No fue posible confirmar tu pago.'),
       );
     }, 'confirmar el pago');
+  }
+
+  @override
+  Future<PagoConfirmadoDto> registrarPagoEfectivo(
+    int idVenta, {
+    String? claveIdempotencia,
+    required String token,
+  }) {
+    return _ejecutar(() async {
+      final cuerpo = <String, dynamic>{
+        'id_venta': idVenta,
+        if (claveIdempotencia != null && claveIdempotencia.isNotEmpty)
+          'clave_idempotencia': claveIdempotencia,
+      };
+
+      final respuesta = await _client
+          .post(
+            Uri.parse('$_baseUrl/api/v1/pagos/efectivo'),
+            headers: _cabeceras(token),
+            body: jsonEncode(cuerpo),
+          )
+          .timeout(const Duration(seconds: 12));
+
+      return PagoConfirmadoDto.fromJson(
+        _procesar(respuesta, 'No fue posible registrar la reserva para pago en efectivo.'),
+      );
+    }, 'registrar el pago en efectivo');
   }
 }

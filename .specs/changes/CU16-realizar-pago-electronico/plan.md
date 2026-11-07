@@ -162,3 +162,59 @@ intento.
 **Fase 3.4 — Pruebas (`flutter test`)**
 Contrato de DTO, transiciones del BLoC, ausencia de barra de navegación, footer fijo y feedback al
 alternar método (incluida la expansión del QR).
+
+---
+
+## Ronda 3 — Cierre de Efectivo, Caja Administrativa y Reconciliación Asíncrona (Stripe Webhook)
+
+### Bloque 1 — Backend (`Ec-backend`)
+
+**Fase 1.8 — Webhook de Stripe para Reconciliación Asíncrona**
+- Endpoint `POST /api/v1/pagos/webhook` en `cu16_realizar_pago/router.py`.
+- Lógica de servicio en `PagoServicio.procesar_webhook_stripe`:
+  - Validación criptográfica de `Stripe-Signature` con `STRIPE_WEBHOOK_SECRET` mediante `stripe.Webhook.construct_event`.
+  - Reconciliación de `payment_intent.succeeded`:
+    - Localiza el pago en `pagos` por `referencia_pasarela` con `FOR UPDATE`.
+    - Si ya está `confirmado`: responde 200 de forma idempotente.
+    - Si está `pendiente`: transiciona a `confirmado`, `confirmado_en = now()`, consolida existencias (`venta_confirmada` con saldos reales), marca venta `pagada` y vacía los ítems correspondientes del carrito (`carrito_detalle`).
+  - Reconciliación de `payment_intent.payment_failed`:
+    - Marca `pagos.estado = 'rechazado'` con el detalle en `payload_respuesta`.
+  - Tolerancia cuando `STRIPE_WEBHOOK_SECRET` no esté configurado (modo pruebas / simulador local).
+- Pruebas en `test_cu16_pagos.py` cubriendo ambos eventos y firmas válidas/inválidas.
+
+---
+
+### Bloque 2 — Frontend Web (`Ec-frontend`)
+
+**Fase 2.6 — Método «Pago en efectivo en sucursal» (CP-33 / T-FE-15)**
+- `CheckoutPagoComponent`:
+  - Visibilidad condicionada: solo visible cuando `resumen.tipo_entrega === 'recogida_boutique'`.
+  - Selector de método con opción «Pago en efectivo en sucursal» (badge `EN TIENDA`).
+  - `confirmarYPagar()`: cuando `metodoSeleccionado === 'efectivo'`, invoca `pagoService.registrarPagoEfectivo(idVenta)`.
+  - Vista de confirmación para efectivo:
+    - Despliega comprobante, total a abonar en efectivo, boutique de retiro y dirección física.
+    - Mensaje destacado indicando **24 horas de reserva de stock**.
+- Pruebas Vitest en `checkout-pago.component.spec.ts` validando la presencia/ausencia según `tipo_entrega` y el flujo de envío.
+
+**Fase 2.7 — Gestión de Caja en Panel Administrativo (T-FE-20)**
+- `VentasReservasAdminComponent` y su modal de detalle de venta:
+  - Si la venta tiene pago `efectivo` en estado `pendiente`, y el usuario actual es `administrador` o tiene rol de caja/encargado para la sucursal de la venta:
+    - Botón «Confirmar Cobro en Caja»: invoca endpoint administrativo `POST /api/v1/admin/pagos/{id_pago}/confirmar-efectivo`.
+    - Botón «Cancelar Reserva»: invoca endpoint administrativo `POST /api/v1/admin/pagos/{id_pago}/cancelar-efectivo`.
+  - Servicio `ventas-reservas-admin.service.ts`: métodos `confirmarPagoEfectivo(idPago)` y `cancelarPagoEfectivo(idPago)`.
+  - Pruebas Vitest de los nuevos métodos y botones en `ventas-reservas-admin.component.spec.ts`.
+
+---
+
+### Bloque 3 — Mobile (`Ec-mobile`)
+
+**Fase 3.5 — Método «Pago en efectivo en sucursal» (CP-33 / T-MO-12)**
+- `PagoApi` & `PagoApiImpl`: añadir método `registrarPagoEfectivo(int idVenta, {String? claveIdempotencia, required String token})`.
+- `PagoBloc`:
+  - Manejo de `metodoSeleccionado == 'efectivo'` en `confirmarYPagar()`: ejecuta `_api.registrarPagoEfectivo(...)` y transiciona a `PagoExitoso`.
+- `CheckoutPaymentScreen`:
+  - Opción de método `efectivo` solo cuando `resumen.esRecogidaBoutique`.
+  - Tarjeta de selección con badge `EN TIENDA` y descripción de abono presencial.
+  - Estado expandido con aviso de 24h de cortesía y dirección de la boutique.
+  - Vista de confirmación adaptada para pedidos pendientes de pago en efectivo.
+- Pruebas en `checkout_payment_screen_test.dart`, `pago_bloc_test.dart` y `pago_dto_test.dart`.

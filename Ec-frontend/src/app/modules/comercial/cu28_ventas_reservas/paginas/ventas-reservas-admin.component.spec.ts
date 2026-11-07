@@ -11,6 +11,7 @@ import {
   RespuestaPaginadaTransacciones,
   TransaccionResumenItem,
   SucursalOpcion,
+  VentaDetalleCompleto,
 } from '../modelos/ventas-reservas.dto';
 import { of } from 'rxjs';
 
@@ -105,6 +106,8 @@ describe('VentasReservasAdminComponent', () => {
     } as RespuestaPaginadaTransacciones)),
     obtenerDetalleVenta: vi.fn().mockReturnValue(of({})),
     obtenerDetalleReserva: vi.fn().mockReturnValue(of({})),
+    confirmarPagoEfectivo: vi.fn().mockReturnValue(of({ mensaje: 'ok' })),
+    cancelarPagoEfectivo: vi.fn().mockReturnValue(of({ mensaje: 'ok' })),
     cargarSucursalesAuxiliares: vi.fn(),
     limpiarError: vi.fn(),
     actualizarFiltros: vi.fn(),
@@ -421,5 +424,147 @@ describe('VentasReservasAdminComponent', () => {
     expect(botonVolver).toBeTruthy();
     expect(botonVolver.textContent?.trim()).toContain('Volver al Panel Principal');
     expect(botonVolver.getAttribute('routerLink')).toBe('/admin');
+  });
+
+  // --- Tests de Gestion de Caja / Efectivo (CU16 / CU28) ---
+  it('puedeGestionarCaja devuelve true para administrador y cajero, false para cliente', () => {
+    expect(component.puedeGestionarCaja()).toBe(true);
+
+    usuarioActualSignal.set({
+      ...mockAdmin,
+      rol: 'cajero',
+    });
+    expect(component.puedeGestionarCaja()).toBe(true);
+
+    usuarioActualSignal.set({
+      ...mockAdmin,
+      rol: 'cliente',
+    });
+    expect(component.puedeGestionarCaja()).toBe(false);
+  });
+
+  it('confirmarCobroEfectivo llama a servicio.confirmarPagoEfectivo y recarga detalle', () => {
+    const mockDetalleVentaEfectivo: VentaDetalleCompleto = {
+      id_venta: 1,
+      numero_comprobante: 'VNT-2026-00001',
+      tipo_venta: 'web',
+      estado: 'pendiente',
+      total: 1500,
+      subtotal: 1500,
+      descuento: 0,
+      fecha_venta: '2026-09-20T14:30:00Z',
+      id_cliente: 10,
+      nombre_cliente: 'Maria Garcia',
+      email_cliente: 'maria@test.com',
+      telefono_cliente: null,
+      cajero_nombre: null,
+      id_sucursal: 1,
+      nombre_sucursal: 'Boutique Central',
+      ciudad_sucursal: 'La Paz',
+      lineas: [],
+      pagos: [
+        {
+          id_pago: 55,
+          metodo_pago: 'efectivo',
+          monto: 1500,
+          estado: 'pendiente',
+          referencia_pasarela: null,
+          creado_en: '2026-09-20T14:30:00Z',
+          confirmado_en: null,
+        },
+      ],
+    };
+
+    component.detalleVenta.set(mockDetalleVentaEfectivo);
+
+    component.confirmarCobroEfectivo(55);
+
+    expect(mockServicio.confirmarPagoEfectivo).toHaveBeenCalledWith(55);
+    expect(mockServicio.obtenerDetalleVenta).toHaveBeenCalledWith(1);
+    expect(component.exitoBanner()).toContain('Cobro en efectivo confirmado exitosamente');
+  });
+
+  it('cancelarCobroEfectivo llama a servicio.cancelarPagoEfectivo y recarga detalle', () => {
+    const mockDetalleVentaEfectivo: VentaDetalleCompleto = {
+      id_venta: 1,
+      numero_comprobante: 'VNT-2026-00001',
+      tipo_venta: 'web',
+      estado: 'pendiente',
+      total: 1500,
+      subtotal: 1500,
+      descuento: 0,
+      fecha_venta: '2026-09-20T14:30:00Z',
+      id_cliente: 10,
+      nombre_cliente: 'Maria Garcia',
+      email_cliente: 'maria@test.com',
+      telefono_cliente: null,
+      cajero_nombre: null,
+      id_sucursal: 1,
+      nombre_sucursal: 'Boutique Central',
+      ciudad_sucursal: 'La Paz',
+      lineas: [],
+      pagos: [
+        {
+          id_pago: 55,
+          metodo_pago: 'efectivo',
+          monto: 1500,
+          estado: 'pendiente',
+          referencia_pasarela: null,
+          creado_en: '2026-09-20T14:30:00Z',
+          confirmado_en: null,
+        },
+      ],
+    };
+
+    component.detalleVenta.set(mockDetalleVentaEfectivo);
+
+    component.cancelarCobroEfectivo(55);
+
+    expect(mockServicio.cancelarPagoEfectivo).toHaveBeenCalledWith(55);
+    expect(mockServicio.obtenerDetalleVenta).toHaveBeenCalledWith(1);
+    expect(component.exitoBanner()).toContain('Reserva en efectivo cancelada');
+  });
+
+  it('muestra botones de accion de caja en el modal cuando el pago es efectivo pendiente y usuario autorizado', () => {
+    usuarioActualSignal.set(mockAdmin);
+    component.tipoDetalleActual.set('venta');
+    component.modalDetalleAbierto.set(true);
+    const mockDetalleVentaEfectivo: VentaDetalleCompleto = {
+      id_venta: 1,
+      numero_comprobante: 'VNT-2026-00001',
+      tipo_venta: 'web',
+      estado: 'pendiente',
+      total: 1500,
+      subtotal: 1500,
+      descuento: 0,
+      fecha_venta: '2026-09-20T14:30:00Z',
+      id_cliente: 10,
+      nombre_cliente: 'Maria Garcia',
+      email_cliente: 'maria@test.com',
+      telefono_cliente: null,
+      cajero_nombre: null,
+      id_sucursal: 1,
+      nombre_sucursal: 'Boutique Central',
+      ciudad_sucursal: 'La Paz',
+      lineas: [],
+      pagos: [
+        {
+          id_pago: 55,
+          metodo_pago: 'efectivo',
+          monto: 1500,
+          estado: 'pendiente',
+          referencia_pasarela: null,
+          creado_en: '2026-09-20T14:30:00Z',
+          confirmado_en: null,
+        },
+      ],
+    };
+
+    component.detalleVenta.set(mockDetalleVentaEfectivo);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Confirmar Cobro en Caja');
+    expect(compiled.textContent).toContain('Cancelar Reserva');
   });
 });

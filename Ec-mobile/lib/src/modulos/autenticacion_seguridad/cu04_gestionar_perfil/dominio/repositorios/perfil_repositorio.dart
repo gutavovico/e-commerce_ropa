@@ -4,6 +4,7 @@ import '../../datos/modelos/perfil_dto.dart';
 abstract class PerfilRepositorio {
   Future<PerfilClienteDto> obtenerPerfil(String token);
   Future<PerfilClienteDto> actualizarPerfil(String token, PerfilClienteUpdateDto datos);
+  Future<HistorialComprasMovilDto> obtenerHistorialCompras(String token);
 }
 
 class PerfilRepositorioImpl implements PerfilRepositorio {
@@ -23,5 +24,10 @@ class PerfilRepositorioImpl implements PerfilRepositorio {
     PerfilClienteUpdateDto datos,
   ) {
     return _datasource.actualizarPerfil(token, datos);
+  }
+
+  @override
+  Future<HistorialComprasMovilDto> obtenerHistorialCompras(String token) {
+    return _datasource.obtenerHistorialCompras(token);
   }
 }

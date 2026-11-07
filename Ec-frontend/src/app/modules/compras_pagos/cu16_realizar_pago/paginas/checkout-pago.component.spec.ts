@@ -121,6 +121,16 @@ describe('CheckoutPagoComponent (CU16 - Pasarela Stripe, modo simulador)', () =>
       obtenerResumenPago: vi.fn().mockReturnValue(of(RESUMEN_MOCK)),
       iniciarPago: vi.fn().mockReturnValue(of(INTENTO_MOCK)),
       confirmarPago: vi.fn().mockReturnValue(of(PAGO_EXITOSO_MOCK)),
+      registrarPagoEfectivo: vi.fn().mockReturnValue(of({
+        ...PAGO_EXITOSO_MOCK,
+        id_pago: 506,
+        metodo_pago: 'efectivo',
+        estado_pago: 'pendiente',
+        marca_tarjeta: null,
+        ultimos_digitos: null,
+        referencia_pasarela: null,
+        mensaje_confirmacion: 'Orden reservada para pago y recogida en boutique.',
+      })),
       formatearTiempoRestante: vi.fn().mockReturnValue('25:00'),
       detenerTemporizador: vi.fn(),
     };
@@ -317,5 +327,69 @@ describe('CheckoutPagoComponent (CU16 - Pasarela Stripe, modo simulador)', () =>
     expect(compiled.textContent).toContain(
       'Pago confirmado. Tu orden entra en preparación en el atelier.'
     );
+  });
+
+  it('la opción de efectivo en sucursal no es visible cuando la entrega es a domicilio', () => {
+    mockPagoService.resumen.set({
+      ...RESUMEN_MOCK,
+      tipo_entrega: 'domicilio',
+      nombre_sucursal_retiro: null,
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).not.toContain('Pago en Efectivo en Sucursal');
+  });
+
+  it('la opción de efectivo en sucursal es visible cuando la entrega es recogida en boutique', () => {
+    mockPagoService.resumen.set({
+      ...RESUMEN_MOCK,
+      tipo_entrega: 'recogida_boutique',
+      nombre_sucursal_retiro: 'Boutique Central',
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Pago en Efectivo en Sucursal');
+    expect(compiled.textContent).toContain('Abono presencial en mostrador al recoger');
+  });
+
+  it('seleccionar efectivo y confirmar llama a registrarPagoEfectivo', () => {
+    mockPagoService.resumen.set({
+      ...RESUMEN_MOCK,
+      tipo_entrega: 'recogida_boutique',
+      nombre_sucursal_retiro: 'Boutique Central',
+    });
+    (componente as any).seleccionarMetodo('efectivo');
+    fixture.detectChanges();
+
+    expect((componente as any).metodoSeleccionado()).toBe('efectivo');
+
+    (componente as any).confirmarYPagar();
+    expect(mockPagoService.registrarPagoEfectivo).toHaveBeenCalledWith(101);
+  });
+
+  it('el recibo de efectivo muestra información de recogida y reserva de 24 horas', () => {
+    mockPagoService.resumen.set({
+      ...RESUMEN_MOCK,
+      tipo_entrega: 'recogida_boutique',
+      nombre_sucursal_retiro: 'Boutique Central',
+    });
+    mockPagoService.pagoExitoso.set({
+      ...PAGO_EXITOSO_MOCK,
+      id_pago: 506,
+      metodo_pago: 'efectivo',
+      estado_pago: 'pendiente',
+      marca_tarjeta: null,
+      ultimos_digitos: null,
+      referencia_pasarela: null,
+      mensaje_confirmacion: 'Orden reservada para pago y recogida en boutique.',
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Reserva en Sucursal · Pago Pendiente en Boutique');
+    expect(compiled.textContent).toContain('Boutique Central');
+    expect(compiled.textContent).toContain('24 Horas de Reserva');
   });
 });
