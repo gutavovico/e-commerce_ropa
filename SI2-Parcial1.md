@@ -140,7 +140,7 @@ Las cadenas de tiendas de ropa con presencia en varias ciudades enfrentan este r
 
 En este contexto se plantea el desarrollo de FashionStore, una plataforma inteligente de comercio electrónico para una cadena de tiendas de ropa, concebida para integrar de manera coherente la experiencia de compra presencial y digital. La plataforma contempla aplicaciones web y móviles desde las cuales el cliente puede explorar el catálogo, consultar disponibilidad por sucursal, reservar varias prendas para probarlas físicamente, y finalmente decidir si compra de forma presencial en caja o de forma digital mediante una pasarela de pago electrónica.
 
-Como elemento diferenciador, el sistema incorpora vestidores virtuales mediante realidad aumentada, que permiten al cliente visualizar de manera anticipada cómo le quedaría una prenda utilizando la cámara de su dispositivo móvil, reduciendo la incertidumbre de la compra en línea y complementando la experiencia de prueba física en tienda. Junto a esto, la plataforma incorpora inteligencia artificial, tanto para el cliente —mediante un asistente virtual y recomendaciones de prendas basadas en preferencias, historial y disponibilidad— como para la administración, mediante reportes e indicadores que apoyan la toma de decisiones sobre inventario, proveedores y ventas por sucursal.
+Como elemento diferenciador, el sistema incorpora un vestidor virtual interactivo basado en dos motores de ejecución en orden estricto de prioridad: un motor local principal siempre disponible que opera directamente en la aplicación móvil mediante la cámara en directo y detección de pose con visión artificial (Google ML Kit Pose Detection), adaptando la imagen 2D de la prenda sobre el cuerpo del cliente sin costo ni envío de video a terceros; y un motor realista opcional con inteligencia artificial generativa en tiempo real (servicio Decart Lucy VTON a 720p en streaming mediante WebView), donde el servicio devuelve el video con la prenda puesta, conservando el movimiento y la forma del cuerpo del cliente, reduciendo la incertidumbre de la compra en línea y complementando la experiencia de prueba física en tienda. Junto a esto, la plataforma incorpora inteligencia artificial, tanto para el cliente —mediante un asistente virtual y recomendaciones de prendas basadas en preferencias, historial y disponibilidad— como para la administración, mediante reportes e indicadores que apoyan la toma de decisiones sobre inventario, proveedores y ventas por sucursal.
 
 Dado el plazo acotado de cuatro semanas, el proyecto prioriza la construcción de un Producto Mínimo Viable (MVP) completamente funcional, desarrollado bajo el Proceso Unificado de Desarrollo de Software (PUDS) y modelado en UML 2.5+, utilizando Fast API en el backend, Angular en el frontend web, Flutter/Dart en la aplicación móvil y PostgreSQL como base de datos, con despliegue en un entorno de nube.
 
@@ -148,7 +148,7 @@ Dado el plazo acotado de cuatro semanas, el proyecto prioriza la construcción d
 
 ## **1.2.1 Objetivo General** {#1.2.1-objetivo-general}
 
-Desarrollar una plataforma inteligente de comercio electrónico para una cadena de tiendas de ropa, que integre comercio electrónico web y móvil, reservas de prendas, gestión de sucursales, inventario, puntos de venta, pagos electrónicos, vestidores virtuales mediante realidad aumentada e inteligencia artificial, utilizando el Proceso Unificado de Desarrollo y modelos UML. 
+Desarrollar una plataforma inteligente de comercio electrónico para una cadena de tiendas de ropa, que integre comercio electrónico web y móvil, reservas de prendas, gestión de sucursales, inventario, puntos de venta, pagos electrónicos, vestidores virtuales mediante dos motores de realidad aumentada (procesamiento local con visión artificial e inteligencia artificial generativa opcional) e inteligencia artificial para asistencia y analítica, utilizando el Proceso Unificado de Desarrollo y modelos UML. 
 
 ## **1.2.2 Objetivos Específicos** {#1.2.2-objetivos-específicos}
 
@@ -161,7 +161,7 @@ temporadas y colecciones.
 5\. Permitir al cliente reservar varias prendas para probarlas posteriormente   
 en una tienda.   
 6\. Gestionar el proceso de recepción y atención de reservas.   
-7\. Incorporar vestidores virtuales utilizando realidad aumentada.   
+7\. Incorporar vestidores virtuales utilizando dos motores de realidad aumentada: motor local en dispositivo (Google ML Kit Pose Detection) y motor realista con inteligencia artificial generativa (Decart Lucy VTON).   
 8\. Permitir compras mediante la plataforma web y aplicación móvil.   
 9\. Permitir pagos presenciales en puntos de caja.   
 10\. Integrar una pasarela de pago para compras digitales.   
@@ -184,7 +184,7 @@ Esto genera una experiencia de compra poco eficiente: el cliente puede trasladar
 
 Por otro lado, la empresa carece de herramientas que aprovechen la información generada por sus clientes (historial de compras, preferencias, navegación) para ofrecer recomendaciones personalizadas o asistencia inteligente, lo que limita su capacidad de fidelización y de generar ventas cruzadas.
 
-Frente a esta problemática, se requiere una plataforma que integre de forma centralizada la gestión de sucursales, inventario, reservas, ventas (presenciales y digitales) y catálogo, incorporando además tecnologías innovadoras como la realidad aumentada para los vestidores virtuales y la inteligencia artificial para la recomendación de productos, mejorando así la experiencia del cliente y la eficiencia operativa de la empresa.
+Frente a esta problemática, se requiere una plataforma que integre de forma centralizada la gestión de sucursales, inventario, reservas, ventas (presenciales y digitales) y catálogo, incorporando además tecnologías innovadoras como el vestidor virtual de realidad aumentada con dos motores (motor local en el dispositivo y modo realista opcional con IA generativa) y la inteligencia artificial para la recomendación de productos, mejorando así la experiencia del cliente y la eficiencia operativa de la empresa.
 
 ## **1.4 ALCANCE** {#1.4-alcance}
 
@@ -194,7 +194,7 @@ El sistema facilita un flujo de atención donde los clientes pueden explorar un 
 
 A diferencia de un e-commerce tradicional, la plataforma incorpora tecnologías inmersivas e inteligentes dentro de su flujo principal, permitiendo:
 
-* Visualización de prendas a través de vestidores virtuales utilizando Realidad Aumentada.  
+* Visualización de prendas a través de vestidores virtuales interactivos mediante dos motores: Motor 1 Local (detección de pose corporal en tiempo real con Google ML Kit) y Motor 2 Realista con IA Generativa (servicio Decart Lucy VTON en streaming).  
 *   
 * Recomendaciones personalizadas mediante un asistente de Inteligencia Artificial basado en el historial, preferencias, tallas y temporadas comerciales.  
 * 
@@ -202,7 +202,7 @@ A diferencia de un e-commerce tradicional, la plataforma incorpora tecnologías 
 **Plataforma de acceso**  
 El sistema será accesible de forma integrada mediante:
 
-* **Aplicación móvil (Flutter \+ Dart):** orientada a los clientes, permitiendo el acceso al catálogo, el uso interactivo de la cámara para el vestidor virtual, la gestión de reservas y las compras digitales.  
+* **Aplicación móvil (Flutter \+ Dart):** orientada a los clientes, permitiendo el acceso al catálogo, el uso interactivo de la cámara para el vestidor virtual (con motor local ML Kit o modo realista streaming vía Decart en WebView), la gestión de reservas y las compras digitales.  
 *   
 * **Aplicación web (Angular):** orientada tanto a clientes (para compras y reservas online) como a la administración interna de la empresa (administradores, encargados de sucursal y cajeros) para la gestión integral de productos, inventario, ventas y recepción de reservas.  
 * 
@@ -220,9 +220,9 @@ El sistema será desarrollado utilizando el siguiente stack tecnológico y herra
     
 * **Base de Datos:** PostgreSQL (Sistema gestor de base de datos relacional).  
     
-* **Inteligencia Artificial:** Modelo o servicio de IA integrado mediante API.  
+* **Inteligencia Artificial:** Asistente y recomendaciones con Google Gemini API; y motor generativo de prueba virtual realista en tiempo real mediante el servicio Decart (modelo Lucy VTON, consumo por segundo y tokens de corta duración).  
     
-* **Realidad Aumentada:** Tecnología compatible con dispositivos móviles.  
+* **Realidad Aumentada:** Detección de pose corporal y deformación anatómica de prendas 2D directamente en el dispositivo móvil mediante Google ML Kit Pose Detection (paquete google_mlkit_pose_detection).  
     
 * **Pagos:** Integración con una pasarela de pago electrónica para canales digitales (stripe).  
     
@@ -254,7 +254,7 @@ Los clientes de la plataforma podrán:
     
 * **Exploración de productos:** Consultar el catálogo completo, buscar, filtrar por características (tallas, colores) y verificar la disponibilidad de prendas en sucursales específicas.  
     
-* **Interacción inmersiva:** Utilizar la cámara del móvil como vestidor virtual de realidad aumentada para visualizar las prendas.  
+* **Interacción inmersiva:** Utilizar la cámara del móvil como vestidor virtual de realidad aumentada con dos motores en orden de prioridad: Motor 1 Local (Google ML Kit Pose Detection, sin latencia ni costo) y Motor 2 Realista con IA Generativa (Decart Lucy VTON en streaming).  
     
 * **Proceso de reserva:** Seleccionar múltiples artículos, agendar una reserva indicando la sucursal de preferencia y el horario de atención para prueba, así como consultar o cancelar reservas activas.  
     
@@ -883,13 +883,22 @@ Permite visualizar las colecciones activas en la temporada actual de prendas de 
 
 | CU10. Utilizar vestidor virtual | Descripción |
 | :---- | ----- |
-| Propósito | Permitir al cliente visualizar interactivamente mediante realidad aumentada cómo luce una prenda en tiempo real con la cámara de su dispositivo móvil, integrando el catálogo, tallas y colores, y adaptando el recurso 2D sobre su cuerpo mediante IA con efecto tridimensional.  |
-| Actores | Cliente (autenticado)  |
-| Iniciador | Cliente  |
-| Precondiciones | El cliente debe iniciar sesión, acceder a la ficha técnica de una prenda en el catálogo, seleccionar una combinación de características (talla y color), y contar con un dispositivo móvil con cámara funcional y permisos concedidos. |
-| Flujo Principal | 1\. El cliente pulsa "Probar en vestidor virtual" desde la vista de detalle de la prenda. 2\. El sistema valida los permisos de la cámara del dispositivo móvil e identifica el entorno de ejecución. 3\. El sistema activa la cámara en directo y carga el recurso visual 2D correspondiente al producto y a la variante (color/talla) seleccionada desde el catálogo. 4\. El motor de IA analiza la transmisión de video en tiempo real, detecta la silueta y puntos clave corporales del usuario (pose estimation). 5\. El sistema deforma, orienta y escala la imagen 2D de la prenda adaptándola anatómicamente a los movimientos y postura del cliente, generando una ilusión óptica tridimensional mediante realidad aumentada. 6\. El cliente visualiza en pantalla el ajuste de la prenda mientras se mueve frente a la cámara de su dispositivo móvil. 7\. El sistema registra la sesión en sesiones\_vestidor\_virtual asociando el cliente, producto, dispositivo y fecha/hora. 8\. El cliente puede capturar una vista del resultado (guardando la URL del render en resultado\_url) o proceder directamente a reservar la prenda en tienda física o añadirla al carrito. 9\. Si el cliente añade la prenda al carrito o genera una reserva tras la prueba, el sistema marca genero\_interes \= TRUE en el registro de la sesión. |
-| Postcondiciones | El cliente visualiza la simulación en realidad aumentada de la prenda sobre su cuerpo y se almacena la interacción en sesiones\_vestidor\_virtual para el análisis de interés y recomendaciones del sistema. |
-| Excepciones | La prenda o variante seleccionada no cuenta con el recurso visual 2D configurado (modelo\_ar\_url). El cliente deniega los permisos de acceso a la cámara móvil. La cámara no detecta con claridad la postura del usuario debido a problemas de encuadre o iluminación insuficiente. Falla de conectividad con la plataforma. |
+| Propósito | Permitir al cliente visualizar interactivamente mediante realidad aumentada cómo luce una prenda en tiempo real con la cámara de su dispositivo móvil, integrando el catálogo, tallas y colores, a través de dos motores en orden de prioridad: Motor 1 Local (visión artificial en el dispositivo con Google ML Kit Pose Detection sobre la imagen 2D) y Motor 2 Realista con IA Generativa (servicio Decart Lucy VTON en streaming). |
+| Actores | Cliente (autenticado) |
+| Iniciador | Cliente |
+| Precondiciones | El cliente debe iniciar sesión, acceder a la ficha técnica de una prenda en el catálogo que disponga de `modelo_ar_url`, seleccionar una combinación de características (talla y color), y contar con un dispositivo móvil con cámara funcional y permisos concedidos. |
+| Flujo Principal | 1\. El cliente pulsa "Probar en vestidor virtual" desde la vista de detalle de la prenda. <br>2\. El sistema valida los permisos de la cámara del dispositivo móvil e inicializa el feed de video en directo. <br>3\. El sistema carga el recurso visual 2D correspondiente al producto y variante seleccionada (imagen PNG con transparencia desde `productos.modelo_ar_url`). <br>4\. El sistema activa por defecto el **Motor 1 (Local)**: mediante el paquete `google_mlkit_pose_detection`, analiza el video en tiempo real en el propio dispositivo sin enviar video a servidores externos, detectando la silueta y los puntos clave anatómicos del cuerpo (hombros, cadera, torso). <br>5\. El sistema deforma, orienta y escala la imagen 2D de la prenda adaptándola anatómicamente a los movimientos y postura del cliente, generando una ilusión óptica tridimensional fluida mediante realidad aumentada y sin coste de red. <br>6\. El cliente visualiza en pantalla el ajuste de la prenda en movimiento y dispone de un botón para activar el "Modo Realista (IA)" o continuar con el motor local. <br>7\. El sistema registra la sesión en `sesiones_vestidor_virtual` asociando cliente, producto, dispositivo, motor (`'local'`), duración estimada y fecha/hora. <br>8\. El cliente puede capturar una vista del resultado (guardando la URL del render en `resultado_url`) o proceder directamente a reservar la prenda en tienda física o añadirla al carrito. <br>9\. Si el cliente añade la prenda al carrito o genera una reserva tras la prueba, el sistema marca `genero_interes = TRUE` en el registro de la sesión. |
+| Flujos Alternos | **Flujo Alterno 1 (Modo Realista — Motor 2 con Decart Lucy VTON):** <br>1. En el paso 6 del flujo principal, el cliente pulsa el botón "Modo Realista (IA)". <br>2. El sistema solicita consentimiento explícito al cliente para transmitir el video de su cámara a un proveedor especializado de inferencia en tiempo real (Decart) y el cliente lo acepta. <br>3. La app móvil solicita al backend FastAPI un token de cliente efímero (`POST /api/v1/vestidor/token`). <br>4. El backend valida la sesión del cliente, invoca a la API de Decart con la clave segura del servidor y devuelve un token de cliente efímero (~60 s, correspondiente al tiempo máximo para establecer la conexión con Decart). <br>5. La app móvil abre un componente WebView que carga una página interna con el SDK de JavaScript (`@decartai/sdk`), pasando el token efímero y la URL de la prenda (`productos.modelo_ar_url`). <br>6. El WebView inicializa la transmisión con el modelo Decart Lucy VTON a 720p en tiempo real, donde el servicio devuelve el video con la prenda puesta, conservando el movimiento y la forma del cuerpo del cliente. <br>7. Al finalizar la prueba o alcanzar la duración máxima de sesión realista permitida (60 segundos, regla de negocio para control de costos, independiente del token efímero de conexión), el sistema cierra el WebView y registra la sesión en `sesiones_vestidor_virtual` con `motor = 'ia'`, indicando `duracion_segundos` de generación activa. |
+| Postcondiciones | El cliente visualiza la simulación de la prenda sobre su cuerpo (en modo local o realista) y se almacena la interacción en `sesiones_vestidor_virtual` especificando el motor utilizado y la duración para el análisis de interés comercial y recomendaciones. |
+| Excepciones | - La prenda o variante seleccionada no cuenta con el recurso visual 2D configurado (`modelo_ar_url` nulo o vacío). <br>- El cliente deniega los permisos de acceso a la cámara móvil. <br>- La cámara no detecta con claridad la postura del usuario debido a problemas de encuadre o iluminación insuficiente. <br>- Falla de conectividad con la plataforma. <br>- **Excepción 1 (Modo Realista - Falla de token o servicio externo no disponible):** Si `POST /api/v1/vestidor/token` retorna error (503 Service Unavailable, timeout o credenciales rechazadas), el sistema muestra un mensaje informativo y conmuta automáticamente al Motor 1 (Local). <br>- **Excepción 2 (Modo Realista - Créditos de Decart agotados):** Si Decart rechaza la conexión por saldo insuficiente de créditos en la cuenta de la plataforma, el sistema realiza fallback automático al Motor 1 (Local) notificando al cliente. <br>- **Excepción 3 (Modo Realista - Permisos en WebView o pérdida de conexión en streaming):** Si el WebView no obtiene permisos de cámara o se interrumpe la conexión durante la transmisión, el sistema cierra el WebView y restablece de inmediato el Motor 1 (Local) sin interrumpir la interacción del cliente. |
+
+**Reglas de Negocio y Requisitos No Funcionales del Vestidor Virtual (CU10):**
+
+* **RNF-01 (Privacidad de Imagen y Video):** En el Motor 1 (Local), la captura de cámara y el procesamiento de pose se ejecutan estrictamente en la memoria volátil del dispositivo móvil del cliente; ningún fotograma ni flujo de video es transmitido a internet ni almacenado externamente. En el Motor 2 (Realista con IA Generativa), el video se transmite en tiempo real hacia los servidores seguros de Decart exclusivamente para la inferencia de prueba virtual en streaming; el sistema exige y valida el consentimiento informado explícito del usuario antes de iniciar la transmisión. FashionStore no almacena en ningún caso los videos del cliente, conservando únicamente la fotografía estática de captura final si el cliente decide guardarla voluntariamente (`resultado_url`).
+* **RNF-02 (Seguridad de Credenciales y Tokens Efímeros):** La clave API permanente de Decart (`DECART_API_KEY`) reside única y exclusivamente en las variables de entorno seguras del backend FastAPI. La aplicación móvil jamás almacena ni expone dicha clave; para acceder al Motor 2, la app autenticada solicita al endpoint `POST /api/v1/vestidor/token` un token de cliente efímero con vigencia limitada (~60 segundos).
+* **RNF-03 (Alta Disponibilidad y Tolerancia a Fallos - Fallback):** El servicio de vestidor virtual garantiza disponibilidad continua gracias a la jerarquía de dos motores. El Motor 1 (Local) opera de forma autónoma sin depender de conectividad con servicios de terceros. Si el Motor 2 no está disponible (falla de conectividad, créditos de Decart agotados, timeout o rechazo del token), el sistema degrada automáticamente al Motor 1 notificando al usuario, sin interrumpir la sesión.
+* **RN-01 (Control de Costos y Duración de Sesión Realista):** Dado que el Motor 2 con Decart Lucy VTON genera costos de facturación por segundo de generación activa (Lucy VTON 720p: USD 0.02/s en modo estándar, USD 0.04/s en modo fast), el sistema impone como regla de negocio una duración máxima de sesión realista de 60 segundos para control de costos. Este límite de duración es una regla de negocio independiente del token efímero (~60 s), el cual representa únicamente el tiempo máximo para establecer la conexión con Decart. La duración efectiva se registra en el campo `duracion_segundos` de la tabla `sesiones_vestidor_virtual` para auditoría y control de consumo.
+* **RNF-04 (Rendimiento del Motor Local):** El motor local debe operar de forma fluida en dispositivos móviles de gama media; la tasa de cuadros aceptable se definirá y validará en las pruebas de campo.
 
 **CU11. Gestionar carrito de compras**
 
@@ -1330,6 +1339,25 @@ CU09. Consultar disponibilidad por sucursal
 ![][image108]  
 CU10. Utilizar vestidor virtual  
 ![][image109]  
+
+**Clases de Análisis — CU10: Utilizar vestidor virtual (Arquitectura de Dos Motores):**
+
+* **Clases de Frontera (`<<boundary>>`):**  
+  - `InterfazDetalleProducto`: Vista donde el cliente consulta la prenda y presiona "Probar en vestidor virtual".  
+  - `VisorCamaraLocalVestidor`: Interfaz móvil que captura el flujo de la cámara nativa en directo y proyecta la superposición de la prenda 2D adaptada sobre la silueta del usuario mediante visión artificial local (Motor 1).  
+  - `VisorWebViewDecart`: Componente de interfaz WebView en la app móvil que ejecuta el SDK de JavaScript (`@decartai/sdk`) para la transmisión y visualización en streaming del video procesado por el modelo Lucy VTON de Decart (Motor 2).  
+  - `DialogoConsentimientoDecart`: Cuadro de diálogo modal que solicita al usuario su consentimiento informado para transmitir video temporal hacia el servicio externo de IA.
+
+* **Clases de Control (`<<control>>`):**  
+  - `ControladorVestidorVirtual`: Orquesta el ciclo de vida del vestidor, la alternancia entre el Motor 1 (Local) y el Motor 2 (Realista con IA), y la conmutación automática de degradación/fallback en caso de falla externa.  
+  - `ServicioDeteccionPoseLocal`: Procesa los fotogramas en el dispositivo mediante Google ML Kit Pose Detection, identificando puntos clave anatómicos (hombros, cadera, torso) y calculando la matriz de transformación para la prenda 2D.  
+  - `ServicioTokenVestidor`: Controlador backend que valida la sesión del cliente y solicita a la API de Decart un token de cliente efímero (~60 s) usando la clave del servidor sin exponerla al cliente.  
+  - `GestorSesionVestidor`: Coordina el registro y persistencia de la sesión en la base de datos, almacenando cliente, producto, dispositivo, motor ('local' | 'ia'), duración y resultado de interés comercial.
+
+* **Clases de Entidad (`<<entity>>`):**  
+  - `Producto`: Contiene los atributos del producto, incluyendo `modelo_ar_url` (imagen PNG transparente de la prenda).  
+  - `SesionVestidorVirtual`: Representa la interacción inmersiva con atributos `id_sesion_ar`, `id_cliente`, `id_producto`, `dispositivo`, `motor`, `duracion_segundos`, `fecha_hora`, `resultado_url` y `genero_interes`.  
+  - `Cliente`: Datos del cliente autenticado que realiza la prueba virtual.  
 CU11. Gestionar carrito de compras  
 ![][image110]  
 CU15. comprar desde la plataforma  
@@ -1717,13 +1745,15 @@ Arquitectura C4
 );
 
 *\-- \---------------------------------------------------------------------*  
-*\-- 10\. VESTIDOR VIRTUAL (Realidad Aumentada)*  
+*\-- 10\. VESTIDOR VIRTUAL (Realidad Aumentada - Dos Motores: Local e IA)*  
 *\-- \---------------------------------------------------------------------*  
 **CREATE** **TABLE** sesiones\_vestidor\_virtual (  
     id\_sesion\_ar        BIGSERIAL **PRIMARY** **KEY**,  
     id\_cliente          BIGINT **NOT** **NULL** **REFERENCES** clientes(id\_cliente),  
     id\_producto         BIGINT **NOT** **NULL** **REFERENCES** productos(id\_producto),  
     dispositivo         VARCHAR(50), *\-- android/ios/web*  
+    motor               VARCHAR(10) **NOT** **NULL** **DEFAULT** 'local' **CHECK** (motor **IN** ('local', 'ia')),  
+    duracion\_segundos   INTEGER **CHECK** (duracion\_segundos **IS** **NULL** **OR** duracion\_segundos \>= 0),  
     fecha\_hora          TIMESTAMPTZ **NOT** **NULL** **DEFAULT** now(),  
     resultado\_url       VARCHAR(500), *\-- captura o render generado*  
     genero\_interes      BOOLEAN **NOT** **NULL** **DEFAULT** **FALSE** *\-- si terminó en reserva/compra*  
@@ -1993,6 +2023,11 @@ Arquitectura C4
     ('Primavera-Verano 2026','primavera\_verano','2026-09-01','2027-02-28'),  
     ('Escolar 2026','escolar','2026-01-15','2026-03-01');
 
+*\-- Datos de ejemplo: sesiones de vestidor virtual (Motor 1 Local y Motor 2 IA)*  
+**INSERT** **INTO** sesiones\_vestidor\_virtual (id\_cliente, id\_producto, dispositivo, motor, duracion\_segundos, resultado\_url, genero\_interes) **VALUES**  
+    (1, 1, 'android', 'local', 30, 'https://fashionstore.com/renders/ar_local_01.jpg', TRUE),  
+    (1, 2, 'android', 'ia', 45, 'https://fashionstore.com/renders/ar_decart_02.jpg', FALSE);
+
 ### **2.3.3 Diseñar Casos de Uso** {#2.3.3-diseñar-casos-de-uso}
 
 #### **CICLO\#1** {#ciclo#1-4}
@@ -2048,6 +2083,39 @@ Arquitectura C4
 ![][image186]  
 **CU10.Utilizar vestidor virtual**  
 ![][image187]
+
+**Especificación de Mensajes del Diagrama de Secuencia y Comunicación (UML 2.5):**
+
+*Escenario 1: Motor 1 — Local (Google ML Kit Pose Detection)*
+1. `Cliente` envía `onTap("PROBAR EN AR")` a `PantallaProductoDetalle` (`lib/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart`).
+2. `PantallaProductoDetalle` navega a `PantallaVestidorAr` (`lib/src/modulos/catalogo/cu10_vestidor_virtual/presentacion/pantallas/pantalla_vestidor_ar.dart` [por implementar]).
+3. `PantallaVestidorAr` invoca `iniciarCamara()` en `VestidorBloc` (`lib/src/modulos/catalogo/cu10_vestidor_virtual/presentacion/bloc/vestidor_bloc.dart` [por implementar]).
+4. `VestidorBloc` inicializa `CameraController` nativo y canaliza los fotogramas a `PoseDetector` (`package:google_mlkit_pose_detection`).
+5. `PoseDetector` ejecuta `processImage(InputImage)` en el dispositivo y retorna asíncronamente `List<PoseLandmark>` (puntos clave de hombros, torso y cadera).
+6. `VestidorBloc` calcula la matriz de rotación, escala y deformación 2D sobre el torso y actualiza la vista en `PantallaVestidorAr` sobre el lienzo (`CustomPainter`).
+7. Al interactuar el cliente (guardar imagen o añadir a bolsa), `PantallaVestidorAr` despacha `registrarSesion(motor='local', duracion)` a `VestidorApi` (`lib/src/modulos/catalogo/cu10_vestidor_virtual/datos/datasources/vestidor_api.dart` [por implementar]).
+8. `VestidorApi` ejecuta `POST /api/v1/vestidor/sesion` contra `RouterVestidor` (`app/modules/catalogo/cu10_vestidor_virtual/router.py` [por implementar]).
+9. `RouterVestidor` delega a `ServicioProcesarAR.crear_sesion()` (`app/modules/catalogo/cu10_vestidor_virtual/servicio.py` [por implementar]).
+10. `ServicioProcesarAR` invoca `VestidorRepositorio.crear_sesion()` (`app/modules/catalogo/cu10_vestidor_virtual/repositorio.py` [por implementar]), que ejecuta `INSERT INTO sesiones_vestidor_virtual` en PostgreSQL y retorna `201 Created`.
+
+*Escenario 2: Motor 2 — Realista con IA Generativa (Decart Lucy VTON en WebView)*
+1. En `PantallaVestidorAr`, el `Cliente` presiona `onTap("Modo Realista (IA)")`.
+2. `PantallaVestidorAr` muestra diálogo modal de consentimiento informado y el cliente confirma la transmisión de video hacia el servicio de Decart.
+3. `PantallaVestidorAr` solicita el token temporal a `VestidorApi.obtenerTokenDecart()`.
+4. `VestidorApi` despacha `POST /api/v1/vestidor/token` con JWT Bearer a `RouterVestidor`.
+5. `RouterVestidor` autentica al cliente y delega en `ServicioProcesarAR.solicitar_token_decart()`.
+6. `ServicioProcesarAR` invoca a `DecartService.generar_token_cliente()` (`app/integrations/decart_service.py` [por implementar]), que utiliza la variable de entorno `DECART_API_KEY` para solicitar a `https://api.decart.ai/v1/client-tokens` un token efímero (~60 s como tiempo máximo para establecer la conexión con Decart).
+7. `RouterVestidor` responde `200 OK` con `{ "token": "decart_tok_...", "expira_en_segundos": 60 }`.
+8. `PantallaVestidorAr` abre el widget `DecartWebView` (`lib/src/modulos/catalogo/cu10_vestidor_virtual/presentacion/widgets/decart_webview.dart` [por implementar]), inyectando el token temporal y la URL de la prenda (`modelo_ar_url`).
+9. `DecartWebView` inicializa la página con el SDK de JavaScript (`@decartai/sdk`), estableciendo streaming en tiempo real mediante el SDK de Decart (@decartai/sdk) y transmitiendo el video de la cámara.
+10. Decart devuelve el flujo de video en tiempo real con la prenda puesta, conservando el movimiento y la forma del cuerpo del cliente.
+11. Al cerrar la sesión o alcanzar la duración máxima de sesión realista permitida (60 s por regla de negocio de control de costos), `DecartWebView` se desmonta y `VestidorApi` registra la sesión con `POST /api/v1/vestidor/sesion` (`motor = 'ia'`, `duracion_segundos`).
+
+*Fragmento Alternativo / Degradación Elegante (Fallback Automático):*
+- `[alt: Decart no responde (503) | Saldo de créditos agotado | Timeout de red | WebView sin permisos]`
+  - `RouterVestidor` emite `503 Service Unavailable` o `DecartWebView` captura error de conexión.
+  - `PantallaVestidorAr` muestra una notificación no intrusiva: *"El modo realista no está disponible en este momento. Conmutando a vestidor local..."*.
+  - `PantallaVestidorAr` cierra el WebView si estuviese abierto y restaura inmediatamente el `Motor 1 (Local)` con `PoseDetector` y cámara nativa, garantizando la continuidad de la experiencia sin interrupciones.
 
 **CU11. Gestionar carrito de compras**  
 ![][image188]
@@ -2117,6 +2185,18 @@ FastAPI es un framework moderno de Python para la construcción de APIs, caracte
 **Framework Frontend: Angular**
 
 Angular es un framework de desarrollo frontend basado en TypeScript, diseñado para construir aplicaciones web de una sola página de forma estructurada y escalable. En este proyecto se emplea para desarrollar la interfaz de usuario, permitiendo organizar la aplicación en módulos, componentes y servicios. Angular proporciona herramientas integradas para el enrutamiento, manejo de formularios, consumo de APIs y gestión del estado de la interfaz, lo que contribuye a una experiencia de usuario dinámica y consistente.
+
+**Framework Móvil: Flutter \+ Dart**
+
+Flutter es el framework de código abierto de Google para la construcción de aplicaciones móviles compiladas nativamente a partir de una única base de código en Dart. En FashionStore se emplea para construir la aplicación móvil de los clientes, permitiendo un rendimiento fluido de 60 fps, manipulación de la cámara nativa y renderizado reactivo con BLoC.
+
+**Realidad Aumentada: Google ML Kit Pose Detection (Motor Local Principal)**
+
+En sustitución de soluciones genéricas o dependientes de modelos 3D pesados, el vestidor virtual adopta como motor principal y siempre disponible el paquete oficial `google_mlkit_pose_detection` de Google. Este componente ejecuta algoritmos de visión artificial directamente sobre el procesador del dispositivo móvil (Edge AI), detectando en tiempo real 33 puntos de anclaje anatómicos (hombros, cadera, torso). A partir de estas coordenadas, la aplicación escala, orienta y deforma la imagen 2D de la prenda (PNG transparente desde `productos.modelo_ar_url`) adaptándola anatómicamente al movimiento del cliente. Todo el procesamiento ocurre en local, sin latencia de red, sin coste de consumo por segundo y garantizando que el video de la cámara jamás abandona el dispositivo.
+
+**Inteligencia Artificial Generativa: Servicio Decart Lucy VTON (Motor Realista Opcional)**
+
+Para la experiencia inmersiva avanzada, se integra de forma opcional el servicio de IA generativa de Decart mediante su modelo especializado Lucy VTON en tiempo real (resolución 720p). Este servicio toma la transmisión de video del cliente y la imagen de la prenda; el servicio devuelve el video con la prenda puesta, conservando el movimiento y la forma del cuerpo del cliente. Al no contar Decart con un SDK específico para Flutter, la aplicación móvil utiliza un contenedor `WebView` que carga una página web ligera con el SDK de JavaScript (`@decartai/sdk`) para streaming en tiempo real (protocolo de transporte a validar). La seguridad se garantiza mediante una arquitectura de tokens temporales de corta duración (~60 s como tiempo máximo para establecer la conexión con Decart) solicitados por el backend FastAPI hacia Decart, sin exponer la clave maestra de la empresa en la app móvil. Su uso se tarifica por segundo de inferencia activa (Lucy VTON 720p: USD 0.02/s estándar, USD 0.04/s fast; con créditos de prueba en cuentas nuevas; duración máxima de sesión realista de 60 s como regla de negocio para control de costos), y dispone de un mecanismo de fallback automático al motor local si el servicio externo no está disponible o se agotan los créditos.
 
 ### **2.4.2 Implementación de la Arquitectura del Sistema** {#2.4.2-implementación-de-la-arquitectura-del-sistema}
 
@@ -2228,7 +2308,7 @@ El sistema valida en la tabla inventario\_sucursal que la cantidad\_disponible s
 
 **Características de la API**  
 **Ruta**: /api/v1/vestidor/sesion  
-**Descripción**: Registra la interacción del cliente con el vestidor de realidad aumentada tras adaptar el recurso 2D al cuerpo del usuario.  
+**Descripción**: Registra la interacción del cliente con el vestidor virtual en realidad aumentada (especificando si se utilizó el motor local en dispositivo o el motor realista con IA generativa Decart, junto con la duración activa de la prueba).  
 **Tipo**: POST
 
 **Datos de entrada**  
@@ -2236,6 +2316,8 @@ JSON
 {  
  "id\_producto": 42,  
  "dispositivo": "android",  
+ "motor": "local",  
+ "duracion\_segundos": 45,  
  "resultado\_url": "https\://fashionstore.com/renders/ar\_capture\_845.jpg",  
  "genero\_interes": true  
 }  
@@ -2246,12 +2328,35 @@ JSON
  "id\_cliente": 10,  
  "id\_producto": 42,  
  "dispositivo": "android",  
+ "motor": "local",  
+ "duracion\_segundos": 45,  
  "fecha\_hora": "2026-09-13T16:44:28Z",  
  "resultado\_url": "https\://fashionstore.com/renders/ar\_capture\_845.jpg",  
  "genero\_interes": true  
 }  
 **Resultado**  
-El sistema valida que el producto contenga un modelo\_ar\_url configurado en la tabla productos. Tras finalizar la simulación, el sistema inserta correctamente el registro en la tabla sesiones\_vestidor\_virtual asociando el cliente autenticado, marca genero\_interes como verdadero al desencadenar una acción comercial y retorna código 201\.
+El sistema valida que el producto contenga un modelo\_ar\_url configurado en la tabla productos y que el valor de motor corresponda a 'local' o 'ia'. Tras finalizar la simulación, el sistema inserta correctamente el registro en la tabla sesiones\_vestidor\_virtual asociando el cliente autenticado, persiste el motor utilizado y la duración de la sesión, marca genero\_interes como verdadero al desencadenar una acción comercial y retorna código 201.
+
+**Prueba 3b: CU10 \- Obtener token temporal para vestidor realista (Decart Lucy VTON)**
+
+**Características de la API**  
+**Ruta**: /api/v1/vestidor/token  
+**Descripción**: Genera y entrega un token de cliente efímero (~60 s como tiempo máximo para establecer la conexión con Decart) para autenticar la sesión de streaming con Decart Lucy VTON desde el WebView de la app móvil sin exponer la clave maestra del servidor. Se distingue de la duración máxima de sesión realista (60 s), la cual es una regla de negocio para el control de costos del servicio.  
+**Tipo**: POST  
+
+**Datos de entrada**  
+Sin cuerpo en la petición (cuerpo vacío). La app móvil obtiene la imagen de la prenda directamente del catálogo.  
+*(Requiere cabecera Authorization: Bearer \<token\_jwt\>)*  
+
+**Datos esperados**  
+JSON  
+{  
+ "token": "decart_client_token_9938bfa7c1...",  
+ "expira\_en\_segundos": 60,  
+ "servicio": "decart_lucy_vton_720p"  
+}  
+**Resultado**  
+El backend valida la identidad del cliente autenticado a partir del token JWT (la imagen de la prenda la obtiene la app directamente del catálogo, no del endpoint de token) y solicita a la API de Decart un token temporal de cliente utilizando la clave privada del servidor. Al obtener respuesta exitosa, retorna código 200 OK con el token efímero (~60 s como tiempo máximo para establecer la conexión con Decart; no condiciona la duración de la sesión, que responde a la regla de negocio de 60 s). Si el cliente no presenta credenciales válidas retorna 401 Unauthorized; si el servicio Decart no responde, hay corte de red o la cuenta carece de saldo/créditos de generación, retorna 503 Service Unavailable, lo que desencadena en la app móvil la conmutación y fallback automático al Motor 1 (Local).
 
 **Prueba 4: CU22 \- Gestionar productos**  
 **Características de la API**  

@@ -53,6 +53,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "frame-metadata-worker.js",
+                "input": "node_modules/@decartai/sdk/dist/realtime/browser",
+                "output": "/"
               }
             ],
             "styles": [
@@ -92,7 +97,10 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "proxyConfig": "proxy.conf.json"
+            "proxyConfig": "proxy.conf.json",
+            "prebundle": {
+              "exclude": ["@decartai/sdk"]
+            }
           },
           "configurations": {
             "production": {

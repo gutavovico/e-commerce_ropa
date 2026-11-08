@@ -68,6 +68,22 @@ class ApiConfig {
   /// Endpoint de comprobación de salud del backend
   static String get healthEndpoint => '$baseUrl/api/v1/health';
 
+  /// Frontend web de producción (Vercel). Sirve los recursos estáticos del catálogo que la base
+  /// de datos guarda como rutas relativas, p. ej. `productos.modelo_ar_url = /ar/<prenda>.png`.
+  static const String productionWebUrl = 'https://fashionstorefront.vercel.app';
+
+  /// Permite sobreescribir el origen web con `--dart-define=WEB_URL=http://10.0.2.2:4200`
+  /// (emulador Android contra `npm start`), igual que `API_URL` para el backend.
+  static const String _envWebUrl = String.fromEnvironment('WEB_URL', defaultValue: '');
+
+  /// Origen contra el que se resuelven las rutas relativas de recursos web (`/ar/...`).
+  static String get webBaseUrl {
+    if (_envWebUrl.isNotEmpty) return _envWebUrl.replaceAll(RegExp(r'/+$'), '');
+    if (kIsWeb) return 'http://localhost:4200';
+    if (Platform.isAndroid || Platform.isIOS) return productionWebUrl;
+    return 'http://localhost:4200';
+  }
+
   /// Nombre legible de la plataforma detectada
   static String get platformName {
     if (kIsWeb) return 'Web Browser';

@@ -375,22 +375,28 @@ class RespuestaCheckoutMovilDTO {
 
 ## 4. Subsistema de Realidad Aumentada (CU10 - Vestidor Virtual)
 
-El vestidor virtual permite al cliente enfocar la cámara y visualizar en tiempo real la prenda vinculada al producto (`modelo_ar_url`).
+El vestidor virtual permite al cliente enfocar la cámara y visualizar en tiempo real la prenda vinculada al producto (`modelo_ar_url`) mediante dos motores:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ 1. Flujo de Cámara Nativa (Camera Controller a 60 fps)     │
-├─────────────────────────────────────────────────────────────┤
-│ 2. Detección de Postura Corporal (Pose Estimation)          │
-│    Mapeo de puntos de anclaje anatómicos (hombros, torso)   │
-├─────────────────────────────────────────────────────────────┤
-│ 3. Superposición del Asset 3D (.glb) desde `modelo_ar_url`  │
-│    Ajuste y escalado proporcional al cuerpo del usuario     │
-├─────────────────────────────────────────────────────────────┤
-│ 4. Registro de Sesión en Backend                            │
-│    POST /api/v1/vestidor/sesion con dispositivo:            │
-│    "app_flutter" y resultado de intención (genero_interes)  │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│ MOTOR 1 — LOCAL (Siempre disponible en dispositivo, sin costo)          │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 1. Flujo de Cámara Nativa (Camera Controller en directo)               │
+│ 2. Detección de Pose Anatómica (Google ML Kit Pose Detection)           │
+│    Mapeo de puntos de anclaje (hombros, torso, cadera)                 │
+│ 3. Deformación y escalado 2D de la prenda (PNG con transparencia)      │
+│    Ajuste anatómico sobre el cuerpo del cliente en tiempo real         │
+├─────────────────────────────────────────────────────────────────────────┤
+│ MOTOR 2 — REALISTA CON IA GENERATIVA (Opcional, servicio Decart)        │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 4. Solicitud Token Efímero: POST /api/v1/vestidor/token (sin cuerpo)    │
+│ 5. WebView con @decartai/sdk (JS) para streaming en tiempo real         │
+│ 6. Fallback Automático: conmuta a Motor 1 si Decart falla o no responde │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 7. Registro de Sesión en Backend:                                       │
+│    POST /api/v1/vestidor/sesion con motor: 'local'|'ia',                │
+│    duracion_segundos y resultado de intención comercial (genero_interes)│
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ```dart
@@ -398,12 +404,16 @@ El vestidor virtual permite al cliente enfocar la cámara y visualizar en tiempo
 class PeticionRegistrarSesionARDTO {
   final int idProducto;
   final String dispositivo;
+  final String motor; // 'local' | 'ia'
+  final int? duracionSegundos;
   final String? resultadoUrl;
   final bool generoInteres;
 
   const PeticionRegistrarSesionARDTO({
     required this.idProducto,
     this.dispositivo = 'app_flutter',
+    this.motor = 'local',
+    this.duracionSegundos,
     this.resultadoUrl,
     required this.generoInteres,
   });
@@ -411,6 +421,8 @@ class PeticionRegistrarSesionARDTO {
   Map<String, dynamic> toJson() => {
     'id_producto': idProducto,
     'dispositivo': dispositivo,
+    'motor': motor,
+    if (duracionSegundos != null) 'duracion_segundos': duracionSegundos,
     if (resultadoUrl != null) 'resultado_url': resultadoUrl,
     'genero_interes': generoInteres,
   };

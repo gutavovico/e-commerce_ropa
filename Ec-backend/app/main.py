@@ -33,6 +33,7 @@ from core.errors import (
     DomainError,
     NotFoundError,
     PaymentRequiredError,
+    ServiceUnavailableError,
     UnprocessableEntityError,
 )
 
@@ -121,6 +122,13 @@ async def payment_required_handler(
     _request: Request, exc: PaymentRequiredError
 ) -> JSONResponse:
     return _domain_error_response(402, exc)
+
+
+@app.exception_handler(ServiceUnavailableError)
+async def service_unavailable_handler(
+    _request: Request, exc: ServiceUnavailableError
+) -> JSONResponse:
+    return _domain_error_response(503, exc)
 
 
 @app.exception_handler(DomainError)

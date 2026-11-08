@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {
+    "decart": {
+      "source": "docs.platform.decart.ai",
+      "sourceUrl": "https://docs.platform.decart.ai",
+      "sourceType": "well-known",
+      "computedHash": "df6b62aa3278ba82a9a6bbfa79d4411ec372ccaae548ab2c19a76fb343b4105b",
+      "wellKnownDigest": "sha256:d30d6ca4b4045adfda843904e883ce6221ec0ba9fc7f5e64d76793c435dcce4c"
+    }
+  }
+}

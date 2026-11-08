@@ -459,6 +459,8 @@ id_sesion_ar                 | BIGINT                 | NOT NULL | BIGSERIAL [PK
 id_cliente                   | BIGINT                 | NOT NULL |  [FK -> clientes(id_cliente)]
 id_producto                  | BIGINT                 | NOT NULL |  [FK -> productos(id_producto)]
 dispositivo                  | VARCHAR(50)            | NULL     | 
+motor                        | VARCHAR(10)            | NOT NULL | 'local' [CHECK: 'local','ia']
+duracion_segundos            | INTEGER                | NULL     | [CHECK: >= 0]
 fecha_hora                   | TIMESTAMPTZ            | NOT NULL | now()
 resultado_url                | VARCHAR(500)           | NULL     | 
 genero_interes               | BOOLEAN                | NOT NULL | false

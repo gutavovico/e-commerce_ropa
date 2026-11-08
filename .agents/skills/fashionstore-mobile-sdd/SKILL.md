@@ -106,10 +106,20 @@ Cada incremento se ubica en `lib/src/modulos/<paquete_dominio>/<cu>/` estructura
 
 ## 5. Módulo de Realidad Aumentada (CU10 - Vestidor Virtual)
 
-Para el caso de uso del vestidor virtual:
-1. Validar siempre que el producto tenga configurado `modelo_ar_url`. Si es nulo o vacío, bloquear el botón de AR y mostrar badge informativo.
-2. Manejar permisos de cámara con degradación elegante si el usuario los deniega.
-3. Registrar la sesión consumiendo `POST /api/v1/vestidor/sesion` enviando `dispositivo: "app_flutter"` y actualizando `genero_interes: true` si el usuario añade la prenda al carrito tras la experiencia.
+Para el caso de uso del vestidor virtual se estructuran dos motores complementarios:
+1. **Motor 1 — Local (principal y prioritario):**
+   - Cámara en directo + detección de pose con `google_mlkit_pose_detection` (puntos clave corporales: hombros, torso, cadera).
+   - Imagen 2D de la prenda (PNG transparente desde `productos.modelo_ar_url`) deformada y escalada sobre el torso.
+   - 100% procesado en el dispositivo, sin coste operativo ni envío de video a terceros.
+2. **Motor 2 — Realista con IA Generativa (opcional, bajo demanda):**
+   - Servicio Decart (modelo Lucy VTON en tiempo real, 720p).
+   - Autenticación segura: la app pide un token temporal (~60 s como tiempo máximo para establecer conexión) a `POST /api/v1/vestidor/token` (sin cuerpo en la petición; la API key de Decart nunca reside en la app).
+   - Se abre un `WebView` que carga una página con el SDK de JavaScript (`@decartai/sdk`) para streaming en tiempo real mediante el SDK de Decart (@decartai/sdk).
+   - Costo medido por segundo de generación; duración máxima de sesión realista: 60 s como regla de negocio de control de costos (independiente del token efímero de conexión).
+   - **Fallback automático:** si el Motor 2 falla (red, créditos, token o permisos en WebView), se conmuta de inmediato al Motor 1 local con aviso al usuario.
+3. Validar siempre que el producto tenga configurado `modelo_ar_url`. Si es nulo o vacío, bloquear el botón de AR y mostrar badge informativo.
+4. Manejar permisos de cámara con degradación elegante si el usuario los deniega.
+5. Registrar la sesión consumiendo `POST /api/v1/vestidor/sesion` enviando `dispositivo: "app_flutter"`, `motor` ('local' | 'ia'), `duracion_segundos` y actualizando `genero_interes: true` si el usuario añade la prenda al carrito tras la experiencia.
 
 ---
 

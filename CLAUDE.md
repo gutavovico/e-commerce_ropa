@@ -53,12 +53,17 @@ suite falla con «Need to call TestBed.initTestEnvironment() first». Usa siempr
 dart analyze                                  # debe terminar en «No issues found!»
 flutter test
 flutter test test/shopping_bag_test.dart
-flutter run --dart-define=API_URL=http://localhost:8000
+flutter run --dart-define=API_URL=http://10.0.2.2:8000 --dart-define=WEB_URL=http://10.0.2.2:4200
 ```
 
-`api_config.dart` resuelve la URL por plataforma (`10.0.2.2` en Android, `localhost` en el resto).
-Un `flutter build apk` sin `--dart-define=API_URL=...` genera un binario que apunta a localhost y
-no puede hablar con producción.
+Sin `--dart-define`, `api_config.dart` apunta en Android/iOS a **producción**: `API_URL` → Render y
+`WEB_URL` → Vercel (origen de los recursos relativos `/ar/...` de `modelo_ar_url`). En escritorio y
+web usa `localhost`.
+
+CU10 (vestidor) en móvil: Motor 1 = `camera` + `google_mlkit_pose_detection` (iOS ≥ 15.5); Motor 2 =
+WebView con `assets/vestidor/decart_vton.html`, que pide el token con `POST /vestidor/token?canal=movil`
+(sin `allowedOrigins`: la página es `file://` y su `Origin` es `null`). Solo se prueba de verdad en
+dispositivo físico.
 
 ---
 
@@ -231,6 +236,11 @@ src/app/core/{guards,interceptors,layouts}/
 - Estado con Signals (`signal`, `computed`); inyección con `inject()`, nunca por constructor.
 - Control de flujo `@if`/`@for` con `track`. `*ngIf`/`*ngFor` prohibidos.
 - Los servicios reemplazan su estado con la respuesta del servidor; no derivan importes en cliente.
+- **Decart (CU10) depende de dos entradas de `angular.json` que no deben quitarse:** el asset que copia
+  `frame-metadata-worker.js` de `@decartai/sdk` a la raíz de la salida y
+  `serve.options.prebundle.exclude: ["@decartai/sdk"]`. Sin ellas el worker da 404, LiveKit no envía
+  fotogramas y la sesión queda `connected` sin generar nunca (defecto 46). Tras actualizar el SDK,
+  comprueba que el archivo sigue en esa ruta.
 - `authInterceptor` adjunta el JWT y gestiona el 401. Las claves de sesión (`fashionstore_token`,
   `fashionstore_user`) pertenecen en exclusiva a `LoginService`: usa `establecerSesion()` en lugar
   de escribir en `localStorage` desde otro sitio.

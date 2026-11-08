@@ -139,13 +139,17 @@ se reenvían al backend local. La clave pública de Stripe (`pk_test_...`) está
 
 ```bash
 cd Ec-mobile
-flutter run --dart-define=API_URL=http://localhost:8000
+# emulador Android contra el backend y el frontend locales:
+flutter run --dart-define=API_URL=http://10.0.2.2:8000 --dart-define=WEB_URL=http://10.0.2.2:4200
 # opcional, para Stripe real:
 #   --dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
-`api_config.dart` usa `10.0.2.2` en el emulador de Android y `localhost` en el resto. Un
-`flutter build apk` **sin** `--dart-define=API_URL=...` genera un binario que apunta a localhost.
+Sin `--dart-define`, `api_config.dart` apunta en Android e iOS a **producción**: el backend de Render
+(`API_URL`) y el frontend de Vercel (`WEB_URL`, de donde salen los recursos `/ar/...` del vestidor
+virtual). En escritorio y web usa `localhost`.
+
+El vestidor virtual (CU10) necesita un **dispositivo físico**: cámara real, ML Kit y WebRTC.
 
 ### Pruebas
 

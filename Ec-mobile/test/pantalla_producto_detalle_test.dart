@@ -529,15 +529,12 @@ void main() {
       expect(find.text('PROBAR EN AR'), findsOneWidget);
       expect(find.byIcon(Icons.view_in_ar), findsOneWidget);
 
-      // Presionar PROBAR EN AR abre modal informativo sin errores
+      // CU10: una prenda sin `modelo_ar_url` no abre el vestidor y lo explica al cliente.
       await tester.tap(find.text('PROBAR EN AR'));
       await tester.pumpAndSettle();
 
-      expect(find.text('VESTIDOR VIRTUAL AR ATELIER'), findsOneWidget);
-      expect(find.text('COMPRENDIDO'), findsOneWidget);
-
-      await tester.tap(find.text('COMPRENDIDO'));
-      await tester.pumpAndSettle();
+      expect(find.text('Esta prenda aún no tiene recurso para el vestidor virtual.'), findsOneWidget);
+      expect(find.text('VESTIDOR VIRTUAL'), findsNothing);
     });
 
     testWidgets('renderiza acordeón de composición noble con técnica textil y cuidados', (tester) async {

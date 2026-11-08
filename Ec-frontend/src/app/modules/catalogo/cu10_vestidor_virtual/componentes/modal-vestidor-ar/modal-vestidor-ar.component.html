@@ -1,0 +1,346 @@
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-md animate-fadeIn"
+  (click)="onCerrarClick()"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-vestidor-titulo"
+>
+  <div
+    class="bg-stone-950 text-stone-100 rounded-xl max-w-5xl w-full h-[90vh] max-h-[850px] flex flex-col overflow-hidden shadow-2xl border border-stone-800"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Cabecera Superior -->
+    <header class="flex items-center justify-between px-6 py-4 border-b border-stone-800 bg-stone-900/60">
+      <div class="flex items-center gap-3">
+        <span class="w-2.5 h-2.5 rounded-full" [ngClass]="motorActivo() === 'ia' ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'"></span>
+        <div>
+          <h2 id="modal-vestidor-titulo" class="text-xs font-mono font-bold tracking-widest uppercase text-stone-200">
+            VESTIDOR VIRTUAL & PROBADOR INTERACTIVO
+          </h2>
+          <p class="text-[11px] text-stone-400 font-mono tracking-wider">
+            {{ etiquetaMotor() }}
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Indicador de Tiempo -->
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-stone-900 rounded border border-stone-800 text-[11px] font-mono text-stone-400">
+          <span>TIEMPO:</span>
+          <span class="text-stone-200 font-bold">{{ segundosTranscurridos() }}s</span>
+        </div>
+
+        <button
+          type="button"
+          (click)="onCerrarClick()"
+          class="text-stone-400 hover:text-white transition-colors p-1.5 rounded hover:bg-stone-800"
+          aria-label="Cerrar vestidor virtual"
+        >
+          <span class="text-xl leading-none">✕</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Contenido Principal: Espejo Virtual + Panel de Control -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+      <!-- Visor Central: El Espejo de Atelier -->
+      <div class="lg:col-span-8 bg-black relative flex items-center justify-center overflow-hidden border-b lg:border-b-0 lg:border-r border-stone-800">
+        <!-- Video en Vivo de la Cámara (Local) -->
+        <video
+          #videoElement
+          autoplay
+          playsinline
+          muted
+          class="absolute inset-0 w-full h-full object-cover transform -scale-x-100 transition-opacity duration-500"
+          [ngClass]="camaraActiva() && (motorActivo() === 'local' || !streamingIA()) ? 'opacity-90' : 'opacity-0 pointer-events-none'"
+        ></video>
+
+        <!-- Video de Streaming Realtime Decart Lucy VTON (Motor 2) -->
+        <video
+          #remoteVideoElement
+          autoplay
+          playsinline
+          muted
+          class="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 z-10"
+          [ngClass]="motorActivo() === 'ia' && streamingIA() ? 'opacity-100' : 'opacity-0 pointer-events-none'"
+        ></video>
+
+        <!-- Spinner de Conexión Streaming IA Decart -->
+        @if (conectandoIA()) {
+          <div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-6 text-center select-none">
+            <div class="w-12 h-12 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-xs font-mono text-amber-300 tracking-wider uppercase">
+              Estableciendo enlace WebRTC con Decart Lucy VTON...
+            </p>
+            <p class="text-[11px] font-sans text-stone-400 mt-2 max-w-xs">
+              Conexión en tiempo real mediante el SDK oficial y token efímero de alta costura.
+            </p>
+          </div>
+        }
+
+        <!-- Silueta Neutra de Maniquí si no hay cámara activa ni streaming -->
+        @if (!camaraActiva() && !streamingIA()) {
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none bg-radial from-stone-900/60 to-black">
+            <div class="w-44 h-80 rounded-full border-2 border-dashed border-stone-700/60 flex items-center justify-center relative">
+              <span class="text-[10px] font-mono tracking-widest text-stone-500 absolute top-4">SILUETA HAUTE COUTURE</span>
+              <div class="w-16 h-16 rounded-full border border-stone-700/50 absolute top-12"></div>
+              <div class="w-28 h-40 border-t border-b border-stone-700/50 absolute top-32"></div>
+            </div>
+
+            @if (permisoCamaraDenegado()) {
+              <p class="mt-4 text-xs font-mono text-stone-400 max-w-sm">
+                Cámara no disponible o permisos denegados. Visualizando superposición en modo maniquí digital.
+              </p>
+            } @else {
+              <p class="mt-4 text-xs font-mono text-stone-500">
+                Iniciando óptica de cámara...
+              </p>
+            }
+          </div>
+        }
+
+        <!-- Prenda Superpuesta con Deformación/Escalado reactivo (Solo Motor 1) -->
+        @if (motorActivo() === 'local') {
+          <div
+            class="relative z-10 pointer-events-none transition-transform duration-100 flex items-center justify-center max-w-[85%] max-h-[85%]"
+            [style.transform]="'scale(' + escalaPrenda() / 100 + ') translateY(' + offsetVertical() + 'px)'"
+            [style.opacity]="opacidadPrenda() / 100"
+          >
+            <img
+              [src]="recursoVisualPrenda()"
+              [alt]="producto().nombre"
+              class="object-contain max-h-[520px] drop-shadow-[0_15px_30px_rgba(0,0,0,0.8)]"
+            />
+          </div>
+        }
+
+        <!-- Overlays de Calibración Anatómica Haute Couture -->
+        <div class="absolute inset-x-4 bottom-4 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+          <div class="px-3 py-1.5 bg-black/75 backdrop-blur-md rounded border border-stone-800 text-[10px] font-mono text-stone-300 flex items-center gap-2">
+            @if (motorActivo() === 'ia' && streamingIA()) {
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <span>LUCY VTON (DECART) · LÍMITE: <strong class="text-amber-300">{{ segundosRestantesIA() }}s</strong></span>
+            } @else {
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>CALCE MORFOLÓGICO 2D · MOTOR LOCAL EDGE</span>
+            }
+          </div>
+
+          <button
+            type="button"
+            (click)="capturarFoto()"
+            class="pointer-events-auto px-3 py-1.5 bg-stone-900/90 hover:bg-stone-800 text-stone-200 border border-stone-700 rounded text-xs font-mono flex items-center gap-1.5 transition-colors shadow-lg"
+          >
+            <span>📸</span>
+            <span>CAPTURAR VISTA</span>
+          </button>
+        </div>
+
+        <!-- Canvas oculto para tomar snapshots -->
+        <canvas #canvasSnapshot class="hidden"></canvas>
+      </div>
+
+      <!-- Panel Lateral de Controles y Selección de Motor -->
+      <aside class="lg:col-span-4 p-5 lg:p-6 flex flex-col justify-between overflow-y-auto bg-stone-950 space-y-6">
+        <div class="space-y-5">
+          <!-- Datos de la Prenda -->
+          <div class="pb-4 border-b border-stone-800">
+            <span class="text-[10px] font-mono tracking-widest text-stone-400 uppercase">
+              {{ producto().categoria_nombre || 'ALTA COSTURA' }}
+            </span>
+            <h3 class="text-base font-serif text-stone-100 font-medium leading-snug mt-1">
+              {{ producto().nombre }}
+            </h3>
+            <div class="flex items-center gap-3 mt-2 text-xs font-mono">
+              <span class="text-amber-300 font-bold">{{ producto().precio_base | currency:'EUR':'symbol':'1.2-2' }}</span>
+              @if (variante()) {
+                <span class="text-stone-400">· Talla {{ variante()!.talla_codigo }}</span>
+                <span class="text-stone-400">· {{ variante()!.color_nombre }}</span>
+              }
+            </div>
+          </div>
+
+          <!-- Selector de Motor (Motor 1 vs Motor 2) -->
+          <div class="space-y-3">
+            <label class="block text-[11px] font-mono tracking-widest uppercase text-stone-300">
+              ARQUITECTURA DE DOS MOTORES
+            </label>
+
+            <div class="grid grid-cols-2 gap-2">
+              <!-- Botón Motor 1: Local -->
+              <button
+                type="button"
+                (click)="conmutarAMotorLocal()"
+                class="p-2.5 rounded border text-left transition-all text-xs font-mono flex flex-col gap-1"
+                [ngClass]="motorActivo() === 'local' ? 'border-emerald-500 bg-emerald-950/30 text-white' : 'border-stone-800 hover:border-stone-700 text-stone-400 bg-stone-900/40'"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="font-bold">MOTOR 1</span>
+                  <span class="w-1.5 h-1.5 rounded-full" [ngClass]="motorActivo() === 'local' ? 'bg-emerald-400' : 'bg-stone-600'"></span>
+                </div>
+                <span class="text-[10px] text-stone-400 leading-tight">Local (Edge AI)</span>
+                <span class="text-[9px] text-emerald-400 font-semibold mt-1">SIEMPRE DISPONIBLE</span>
+              </button>
+
+              <!-- Botón Motor 2: IA Decart -->
+              <button
+                type="button"
+                (click)="activarModoRealistaIA()"
+                [disabled]="conectandoIA() || (motorActivo() === 'ia' && streamingIA())"
+                class="p-2.5 rounded border text-left transition-all text-xs font-mono flex flex-col gap-1 disabled:opacity-60"
+                [ngClass]="motorActivo() === 'ia' ? 'border-amber-500 bg-amber-950/30 text-white' : 'border-stone-800 hover:border-stone-700 text-stone-400 bg-stone-900/40'"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="font-bold">MOTOR 2</span>
+                  <span class="w-1.5 h-1.5 rounded-full" [ngClass]="motorActivo() === 'ia' ? 'bg-amber-400 animate-pulse' : 'bg-stone-600'"></span>
+                </div>
+                <span class="text-[10px] text-stone-400 leading-tight">Decart Lucy VTON</span>
+                <span class="text-[9px] text-amber-400 font-semibold mt-1">
+                  {{ conectandoIA() ? 'CONECTANDO...' : (streamingIA() ? 'EN STREAMING' : 'MODO REALISTA IA') }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Estado de la cámara: aquí y no en el visor, donde la prenda superpuesta lo tapa -->
+          @if (mensajeCamara()) {
+            <div class="p-3 bg-red-500/10 border border-red-500/40 rounded text-red-200 text-xs font-mono leading-relaxed animate-fadeIn">
+              <span class="font-bold block mb-1">CÁMARA NO DISPONIBLE:</span>
+              {{ mensajeCamara() }}
+              <button
+                type="button"
+                (click)="reintentarCamara()"
+                class="mt-2 block px-3 py-1.5 border border-red-400/50 rounded hover:bg-red-500/20 text-red-100"
+              >
+                REINTENTAR CÁMARA
+              </button>
+            </div>
+          }
+
+          <!-- Banners de Notificación / Fallback Automático -->
+          @if (errorFallback()) {
+            <div class="p-3 bg-amber-500/15 border border-amber-500/40 rounded text-amber-200 text-xs font-mono leading-relaxed animate-fadeIn">
+              <span class="font-bold block mb-1">FALLBACK AUTOMÁTICO ACTIVADO:</span>
+              {{ errorFallback() }}
+            </div>
+          }
+
+          @if (mensajeAviso()) {
+            <div class="p-2.5 bg-stone-900 border border-stone-800 rounded text-stone-300 text-xs font-mono animate-fadeIn">
+              {{ mensajeAviso() }}
+            </div>
+          }
+
+          <!-- Calibración del Motor Local (Motor 1) -->
+          @if (motorActivo() === 'local') {
+            <div class="space-y-3 pt-2 border-t border-stone-800/80">
+              <div class="flex items-center justify-between text-[11px] font-mono text-stone-400">
+                <span>CALIBRACIÓN TEXTIL</span>
+                <span class="text-stone-300">{{ escalaPrenda() }}%</span>
+              </div>
+
+              <!-- Escala -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] font-mono text-stone-500">
+                  <span>ESCALA / ZOOM</span>
+                </div>
+                <input
+                  type="range"
+                  min="70"
+                  max="130"
+                  [value]="escalaPrenda()"
+                  (input)="actualizarEscala($event)"
+                  class="w-full accent-stone-300 cursor-pointer h-1.5 bg-stone-800 rounded"
+                />
+              </div>
+
+              <!-- Posición Vertical -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] font-mono text-stone-500">
+                  <span>AJUSTE VERTICAL</span>
+                  <span>{{ offsetVertical() }}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  [value]="offsetVertical()"
+                  (input)="actualizarOffsetVertical($event)"
+                  class="w-full accent-stone-300 cursor-pointer h-1.5 bg-stone-800 rounded"
+                />
+              </div>
+            </div>
+          }
+
+          <!-- Inferencia Realtime de Decart Lucy VTON (Motor 2) -->
+          @if (motorActivo() === 'ia') {
+            <div class="space-y-3 pt-2 border-t border-amber-900/40">
+              <div class="flex items-center justify-between text-[11px] font-mono text-amber-300">
+                <span>INFERENCIA EN TIEMPO REAL</span>
+                <span>DECART LUCY VTON</span>
+              </div>
+              <div class="p-3 bg-stone-900/80 rounded border border-amber-500/30 text-[10px] font-mono space-y-2 text-stone-300">
+                <div class="flex justify-between items-center">
+                  <span class="text-stone-400">TRANSMISIÓN:</span>
+                  <span class="text-emerald-400 font-bold flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    WebRTC 720p / 30fps
+                  </span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-stone-400">MODELO IA:</span>
+                  <span class="text-amber-300 font-bold">lucy-vton-3.6</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-stone-400">TIEMPO MÁXIMO:</span>
+                  <span class="text-amber-200 font-bold">{{ segundosRestantesIA() }}s restantes</span>
+                </div>
+                <p class="text-[9px] text-stone-400 pt-1 border-t border-stone-800 leading-normal">
+                  La prenda se modela y adapta dinámicamente al movimiento del cuerpo mediante IA generativa.
+                </p>
+              </div>
+            </div>
+          }
+
+          <!-- Métricas de Taller Haute Couture -->
+          <div class="p-3 bg-stone-900/60 rounded border border-stone-800 text-[10px] font-mono space-y-1 text-stone-400">
+            <div class="flex justify-between">
+              <span>HOLGURA BUSTO:</span>
+              <span class="text-stone-200 font-bold">PERFECT FIT (+0.5 CM)</span>
+            </div>
+            <div class="flex justify-between">
+              <span>DRAPEADO LATERAL:</span>
+              <span class="text-stone-200 font-bold">4 MM EN SISA</span>
+            </div>
+            <div class="flex justify-between">
+              <span>CAÍDA TEXTIL:</span>
+              <span class="text-stone-200 font-bold">18/20 (FLUIDEZ ALTA)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones Comerciales -->
+        <div class="space-y-2 pt-4 border-t border-stone-800">
+          <button
+            type="button"
+            (click)="onAnadirABolsaClick()"
+            class="w-full py-3 bg-stone-100 hover:bg-white text-black text-xs font-mono font-bold tracking-widest uppercase rounded transition-colors shadow-lg flex items-center justify-center gap-2"
+          >
+            <span>🛍</span>
+            <span>AÑADIR A LA BOLSA</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="onReservarBoutiqueClick()"
+            class="w-full py-2.5 bg-transparent hover:bg-stone-900 text-stone-300 hover:text-white border border-stone-700 text-xs font-mono tracking-wider uppercase rounded transition-colors flex items-center justify-center gap-2"
+          >
+            <span>🏛</span>
+            <span>RESERVAR CITA EN BOUTIQUE</span>
+          </button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+

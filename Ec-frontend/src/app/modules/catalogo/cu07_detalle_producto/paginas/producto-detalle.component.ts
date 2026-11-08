@@ -18,13 +18,14 @@ import {
   VarianteDetalle,
 } from '../modelos/producto-detalle.model';
 import { ModalReservaBoutiqueComponent } from '../componentes/modal-reserva-boutique/modal-reserva-boutique.component';
+import { ModalVestidorArComponent } from '../../cu10_vestidor_virtual/componentes/modal-vestidor-ar/modal-vestidor-ar.component';
 import { CatalogoService } from '../../servicios/catalogo.service';
 import { CarritoService } from '../../../compras_pagos/cu11_gestionar_carrito/servicios/carrito.service';
 
 @Component({
   selector: 'app-producto-detalle',
   standalone: true,
-  imports: [CommonModule, RouterLink, ModalReservaBoutiqueComponent],
+  imports: [CommonModule, RouterLink, ModalReservaBoutiqueComponent, ModalVestidorArComponent],
   templateUrl: './producto-detalle.component.html',
   styleUrls: ['./producto-detalle.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -382,6 +383,20 @@ export class ProductoDetalleComponent implements OnInit {
    */
   cerrarModalAR(): void {
     this.modalARAbierto.set(false);
+  }
+
+  /**
+   * Añade la variante probada en el vestidor virtual directamente a la bolsa de compra.
+   */
+  anadirAlCarritoDesdeVestidor(): void {
+    this.anadirABolsa();
+  }
+
+  /**
+   * Abre el modal de reserva en boutique física desde el vestidor virtual.
+   */
+  abrirModalReservaDesdeVestidor(): void {
+    this.abrirModalReserva();
   }
 
   /**

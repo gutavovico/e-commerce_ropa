@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     IA_API_KEY: str = ""
 
+    # --- Vestidor Virtual Realista Decart (CU10) ---
+    DECART_API_KEY: str = ""
+    DECART_API_URL: str = "https://api.decart.ai"
+
     # --- Notificaciones SMTP Gmail ---
     SMTP_SERVER: str = "smtp.gmail.com"
     SMTP_PORT: int = 587

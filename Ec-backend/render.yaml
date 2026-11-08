@@ -18,8 +18,10 @@ services:
         generateValue: true
       - key: JWT_EXPIRE_MINUTES
         value: "1440"
+      # Además de CORS, de esta lista salen los `allowedOrigins` de los tokens web de Decart (CU10):
+      # el dominio real del frontend debe estar aquí o Decart responde «Origin not allowed».
       - key: CORS_ORIGINS
-        value: "http://localhost:4200,https://fashionstore-web.vercel.app"
+        value: "http://localhost:4200,https://fashionstorefront.vercel.app,https://fashionstore-web.vercel.app"
       - key: CORS_ORIGIN_REGEX
         value: "^https:\\/\\/.*\\.vercel\\.app$"
       - key: SMTP_SERVER
@@ -46,3 +48,9 @@ services:
         sync: false
       - key: IA_API_KEY
         sync: false
+      # CU10 · Vestidor virtual realista (Decart Lucy VTON). La clave es secreta y se factura por
+      # segundo: su valor se introduce en el panel de Render (Environment), nunca en este archivo.
+      - key: DECART_API_KEY
+        sync: false
+      - key: DECART_API_URL
+        value: "https://api.decart.ai"

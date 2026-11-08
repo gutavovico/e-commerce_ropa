@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../datos/modelos/producto_detalle_dto.dart';
 import '../../../../compras_pagos/cu11_gestionar_carrito/presentacion/pantallas/shopping_bag_screen.dart';
 import '../bloc/producto_detalle_bloc.dart';
+import '../../../cu10_vestidor_virtual/dominio/plataforma_vestidor.dart';
+import '../../../cu10_vestidor_virtual/dominio/prenda_vestidor.dart';
+import '../../../cu10_vestidor_virtual/presentacion/pantallas/pantalla_vestidor_virtual.dart';
 
 /// Pantalla Completa de Detalle de Prenda de Alta Costura (CU07, CU08, CU09, CU12, CU10)
 ///
@@ -432,7 +435,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
                 bottom: 12,
                 right: 12,
                 child: GestureDetector(
-                  onTap: () => _abrirModalVestidorAr(),
+                  onTap: () => _abrirVestidorVirtual(estado),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
@@ -1316,7 +1319,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
           children: [
             // Botón rápido AR
             GestureDetector(
-              onTap: () => _abrirModalVestidorAr(),
+              onTap: () => _abrirVestidorVirtual(estado),
               child: Container(
                 width: 44,
                 height: 44,
@@ -1841,69 +1844,45 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
     );
   }
 
-  void _abrirModalVestidorAr() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.view_in_ar, size: 42, color: Colors.black),
-              const SizedBox(height: 12),
-              const Text(
-                'VESTIDOR VIRTUAL AR ATELIER',
-                style: TextStyle(
-                  fontFamily: 'Outfit',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'La simulación morfológica inteligente y renderizado 3D de alta costura se encuentra en fase de calibración para esta colección.\n\nPodrás proyectar la caída de la seda y el drapeado en tu entorno en la próxima entrega.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Outfit',
-                  fontSize: 11.5,
-                  color: Color(0xFF71717A),
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'COMPRENDIDO',
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+  /// CU10 · Abre el vestidor virtual (Motor 1 local con ML Kit y Motor 2 Decart) como pantalla
+  /// hoja, propagando el JWT. Si el cliente pulsa «AÑADIR A LA BOLSA» dentro del vestidor, al volver
+  /// se añade con la talla y el color seleccionados aquí.
+  Future<void> _abrirVestidorVirtual(ProductoDetalleCargado estado) async {
+    final producto = estado.producto;
+    final recurso = producto.modeloArUrl?.trim() ?? '';
+    if (recurso.isEmpty) {
+      _mostrarSnackBar('Esta prenda aún no tiene recurso para el vestidor virtual.', esError: true);
+      return;
+    }
+    if (!vestidorSoportadoEnPlataforma()) {
+      _mostrarSnackBar(mensajeVestidorNoSoportado, esError: true);
+      return;
+    }
+    final token = widget.token ?? '';
+    if (token.isEmpty) {
+      _mostrarSnackBar('Inicia sesión para usar el vestidor virtual.', esError: true);
+      return;
+    }
+
+    final resultado = await Navigator.of(context).push<ResultadoVestidor>(
+      MaterialPageRoute(
+        builder: (_) => PantallaVestidorVirtual(
+          token: token,
+          prenda: PrendaVestidor(
+            idProducto: producto.idProducto,
+            nombre: producto.nombre,
+            categoriaNombre: producto.categoriaNombre,
+            modeloArUrl: recurso,
+            tallaCodigo: estado.tallaSeleccionada?.codigo,
+            colorNombre: estado.colorSeleccionado?.nombre,
           ),
         ),
       ),
     );
+
+    if (resultado == ResultadoVestidor.anadirABolsa && mounted) {
+      await _anadirABolsa();
+    }
   }
 
   void _mostrarGuiaTallasModal() {

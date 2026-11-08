@@ -309,10 +309,14 @@ CREATE TABLE fashionstore.sesiones_vestidor_virtual (
     id_cliente                   BIGINT                   NOT NULL,
     id_producto                  BIGINT                   NOT NULL,
     dispositivo                  VARCHAR(50),
+    motor                        VARCHAR(10)              NOT NULL DEFAULT 'local',
+    duracion_segundos            INTEGER,
     fecha_hora                   TIMESTAMPTZ              NOT NULL DEFAULT now(),
     resultado_url                VARCHAR(500),
     genero_interes               BOOLEAN                  NOT NULL DEFAULT false,
-    CONSTRAINT pk_sesiones_vestidor_virtual PRIMARY KEY (id_sesion_ar)
+    CONSTRAINT pk_sesiones_vestidor_virtual PRIMARY KEY (id_sesion_ar),
+    CONSTRAINT chk_sesiones_ar_motor CHECK (motor IN ('local', 'ia')),
+    CONSTRAINT chk_sesiones_ar_duracion CHECK (duracion_segundos IS NULL OR duracion_segundos >= 0)
 );
 
 CREATE TABLE fashionstore.solicitudes_reporte_ia (

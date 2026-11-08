@@ -68,7 +68,8 @@ Respétalos: el frontend y los tests del proyecto ya dependen de ellos. Códigos
 |---|---|---|---|---|
 | CU06 | `POST /api/v1/catalogo/buscar` | `termino_busqueda`, `filtros{id_categoria,id_talla,id_color,precio_min,precio_max}` | `total_resultados`, `productos[]` con `variantes_coincidentes[]` (búsqueda difusa `pg_trgm`) | 200 |
 | CU11 | `POST /api/v1/carrito/items` | `id_variante`, `id_sucursal`, `cantidad` | `id_carrito`, `items[]`, `resumen{subtotal,descuentos_aplicados,total_estimado}`; valida `cantidad_disponible ≥ cantidad` | 200 |
-| CU10 | `POST /api/v1/vestidor/sesion` | `id_producto`, `dispositivo`, `resultado_url`, `genero_interes` | `id_sesion_ar`, `id_cliente`, … ; exige `modelo_ar_url` | 201 |
+| CU10 | `POST /api/v1/vestidor/sesion` | `id_producto`, `dispositivo`, `motor` ('local'\|'ia'), `duracion_segundos`, `resultado_url`, `genero_interes` | `id_sesion_ar`, `id_cliente`, `motor`, `duracion_segundos`, … ; exige `modelo_ar_url` | 201 |
+| CU10 | `POST /api/v1/vestidor/token` | Sin cuerpo (solo header `Authorization: Bearer <jwt>`); cliente autenticado; la app obtiene la imagen de la prenda del catálogo | `token` efímero Decart Lucy VTON (~60 s para conexión; sesión máx 60 s es regla de negocio separada), `expira_en_segundos`, `servicio` | 200 |
 | CU22 | `POST /api/v1/admin/productos` | producto + `variantes[]` (talla, color, sku, precio_extra) | `id_producto`, `variantes_registradas[]`; SKU único; alta en cascada | 201 |
 | CU15 | `POST /api/v1/ventas/checkout` | `id_carrito`, `tipo_venta` (`digital_web`\|`digital_movil`) | `id_venta`, `numero_comprobante`, `estado: pendiente`, `subtotal`, `descuento`, `total` | 201 |
 

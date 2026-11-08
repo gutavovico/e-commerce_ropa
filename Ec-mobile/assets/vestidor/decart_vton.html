@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>FASHION STORE · Vestidor realista</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  </style>
+</head>
+<body>
+  <video id="salida" autoplay playsinline muted></video>
+
+  <!--
+    CU10 · Motor 2 (Decart Lucy VTON) dentro del WebView de la app.
+
+    - La clave permanente de Decart nunca llega aquí: Flutter entrega tokens efímeros emitidos por
+      `POST /api/v1/vestidor/token?canal=movil` (sin restricción de origen: esta página es un asset
+      local y su Origin es `null`).
+    - El SDK se carga con versión fijada desde jsDelivr. Al estar en otro origen, el SDK desactiva
+      su worker de marcas de tiempo por fotograma (`isFrameMetadataRuntimeSupported`), que en un
+      empaquetado local daba 404 y bloqueaba el envío de fotogramas (defecto 46 del CHANGELOG).
+    - Todo evento relevante se comunica a Flutter por el canal `Vestidor`.
+  -->
+  <script type="module">
+    const SDK_URL = 'https://cdn.jsdelivr.net/npm/@decartai/sdk@0.2.14/+esm';
+
+    const enviar = (tipo, datos = {}) => {
+      try { Vestidor.postMessage(JSON.stringify({ tipo, ...datos })); } catch (_) { /* sin canal */ }
+    };
+
+    let sesion = null;
+    let camara = null;
+    let cancelado = false;
+    let emitiendo = false;
+    let resolverToken = null;
+
+    // Flutter responde a una petición `token` con un token nuevo (o null si no pudo obtenerlo).
+    window.entregarToken = (token) => {
+      const resolver = resolverToken;
+      resolverToken = null;
+      if (resolver) resolver(token);
+    };
+
+    window.detener = () => {
+      cancelado = true;
+      try { sesion?.disconnect(); } catch (_) { /* ya cerrada */ }
+      sesion = null;
+      camara?.getTracks().forEach((pista) => pista.stop());
+      camara = null;
+    };
+
+    async function abrirCamara(modelo) {
+      const restricciones = {
+        audio: false,
+        video: { facingMode: 'user', width: { ideal: modelo.width }, height: { ideal: modelo.height }, frameRate: modelo.fps },
+      };
+      for (let intento = 1; ; intento++) {
+        try {
+          return await navigator.mediaDevices.getUserMedia(restricciones);
+        } catch (error) {
+          // El Motor 1 libera la cámara de forma asíncrona al conmutar: se reintenta si sigue ocupada.
+          if (error?.name === 'NotReadableError' && intento < 5) {
+            await new Promise((r) => setTimeout(r, 600));
+            continue;
+          }
+          throw error;
+        }
+      }
+    }
+
+    window.iniciar = async ({ token, prompt, imagenBase64 }) => {
+      let sdk;
+      try {
+        sdk = await import(SDK_URL);
+      } catch (error) {
+        enviar('error', { codigo: 'SDK', detalle: String(error?.message ?? error) });
+        return;
+      }
+      const { createDecartClient, createConsoleLogger, models } = sdk;
+
+      let tokenInicial = token;
+      const cliente = createDecartClient({
+        // Un token por marcación: el primero ya viene emitido; los reintentos piden otro a Flutter.
+        apiKeyProvider: () => {
+          if (tokenInicial) {
+            const actual = tokenInicial;
+            tokenInicial = null;
+            return Promise.resolve(actual);
+          }
+          return new Promise((resolve, reject) => {
+            resolverToken = (nuevo) => (nuevo ? resolve(nuevo) : reject(new Error('Token no disponible')));
+            enviar('token');
+          });
+        },
+        logger: createConsoleLogger('info'),
+      });
+      const modelo = models.realtime('lucy-vton-3.6');
+
+      try {
+        const informe = await cliente.realtime.checkConnectivity();
+        enviar('conectividad', { calidad: informe.quality, transporte: informe.metrics?.transport });
+        if (informe.quality === 'critical') {
+          enviar('error', { codigo: 'RED_CRITICA', detalle: informe.reasons.join('; ') });
+          return;
+        }
+      } catch (_) { /* el chequeo es informativo */ }
+      if (cancelado) return;
+
+      try {
+        camara = await abrirCamara(modelo);
+      } catch (error) {
+        enviar('error', { codigo: 'CAMARA', detalle: error?.name ?? String(error) });
+        return;
+      }
+      if (cancelado) { window.detener(); return; }
+
+      try {
+        const abierta = await cliente.realtime.connect(camara, {
+          model: modelo,
+          mirror: 'auto',
+          resolution: '720p',
+          retries: 1,
+          capacityRetryBudgetMs: 20000,
+          onRemoteStream: (remoto) => {
+            if (cancelado) return;
+            const video = document.getElementById('salida');
+            video.srcObject = remoto;
+            video.play().catch(() => {});
+            emitiendo = true;
+            enviar('streaming');
+          },
+          onConnectionChange: (estado) => {
+            enviar('estado', { estado });
+            if (estado === 'disconnected' && emitiendo && !cancelado) {
+              enviar('error', { codigo: 'DESCONECTADO' });
+            }
+          },
+          onQueuePosition: ({ position, queueSize }) => enviar('cola', { posicion: position, total: queueSize }),
+          onCapacityWait: ({ retryAfterMs, attempt }) => enviar('capacidad', { esperaMs: retryAfterMs, intento: attempt }),
+          initialState: {
+            prompt: { text: prompt, enhance: true },
+            image: imagenBase64 ? `data:image/jpeg;base64,${imagenBase64}` : undefined,
+          },
+        });
+        // Si Flutter canceló mientras connect() seguía en vuelo, la sesión no tiene dueño: se cierra.
+        if (cancelado) { abierta.disconnect(); return; }
+        sesion = abierta;
+        sesion.on('error', (error) => enviar('error', { codigo: error?.code ?? 'TRANSMISION', detalle: error?.message }));
+        sesion.on('sessionEnded', (fin) => enviar('fin', { motivo: fin?.reason }));
+      } catch (error) {
+        if (!cancelado) enviar('error', { codigo: error?.code ?? 'CONEXION', detalle: error?.message ?? String(error) });
+      }
+    };
+
+    enviar('lista');
+  </script>
+</body>
+</html>

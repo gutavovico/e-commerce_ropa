@@ -14,6 +14,9 @@ from modules.catalogo.cu07_detalle_producto.router import (
 from modules.catalogo.cu09_disponibilidad.router import (
     router as cu09_router,
 )
+from modules.catalogo.cu10_vestidor_virtual.router import (
+    router as cu10_router,
+)
 from modules.catalogo.cu18_recomendaciones.router import (
     router as cu18_router,
 )
@@ -34,6 +37,7 @@ router.include_router(cu05_router)
 router.include_router(cu06_router)
 router.include_router(cu07_router)
 router.include_router(cu09_router)
+router.include_router(cu10_router)
 router.include_router(cu18_router)
 router.include_router(cu19_router)
 router.include_router(cu24_temporadas_colecciones_router)

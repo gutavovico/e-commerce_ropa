@@ -60,3 +60,15 @@ class PaymentRequiredError(DomainError):
     def __init__(self, message: str = "Pago rechazado", code: str = "PAGO_RECHAZADO"):
         super().__init__(message, code=code)
 
+
+class ServiceUnavailableError(DomainError):
+    """Servicio externo no disponible o falla de integración técnica (HTTP 503)."""
+
+    def __init__(
+        self,
+        message: str = "Servicio externo no disponible",
+        code: str = "SERVICIO_NO_DISPONIBLE",
+    ):
+        super().__init__(message, code=code)
+
+
