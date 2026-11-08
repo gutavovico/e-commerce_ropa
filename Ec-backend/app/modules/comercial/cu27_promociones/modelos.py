@@ -21,6 +21,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
+from sqlalchemy.schema import FetchedValue
 
 from core.database import Base
 from modules.catalogo.modelos import CategoriaORM, ProductoORM
@@ -30,6 +31,9 @@ class PromocionORM(Base):
     """Entidad ORM representativa de una promocion comercial o cupon de descuento."""
 
     __tablename__ = "promociones"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = (
         CheckConstraint("fecha_fin > fecha_inicio", name="chk_promociones_fechas_orden"),
         CheckConstraint(
@@ -105,6 +109,9 @@ class PromocionProductoORM(Base):
     """Mapeo de la tabla de asociación `fashionstore.promocion_producto`."""
 
     __tablename__ = "promocion_producto"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore"}
 
     id_promocion: Mapped[int] = mapped_column(

@@ -29,6 +29,7 @@ from modules.gestion_operativa.cu21_sucursales_ciudades.esquemas import (
     SucursalPublicaOut,
 )
 from modules.gestion_operativa.modelos import CiudadORM, SucursalORM
+from modules.plataforma.cu12_validar_suscripcion.servicio import SuscripcionServicio
 
 
 class ServicioGestionSucursal:
@@ -171,6 +172,8 @@ class ServicioGestionSucursal:
 
     def crear_sucursal(self, datos: SucursalCrearIn) -> SucursalAdminOut:
         """Crea una nueva sucursal verificando ciudad, unicidad y franja horaria."""
+        # P2-CU12 (RN15): la sucursal nace activa, así que cuenta para el límite del plan
+        SuscripcionServicio.validar(self.db, recurso="sucursales")
         # 1. Verificar existencia de ciudad
         ciudad = self.db.get(CiudadORM, datos.id_ciudad)
         if not ciudad:
@@ -334,6 +337,10 @@ class ServicioGestionSucursal:
         sucursal = self.db.get(SucursalORM, id_sucursal)
         if not sucursal:
             raise SucursalNoEncontradaError(id_sucursal)
+
+        # P2-CU12 (RN15): reactivar una sucursal cuenta para el límite del plan
+        if activa and not sucursal.activa:
+            SuscripcionServicio.validar(self.db, recurso="sucursales")
 
         # Si se pretende desactivar y estaba activa, verificar operaciones pendientes
         if not activa and sucursal.activa:

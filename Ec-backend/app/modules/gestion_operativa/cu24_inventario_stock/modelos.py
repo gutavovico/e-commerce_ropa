@@ -18,6 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
+from sqlalchemy.schema import FetchedValue
 
 from core.database import Base
 from modules.catalogo.modelos import InventarioSucursalORM
@@ -59,6 +60,9 @@ class MovimientoInventarioORM(Base):
     """Registro inmutable de trazabilidad contable y operativa (Kardex)."""
 
     __tablename__ = "movimientos_inventario"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = (
         CheckConstraint("cantidad <> 0", name="chk_movimiento_cantidad_no_cero"),
         {"schema": "fashionstore", "extend_existing": True},

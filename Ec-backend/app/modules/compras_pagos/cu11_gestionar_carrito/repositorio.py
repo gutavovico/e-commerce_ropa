@@ -20,6 +20,7 @@ from modules.catalogo.modelos import (
     VarianteProductoORM,
 )
 from modules.compras_pagos.modelos import CarritoDetalleORM, CarritoORM
+from modules.plataforma.servicio_tenants import TenantServicio
 
 
 class CarritoRepositorio:
@@ -42,6 +43,8 @@ class CarritoRepositorio:
             )
             db.add(cliente)
             db.flush()
+        # P2-CU13: el carrito y la reserva apuntan a `cliente_tenant` (FK compuesta)
+        TenantServicio.exigir_cliente_en_tenant(db, usuario)
         return cliente
 
     @staticmethod

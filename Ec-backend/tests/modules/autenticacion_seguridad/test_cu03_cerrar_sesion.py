@@ -68,7 +68,7 @@ def test_servicio_logout_revoca_token():
         rol="cliente",
         activo=True,
     )
-    token = create_access_token({"sub": "999"})
+    token = create_access_token({"id_tenant": 1, "sub": "999"})
 
     assert not token_blacklist.esta_revocado(token)
     res = ServicioLogout.cerrar_sesion(token=token, usuario=usuario)
@@ -114,7 +114,7 @@ def test_logout_exitoso_revoca_token_en_servidor():
     """
     client = TestClient(app)
     usuario = _mock_usuario()
-    token = create_access_token({"sub": "1001"})
+    token = create_access_token({"id_tenant": 1, "sub": "1001"})
 
     # Sobrescribir get_db para resolver el usuario mockeado
     mock_db = MagicMock()

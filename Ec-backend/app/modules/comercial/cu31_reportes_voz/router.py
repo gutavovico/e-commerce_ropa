@@ -20,8 +20,13 @@ from modules.comercial.cu31_reportes_voz.esquemas import (
     ReportePrevisualizacionOut,
 )
 from modules.comercial.cu31_reportes_voz.servicio import ServicioReportesVoz
+from modules.plataforma.cu12_validar_suscripcion.dependencias import requiere_funcionalidad
 
-router = APIRouter(tags=["Gestion Comercial - Reportes Ejecutivos y Voz"])
+# P2-CU12: los reportes por voz son reportes convencionales (los de IA llegarán con P2-CU21)
+router = APIRouter(
+    tags=["Gestion Comercial - Reportes Ejecutivos y Voz"],
+    dependencies=[Depends(requiere_funcionalidad("reportes_convencionales"))],
+)
 
 
 @router.post(

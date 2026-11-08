@@ -263,7 +263,7 @@ def test_endpoint_bitacora_rol_no_autorizado_403(client: TestClient):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_mock("encargado_sucursal")
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token = create_access_token({"sub": "2", "rol": "encargado_sucursal"})
+        token = create_access_token({"id_tenant": 1, "sub": "2", "rol": "encargado_sucursal"})
         response = client.get(
             "/api/v1/admin/bitacora",
             headers={"Authorization": f"Bearer {token}"},
@@ -290,7 +290,7 @@ def test_endpoint_bitacora_rol_administrador_200(client: TestClient):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_mock("administrador")
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token = create_access_token({"sub": "1", "rol": "administrador"})
+        token = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         response = client.get(
             "/api/v1/admin/bitacora",
             headers={"Authorization": f"Bearer {token}"},
@@ -319,7 +319,7 @@ def test_endpoint_bitacora_detalle_evento_200(client: TestClient):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_mock("administrador")
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token = create_access_token({"sub": "1", "rol": "administrador"})
+        token = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         response = client.get(
             "/api/v1/admin/bitacora/77",
             headers={"Authorization": f"Bearer {token}"},
@@ -342,7 +342,7 @@ def test_endpoint_bitacora_detalle_evento_404(client: TestClient):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_mock("administrador")
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token = create_access_token({"sub": "1", "rol": "administrador"})
+        token = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         response = client.get(
             "/api/v1/admin/bitacora/9999",
             headers={"Authorization": f"Bearer {token}"},

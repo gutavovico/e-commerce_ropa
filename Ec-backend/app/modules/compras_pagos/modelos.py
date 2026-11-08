@@ -25,6 +25,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.schema import FetchedValue
 
 from core.database import Base
 from modules.catalogo.modelos import (
@@ -63,6 +64,9 @@ class CarritoORM(Base):
     """
 
     __tablename__ = "carritos"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore"}
 
     id_carrito: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -99,6 +103,9 @@ class CarritoDetalleORM(Base):
     """
 
     __tablename__ = "carrito_detalle"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = (
         # Una variante aparece una sola vez por carrito y sucursal; añadir de nuevo la misma
         # combinación consolida cantidades en lugar de duplicar la línea.

@@ -23,6 +23,7 @@ from modules.compras_pagos.cu31_cu32_punto_venta.esquemas import (
     VentaPosOut,
 )
 from modules.compras_pagos.cu31_cu32_punto_venta.servicio import ROLES_CAJA, PuntoVentaServicio
+from modules.plataforma.cu12_validar_suscripcion.dependencias import requiere_funcionalidad
 
 router = APIRouter(prefix="/pos", tags=["Punto de Venta (CU31-CU32)"])
 
@@ -95,6 +96,7 @@ def previsualizar(datos: VentaPosIn, usuario: UsuarioORM = Cajero, db: Session =
 @router.post(
     "/ventas", response_model=VentaPosOut, status_code=status.HTTP_201_CREATED,
     summary="CU31 · Registrar venta presencial",
+    dependencies=[Depends(requiere_funcionalidad("ventas"))],
 )
 def registrar_venta(datos: VentaPosIn, usuario: UsuarioORM = Cajero, db: Session = Depends(get_db)) -> VentaPosOut:
     return PuntoVentaServicio.registrar_venta(db, usuario, datos)

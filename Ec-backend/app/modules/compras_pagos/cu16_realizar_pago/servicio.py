@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from core.config import settings
+from core.tenant import fijar_contexto
 from core.errors import (
     AuthorizationError,
     ConflictError,
@@ -223,10 +224,7 @@ class PagoServicio:
                 monto=Decimal(venta.total),
                 metodo_pago=payload.metodo_pago,
                 descripcion=f"FashionStore · Orden {venta.numero_comprobante}",
-                metadatos={
-                    "numero_comprobante": venta.numero_comprobante,
-                    "id_venta": str(venta.id_venta),
-                },
+                metadatos=PagoServicio._metadatos_intento(venta),
                 idempotency_key=payload.clave_idempotencia,
             )
         except ErrorPasarela as exc:
@@ -801,6 +799,29 @@ class PagoServicio:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _metadatos_intento(venta: VentaORM) -> dict:
+        """Metadatos del PaymentIntent. Incluyen la empresa (P2-CU13, F6) para que el webhook,
+        que llega sin token, sepa a qué empresa pertenece el pago."""
+        metadatos = {
+            "numero_comprobante": venta.numero_comprobante,
+            "id_venta": str(venta.id_venta),
+        }
+        id_tenant = getattr(venta, "id_tenant", None)
+        if isinstance(id_tenant, int):
+            metadatos["id_tenant"] = str(id_tenant)
+        return metadatos
+
+    @staticmethod
+    def _localizar_pago_webhook(db: Session, referencia: str) -> Optional[PagoORM]:
+        """El webhook no trae token (F6): localiza el pago en modo plataforma y, una vez
+        encontrado, fija la empresa del pago y sale del modo plataforma."""
+        fijar_contexto(db, None, plataforma=True)
+        pago = PagoServicio._buscar_pago_por_referencia(db, referencia, bloquear=True)
+        id_tenant = getattr(pago, "id_tenant", None) if pago is not None else None
+        fijar_contexto(db, id_tenant if isinstance(id_tenant, int) else None)
+        return pago
+
+    @staticmethod
     def procesar_webhook_stripe(
         db: Session,
         cuerpo: bytes,
@@ -861,7 +882,7 @@ class PagoServicio:
             return {"recibido": True, "ignorado": True, "motivo": "Sin id de objeto"}
 
         if tipo_evento == "payment_intent.succeeded":
-            pago = PagoServicio._buscar_pago_por_referencia(db, pi_id, bloquear=True)
+            pago = PagoServicio._localizar_pago_webhook(db, pi_id)
             if not pago:
                 logger.info("Webhook: PaymentIntent %s no encontrado en pagos.", pi_id)
                 return {"recibido": True, "encontrado": False, "referencia": pi_id}
@@ -920,7 +941,7 @@ class PagoServicio:
             return {"recibido": True, "estado": "confirmado", "id_pago": pago.id_pago}
 
         elif tipo_evento == "payment_intent.payment_failed":
-            pago = PagoServicio._buscar_pago_por_referencia(db, pi_id, bloquear=True)
+            pago = PagoServicio._localizar_pago_webhook(db, pi_id)
             if not pago:
                 return {"recibido": True, "encontrado": False, "referencia": pi_id}
 

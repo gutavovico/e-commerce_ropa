@@ -1,5 +1,7 @@
 """Esquemas de validacion Pydantic v2 para CU02: Iniciar Sesion (Login)."""
 
+from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -25,6 +27,23 @@ class LoginIn(BaseModel):
         default=False,
         description="Indica si el usuario solicito mantener la sesion prolongada en el cliente",
     )
+    codigo_empresa: Optional[str] = Field(
+        default=None,
+        max_length=60,
+        pattern=r"^[a-z0-9-]{3,60}$",
+        description=(
+            "P2-CU02/RN03: código de la empresa del empleado. Opcional durante la transición "
+            "(spec §1.3): sin él, un empleado entra en la empresa por defecto."
+        ),
+        examples=["fashionstore"],
+    )
+
+
+class TenantSesionOut(BaseModel):
+    """Empresa en la que queda fijada la sesión (P2-CU13)."""
+
+    codigo: str
+    nombre: str
 
 
 class LoginOut(BaseModel):
@@ -59,4 +78,8 @@ class LoginOut(BaseModel):
     rol: str = Field(
         ...,
         description="Rol del usuario (cliente, administrador, encargado_sucursal, etc.)",
+    )
+    tenant: Optional[TenantSesionOut] = Field(
+        default=None,
+        description="Empresa de la sesión; null para el super administrador o un cliente sin empresa",
     )

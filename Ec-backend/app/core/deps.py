@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, joinedload
 from core.database import get_db
 from core.errors import AuthenticationError, AuthorizationError
 from core.security import decode_access_token
+from core.tenant import aplicar_tenant_del_token
 from core.token_blacklist import token_blacklist
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 
@@ -56,6 +57,16 @@ def get_current_user(
         id_usuario = int(sub)
     except (ValueError, TypeError):
         raise AuthenticationError("Identificador de usuario invalido en token", code="TOKEN_INVALIDO")
+
+    # P2-CU13: los tokens llevan la empresa (nula para clientes sin empresa y super administrador).
+    # Un token emitido antes de la fundación multitenant no la lleva: hay que iniciar sesión de nuevo.
+    if "id_tenant" not in payload:
+        raise AuthenticationError(
+            "La sesión pertenece a una versión anterior. Inicie sesión nuevamente.",
+            code="TOKEN_INVALIDO",
+        )
+    # La empresa del token manda (F4); se fija antes de leer `usuarios`, que tiene RLS.
+    aplicar_tenant_del_token(db, payload.get("id_tenant"), id_usuario)
 
     stmt = (
         select(UsuarioORM)
@@ -100,6 +111,13 @@ def get_optional_current_user(
     try:
         id_usuario = int(sub)
     except (ValueError, TypeError):
+        return None
+
+    if "id_tenant" not in payload:
+        return None
+    try:
+        aplicar_tenant_del_token(db, payload.get("id_tenant"), id_usuario)
+    except Exception:
         return None
 
     stmt = (

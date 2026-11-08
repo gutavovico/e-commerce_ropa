@@ -30,6 +30,9 @@ class UsuarioORM(Base):
     """Entidad ORM que mapea la tabla `fashionstore.usuarios`."""
 
     __tablename__ = "usuarios"
+    # P2-CU13 (F1): empresa del empleado; nula para clientes y super administradores
+    # (CHECK chk_usuarios_tenant_segun_rol). Sin valor por defecto a propósito.
+    id_tenant: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     __table_args__ = {"schema": "fashionstore"}
 
     id_usuario: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)

@@ -599,7 +599,8 @@ def test_ac8_actualizar_usuario_rol_operativo_sin_sucursal_422(client):
     admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
     db_mock = MagicMock()
 
-    usuario_target = crear_usuario_mock(id_usuario=5, rol="cliente", id_sucursal=None)
+    # P2-CU13: el cambio se hace entre roles de empleado (un cliente ya no puede pasar a empleado)
+    usuario_target = crear_usuario_mock(id_usuario=5, rol="encargado_sucursal", id_sucursal=None)
     db_mock.scalars.return_value.unique.return_value.first.return_value = usuario_target
 
     app.dependency_overrides[get_db] = lambda: db_mock
@@ -610,6 +611,25 @@ def test_ac8_actualizar_usuario_rol_operativo_sin_sucursal_422(client):
     assert resp.status_code == 422
     assert resp.json()["code"] == "SUCURSAL_REQUERIDA"
     app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("rol_actual, rol_nuevo", [("cliente", "cajero"), ("cajero", "cliente")])
+def test_p2_cu13_cliente_y_empleado_no_se_convierten_409(client, rol_actual, rol_nuevo):
+    """P2-CU13 (RN04, RN05): la cuenta de cliente es global y la de empleado pertenece a una empresa;
+    un usuario no pasa de una a otra (lo impide también la FK compuesta empleados → usuarios)."""
+    admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
+    db_mock = MagicMock()
+    usuario_target = crear_usuario_mock(id_usuario=5, rol=rol_actual, id_sucursal=1 if rol_actual == "cajero" else None)
+    db_mock.scalars.return_value.unique.return_value.first.return_value = usuario_target
+
+    app.dependency_overrides[get_db] = lambda: db_mock
+    app.dependency_overrides[get_current_user] = lambda: admin_sesion
+    try:
+        resp = client.put("/api/v1/admin/usuarios/5", json={"rol": rol_nuevo, "id_sucursal": 1})
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 409
+    assert resp.json()["code"] == "CAMBIO_ROL_NO_PERMITIDO"
 
 
 def test_ac9_actualizar_usuario_email_duplicado_409(client):

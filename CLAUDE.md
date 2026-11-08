@@ -176,8 +176,10 @@ Toda prenda, precio, boutique y existencia debe proceder de PostgreSQL. Está pr
 huecos con literales o *fallbacks* ficticios: la interfaz llegó a ofrecer boutiques y stock que el
 backend rechazaba después. Si la base no tiene datos, la pantalla muestra su estado vacío.
 
-El catálogo es **exclusivamente femenino**: ni prendas, ni modelos, ni imágenes de respaldo
-masculinas. La marca se escribe siempre «FASHION STORE».
+El catálogo de la empresa **FASHION STORE** (los datos actuales) es **exclusivamente femenino**: ni
+prendas, ni modelos, ni imágenes de respaldo masculinas, y la marca se escribe siempre «FASHION STORE».
+Desde el Parcial 2 la regla es **por empresa (tenant)**: la empresa de prueba **Menshopping** es de moda
+masculina (`SI2-Parcial2.md`, RF15). Nunca mezcles el catálogo de una empresa con el de otra.
 
 ---
 

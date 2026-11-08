@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
 from modules.catalogo.modelos import InventarioSucursalORM, SucursalORM, VarianteProductoORM
 from modules.reservas.modelos import MovimientoInventarioORM, ReservaDetalleORM, ReservaORM
+from modules.plataforma.servicio_tenants import TenantServicio
 
 
 class ReservaRepositorio:
@@ -47,6 +48,8 @@ class ReservaRepositorio:
             )
             db.add(cliente)
             db.flush()
+        # P2-CU13: el carrito y la reserva apuntan a `cliente_tenant` (FK compuesta)
+        TenantServicio.exigir_cliente_en_tenant(db, usuario)
         return cliente
 
     @staticmethod

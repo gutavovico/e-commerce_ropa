@@ -295,7 +295,7 @@ def test_endpoints_admin_con_rol_cliente_403(client):
     """AC-1: Endpoints administrativos rechazan rol 'cliente' (HTTP 403)."""
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_cliente_mock()
     try:
-        token_cliente = create_access_token({"sub": "2", "rol": "cliente"})
+        token_cliente = create_access_token({"id_tenant": 1, "sub": "2", "rol": "cliente"})
         headers = {"Authorization": f"Bearer {token_cliente}"}
         for ruta in ["/api/v1/admin/categorias", "/api/v1/admin/tallas", "/api/v1/admin/colores"]:
             resp = client.get(ruta, headers=headers)
@@ -343,7 +343,7 @@ def test_endpoint_admin_crear_categoria_exito_201(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {"nombre": "Vestidos Midi", "id_categoria_padre": None}
         resp = client.post(
             "/api/v1/admin/categorias",
@@ -367,7 +367,7 @@ def test_endpoint_admin_crear_categoria_duplicada_409(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {"nombre": "vestidos", "id_categoria_padre": None}
         resp = client.post(
             "/api/v1/admin/categorias",
@@ -390,7 +390,7 @@ def test_endpoint_admin_actualizar_categoria_referencia_circular_422(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         # Intento de asignarse a si misma como padre
         payload = {"id_categoria_padre": 7}
         resp = client.put(
@@ -416,7 +416,7 @@ def test_endpoint_admin_eliminar_categoria_con_dependencias_409(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         resp = client.delete(
             "/api/v1/admin/categorias/5",
             headers={"Authorization": f"Bearer {token_admin}"},
@@ -439,7 +439,7 @@ def test_endpoint_admin_eliminar_categoria_exito_204(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         resp = client.delete(
             "/api/v1/admin/categorias/5",
             headers={"Authorization": f"Bearer {token_admin}"},
@@ -465,7 +465,7 @@ def test_endpoint_admin_crear_talla_exito_201(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {"codigo": "xxl", "orden": 6}
         resp = client.post(
             "/api/v1/admin/tallas",
@@ -489,7 +489,7 @@ def test_endpoint_admin_crear_talla_duplicada_409(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {"codigo": "S", "orden": 1}
         resp = client.post(
             "/api/v1/admin/tallas",
@@ -512,7 +512,7 @@ def test_endpoint_admin_eliminar_talla_en_uso_409(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         resp = client.delete(
             "/api/v1/admin/tallas/2",
             headers={"Authorization": f"Bearer {token_admin}"},
@@ -537,7 +537,7 @@ def test_endpoint_admin_crear_color_exito_201(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {"nombre": "Verde Oliva", "codigo_hex": "#556B2F"}
         resp = client.post(
             "/api/v1/admin/colores",
@@ -559,7 +559,7 @@ def test_endpoint_admin_crear_color_hex_invalido_422(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {"nombre": "Color Malo", "codigo_hex": "no-es-hex"}
         resp = client.post(
             "/api/v1/admin/colores",
@@ -580,7 +580,7 @@ def test_endpoint_admin_crear_color_duplicado_409(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {"nombre": "rojo", "codigo_hex": "#FF0000"}
         resp = client.post(
             "/api/v1/admin/colores",
@@ -603,7 +603,7 @@ def test_endpoint_admin_eliminar_color_en_uso_409(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         resp = client.delete(
             "/api/v1/admin/colores/5",
             headers={"Authorization": f"Bearer {token_admin}"},
@@ -624,7 +624,7 @@ def test_endpoint_admin_eliminar_color_exito_204(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         resp = client.delete(
             "/api/v1/admin/colores/5",
             headers={"Authorization": f"Bearer {token_admin}"},

@@ -403,7 +403,7 @@ def test_endpoint_admin_productos_rbac_rol_cliente_denegado_403(client):
     """AC-1: Rechazo HTTP 403 si el usuario autenticado tiene rol 'cliente'."""
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_cliente_mock()
     try:
-        token_cliente = create_access_token({"sub": "2", "rol": "cliente"})
+        token_cliente = create_access_token({"id_tenant": 1, "sub": "2", "rol": "cliente"})
         resp = client.get(
             "/api/v1/admin/productos",
             headers={"Authorization": f"Bearer {token_cliente}"},
@@ -422,7 +422,7 @@ def test_endpoint_admin_crear_producto_exito_201(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {
             "nombre": "Blazer Esmoquin Terciopelo",
             "id_categoria": 2,
@@ -451,7 +451,7 @@ def test_endpoint_admin_crear_producto_duplicado_409(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {
             "nombre": "Blazer Esmoquin Terciopelo",
             "id_categoria": 2,
@@ -481,7 +481,7 @@ def test_endpoint_admin_eliminar_producto_con_dependencias_409(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         resp = client.delete(
             "/api/v1/admin/productos/5",
             headers={"Authorization": f"Bearer {token_admin}"},
@@ -502,7 +502,7 @@ def test_endpoint_admin_eliminar_producto_exito_204(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         resp = client.delete(
             "/api/v1/admin/productos/5",
             headers={"Authorization": f"Bearer {token_admin}"},
@@ -530,7 +530,7 @@ def test_endpoint_admin_matriz_variantes_crear_201(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {
             "ids_tallas": [1],
             "ids_colores": [2],
@@ -610,7 +610,7 @@ def test_endpoint_admin_upload_imagen_png_exitoso(client):
 
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         contenido_png = b"\x89PNG\r\n\x1a\n" + b"simulated-png-bytes"
         resp = client.post(
             "/api/v1/admin/productos/upload-imagen",
@@ -637,7 +637,7 @@ def test_endpoint_admin_upload_imagen_jpg_exitoso(client):
 
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         contenido_jpg = b"\xff\xd8\xff\xe0" + b"simulated-jpeg-bytes"
         resp = client.post(
             "/api/v1/admin/productos/upload-imagen",
@@ -660,7 +660,7 @@ def test_endpoint_admin_upload_imagen_formato_no_admitido_400(client):
     """Rechazo con HTTP 400 ante formatos no permitidos (ej. texto plano o PDF)."""
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         resp = client.post(
             "/api/v1/admin/productos/upload-imagen",
             headers={"Authorization": f"Bearer {token_admin}"},
@@ -676,7 +676,7 @@ def test_endpoint_admin_upload_imagen_archivo_vacio_400(client):
     """Rechazo con HTTP 400 ante archivos de 0 bytes."""
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         resp = client.post(
             "/api/v1/admin/productos/upload-imagen",
             headers={"Authorization": f"Bearer {token_admin}"},
@@ -692,7 +692,7 @@ def test_endpoint_admin_upload_imagen_tamano_excedido_400(client):
     """Rechazo con HTTP 400 ante archivos superiores a 5 MB."""
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         # 5 MB + 1 byte
         contenido_pesado = b"X" * (5 * 1024 * 1024 + 1)
         resp = client.post(
@@ -710,7 +710,7 @@ def test_endpoint_admin_upload_imagen_sin_permisos_403(client):
     """Rechazo con HTTP 403 si el usuario autenticado no posee rol administrador."""
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_cliente_mock()
     try:
-        token_cliente = create_access_token({"sub": "2", "rol": "cliente"})
+        token_cliente = create_access_token({"id_tenant": 1, "sub": "2", "rol": "cliente"})
         resp = client.post(
             "/api/v1/admin/productos/upload-imagen",
             headers={"Authorization": f"Bearer {token_cliente}"},

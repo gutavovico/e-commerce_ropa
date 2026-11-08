@@ -17,6 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
+from sqlalchemy.schema import FetchedValue
 
 from core.database import Base
 
@@ -25,6 +26,9 @@ class ProveedorORM(Base):
     """Mapeo de la tabla `fashionstore.proveedores`."""
 
     __tablename__ = "proveedores"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = (
         UniqueConstraint("nit_rut", name="uq_proveedores_nit_rut"),
         UniqueConstraint("razon_social", name="uq_proveedores_razon_social"),

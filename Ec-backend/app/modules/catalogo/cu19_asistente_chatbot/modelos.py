@@ -8,6 +8,7 @@ from typing import Optional
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.schema import FetchedValue
 
 from core.database import Base
 from modules.reservas.modelos import canal_origen_enum
@@ -17,6 +18,9 @@ class InteraccionChatbotORM(Base):
     """Mapeo de la tabla `fashionstore.interacciones_chatbot`."""
 
     __tablename__ = "interacciones_chatbot"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore", "extend_existing": True}
 
     id_interaccion: Mapped[int] = mapped_column(

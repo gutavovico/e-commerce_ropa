@@ -369,7 +369,7 @@ def test_endpoint_admin_ciudades_con_rol_cliente_403(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_cliente_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_cliente = create_access_token({"sub": "2", "rol": "cliente"})
+        token_cliente = create_access_token({"id_tenant": 1, "sub": "2", "rol": "cliente"})
         response = client.get(
             "/api/v1/admin/ciudades",
             headers={"Authorization": f"Bearer {token_cliente}"},
@@ -388,7 +388,7 @@ def test_endpoint_admin_ciudades_con_rol_admin_200(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         response = client.get(
             "/api/v1/admin/ciudades",
             headers={"Authorization": f"Bearer {token_admin}"},
@@ -406,7 +406,7 @@ def test_endpoint_admin_crear_sucursal_horarios_invalidos_422(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         payload = {
             "id_ciudad": 1,
             "nombre": "Sucursal Horario Roto",
@@ -432,7 +432,7 @@ def test_endpoint_admin_listar_sucursales_enriquecidas_200(client):
     app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
     app.dependency_overrides[get_db] = lambda: mock_db
     try:
-        token_admin = create_access_token({"sub": "1", "rol": "administrador"})
+        token_admin = create_access_token({"id_tenant": 1, "sub": "1", "rol": "administrador"})
         response = client.get(
             "/api/v1/admin/sucursales",
             headers={"Authorization": f"Bearer {token_admin}"},

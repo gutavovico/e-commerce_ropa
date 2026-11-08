@@ -65,7 +65,19 @@ if config.config_file_name is not None:
 # URL DE BASE DE DATOS
 # ============================================================================
 
-raw_db_url = str(settings.DATABASE_URL)
+# Las migraciones necesitan al usuario dueño de las tablas (crear tablas, activar RLS, GRANT).
+# Desde la fundación multitenant la aplicación se conecta con un rol sin BYPASSRLS, así que:
+#   - `alembic -x db=pruebas ...` → rama de Neon `pruebas-multitenant` (DATABASE_URL_PRUEBAS)
+#   - por defecto → DATABASE_URL_MIGRACIONES y, si está vacía, DATABASE_URL.
+_destino = context.get_x_argument(as_dictionary=True).get("db")
+if _destino == "pruebas":
+    if not settings.DATABASE_URL_PRUEBAS:
+        raise RuntimeError("Falta DATABASE_URL_PRUEBAS en el entorno para `-x db=pruebas`.")
+    raw_db_url = str(settings.DATABASE_URL_PRUEBAS)
+elif _destino is not None:
+    raise RuntimeError(f"Destino de migración desconocido: {_destino!r} (solo se admite 'pruebas').")
+else:
+    raw_db_url = str(settings.DATABASE_URL_MIGRACIONES or settings.DATABASE_URL)
 
 if raw_db_url.startswith("postgresql://"):
     database_url = raw_db_url.replace(

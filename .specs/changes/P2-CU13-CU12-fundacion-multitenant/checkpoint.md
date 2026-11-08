@@ -1,0 +1,10 @@
+# Checkpoints — Fundación Multitenant (P2-CU13 · P2-CU12)
+
+| Gate | Estado | Condición de paso |
+| :--- | :--- | :--- |
+| 0 — Especificación | 🟢 Aprobada el 2026-11-08 (F14, F15, F16, F19 y F20 explícitamente; resto según la propuesta) | — |
+| 0b — Preparación | 🟢 Completa (2026-11-08) | `fashionstore_app` con `NOBYPASSRLS` en las dos ramas; las 4 conexiones de `.env` verificadas (usuario, rama y conexión), sin mostrar contraseñas |
+| 1 — Base de datos (rama de pruebas) | 🟢 Completo (pendiente de aprobación) | `0012`–`0014` aplicadas en `pruebas-multitenant`; `alembic heads` = `0014` (una cabeza). Aislamiento: 34/34 comprobaciones con el rol `fashionstore_app` y una empresa temporal (sin contexto no ve ni escribe; B no ve ni toca datos de la empresa 1; FK compuestas y `cliente_tenant`; vistas con `security_invoker`; modo plataforma). `downgrade` a `0011` deja el esquema idéntico al original (PK, FK, únicas, índices, nulabilidad y vistas) y sin pérdida de datos; segundo `upgrade` limpio y 34/34 de nuevo. La rama principal sigue en `0011`. `pytest` 567/567. Defecto evitado: `Settings` rechazaba las variables nuevas del `.env` y el backend local no arrancaba; se declararon. |
+| 2 — Backend | 🟢 Completo (pendiente de aprobación) | `pytest` **612/612** (25 unitarias y 18 de integración nuevas; 2 de CU20). Integración contra `pruebas-multitenant` con el rol `fashionstore_app`: RLS, FK compuestas, vistas, cabecera `X-Tenant`, token frente a cabecera, token antiguo, login con `codigo_empresa`, límites del plan por la API y registro de clientes. Humo: 42 GET × 5 perfiles sin ningún 5xx. Extremo a extremo de escrituras (registro, carrito, checkout, reserva, venta y cobro en caja, alta de cajero, login con código, bitácora): 21/21, todo en la empresa 1. `test_esquema_bd` en verde contra la rama migrada. Deltas Δ1–Δ7 en spec.md §B. La rama principal sigue en `0011`. |
+| 3 — Producción | ⏳ Requiere confirmación explícita | Migración en la rama principal + `DATABASE_URL` con el rol de la app + verificación de extremo a extremo |
+| 4 — Cierre | ⏳ | T-CI-01 |

@@ -80,17 +80,17 @@ def usuario_cajero() -> UsuarioORM:
 
 @pytest.fixture
 def token_admin(usuario_admin: UsuarioORM) -> str:
-    return create_access_token({"sub": str(usuario_admin.id_usuario), "rol": usuario_admin.rol})
+    return create_access_token({"id_tenant": 1, "sub": str(usuario_admin.id_usuario), "rol": usuario_admin.rol})
 
 
 @pytest.fixture
 def token_encargado(usuario_encargado: UsuarioORM) -> str:
-    return create_access_token({"sub": str(usuario_encargado.id_usuario), "rol": usuario_encargado.rol})
+    return create_access_token({"id_tenant": 1, "sub": str(usuario_encargado.id_usuario), "rol": usuario_encargado.rol})
 
 
 @pytest.fixture
 def token_cajero(usuario_cajero: UsuarioORM) -> str:
-    return create_access_token({"sub": str(usuario_cajero.id_usuario), "rol": usuario_cajero.rol})
+    return create_access_token({"id_tenant": 1, "sub": str(usuario_cajero.id_usuario), "rol": usuario_cajero.rol})
 
 
 @pytest.fixture

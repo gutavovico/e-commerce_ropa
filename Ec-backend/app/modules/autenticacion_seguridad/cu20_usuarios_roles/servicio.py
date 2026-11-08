@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from core.security import hash_password
 from modules.autenticacion_seguridad.cu20_usuarios_roles.errores import (
+    CambioRolNoPermitidoError,
     AutoModificacionBloqueadaError,
     EmailDuplicadoError,
     SucursalInvalidaError,
@@ -30,6 +31,8 @@ from modules.autenticacion_seguridad.cu20_usuarios_roles.esquemas import (
 )
 from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
 from modules.gestion_operativa.modelos import SucursalORM
+from modules.plataforma.cu12_validar_suscripcion.servicio import SuscripcionServicio
+from modules.plataforma.servicio_tenants import TenantServicio, es_rol_sin_empresa
 
 
 #: Roles de personal: su usuario debe tener ficha en `fashionstore.empleados`, porque
@@ -99,8 +102,15 @@ class ServicioGestionUsuarios:
         """Crea una nueva cuenta de usuario con credenciales seguras y validacion de roles."""
         email_norm = datos.email.strip().lower()
 
-        # 1. Comprobar unicidad de correo electronico
-        stmt_dup = select(UsuarioORM).where(func.lower(UsuarioORM.email) == email_norm)
+        # P2-CU13: un empleado pertenece a la empresa de la sesión; un cliente no pertenece a ninguna
+        id_tenant = TenantServicio.empresa_para_rol(db, datos.rol)
+
+        # 1. Comprobar unicidad de correo electronico (RN05, F8): entre los empleados de la empresa
+        #    o entre las cuentas globales, según el rol
+        stmt_dup = select(UsuarioORM).where(
+            func.lower(UsuarioORM.email) == email_norm,
+            UsuarioORM.id_tenant.is_(None) if id_tenant is None else UsuarioORM.id_tenant == id_tenant,
+        )
         if db.scalars(stmt_dup).first():
             raise EmailDuplicadoError(
                 f"El correo electronico '{datos.email}' ya se encuentra registrado en el sistema."
@@ -115,6 +125,10 @@ class ServicioGestionUsuarios:
                 raise SucursalInvalidaError(
                     "La sucursal seleccionada no existe o se encuentra inactiva."
                 )
+
+        # P2-CU12: límite de empleados del plan (F17)
+        if not es_rol_sin_empresa(datos.rol):
+            SuscripcionServicio.validar(db, recurso="empleados")
 
         # 3. Hashing de contrasena
         hashed_password = hash_password(datos.password)
@@ -134,19 +148,24 @@ class ServicioGestionUsuarios:
             telefono=datos.telefono,
             rol=datos.rol.value,
             id_sucursal=id_sucursal,
+            id_tenant=id_tenant,
             activo=True,
             fecha_registro=datetime.now(timezone.utc),
         )
         db.add(usuario)
         db.flush()
         asegurar_ficha_empleado(db, usuario.id_usuario, datos.rol.value)
+        TenantServicio.sincronizar_sucursal_principal(db, usuario.id_usuario, id_sucursal)
         db.commit()
         db.refresh(usuario)
 
-        # Si el rol es cliente, instanciar perfil base en fashionstore.clientes
+        # Si el rol es cliente, instanciar perfil base en fashionstore.clientes y registrarlo en la
+        # empresa de la sesión (F9)
         if datos.rol == RolUsuarioEnum.CLIENTE:
             cliente = ClienteORM(id_cliente=usuario.id_usuario)
             db.add(cliente)
+            db.flush()
+            TenantServicio.registrar_cliente(db, usuario.id_usuario)
             db.commit()
             db.refresh(usuario)
 
@@ -240,6 +259,9 @@ class ServicioGestionUsuarios:
             stmt_dup = select(UsuarioORM).where(
                 func.lower(UsuarioORM.email) == email_norm,
                 UsuarioORM.id_usuario != id_usuario,
+                UsuarioORM.id_tenant.is_(None)
+                if getattr(usuario, "id_tenant", None) is None
+                else UsuarioORM.id_tenant == usuario.id_tenant,
             )
             if db.scalars(stmt_dup).first():
                 raise EmailDuplicadoError(
@@ -277,6 +299,9 @@ class ServicioGestionUsuarios:
 
         # Validar y asignar rol y sucursal
         target_rol = datos.rol.value if datos.rol is not None else str(usuario.rol)
+        # P2-CU13: cliente (cuenta global) y empleado (cuenta de una empresa) no se convierten
+        if es_rol_sin_empresa(target_rol) != es_rol_sin_empresa(usuario.rol):
+            raise CambioRolNoPermitidoError()
         if target_rol in ("encargado_sucursal", "cajero"):
             target_sucursal = (
                 datos.id_sucursal if datos.id_sucursal is not None else usuario.id_sucursal
@@ -305,6 +330,9 @@ class ServicioGestionUsuarios:
         if datos.rol is not None:
             usuario.rol = datos.rol.value
             asegurar_ficha_empleado(db, usuario.id_usuario, datos.rol.value)
+        if not es_rol_sin_empresa(target_rol):
+            db.flush()
+            TenantServicio.sincronizar_sucursal_principal(db, usuario.id_usuario, usuario.id_sucursal)
 
         db.commit()
         db.refresh(usuario)

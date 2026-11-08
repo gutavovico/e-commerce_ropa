@@ -10,6 +10,7 @@ from modules.autenticacion_seguridad.cu01_registrarse.esquemas import (
     RegistroClienteOut,
 )
 from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
+from modules.plataforma.servicio_tenants import TenantServicio
 
 
 class ServicioRegistroUsuario:
@@ -28,9 +29,12 @@ class ServicioRegistroUsuario:
         Raises:
             ConflictError: Si el correo electronico ya se encuentra registrado.
         """
-        # 1. Normalizar y verificar unicidad de email
+        # 1. Normalizar y verificar unicidad de email entre las cuentas globales (RN05, F8):
+        #    un empleado puede tener, con el mismo correo, una cuenta de cliente aparte.
         email_normalizado = str(datos.email).strip().lower()
-        stmt = select(UsuarioORM).where(UsuarioORM.email == email_normalizado)
+        stmt = select(UsuarioORM).where(
+            UsuarioORM.email == email_normalizado, UsuarioORM.id_tenant.is_(None)
+        )
         usuario_existente = db.scalars(stmt).first()
 
         if usuario_existente is not None:
@@ -63,6 +67,9 @@ class ServicioRegistroUsuario:
             acepta_marketing=True,
         )
         db.add(nuevo_cliente)
+        db.flush()
+        # P2-CU13 (F9): el cliente queda registrado en la empresa del portal por el que se registra
+        id_tenant = TenantServicio.registrar_cliente(db, nuevo_usuario.id_usuario)
         db.commit()
         db.refresh(nuevo_usuario)
 
@@ -71,6 +78,7 @@ class ServicioRegistroUsuario:
             "sub": str(nuevo_usuario.id_usuario),
             "email": nuevo_usuario.email,
             "rol": nuevo_usuario.rol,
+            "id_tenant": id_tenant,
         }
         token_acceso = create_access_token(data=payload_token)
 

@@ -253,8 +253,9 @@ class ServicioBitacoraAuditoria:
                 )
                 audit_session.add(nuevo)
                 if es_autonoma:
+                    # Sin refresh: con RLS (P2-CU13) un evento sin empresa no se puede releer fuera
+                    # del modo plataforma, y el objeto no se usa después.
                     audit_session.commit()
-                    audit_session.refresh(nuevo)
                 else:
                     audit_session.flush()
                 return nuevo

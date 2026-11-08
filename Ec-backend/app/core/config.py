@@ -25,6 +25,17 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     JWT_SECRET: str
 
+    # --- Conexiones adicionales (P2-CU13, fundación multitenant) ---
+    # Migraciones: usuario dueño de las tablas. Si está vacía, Alembic usa DATABASE_URL.
+    DATABASE_URL_MIGRACIONES: str = ""
+    # Rama de Neon `pruebas-multitenant`: como dueño (migraciones de ensayo) y con el rol de la
+    # aplicación (pruebas de aislamiento). Si faltan, esas pruebas se saltan.
+    DATABASE_URL_PRUEBAS: str = ""
+    DATABASE_URL_PRUEBAS_APP: str = ""
+    # Modo de transición (spec §1.3): empresa de las peticiones sin token ni cabecera X-Tenant y del
+    # login de empleados sin código de empresa. P2-CU02 la elimina.
+    TENANT_POR_DEFECTO: str = "fashionstore"
+
     # --- Opcionales (con default) ---
     JWT_EXPIRE_MINUTES: int = 1440
     CORS_ORIGINS: list[str] | str = ["http://localhost:4200"]

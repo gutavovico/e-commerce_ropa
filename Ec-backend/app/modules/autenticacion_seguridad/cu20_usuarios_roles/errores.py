@@ -78,3 +78,18 @@ class UsuarioConDependenciasError(ConflictError):
         code: str = "USUARIO_CON_DEPENDENCIAS",
     ):
         super().__init__(message=message, code=code)
+
+
+class CambioRolNoPermitidoError(ConflictError):
+    """P2-CU13 (RN04, RN05): las cuentas de cliente (globales) y de empleado (de una empresa) son
+    distintas; un usuario no pasa de una a otra (HTTP 409)."""
+
+    def __init__(
+        self,
+        message: str = (
+            "Un cliente no puede convertirse en empleado ni un empleado en cliente: "
+            "cree una cuenta nueva con el rol deseado."
+        ),
+        code: str = "CAMBIO_ROL_NO_PERMITIDO",
+    ):
+        super().__init__(message=message, code=code)

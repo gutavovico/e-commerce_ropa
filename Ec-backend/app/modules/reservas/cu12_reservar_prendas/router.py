@@ -15,6 +15,8 @@ from modules.reservas.cu12_reservar_prendas.esquemas import (
 from modules.reservas.cu12_reservar_prendas.repositorio import ReservaRepositorio
 from modules.reservas.cu12_reservar_prendas.servicio import ReservaServicio
 
+from modules.plataforma.cu12_validar_suscripcion.dependencias import requiere_funcionalidad
+
 router = APIRouter(tags=["Reservas en Boutique"])
 
 
@@ -22,6 +24,7 @@ router = APIRouter(tags=["Reservas en Boutique"])
     "/reservas",
     response_model=ReservaCreadaOut,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(requiere_funcionalidad("reservas"))],
     summary="Reservar cita de prueba presencial en boutique",
     description="Crea una cita de prueba en la boutique seleccionada, aparta las prendas y audita el movimiento físico.",
 )

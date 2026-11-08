@@ -9,6 +9,7 @@ from typing import Any, Optional
 from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.schema import FetchedValue
 
 from core.database import Base
 
@@ -17,6 +18,8 @@ class Bitacora(Base):
     """Entidad inmutable de registro de eventos de auditoria y trazabilidad."""
 
     __tablename__ = "bitacora"
+    # P2-CU13: empresa del evento; nula para eventos de plataforma. Por defecto, la del contexto.
+    id_tenant: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore"}
 
     id_bitacora: Mapped[int] = mapped_column(

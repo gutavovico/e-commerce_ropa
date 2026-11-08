@@ -29,6 +29,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.schema import FetchedValue
 
 from core.database import Base
 from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
@@ -103,6 +104,9 @@ class EmpleadoORM(Base):
     """Mapeo de la tabla `fashionstore.empleados`."""
 
     __tablename__ = "empleados"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore", "extend_existing": True}
 
     id_empleado: Mapped[int] = mapped_column(
@@ -124,6 +128,9 @@ class VentaORM(Base):
     """Mapeo de la tabla `fashionstore.ventas`."""
 
     __tablename__ = "ventas"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore", "extend_existing": True}
 
     id_venta: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -209,6 +216,9 @@ class VentaDetalleORM(Base):
     """Mapeo de la tabla `fashionstore.venta_detalle`."""
 
     __tablename__ = "venta_detalle"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore", "extend_existing": True}
 
     id_venta_detalle: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -256,6 +266,9 @@ class PagoORM(Base):
     """
 
     __tablename__ = "pagos"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore", "extend_existing": True}
 
     id_pago: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -281,6 +294,9 @@ class ReservaORM(Base):
     """Mapeo de la tabla `fashionstore.reservas`."""
 
     __tablename__ = "reservas"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore", "extend_existing": True}
 
     id_reserva: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -331,6 +347,9 @@ class ReservaDetalleORM(Base):
     """Mapeo de la tabla `fashionstore.reserva_detalle`."""
 
     __tablename__ = "reserva_detalle"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore", "extend_existing": True}
 
     id_reserva_detalle: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)

@@ -13,6 +13,8 @@ from modules.compras_pagos.cu15_comprar_plataforma.esquemas import (
 )
 from modules.compras_pagos.cu15_comprar_plataforma.servicio import CheckoutServicio
 
+from modules.plataforma.cu12_validar_suscripcion.dependencias import requiere_funcionalidad
+
 router = APIRouter(tags=["Compras y Pagos"])
 
 
@@ -20,6 +22,7 @@ router = APIRouter(tags=["Compras y Pagos"])
     "/ventas/checkout",
     response_model=VentaCreadaOut,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(requiere_funcionalidad("ventas"))],
     summary="Tramitar el pedido",
     description=(
         "Convierte la bolsa en una venta formal en estado 'pendiente': congela precios, aplica "

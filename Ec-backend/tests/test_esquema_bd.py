@@ -27,7 +27,11 @@ ESQUEMA = "fashionstore"
 
 
 def _leer_database_url() -> str | None:
-    """Lee DATABASE_URL directamente del archivo .env.
+    """Lee la URL de la base que se compara con el ORM directamente del archivo .env.
+
+    Prioridad: `DATABASE_URL_PRUEBAS` (rama de Neon con las migraciones más recientes, usada
+    mientras un cambio de esquema se ensaya antes de producción; P2-CU13) y, si no existe,
+    `DATABASE_URL`. Ambas pueden apuntar a la misma rama cuando producción está al día.
 
     No se usa `os.environ` a propósito: `tests/conftest.py` define un valor de marcador
     apuntando a un localhost inexistente, que enmascararía la ausencia de configuración real.
@@ -35,12 +39,13 @@ def _leer_database_url() -> str | None:
     if not ARCHIVO_ENV.is_file():
         return None
 
+    valores = {}
     for linea in ARCHIVO_ENV.read_text(encoding="utf-8").splitlines():
         linea = linea.strip()
-        if linea.startswith("DATABASE_URL="):
-            valor = linea.split("=", 1)[1].strip().strip("\"'")
-            return valor or None
-    return None
+        for clave in ("DATABASE_URL_PRUEBAS", "DATABASE_URL"):
+            if linea.startswith(f"{clave}="):
+                valores[clave] = linea.split("=", 1)[1].strip().strip("\"'") or None
+    return valores.get("DATABASE_URL_PRUEBAS") or valores.get("DATABASE_URL")
 
 
 DATABASE_URL = _leer_database_url()

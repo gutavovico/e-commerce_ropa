@@ -83,6 +83,9 @@ class CategoriaORM(Base):
     """Mapeo de la tabla `fashionstore.categorias`."""
 
     __tablename__ = "categorias"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore"}
 
     id_categoria: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -104,6 +107,9 @@ class TemporadaORM(Base):
     """Mapeo de la tabla `fashionstore.temporadas`."""
 
     __tablename__ = "temporadas"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = (
         CheckConstraint("fecha_fin > fecha_inicio", name="chk_temporadas_fechas_orden"),
         CheckConstraint("anio >= 2020", name="chk_temporadas_anio_valido"),
@@ -148,6 +154,9 @@ class ColeccionORM(Base):
     """Mapeo de la tabla `fashionstore.colecciones`."""
 
     __tablename__ = "colecciones"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = (
         UniqueConstraint("id_temporada", "nombre", name="uq_colecciones_temporada_nombre"),
         {"schema": "fashionstore", "extend_existing": True},
@@ -209,6 +218,9 @@ class ProductoORM(Base):
     """Mapeo de la tabla `fashionstore.productos`."""
 
     __tablename__ = "productos"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore"}
 
     id_producto: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -244,6 +256,9 @@ class VarianteProductoORM(Base):
     """Mapeo de la tabla `fashionstore.variantes_producto`."""
 
     __tablename__ = "variantes_producto"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = (
         UniqueConstraint("id_producto", "id_talla", "id_color", name="uq_variante_producto_talla_color"),
         {"schema": "fashionstore"},
@@ -283,6 +298,9 @@ class InventarioSucursalORM(Base):
     """Mapeo de la tabla `fashionstore.inventario_sucursal`."""
 
     __tablename__ = "inventario_sucursal"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = (
         UniqueConstraint("id_sucursal", "id_variante", "id_temporada", name="uq_inventario_sucursal_variante_temporada"),
         CheckConstraint("cantidad_disponible >= 0", name="chk_inventario_disponible_positivo"),
@@ -344,6 +362,9 @@ class RecomendacionIAORM(Base):
     """Mapeo de la tabla `fashionstore.recomendaciones_ia`."""
 
     __tablename__ = "recomendaciones_ia"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = {"schema": "fashionstore", "extend_existing": True}
 
     id_recomendacion: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)

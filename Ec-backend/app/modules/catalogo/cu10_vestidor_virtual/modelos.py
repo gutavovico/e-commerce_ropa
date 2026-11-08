@@ -16,6 +16,7 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.schema import FetchedValue
 
 from core.database import Base
 
@@ -24,6 +25,9 @@ class SesionVestidorORM(Base):
     """Mapeo de la tabla `fashionstore.sesiones_vestidor_virtual`."""
 
     __tablename__ = "sesiones_vestidor_virtual"
+    # P2-CU13 (F2): empresa de la fila; si el código no la indica, la pone PostgreSQL
+    # con el contexto de la transacción (`app.id_tenant`).
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
     __table_args__ = (
         CheckConstraint("motor IN ('local', 'ia')", name="chk_sesiones_ar_motor"),
         CheckConstraint(

@@ -253,7 +253,7 @@ def test_endpoint_get_perfil_200_ok():
 
     # Token firmado con el helper del sistema
     token = create_access_token(
-        data={"sub": str(usuario.id_usuario), "email": usuario.email, "rol": "cliente"}
+        data={"id_tenant": 1, "sub": str(usuario.id_usuario), "email": usuario.email, "rol": "cliente"}
     )
 
     mock_scalar_result = MagicMock()
@@ -304,7 +304,7 @@ def test_endpoint_patch_perfil_200_ok():
     usuario.cliente = cliente
 
     token = create_access_token(
-        data={"sub": str(usuario.id_usuario), "email": usuario.email, "rol": "cliente"}
+        data={"id_tenant": 1, "sub": str(usuario.id_usuario), "email": usuario.email, "rol": "cliente"}
     )
 
     mock_scalar_result = MagicMock()
@@ -365,7 +365,7 @@ def test_endpoint_get_perfil_403_rol_no_cliente():
     )
 
     token = create_access_token(
-        data={"sub": str(usuario_admin.id_usuario), "email": usuario_admin.email, "rol": "administrador"}
+        data={"id_tenant": 1, "sub": str(usuario_admin.id_usuario), "email": usuario_admin.email, "rol": "administrador"}
     )
 
     mock_scalar_result = MagicMock()
@@ -397,7 +397,7 @@ def test_endpoint_patch_perfil_422_talla_invalida():
     usuario.cliente = ClienteORM(id_cliente=8402)
 
     token = create_access_token(
-        data={"sub": str(usuario.id_usuario), "email": usuario.email, "rol": "cliente"}
+        data={"id_tenant": 1, "sub": str(usuario.id_usuario), "email": usuario.email, "rol": "cliente"}
     )
 
     mock_scalar_result = MagicMock()

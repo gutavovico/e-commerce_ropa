@@ -7,10 +7,12 @@
 
 from collections.abc import Generator
 
+from fastapi import Request
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from core.config import settings
+from core.tenant import CABECERA_TENANT, preparar_sesion
 
 
 class Base(DeclarativeBase):
@@ -70,11 +72,16 @@ SessionLocal = sessionmaker(
 # DEPENDENCIA DE FASTAPI
 # ============================================================================
 
-def get_db() -> Generator[Session, None, None]:
-    """Provee una sesión por request y la cierra al finalizar."""
+def get_db(request: Request) -> Generator[Session, None, None]:
+    """Provee una sesión por request, ya ligada a su empresa (P2-CU13), y la cierra al finalizar.
+
+    La empresa sale de la cabecera `X-Tenant` o, en el modo de transición, de
+    `TENANT_POR_DEFECTO`; `get_current_user` la sustituye después por la del token.
+    """
     db = SessionLocal()
 
     try:
+        preparar_sesion(db, request.headers.get(CABECERA_TENANT), settings.TENANT_POR_DEFECTO)
         yield db
     finally:
         db.close()
