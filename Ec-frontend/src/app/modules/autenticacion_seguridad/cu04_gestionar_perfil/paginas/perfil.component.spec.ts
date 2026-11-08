@@ -1,3 +1,4 @@
+import { entrarEnTienda } from '../../../../core/tenant/tenant.testing';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
@@ -118,6 +119,7 @@ describe('PerfilComponent (CU04 + CU17)', () => {
         { provide: MisReservasService, useValue: mockMisReservasService },
       ],
     }).compileComponents();
+    entrarEnTienda(); // P2-CU02: dentro del portal de FASHION STORE
 
     router = TestBed.inject(Router);
     vi.spyOn(router, 'navigate').mockImplementation(() => Promise.resolve(true));
@@ -151,7 +153,7 @@ describe('PerfilComponent (CU04 + CU17)', () => {
     const comp = fixture.componentInstance;
     comp.cerrarSesion();
     expect(mockLoginService.cerrarSesion).toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith(['/login']);
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'fashionstore', 'login']);
   });
 
   it('carga el resumen de reservas al iniciar', () => {
@@ -178,7 +180,7 @@ describe('PerfilComponent (CU04 + CU17)', () => {
     expect(compiled.textContent).not.toContain('3 Artículos seleccionados');
     expect(compiled.textContent).not.toContain('IR AL CHECKOUT');
 
-    const enlace = compiled.querySelector('a[routerLink="/reservas"]');
+    const enlace = compiled.querySelector('a[href="/fashionstore/reservas"]');
     expect(enlace).not.toBeNull();
   });
 

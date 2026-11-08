@@ -1,6 +1,9 @@
 /**
  * DTOs para el caso de uso CU02: Iniciar Sesión (FashionStore Web).
+ * P2-CU02: el login es solo con correo y contraseña; la respuesta trae la empresa del empleado
+ * (`tenant`) y las tiendas del cliente (`empresas`).
  */
+import { EmpresaPublica } from '../../../../core/tenant/tenant.models';
 
 export interface LoginPeticion {
   email: string;
@@ -17,6 +20,10 @@ export interface LoginRespuesta {
   apellidos: string;
   rol: string;
   id_sucursal?: number | null;
+  /** Empresa del empleado; null para clientes y super administrador. */
+  tenant?: EmpresaPublica | null;
+  /** Tiendas disponibles en las que está registrado el cliente; vacía para empleados. */
+  empresas?: EmpresaPublica[];
 }
 
 export interface UsuarioSesion {
@@ -27,6 +34,8 @@ export interface UsuarioSesion {
   rol: string;
   token: string;
   id_sucursal?: number | null;
+  /** Empresa del empleado (P2-CU02). */
+  tenant?: EmpresaPublica | null;
 }
 
 export interface ErrorApiLogin {

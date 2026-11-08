@@ -16,10 +16,10 @@
       </button>
 
       <a
-        routerLink="/inicio"
+        [routerLink]="'/inicio' | rutaPortal"
         class="text-sm font-semibold tracking-[0.25em] uppercase hover:opacity-80 transition-opacity"
       >
-        FASHION STORE
+        <app-marca-tienda />
       </a>
 
       <div class="flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-[#666666]">
@@ -184,7 +184,7 @@
           </p>
         </div>
         <a
-          routerLink="/catalogo"
+          [routerLink]="'/catalogo' | rutaPortal"
           class="inline-block px-8 py-3 bg-black text-white text-[11px] font-medium tracking-[0.18em] uppercase rounded hover:bg-[#222222] transition-colors"
         >
           Explorar el catálogo

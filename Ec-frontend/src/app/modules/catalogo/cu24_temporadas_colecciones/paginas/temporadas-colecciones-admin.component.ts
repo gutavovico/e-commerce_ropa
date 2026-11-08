@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
 /**
  * Componente de Gestion Administrativa para CU24: Gestionar temporadas y colecciones.
  * Nomenclatura oficial: "Gestionar temporadas y colecciones"
@@ -56,7 +57,7 @@ export const validadorRangoFechas: ValidatorFn = (
 @Component({
   selector: 'app-temporadas-colecciones-admin',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [MarcaTiendaComponent, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './temporadas-colecciones-admin.component.html',
   styleUrls: ['./temporadas-colecciones-admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

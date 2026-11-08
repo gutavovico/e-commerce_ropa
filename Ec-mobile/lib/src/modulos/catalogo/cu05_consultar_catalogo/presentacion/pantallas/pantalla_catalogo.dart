@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../datos/modelos/catalogo_dto.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/catalogo_bloc.dart';
+import '../../../../../core/empresa_actual.dart';
 
 /// Pantalla Principal del Catálogo de Prendas (CU05) para FashionStore Móvil.
 ///
@@ -109,8 +110,8 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
       backgroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
-      title: const Text(
-        'FASHION STORE',
+      title: Text(
+        EmpresaActual.instancia.marca,
         style: TextStyle(
           color: Colors.black,
           fontSize: 13,

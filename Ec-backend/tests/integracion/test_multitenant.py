@@ -1,6 +1,7 @@
 """Pruebas de integración de la fundación multitenant contra PostgreSQL real (RNF11).
 
-Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.5 (decisión F18).
+Specs: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.5 (decisión F18) y
+`.specs/changes/P2-CU02-CU01-acceso-por-empresa/spec.md` §A.6 (requiere la migración 0015).
 
 Se ejecutan en la rama de Neon `pruebas-multitenant` conectando con el rol de la aplicación
 (`fashionstore_app`, sin BYPASSRLS), que es lo que hace cumplir la seguridad por filas. Requieren en
@@ -90,7 +91,7 @@ def mundo(motor):
     def get_db_prueba(request: Request):
         sesion = Session(bind=conexion, join_transaction_mode="create_savepoint")
         try:
-            preparar_sesion(sesion, request.headers.get(CABECERA_TENANT), "fashionstore")
+            preparar_sesion(sesion, request.headers.get(CABECERA_TENANT))
             yield sesion
         finally:
             sesion.close()
@@ -192,8 +193,15 @@ def test_un_cliente_solo_opera_donde_esta_registrado(mundo):
 
 # --------------------------------------------------------------------------------- API (§A.5)
 
-def test_transicion_sin_token_ni_cabecera_ve_fashion_store(mundo):
+def test_sin_token_ni_cabecera_no_se_ve_ninguna_empresa(mundo):
+    # P2-CU02: ya no hay empresa por defecto
     respuesta = mundo["cliente"].get("/api/v1/productos")
+    assert respuesta.status_code == 200
+    assert _total(respuesta) == 0
+
+
+def test_el_portal_de_fashion_store_ve_su_catalogo(mundo):
+    respuesta = mundo["cliente"].get("/api/v1/productos", headers={CABECERA_TENANT: "fashionstore"})
     assert respuesta.status_code == 200
     assert _total(respuesta) > 0
 
@@ -222,22 +230,40 @@ def test_recurso_de_otra_empresa_responde_404(mundo):
     assert respuesta.status_code == 404
 
 
-def test_login_con_codigo_de_empresa(mundo):
-    respuesta = mundo["cliente"].post("/api/v1/autenticacion/login", json={
-        "email": "admin@empresa-b.com", "password": CLAVE_PRUEBA, "codigo_empresa": "pruebas-b",
-    })
+def test_login_de_empleado_solo_con_correo_y_contrasena(mundo):
+    # P2-CU02 A1: la cuenta determina la empresa, aunque el login llegue desde otro portal
+    respuesta = mundo["cliente"].post(
+        "/api/v1/autenticacion/login",
+        json={"email": "admin@empresa-b.com", "password": CLAVE_PRUEBA},
+        headers={CABECERA_TENANT: "fashionstore"},
+    )
     assert respuesta.status_code == 200, respuesta.text
     cuerpo = respuesta.json()
     assert cuerpo["tenant"] == {"codigo": "pruebas-b", "nombre": "Empresa B"}
+    assert cuerpo["empresas"] == []
     from core.security import decode_access_token
     assert decode_access_token(cuerpo["access_token"])["id_tenant"] == mundo["id_b"]
 
 
-def test_login_sin_codigo_no_encuentra_empleados_de_otra_empresa(mundo):
+def test_login_de_empleado_con_suscripcion_vencida_403(mundo):
+    c = mundo["conexion"]
+    _contexto(c, plataforma=True)
+    c.execute(text("UPDATE fashionstore.suscripciones SET fecha_inicio = current_date - 60, "
+                   "fecha_vencimiento = current_date - 1 WHERE id_tenant = :t"), {"t": mundo["id_b"]})
+    _contexto(c)
     respuesta = mundo["cliente"].post("/api/v1/autenticacion/login", json={
         "email": "admin@empresa-b.com", "password": CLAVE_PRUEBA,
     })
-    assert respuesta.status_code == 401  # la empresa por defecto es fashionstore
+    assert respuesta.status_code == 403
+    assert respuesta.json()["code"] == "SUSCRIPCION_NO_VIGENTE"
+
+
+def test_login_con_correo_inexistente_401(mundo):
+    respuesta = mundo["cliente"].post("/api/v1/autenticacion/login", json={
+        "email": "nadie@empresa-b.com", "password": CLAVE_PRUEBA,
+    })
+    assert respuesta.status_code == 401
+    assert respuesta.json()["code"] == "CREDENCIALES_INVALIDAS"
 
 
 # --------------------------------------------------------------------------------- P2-CU12
@@ -294,3 +320,126 @@ def test_un_empleado_puede_usar_el_carrito_en_su_propia_empresa(mundo):
     # El encargado 13 no tenía ficha de cliente: se crea y se registra en su empresa (comportamiento previo).
     respuesta = mundo["cliente"].get("/api/v1/carrito", headers=_token(13, "encargado_sucursal", 1))
     assert respuesta.status_code == 200, respuesta.text
+
+
+# --------------------------------------------------------------------------------- P2-CU02 (0015)
+
+def test_cuenta_por_email_encuentra_empleados_de_cualquier_empresa_sin_contexto(mundo):
+    c = mundo["conexion"]
+    _contexto(c)
+    resultado = c.execute(text("SELECT * FROM fashionstore.cuenta_por_email('ADMIN@empresa-b.com')"))
+    assert list(resultado.keys()) == ["id_usuario", "id_tenant"]  # solo dos columnas (A11)
+    assert resultado.all() == [(mundo["admin_b"], mundo["id_b"])]
+
+
+def test_el_correo_es_unico_en_toda_la_plataforma(mundo):
+    c = mundo["conexion"]
+    _contexto(c, tenant=1)
+    error = _falla(c, "INSERT INTO fashionstore.usuarios (email, password_hash, nombres, apellidos, rol, activo, id_tenant) "
+                      "VALUES ('Admin@Empresa-B.com', 'x', 'Otro', 'Admin', 'cajero', true, 1)")
+    assert error and "uq_usuarios_email" in error
+
+
+def test_empresas_disponibles_excluye_las_suspendidas(mundo):
+    c = mundo["conexion"]
+    _contexto(c)
+    codigos = lambda: {f[0] for f in c.execute(text("SELECT codigo FROM fashionstore.empresas_disponibles()"))}
+    assert {"fashionstore", "pruebas-b"} <= codigos()
+    _contexto(c, plataforma=True)
+    c.execute(text("UPDATE fashionstore.tenants SET estado = 'suspendida' WHERE id_tenant = :t"), {"t": mundo["id_b"]})
+    _contexto(c)
+    assert "pruebas-b" not in codigos()
+
+
+def test_codigo_de_empresa_reservado(mundo):
+    c = mundo["conexion"]
+    _contexto(c, plataforma=True)
+    error = _falla(c, "INSERT INTO fashionstore.tenants (codigo, nombre) VALUES ('admin', 'Intrusa')")
+    assert error and "chk_tenants_codigo_reservado" in error
+
+
+def test_directorio_y_portal(mundo):
+    cliente = mundo["cliente"]
+    directorio = cliente.get("/api/v1/tenants")
+    assert directorio.status_code == 200
+    assert {"codigo": "pruebas-b", "nombre": "Empresa B"} in directorio.json()
+    assert cliente.get("/api/v1/tenants/pruebas-b").json() == {"codigo": "pruebas-b", "nombre": "Empresa B"}
+    assert cliente.get("/api/v1/tenants/no-existe").status_code == 404
+
+
+def test_flujo_del_cliente_entre_dos_tiendas(mundo):
+    cliente = mundo["cliente"]
+    datos = {"email": "clienta.p2cu02@ejemplo.com", "password": CLAVE_PRUEBA, "nombres": "Clienta", "apellidos": "Prueba"}
+
+    # Registro desde el portal de FASHION STORE: cuenta global registrada en esa tienda
+    registro = cliente.post("/api/v1/autenticacion/registrarse", json=datos, headers={CABECERA_TENANT: "fashionstore"})
+    assert registro.status_code == 201, registro.text
+    from core.security import decode_access_token
+    assert decode_access_token(registro.json()["token_acceso"])["id_tenant"] is None  # A10
+
+    # Correo repetido → 409, también si es el de un empleado de otra empresa
+    repetido = cliente.post("/api/v1/autenticacion/registrarse", json={**datos, "email": "admin@empresa-b.com"})
+    assert repetido.status_code == 409
+
+    login = cliente.post("/api/v1/autenticacion/login", json={"email": datos["email"], "password": CLAVE_PRUEBA})
+    assert login.status_code == 200, login.text
+    assert login.json()["tenant"] is None
+    assert login.json()["empresas"] == [{"codigo": "fashionstore", "nombre": "FASHION STORE"}]
+    auth = {"Authorization": "Bearer " + login.json()["access_token"]}
+
+    # En la tienda B todavía no puede comprar
+    carrito_b = cliente.get("/api/v1/carrito", headers={**auth, CABECERA_TENANT: "pruebas-b"})
+    assert carrito_b.status_code == 403
+    assert carrito_b.json()["code"] == "CLIENTE_NO_REGISTRADO"
+
+    # «Registrarme en esta tienda» (idempotente)
+    alta = cliente.post("/api/v1/mis-empresas", headers={**auth, CABECERA_TENANT: "pruebas-b"})
+    assert alta.status_code == 201, alta.text
+    assert alta.json() == {"empresa": {"codigo": "pruebas-b", "nombre": "Empresa B"}, "registrado_ahora": True}
+    otra_vez = cliente.post("/api/v1/mis-empresas", headers={**auth, CABECERA_TENANT: "pruebas-b"})
+    assert otra_vez.status_code == 200
+    assert otra_vez.json()["registrado_ahora"] is False
+
+    mias = cliente.get("/api/v1/mis-empresas", headers=auth)
+    assert {e["codigo"] for e in mias.json()} == {"fashionstore", "pruebas-b"}
+
+    # Ya puede usar el carrito en B con el mismo token (cambio de tienda sin contraseña, CU02 A7)
+    assert cliente.get("/api/v1/carrito", headers={**auth, CABECERA_TENANT: "pruebas-b"}).status_code == 200
+    assert cliente.get("/api/v1/carrito", headers={**auth, CABECERA_TENANT: "fashionstore"}).status_code == 200
+
+
+def test_registrarse_en_tienda_sin_cabecera_y_como_empleado(mundo):
+    cliente = mundo["cliente"]
+    sin_tienda = cliente.post("/api/v1/mis-empresas", headers=_token(2, "cliente", None))
+    assert sin_tienda.status_code == 400
+    assert sin_tienda.json()["code"] == "TENANT_REQUERIDO"
+    empleado = cliente.post("/api/v1/mis-empresas", headers={**_token(14, "cajero", 1), CABECERA_TENANT: "fashionstore"})
+    assert empleado.status_code == 403
+    assert empleado.json()["code"] == "SOLO_CLIENTES"
+
+
+def test_alta_de_empleado_queda_en_la_empresa_del_administrador(mundo):
+    # A9 / CU20: la cuenta del empleado toma la empresa del administrador que la crea
+    c = mundo["conexion"]
+    _contexto(c, tenant=mundo["id_b"])
+    sucursal_b = c.execute(text("SELECT min(id_sucursal) FROM fashionstore.sucursales")).scalar()
+    _contexto(c)
+    respuesta = mundo["cliente"].post(
+        "/api/v1/admin/usuarios",
+        headers=_token(mundo["admin_b"], "administrador", mundo["id_b"]),
+        json={"email": "cajero.b@empresa-b.com", "password": CLAVE_PRUEBA, "nombres": "Cajero",
+              "apellidos": "Prueba", "rol": "cajero", "id_sucursal": sucursal_b},
+    )
+    assert respuesta.status_code == 201, respuesta.text
+    _contexto(c)
+    empresa = c.execute(text("SELECT id_tenant FROM fashionstore.cuenta_por_email('cajero.b@empresa-b.com')")).scalar()
+    assert empresa == mundo["id_b"]
+
+    # El mismo correo, otra vez → 409
+    repetido = mundo["cliente"].post(
+        "/api/v1/admin/usuarios",
+        headers=_token(mundo["admin_b"], "administrador", mundo["id_b"]),
+        json={"email": "cajero.b@empresa-b.com", "password": CLAVE_PRUEBA, "nombres": "Otro",
+              "apellidos": "Cajero", "rol": "cajero", "id_sucursal": sucursal_b},
+    )
+    assert repetido.status_code == 409

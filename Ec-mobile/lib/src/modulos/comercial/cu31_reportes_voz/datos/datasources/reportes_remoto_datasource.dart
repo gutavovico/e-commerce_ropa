@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import 'package:ec_mobile/src/core/sesion_manager.dart';
 import '../modelos/reportes_voz_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 /// Respuesta binaria al exportar un reporte
 class ArchivoReporteDescargado {
@@ -23,7 +24,7 @@ class ReportesRemotoDatasource {
   final http.Client _client;
 
   ReportesRemotoDatasource({http.Client? client})
-      : _client = client ?? http.Client();
+      : _client = client ?? ClienteHttpApi();
 
   Map<String, String> _cabeceras(String token) {
     final map = <String, String>{

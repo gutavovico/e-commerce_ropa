@@ -1,3 +1,5 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,7 +21,7 @@ import { LoginService } from '../../cu02_iniciar_sesion/servicios/login.service'
 @Component({
   selector: 'app-registro',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [RutaPortalPipe, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './registro.component.html',
   styleUrls: ['./registro.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,6 +31,7 @@ export class RegistroComponent {
   private readonly registroService = inject(RegistroService);
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
 
   // Estados reactivos con Signals
   readonly cargando = signal<boolean>(false);
@@ -165,9 +168,12 @@ export class RegistroComponent {
           rol: respuesta.rol,
           token: respuesta.token_acceso,
         });
+        // P2-CU02: la cuenta queda registrada en la tienda del portal
+        const tienda = this.portal.tenantActual();
+        this.portal.misEmpresas.set(tienda ? [tienda] : []);
 
         setTimeout(() => {
-          this.router.navigate(['/']);
+          this.router.navigate(this.portal.ruta(['/inicio']));
         }, 1500);
       },
       error: (err: Error) => {

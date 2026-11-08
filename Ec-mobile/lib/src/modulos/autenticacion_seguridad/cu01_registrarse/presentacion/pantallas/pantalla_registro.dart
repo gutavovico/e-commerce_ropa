@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 import '../../datos/modelos/registro_dto.dart';
 import '../bloc/registro_bloc.dart';
+import '../../../../../core/empresa_actual.dart';
 
 class PantallaRegistro extends StatefulWidget {
   final VoidCallback? alCompletarRegistro;
@@ -257,7 +258,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                     // 2. ENCABEZADO DE MARCA FASHION STORE
                     // =================================================================
                     Column(
-                      children: const [
+                      children: [
                         Text(
                           'BIENVENIDO A',
                           style: TextStyle(
@@ -269,7 +270,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'FASHION STORE',
+                          EmpresaActual.instancia.marca,
                           style: TextStyle(
                             color: _colorTextoPrincipal,
                             fontSize: 24,

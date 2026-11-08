@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import '../modelos/registro_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 class RegistroExcepcion implements Exception {
   final String mensaje;
@@ -18,7 +19,7 @@ class RegistroRemotoDatasource {
   final http.Client _client;
 
   RegistroRemotoDatasource({http.Client? client})
-      : _client = client ?? http.Client();
+      : _client = client ?? ClienteHttpApi();
 
   Future<RegistroRespuestaDto> registrarCliente(RegistroClienteDto dto) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/api/v1/autenticacion/registrarse');

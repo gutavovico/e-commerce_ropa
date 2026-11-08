@@ -8,13 +8,14 @@ from sqlalchemy.orm import Session
 
 from core.errors import AuthenticationError, AuthorizationError
 from core.security import create_access_token, verify_password
-from core.tenant import buscar_tenant, contexto, exigir_activa, fijar_contexto, tenant_actual
+from core.tenant import entrar_en_cuenta
 from modules.autenticacion_seguridad.cu02_iniciar_sesion.esquemas import (
     LoginIn,
     LoginOut,
     TenantSesionOut,
 )
-from modules.plataforma.servicio_tenants import TenantServicio
+from modules.plataforma.cu12_validar_suscripcion.servicio import SuscripcionServicio
+from modules.plataforma.servicio_tenants import TenantServicio, es_rol_sin_empresa
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
 
@@ -42,9 +43,9 @@ class ServicioAutenticarLogin:
             AuthenticationError: Si el correo no existe o la contrasena no coincide (HTTP 401).
             AuthorizationError: Si la cuenta del usuario se encuentra inactiva/suspendida (HTTP 403).
         """
-        # 1. Normalizar correo y buscar usuario (P2-CU13, F7 y F8)
+        # 1. Normalizar correo y buscar la cuenta en toda la plataforma (P2-CU02 A1, A11)
         email_normalizado = str(datos.email).strip().lower()
-        usuario = self._buscar_usuario(db, email_normalizado, datos.codigo_empresa)
+        usuario = self._buscar_usuario(db, email_normalizado)
 
         # 2. Verificacion contra ataques de enumeracion (mismo mensaje y codigo)
         if usuario is None:
@@ -107,9 +108,12 @@ class ServicioAutenticarLogin:
         db.commit()
         db.refresh(usuario)
 
-        # 6. Calcular expiracion y emitir token JWT con la empresa de la sesión (P2-CU13)
+        # 6. Empresa del token (P2-CU02 A10): la del empleado, que debe estar activa y con suscripción
+        #    vigente (CU02 A2); ninguna para clientes y super administrador.
         id_tenant = TenantServicio.empresa_del_token(db, usuario)
-        TenantServicio.exigir_empresa_activa(db, id_tenant)
+        if not es_rol_sin_empresa(usuario.rol):
+            TenantServicio.exigir_empresa_activa(db, id_tenant)
+            SuscripcionServicio.validar(db, id_tenant=id_tenant)
         expires_delta = timedelta(days=7) if datos.recordar_dispositivo else None
         payload_token = {
             "sub": str(usuario.id_usuario),
@@ -143,35 +147,20 @@ class ServicioAutenticarLogin:
             apellidos=usuario.apellidos,
             rol=str(usuario.rol),
             tenant=self._tenant_out(db, id_tenant),
+            empresas=[
+                TenantSesionOut(codigo=t.codigo, nombre=t.nombre)
+                for t in TenantServicio.empresas_del_cliente(db, usuario)
+            ],
         )
 
     @staticmethod
-    def _buscar_usuario(db: Session, email: str, codigo_empresa: Optional[str]) -> Optional[UsuarioORM]:
-        """Empleado de la empresa indicada o, sin código, cliente/super administrador (cuenta global)
-        y, en el modo de transición, empleado de la empresa por defecto (spec §1.3)."""
-        if codigo_empresa:
-            tenant = buscar_tenant(db, codigo_empresa) if contexto(db) is not None else None
-            if contexto(db) is not None:
-                if tenant is None:
-                    return None  # mismo error genérico que unas credenciales incorrectas
-                exigir_activa(tenant)
-                fijar_contexto(db, tenant.id_tenant)
-            stmt = select(UsuarioORM).where(
-                UsuarioORM.email == email, UsuarioORM.id_tenant == tenant_actual(db)
-            ) if contexto(db) is not None else select(UsuarioORM).where(UsuarioORM.email == email)
-            return db.scalars(stmt).first()
+    def _buscar_usuario(db: Session, email: str) -> Optional[UsuarioORM]:
+        """Cuenta con ese correo, de cualquier rol y empresa (el correo es único, RN05).
 
-        global_ = db.scalars(
-            select(UsuarioORM).where(UsuarioORM.email == email, UsuarioORM.id_tenant.is_(None))
-        ).first()
-        if global_ is not None or contexto(db) is None:
-            return global_
-        actual = tenant_actual(db)
-        if actual is None:
-            return None
-        return db.scalars(
-            select(UsuarioORM).where(UsuarioORM.email == email, UsuarioORM.id_tenant == actual)
-        ).first()
+        `entrar_en_cuenta` fija antes la empresa de la cuenta para que la RLS de `usuarios` la deje ver.
+        """
+        entrar_en_cuenta(db, email)
+        return db.scalars(select(UsuarioORM).where(UsuarioORM.email == email)).first()
 
     @staticmethod
     def _tenant_out(db: Session, id_tenant: Optional[int]) -> Optional[TenantSesionOut]:

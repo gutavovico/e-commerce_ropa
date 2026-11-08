@@ -13,6 +13,7 @@ from core.config import settings
 from core.email_service import email_service
 from core.errors import DomainError
 from core.security import hash_password
+from core.tenant import entrar_en_cuenta
 from modules.autenticacion_seguridad.cu33_recuperar_acceso.esquemas import (
     RestablecerPasswordIn,
     RestablecerPasswordOut,
@@ -37,6 +38,8 @@ class RecuperarPasswordServicio:
         Aplica protección anti-enumeración de usuarios respondiendo siempre de manera
         neutra y uniforme.
         """
+        # P2-CU02: la cuenta puede ser de cualquier empresa; se entra en ella antes de leerla (RLS)
+        entrar_en_cuenta(db, email.lower().strip())
         stmt = select(UsuarioORM).where(UsuarioORM.email == email.lower().strip())
         usuario = db.scalars(stmt).first()
 
@@ -120,6 +123,7 @@ class RecuperarPasswordServicio:
         datos: RestablecerPasswordIn,
     ) -> RestablecerPasswordOut:
         """Valida el código OTP y actualiza la contraseña del usuario con Argon2id."""
+        entrar_en_cuenta(db, datos.email.lower().strip())
         stmt = select(UsuarioORM).where(UsuarioORM.email == datos.email.lower().strip())
         usuario = db.scalars(stmt).first()
 

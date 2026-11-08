@@ -1,3 +1,4 @@
+import { entrarEnTienda } from '../../../../core/tenant/tenant.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
@@ -22,6 +23,7 @@ describe('WidgetChatbotComponent (CU19)', () => {
         provideRouter([]),
       ],
     }).compileComponents();
+    entrarEnTienda(); // P2-CU02: dentro del portal de FASHION STORE
 
     fixture = TestBed.createComponent(WidgetChatbotComponent);
     component = fixture.componentInstance;
@@ -97,7 +99,7 @@ describe('WidgetChatbotComponent (CU19)', () => {
     const spy = vi.spyOn(router, 'navigate');
 
     component.irAProducto(10);
-    expect(spy).toHaveBeenCalledWith(['/productos', 10]);
+    expect(spy).toHaveBeenCalledWith(['/', 'fashionstore', 'productos', 10]);
   });
 });
 

@@ -251,7 +251,7 @@
             </div>
           </div>
 
-          <a routerLink="/catalogo" class="text-xs font-semibold text-neutral-950 hover:text-neutral-600 transition tracking-wider uppercase flex items-center gap-1 shrink-0">
+          <a [routerLink]="'/catalogo' | rutaPortal" class="text-xs font-semibold text-neutral-950 hover:text-neutral-600 transition tracking-wider uppercase flex items-center gap-1 shrink-0">
             <span>EXPLORAR PIEZAS</span>
             <span>→</span>
           </a>
@@ -289,7 +289,7 @@
           </div>
 
           <a
-            routerLink="/reservas"
+            [routerLink]="'/reservas' | rutaPortal"
             class="bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold tracking-wider uppercase px-5 py-3 rounded-2xl transition shadow-sm shrink-0"
           >
             VER MIS RESERVAS
@@ -331,7 +331,7 @@
                 Aún no registras pedidos en tu historial. Tus adquisiciones en boutique y plataforma digital aparecerán aquí.
               </p>
               <a
-                routerLink="/catalogo"
+                [routerLink]="'/catalogo' | rutaPortal"
                 class="inline-block bg-neutral-950 hover:bg-neutral-800 text-white text-[11px] font-semibold tracking-widest uppercase px-5 py-2.5 rounded-xl transition"
               >
                 EXPLORAR COLECCIÓN
@@ -707,7 +707,7 @@
         <div class="flex items-start justify-between pb-4 border-b border-neutral-100 mb-6">
           <div>
             <p class="text-[10px] font-semibold text-neutral-400 tracking-widest uppercase mb-1">
-              FASHION STORE · COMPROBANTE DIGITAL
+              <app-marca-tienda /> · COMPROBANTE DIGITAL
             </p>
             <h3 id="modal-comprobante-titulo" class="text-xl font-bold text-neutral-950 font-mono tracking-tight">
               {{ comp.numero_comprobante }}
@@ -887,7 +887,7 @@
 
       <!-- Barra Inferior -->
       <div class="pt-8 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between text-[11px] text-neutral-400 gap-4">
-        <p>© 2026 FASHION STORE. TODOS LOS DERECHOS RESERVADOS.</p>
+        <p>© 2026 <app-marca-tienda />. TODOS LOS DERECHOS RESERVADOS.</p>
         <div class="flex items-center space-x-6">
           <a href="#" class="hover:text-black transition">Términos de Servicio</a>
           <a href="#" class="hover:text-black transition">Privacidad</a>

@@ -1,3 +1,4 @@
+import { TenantService } from '../../../../../core/tenant/tenant.service';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -32,6 +33,7 @@ export class ModalReservaBoutiqueComponent {
   private readonly reservaService = inject(ReservaService);
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
 
   @Input({ required: true }) producto!: ProductoDetalle;
   @Input({ required: true }) varianteSeleccionada!: VarianteDetalle;
@@ -74,7 +76,7 @@ export class ModalReservaBoutiqueComponent {
       );
       setTimeout(() => {
         this.cerrar.emit();
-        this.router.navigate(['/login'], {
+        this.router.navigate(this.portal.ruta(['/login']), {
           queryParams: { returnUrl: `/productos/${this.producto.id_producto}` },
         });
       }, 1500);

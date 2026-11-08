@@ -22,9 +22,9 @@
 
     <!-- Breadcrumbs de Atelier -->
     <nav class="hidden md:flex items-center gap-2 text-[11px] font-mono tracking-widest text-stone-400 uppercase truncate max-w-lg">
-      <a routerLink="/catalogo" class="hover:text-stone-700 transition-colors">ATELIER</a>
+      <a [routerLink]="'/catalogo' | rutaPortal" class="hover:text-stone-700 transition-colors">ATELIER</a>
       <span>/</span>
-      <a routerLink="/colecciones" class="hover:text-stone-700 transition-colors">EDICIONES EXCLUSIVAS</a>
+      <a [routerLink]="'/colecciones' | rutaPortal" class="hover:text-stone-700 transition-colors">EDICIONES EXCLUSIVAS</a>
       <span>/</span>
       <span class="text-stone-900 font-medium truncate">{{ producto()?.nombre || 'DETALLE' }}</span>
     </nav>
@@ -461,7 +461,7 @@
                   </span>
                   <button
                     type="button"
-                    [routerLink]="['/productos', pieza.id_producto]"
+                    [routerLink]="['/productos', pieza.id_producto] | rutaPortal"
                     class="text-xs font-mono uppercase tracking-wider text-stone-600 hover:text-black hover:underline"
                   >
                     + VER PIEZA
@@ -527,7 +527,7 @@
     </div>
 
     <div class="max-w-7xl mx-auto pt-8 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-400 text-[11px] font-mono">
-      <p>© 2026 FASHION STORE ATELIER · TODOS LOS DERECHOS RESERVADOS</p>
+      <p>© 2026 <app-marca-tienda /> ATELIER · TODOS LOS DERECHOS RESERVADOS</p>
       <div class="flex gap-4">
         <a href="javascript:void(0)" class="hover:text-stone-700">AVISO LEGAL</a>
         <a href="javascript:void(0)" class="hover:text-stone-700">POLÍTICA DE PRIVACIDAD</a>

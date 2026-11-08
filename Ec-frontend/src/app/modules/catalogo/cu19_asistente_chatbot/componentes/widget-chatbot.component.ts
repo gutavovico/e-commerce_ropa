@@ -1,3 +1,4 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
 import {
   Component,
   ElementRef,
@@ -21,6 +22,7 @@ import { ChatbotService } from '../servicios/chatbot.service';
 export class WidgetChatbotComponent {
   readonly chatbotService = inject(ChatbotService);
   private readonly router = inject(Router);
+  readonly portal = inject(TenantService);
 
   @ViewChild('scrollContainer') private scrollContainer?: ElementRef<HTMLDivElement>;
 
@@ -56,7 +58,7 @@ export class WidgetChatbotComponent {
   }
 
   irAProducto(idProducto: number): void {
-    this.router.navigate(['/productos', idProducto]);
+    this.router.navigate(this.portal.ruta(['/productos', idProducto]));
   }
 }
 

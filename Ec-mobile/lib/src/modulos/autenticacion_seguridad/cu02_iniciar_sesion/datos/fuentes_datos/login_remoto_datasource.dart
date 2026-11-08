@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import '../modelos/login_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 class LoginExcepcion implements Exception {
   final String mensaje;
@@ -18,7 +19,7 @@ class LoginRemotoDatasource {
   final http.Client _client;
 
   LoginRemotoDatasource({http.Client? client})
-      : _client = client ?? http.Client();
+      : _client = client ?? ClienteHttpApi();
 
   Future<LoginRespuestaDto> autenticarUsuario(LoginPeticionDto dto) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/api/v1/autenticacion/login');

@@ -6,6 +6,7 @@ import 'package:ec_mobile/src/features/gestion_operativa/cu21_sucursales_ciudade
 import 'package:ec_mobile/src/features/gestion_operativa/cu21_sucursales_ciudades/presentacion/bloc/sucursales_bloc.dart';
 import 'package:ec_mobile/src/features/gestion_operativa/cu21_sucursales_ciudades/presentacion/pantallas/sucursales_admin_pantalla.dart';
 import 'package:ec_mobile/src/features/gestion_operativa/cu21_sucursales_ciudades/presentacion/widgets/formulario_sucursal_sheet.dart';
+import 'package:ec_mobile/src/core/empresa_actual.dart';
 
 class MockSucursalesRepositorioWidget implements SucursalesRepositorio {
   final List<Ciudad> ciudades;
@@ -77,6 +78,10 @@ class MockSucursalesRepositorioWidget implements SucursalesRepositorio {
 }
 
 void main() {
+  // P2-CU02: la marca visible es la de la tienda elegida (respuesta literal de GET /api/v1/mis-empresas)
+  setUp(() => EmpresaActual.instancia.elegir(const EmpresaTienda(codigo: 'fashionstore', nombre: 'FASHION STORE')));
+  tearDown(EmpresaActual.instancia.limpiar);
+
   final mockCiudades = [
     Ciudad(
       idCiudad: 1,

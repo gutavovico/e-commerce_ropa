@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -41,7 +42,7 @@ function slugifyTexto(texto: string, maxLen = 16): string {
 @Component({
   selector: 'app-productos-admin',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [MarcaTiendaComponent, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './productos-admin.component.html',
   styleUrls: ['./productos-admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

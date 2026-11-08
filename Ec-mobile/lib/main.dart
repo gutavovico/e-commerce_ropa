@@ -2,7 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'api_config.dart';
+import 'src/core/empresa_actual.dart';
 import 'src/core/sesion_manager.dart';
+import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/datos/modelos/login_dto.dart';
+import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_seleccion_empresa.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/repositorios/login_repositorio.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 import 'src/navegacion/pantalla_principal_hub.dart';
@@ -93,6 +96,7 @@ class _EcMobileAppState extends State<EcMobileApp> {
     // El flag anti-duplicados de SesionManager debe liberarse al volver al login;
     // si no, un 401 posterior quedaría silenciado para siempre.
     SesionManager.instancia.reiniciar();
+    EmpresaActual.instancia.limpiar();
     _navegadorKey.currentState?.pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => _construirLogin()),
       (route) => false,
@@ -102,28 +106,64 @@ class _EcMobileAppState extends State<EcMobileApp> {
   Widget _construirLogin() {
     return PantallaLogin(
       alCompletarLoginConUsuario: (token, usuario) {
-        final nombreCompleto = '${usuario.nombres} ${usuario.apellidos}'.trim();
         SesionManager.instancia.reiniciar();
-        _abrirHub(token, nombreCompleto);
-      },
-      alCompletarLoginConToken: (token) {
-        SesionManager.instancia.reiniciar();
-        _abrirHub(token, null);
+        _despuesDelLogin(token, usuario);
       },
     );
   }
 
-  void _abrirHub(String tokenActivo, String? nombreUsuario) {
+  /// P2-CU02: el cliente elige la tienda en la que navega (A10, A15); el empleado entra con la de
+  /// su cuenta.
+  void _despuesDelLogin(String token, LoginRespuestaDto usuario) {
+    final nombreCompleto = '${usuario.nombres} ${usuario.apellidos}'.trim();
+    if (usuario.esCliente) {
+      _abrirSeleccionEmpresa(token, nombreCompleto, usuario.empresas);
+      return;
+    }
+    final empresa = usuario.tenant;
+    if (empresa != null) {
+      EmpresaActual.instancia.elegir(empresa);
+    }
+    _abrirHub(token, nombreCompleto, esCliente: false);
+  }
+
+  /// Pantalla intermedia de selección de tienda. Con [empresas] null («Cambiar de tienda») las pide
+  /// al backend.
+  void _abrirSeleccionEmpresa(String token, String? nombreUsuario, List<EmpresaTienda>? empresas) {
+    _navegadorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => PantallaSeleccionEmpresa(
+          token: token,
+          nombreUsuario: nombreUsuario,
+          empresasIniciales: empresas,
+          alElegir: (empresa) {
+            EmpresaActual.instancia.elegir(empresa);
+            _abrirHub(token, nombreUsuario, esCliente: true);
+          },
+          alCerrarSesion: () => _cerrarSesion(token),
+        ),
+      ),
+      (route) => false,
+    );
+  }
+
+  Future<void> _cerrarSesion(String token) async {
+    final repo = LoginRepositorioImpl();
+    await repo.cerrarSesion(token);
+    _volverAlLogin();
+  }
+
+  void _abrirHub(String tokenActivo, String? nombreUsuario, {required bool esCliente}) {
     _navegadorKey.currentState?.pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (_) => PantallaPrincipalHub(
           token: tokenActivo,
           nombreUsuario: nombreUsuario,
-          alCerrarSesion: () async {
-            final repo = LoginRepositorioImpl();
-            await repo.cerrarSesion(tokenActivo);
-            _volverAlLogin();
-          },
+          alCerrarSesion: () => _cerrarSesion(tokenActivo),
+          // CU02 A7: el cliente cambia de tienda sin volver a iniciar sesión
+          alCambiarDeTienda: esCliente
+              ? () => _abrirSeleccionEmpresa(tokenActivo, nombreUsuario, null)
+              : null,
         ),
       ),
       (route) => false,

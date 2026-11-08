@@ -7,12 +7,16 @@ import 'package:ec_mobile/src/modulos/catalogo/cu06_buscar_filtrar/presentacion/
 import 'package:ec_mobile/src/modulos/comercial/cu31_reportes_voz/presentacion/pantallas/pantalla_reportes_voz.dart';
 import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/bloc/mis_reservas_bloc.dart';
 import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/pantallas/pantalla_mis_reservas.dart';
+import '../../../../../core/empresa_actual.dart';
 
 class PantallaPerfil extends StatefulWidget {
   final String token;
   final PerfilBloc? bloc;
   final MisReservasBloc? misReservasBloc;
   final VoidCallback? alCerrarSesion;
+
+  /// P2-CU02 (CU02 A7): vuelve a la selección de tienda sin cerrar sesión. Solo para clientes.
+  final VoidCallback? alCambiarDeTienda;
   final bool habilitarImagenesRed;
   final VoidCallback? alIrAInicio;
   final VoidCallback? alIrABuscar;
@@ -25,6 +29,7 @@ class PantallaPerfil extends StatefulWidget {
     this.bloc,
     this.misReservasBloc,
     this.alCerrarSesion,
+    this.alCambiarDeTienda,
     this.habilitarImagenesRed = true,
     this.alIrAInicio,
     this.alIrABuscar,
@@ -213,8 +218,8 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'FASHION STORE · COMPROBANTE DIGITAL',
+                Text(
+                  '${EmpresaActual.instancia.marca.toUpperCase()} · COMPROBANTE DIGITAL',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -512,8 +517,8 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 0.5,
-        title: const Text(
-          'FASHION STORE  |  PERFIL',
+        title: Text(
+          '${EmpresaActual.instancia.marca.toUpperCase()}  |  PERFIL',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
@@ -1163,6 +1168,43 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
             ),
             const SizedBox(height: 20),
 
+            // 4b. Cambiar de tienda (P2-CU02)
+            if (widget.alCambiarDeTienda != null) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton(
+                  key: const Key('perfil_cambiar_tienda'),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: widget.alCambiarDeTienda,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.storefront_outlined, size: 16, color: Colors.black87),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'CAMBIAR DE TIENDA',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
             // 5. Botón de Cierre de Sesión Seguro
             SizedBox(
               width: double.infinity,
@@ -1205,9 +1247,9 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
             const SizedBox(height: 12),
 
             // Metadatos de Sistema
-            const Center(
+            Center(
               child: Text(
-                'FASHION STORE • VERSIÓN 4.12 ATELIER CLIENT',
+                '${EmpresaActual.instancia.marca.toUpperCase()} • VERSIÓN 4.12 ATELIER CLIENT',
                 style: TextStyle(fontSize: 9, color: Colors.grey, letterSpacing: 0.8),
               ),
             ),

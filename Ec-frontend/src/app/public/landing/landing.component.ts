@@ -1,3 +1,6 @@
+import { TenantService } from '../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -37,7 +40,7 @@ export interface SucursalFlagship {
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
   templateUrl: './landing.component.html',
   styleUrls: ['./landing.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,6 +48,7 @@ export interface SucursalFlagship {
 export class LandingPageComponent {
   private readonly scroller = inject(ViewportScroller);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
 
   // Prenda seleccionada en el vestidor 3D
   protected readonly prendasDemo: PrendaDemo[] = [
@@ -166,7 +170,7 @@ export class LandingPageComponent {
 
   // Acción para agendar cita o navegar a login
   protected agendarCita(sucursal: SucursalFlagship): void {
-    this.router.navigate(['/login'], {
+    this.router.navigate(this.portal.ruta(['/login']), {
       queryParams: { origen: 'cita', sucursal: sucursal.nombre },
     });
   }

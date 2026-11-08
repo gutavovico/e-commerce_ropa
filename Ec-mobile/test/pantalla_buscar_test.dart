@@ -7,6 +7,7 @@ import 'package:ec_mobile/src/modulos/catalogo/cu06_buscar_filtrar/datos/modelos
 import 'package:ec_mobile/src/modulos/catalogo/cu06_buscar_filtrar/dominio/repositorios/catalogo_repositorio.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu06_buscar_filtrar/presentacion/bloc/catalogo_bloc.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu06_buscar_filtrar/presentacion/pantallas/pantalla_buscar_productos.dart';
+import 'package:ec_mobile/src/core/empresa_actual.dart';
 
 class MockWidgetCatalogoRepositorio implements CatalogoRepositorio {
   String? ultimoTerminoBuscado;
@@ -94,6 +95,10 @@ class MockWidgetCatalogoRepositorio implements CatalogoRepositorio {
 }
 
 void main() {
+  // P2-CU02: la marca visible es la de la tienda elegida (respuesta literal de GET /api/v1/mis-empresas)
+  setUp(() => EmpresaActual.instancia.elegir(const EmpresaTienda(codigo: 'fashionstore', nombre: 'FASHION STORE')));
+  tearDown(EmpresaActual.instancia.limpiar);
+
   group('PantallaBuscarProductos Widget Tests', () {
     late MockWidgetCatalogoRepositorio repo;
     late CatalogoBloc bloc;

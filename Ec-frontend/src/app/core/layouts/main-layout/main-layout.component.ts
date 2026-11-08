@@ -1,3 +1,5 @@
+import { MarcaTiendaComponent } from '../../tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../tenant/ruta-portal.pipe';
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -7,7 +9,7 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <div class="min-h-screen bg-[#FFFFFF] text-[#111111] flex flex-col font-sans selection:bg-black selection:text-white">
       <!-- 1. BARRA SUPERIOR DE NAVEGACIÓN INSTITUCIONAL PERSISTENTE (4 RUTAS RAÍZ HUB) -->
@@ -15,16 +17,16 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
         <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
           <!-- Marca Principal -->
           <a
-            routerLink="/inicio"
+            [routerLink]="'/inicio' | rutaPortal"
             class="text-sm font-semibold tracking-[0.25em] text-[#111111] uppercase hover:opacity-80 transition-opacity"
           >
-            FASHION STORE
+            <app-marca-tienda />
           </a>
 
           <!-- Navegación Desktop: Rutas Raíz y Consola Admin Condicional -->
           <nav class="hidden md:flex items-center space-x-10 text-[11px] font-medium tracking-[0.2em] uppercase">
             <a
-              routerLink="/inicio"
+              [routerLink]="'/inicio' | rutaPortal"
               routerLinkActive="text-black font-semibold border-b-2 border-black pb-1"
               [routerLinkActiveOptions]="{ exact: true }"
               class="text-[#666666] hover:text-black transition-colors"
@@ -32,21 +34,21 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
               INICIO
             </a>
             <a
-              routerLink="/buscar"
+              [routerLink]="'/buscar' | rutaPortal"
               routerLinkActive="text-black font-semibold border-b-2 border-black pb-1"
               class="text-[#666666] hover:text-black transition-colors"
             >
               BUSCAR
             </a>
             <a
-              routerLink="/catalogo"
+              [routerLink]="'/catalogo' | rutaPortal"
               routerLinkActive="text-black font-semibold border-b-2 border-black pb-1"
               class="text-[#666666] hover:text-black transition-colors"
             >
               CATÁLOGO
             </a>
             <a
-              [routerLink]="esAdmin() ? '/admin/perfil' : '/perfil'"
+              [routerLink]="esAdmin() ? '/admin/perfil' : ('/perfil' | rutaPortal)"
               routerLinkActive="text-black font-semibold border-b-2 border-black pb-1"
               class="text-[#666666] hover:text-black transition-colors"
             >
@@ -85,7 +87,7 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
 
             <!-- Cesta con Contador -->
             <a
-              routerLink="/bolsa"
+              [routerLink]="'/bolsa' | rutaPortal"
               class="relative flex items-center text-[#333333] hover:text-black transition-colors"
               title="Bolsa de compra"
             >
@@ -106,7 +108,7 @@ import { LoginService } from '../../../modules/autenticacion_seguridad/cu02_inic
 
             <!-- Avatar Circular -->
             <a
-              [routerLink]="esAdmin() ? '/admin/perfil' : '/perfil'"
+              [routerLink]="esAdmin() ? '/admin/perfil' : ('/perfil' | rutaPortal)"
               class="w-8 h-8 rounded-full overflow-hidden border border-[#D5D2CD] hover:border-black transition-colors block shrink-0"
               [title]="esAdmin() ? 'Mi Cuenta Corporativa' : 'Mi Cuenta'"
             >

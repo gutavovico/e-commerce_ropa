@@ -1,3 +1,6 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -15,11 +18,12 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { LoginService } from '../servicios/login.service';
 import { LoginPeticion } from '../modelos/login.dto';
+import { destinoEmpleado, esRolEmpleado } from '../../../../core/guards/tenant.guard';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,17 +32,28 @@ export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
 
   ngOnInit(): void {
     const usuario = typeof this.loginService.usuarioActual === 'function' ? this.loginService.usuarioActual() : null;
     if (usuario) {
-      if (usuario.rol === 'cajero') {
-        this.router.navigate(['/admin/pos']);
-      } else if (usuario.rol === 'administrador') {
-        this.router.navigate(['/admin']);
-      } else {
-        this.router.navigate(['/inicio']);
-      }
+      this.irAlDestino(usuario.rol);
+    }
+  }
+
+  /**
+   * P2-CU02 §B.3: el empleado va a su panel; el cliente, a la tienda del portal por el que entró o,
+   * desde el login general, al directorio con «Mis tiendas». El super administrador aún no tiene
+   * pantalla (P2-CU05): va al directorio.
+   */
+  private irAlDestino(rolCrudo: string): void {
+    const rol = String(rolCrudo || '').toLowerCase().trim();
+    if (esRolEmpleado(rol)) {
+      this.router.navigate([destinoEmpleado(rol)]);
+    } else if (this.portal.tenantActual()) {
+      this.router.navigate(this.portal.ruta(['/inicio']));
+    } else {
+      this.router.navigate(['/']);
     }
   }
 
@@ -95,16 +110,7 @@ export class LoginComponent implements OnInit {
         this.cargando.set(false);
         this.exito.set(true);
         // Redirigir segun el rol del usuario autenticado
-        setTimeout(() => {
-          const rol = String(resp.rol || '').toLowerCase().trim();
-          if (rol === 'cajero') {
-            this.router.navigate(['/admin/pos']);
-          } else if (rol === 'administrador' || rol === 'admin' || rol === 'encargado_sucursal') {
-            this.router.navigate(['/admin']);
-          } else {
-            this.router.navigate(['/inicio']);
-          }
-        }, 600);
+        setTimeout(() => this.irAlDestino(resp.rol), 600);
       },
       error: (err: Error) => {
         this.cargando.set(false);

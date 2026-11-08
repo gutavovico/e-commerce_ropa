@@ -10,10 +10,10 @@
     >
       <!-- Logo de la marca -->
       <a
-        routerLink="/"
+        [routerLink]="'/' | rutaPortal"
         class="text-xl tracking-[0.2em] font-medium text-black uppercase hover:opacity-80 transition-opacity"
       >
-        FASHION STORE
+        <app-marca-tienda />
       </a>
 
       <!-- Navegación central por anclas (Smooth Scroll) -->
@@ -44,13 +44,13 @@
       <!-- Accesos de autenticación -->
       <div class="flex items-center space-x-6">
         <a
-          routerLink="/login"
+          [routerLink]="'/login' | rutaPortal"
           class="text-xs tracking-[0.15em] font-medium text-neutral-700 hover:text-black uppercase transition-colors"
         >
           INICIAR SESIÓN
         </a>
         <a
-          routerLink="/registro"
+          [routerLink]="'/registro' | rutaPortal"
           class="inline-flex items-center justify-center px-6 py-2.5 bg-black text-white text-xs tracking-[0.15em] font-semibold uppercase rounded-full hover:bg-neutral-800 transition-all duration-200 shadow-sm"
         >
           REGISTRAR
@@ -139,7 +139,7 @@
           <!-- Botones de Conversión -->
           <div class="flex flex-wrap items-center gap-4 pt-2">
             <a
-              routerLink="/catalogo"
+              [routerLink]="'/catalogo' | rutaPortal"
               class="inline-flex items-center justify-center px-8 py-4 bg-black text-white text-xs tracking-[0.18em] font-semibold uppercase rounded-full hover:bg-neutral-800 transition-all duration-200 shadow-md group"
             >
               <span>ARMAR OUTFIT</span>
@@ -155,7 +155,7 @@
             </button>
 
             <a
-              routerLink="/catalogo"
+              [routerLink]="'/catalogo' | rutaPortal"
               class="inline-flex items-center space-x-2 text-xs tracking-[0.15em] font-medium text-neutral-600 hover:text-black uppercase transition-colors ml-2 py-2"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,7 +356,7 @@
           <!-- Botón de Conversión y Nota al pie -->
           <div class="pt-8 mt-6">
             <a
-              routerLink="/login"
+              [routerLink]="'/login' | rutaPortal"
               class="w-full py-3.5 bg-black text-white text-xs tracking-[0.18em] font-semibold uppercase rounded-xl hover:bg-neutral-800 transition-colors flex items-center justify-center space-x-2"
             >
               <span>INICIAR SESIÓN Y PROBAR MI PRENDA</span>
@@ -491,7 +491,7 @@
 
           <div class="pt-4">
             <a
-              routerLink="/login"
+              [routerLink]="'/login' | rutaPortal"
               class="inline-flex items-center space-x-1.5 text-xs tracking-[0.15em] font-semibold text-neutral-900 hover:text-black uppercase border-b border-neutral-900 pb-1"
             >
               <span>INICIAR CONVERSACIÓN DE PRUEBA</span>
@@ -600,7 +600,7 @@
                 class="flex-1 bg-neutral-50 border border-neutral-200 text-neutral-600 text-xs rounded-xl px-4 py-2.5 focus:outline-none cursor-not-allowed"
               />
               <a
-                routerLink="/login"
+                [routerLink]="'/login' | rutaPortal"
                 class="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center hover:bg-neutral-800 transition-colors flex-shrink-0"
                 title="Enviar mensaje (Iniciar Sesión)"
               >
@@ -660,7 +660,7 @@
           </div>
 
           <a
-            routerLink="/login"
+            [routerLink]="'/login' | rutaPortal"
             class="inline-flex items-center text-xs tracking-wider font-semibold text-neutral-900 uppercase hover:text-neutral-600 transition-colors pt-2"
           >
             <span>VER CERTIFICACIÓN OFICIAL</span>
@@ -824,7 +824,7 @@
         <!-- Columna 1: Marca y Sede (6 cols) -->
         <div class="md:col-span-6 space-y-4">
           <div class="text-sm tracking-[0.2em] font-medium text-black uppercase">
-            FASHION STORE
+            <app-marca-tienda />
           </div>
           <p class="max-w-md text-neutral-500 leading-relaxed">
             Herederos de excelencia textil y confluencia tecnológica. Diseñado para

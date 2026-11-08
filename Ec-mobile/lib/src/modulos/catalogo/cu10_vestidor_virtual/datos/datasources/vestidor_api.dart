@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../../../../../../api_config.dart';
 import '../../../../../core/sesion_manager.dart';
 import '../modelos/vestidor_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 /// Excepción de dominio de CU10. Conserva el `code` del backend (`{detail, code}`).
 class VestidorException implements Exception {
@@ -41,7 +42,7 @@ class VestidorApiImpl implements VestidorApi {
   final String? _customBaseUrl;
 
   VestidorApiImpl({http.Client? client, String? customBaseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? ClienteHttpApi(),
         _customBaseUrl = customBaseUrl;
 
   String get _baseUrl => _customBaseUrl ?? ApiConfig.baseUrl;

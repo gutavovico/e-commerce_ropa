@@ -23,6 +23,9 @@ class PantallaPrincipalHub extends StatefulWidget {
   final String token;
   final String? nombreUsuario;
   final VoidCallback? alCerrarSesion;
+
+  /// P2-CU02: vuelve a la selección de tienda (solo clientes).
+  final VoidCallback? alCambiarDeTienda;
   final int indiceInicial;
   final bool habilitarImagenesRed;
 
@@ -31,6 +34,7 @@ class PantallaPrincipalHub extends StatefulWidget {
     required this.token,
     this.nombreUsuario,
     this.alCerrarSesion,
+    this.alCambiarDeTienda,
     this.indiceInicial = 0,
     this.habilitarImagenesRed = true,
   });
@@ -184,6 +188,12 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
           ChatbotBloc.purgarSesion();
           widget.alCerrarSesion?.call();
         },
+        alCambiarDeTienda: widget.alCambiarDeTienda == null
+            ? null
+            : () {
+                ChatbotBloc.purgarSesion();
+                widget.alCambiarDeTienda!.call();
+              },
       ),
     ];
 

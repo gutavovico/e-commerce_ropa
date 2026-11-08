@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -26,7 +27,7 @@ import {
 @Component({
   selector: 'app-proveedores-admin',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [MarcaTiendaComponent, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './proveedores-admin.component.html',
   styleUrls: ['./proveedores-admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

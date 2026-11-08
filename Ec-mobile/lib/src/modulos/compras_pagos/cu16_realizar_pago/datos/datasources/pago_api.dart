@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../../../../../api_config.dart';
 import '../../../../../core/sesion_manager.dart';
 import '../modelos/pago_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 /// Excepción de dominio de CU16.
 ///
@@ -52,7 +53,7 @@ class PagoApiImpl implements PagoApi {
   final String? _customBaseUrl;
 
   PagoApiImpl({http.Client? client, String? customBaseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? ClienteHttpApi(),
         _customBaseUrl = customBaseUrl;
 
   String get _baseUrl => _customBaseUrl ?? ApiConfig.baseUrl;

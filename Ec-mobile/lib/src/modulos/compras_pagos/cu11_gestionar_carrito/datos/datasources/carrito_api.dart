@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../../../../../api_config.dart';
 import '../../../../../core/sesion_manager.dart';
 import '../modelos/carrito_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 /// Excepción de dominio de la Bolsa de Compra.
 ///
@@ -46,7 +47,7 @@ class CarritoApiImpl implements CarritoApi {
   final String? _customBaseUrl;
 
   CarritoApiImpl({http.Client? client, String? customBaseUrl})
-      : _client = client ?? http.Client(),
+      : _client = client ?? ClienteHttpApi(),
         _customBaseUrl = customBaseUrl;
 
   String get _baseUrl => _customBaseUrl ?? ApiConfig.baseUrl;

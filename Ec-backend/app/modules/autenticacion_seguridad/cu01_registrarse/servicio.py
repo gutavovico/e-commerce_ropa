@@ -1,6 +1,5 @@
 """Servicio de dominio transaccional para CU01: Registrarse."""
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from core.errors import ConflictError
@@ -9,6 +8,7 @@ from modules.autenticacion_seguridad.cu01_registrarse.esquemas import (
     RegistroClienteIn,
     RegistroClienteOut,
 )
+from modules.autenticacion_seguridad.cuentas import correo_ocupado
 from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
 from modules.plataforma.servicio_tenants import TenantServicio
 
@@ -29,15 +29,12 @@ class ServicioRegistroUsuario:
         Raises:
             ConflictError: Si el correo electronico ya se encuentra registrado.
         """
-        # 1. Normalizar y verificar unicidad de email entre las cuentas globales (RN05, F8):
-        #    un empleado puede tener, con el mismo correo, una cuenta de cliente aparte.
+        # 1. Correo único en toda la plataforma (RN05, P2-CU02 A2). Si la petición viene del portal
+        #    de una tienda, esa tienda debe estar disponible (CU01 A6).
         email_normalizado = str(datos.email).strip().lower()
-        stmt = select(UsuarioORM).where(
-            UsuarioORM.email == email_normalizado, UsuarioORM.id_tenant.is_(None)
-        )
-        usuario_existente = db.scalars(stmt).first()
+        id_tienda = TenantServicio.empresa_del_portal(db)
 
-        if usuario_existente is not None:
+        if correo_ocupado(db, email_normalizado):
             raise ConflictError(
                 message="El correo electronico ya se encuentra registrado en la plataforma.",
                 code="USUARIO_YA_EXISTE",
@@ -68,8 +65,9 @@ class ServicioRegistroUsuario:
         )
         db.add(nuevo_cliente)
         db.flush()
-        # P2-CU13 (F9): el cliente queda registrado en la empresa del portal por el que se registra
-        id_tenant = TenantServicio.registrar_cliente(db, nuevo_usuario.id_usuario)
+        # P2-CU02: registrado en la tienda del portal; sin tienda (móvil, A7) la cuenta queda sin empresa
+        if id_tienda is not None:
+            TenantServicio.registrar_cliente(db, nuevo_usuario.id_usuario, id_tienda)
         db.commit()
         db.refresh(nuevo_usuario)
 
@@ -78,7 +76,7 @@ class ServicioRegistroUsuario:
             "sub": str(nuevo_usuario.id_usuario),
             "email": nuevo_usuario.email,
             "rol": nuevo_usuario.rol,
-            "id_tenant": id_tenant,
+            "id_tenant": None,  # A10: el cliente navega con X-Tenant
         }
         token_acceso = create_access_token(data=payload_token)
 

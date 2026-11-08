@@ -1,3 +1,6 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -12,7 +15,7 @@ import { ColeccionResumen, ProductoColeccionItem } from '../../modelos/coleccion
 @Component({
   selector: 'app-colecciones',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
   templateUrl: './colecciones.component.html',
   styleUrls: ['./colecciones.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,6 +23,7 @@ import { ColeccionResumen, ProductoColeccionItem } from '../../modelos/coleccion
 export class ColeccionesComponent implements OnInit {
   protected readonly coleccionesService = inject(ColeccionesService);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
 
   // Signals reactivas del servicio
   protected readonly cargando = this.coleccionesService.cargando;
@@ -34,11 +38,11 @@ export class ColeccionesComponent implements OnInit {
   }
 
   protected irAColeccion(col: ColeccionResumen): void {
-    this.router.navigate(['/colecciones', col.id_coleccion]);
+    this.router.navigate(this.portal.ruta(['/colecciones', col.id_coleccion]));
   }
 
   protected irACatalogo(producto: ProductoColeccionItem): void {
-    this.router.navigate(['/productos', producto.id_producto]);
+    this.router.navigate(this.portal.ruta(['/productos', producto.id_producto]));
   }
 
   protected onImgError(event: Event): void {

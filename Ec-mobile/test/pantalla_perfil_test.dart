@@ -7,6 +7,7 @@ import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu04_gestionar_per
 import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/datos/datasources/reservas_api.dart';
 import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/datos/modelos/reserva_dto.dart';
 import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/bloc/mis_reservas_bloc.dart';
+import 'package:ec_mobile/src/core/empresa_actual.dart';
 
 /// Doble de [ReservasApi] sin reservas activas: evita que `PantallaPerfil` salga a la red al
 /// crear su propio `MisReservasBloc` en las pruebas que no lo inyectan explícitamente.
@@ -85,6 +86,10 @@ class MockPerfilRepositorioPruebas implements PerfilRepositorio {
 }
 
 void main() {
+  // P2-CU02: la marca visible es la de la tienda elegida (respuesta literal de GET /api/v1/mis-empresas)
+  setUp(() => EmpresaActual.instancia.elegir(const EmpresaTienda(codigo: 'fashionstore', nombre: 'FASHION STORE')));
+  tearDown(EmpresaActual.instancia.limpiar);
+
   testWidgets('PantallaPerfil renderiza elementos visuales clave y estado vacío de historial (CU17)', (tester) async {
     final bloc = PerfilBloc(repositorio: MockPerfilRepositorioPruebas());
     final reservasBloc = MisReservasBloc(api: MockReservasApiVacio(), token: 'token_prueba');

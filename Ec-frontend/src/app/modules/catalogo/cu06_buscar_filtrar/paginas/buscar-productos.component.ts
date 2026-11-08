@@ -1,3 +1,5 @@
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,7 +24,7 @@ import {
 @Component({
   selector: 'app-buscar-productos',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
   templateUrl: './buscar-productos.component.html',
   styleUrls: ['./buscar-productos.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

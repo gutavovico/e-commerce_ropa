@@ -1,3 +1,4 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, catchError, finalize, tap, throwError } from 'rxjs';
@@ -15,6 +16,7 @@ import {
 export class PerfilService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
   private readonly endpoint = '/api/v1/perfil';
   private readonly historialEndpoint = '/api/v1/ventas/mias';
 
@@ -81,7 +83,7 @@ export class PerfilService {
           this.error.set(errorMsg);
 
           if (err.status === 401) {
-            this.router.navigate(['/login']);
+            this.router.navigate(this.portal.ruta(['/login']));
           }
 
           return throwError(() => new Error(errorMsg));

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import '../modelos/ciudad_dto.dart';
 import '../modelos/sucursal_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 /// Excepcion de dominio cuando ocurre un conflicto de integridad (HTTP 409).
 class ConflictoOperacionException implements Exception {
@@ -93,7 +94,7 @@ class SucursalesRemotoDataSourceImpl implements SucursalesRemotoDataSource {
   SucursalesRemotoDataSourceImpl({
     http.Client? client,
     String? baseUrl,
-  })  : _client = client ?? http.Client(),
+  })  : _client = client ?? ClienteHttpApi(),
         _baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   Map<String, String> _headers(String token) => {

@@ -178,6 +178,7 @@ from modules.comercial.router import router as router_comercial
 from modules.compras_pagos.router import router as router_compras_pagos
 from modules.gestion_operativa.router import router as router_gestion_operativa
 from modules.reservas.router import router as router_reservas
+from modules.plataforma.cu02_acceso_empresa.router import router as router_acceso_empresa
 from modules.seguridad.cu30_bitacora.router import router as router_bitacora
 
 app.include_router(router_autenticacion, prefix="/api/v1")
@@ -189,6 +190,7 @@ app.include_router(router_usuarios_admin, prefix="/api/v1")
 app.include_router(router_reservas, prefix="/api/v1")
 app.include_router(router_compras_pagos, prefix="/api/v1")
 app.include_router(router_bitacora, prefix="/api/v1")
+app.include_router(router_acceso_empresa, prefix="/api/v1")
 
 # --- Almacenamiento Estatico Local ---
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

@@ -75,7 +75,7 @@
         <!-- Botón de Acción Principal (CTA CU36) -->
         <div class="mt-8">
           <a
-            routerLink="/colecciones"
+            [routerLink]="'/colecciones' | rutaPortal"
             class="inline-flex items-center space-x-3 bg-white text-black hover:bg-[#F2EFE9] px-7 py-3.5 rounded-full text-xs font-semibold tracking-[0.2em] uppercase transition-all shadow-md hover:shadow-xl group"
           >
             <span>EXPLORAR COLECCIÓN</span>
@@ -109,7 +109,7 @@
 
       @if (tieneHistorial() && recomendaciones().length > 0) {
         <a
-          routerLink="/catalogo"
+          [routerLink]="'/catalogo' | rutaPortal"
           class="inline-flex items-center space-x-2 text-xs font-semibold tracking-[0.18em] text-[#111111] hover:text-[#8C6D46] uppercase transition-colors"
         >
           <span>VER CATÁLOGO COMPLETO ({{ totalRecomendados() }})</span>
@@ -262,7 +262,7 @@
         <!-- Botón de Redirección hacia Catálogo / Colecciones -->
         <div class="mt-7">
           <a
-            routerLink="/catalogo"
+            [routerLink]="'/catalogo' | rutaPortal"
             class="inline-flex items-center space-x-3 bg-[#111111] hover:bg-[#333333] text-white px-8 py-3.5 rounded-full text-xs font-semibold tracking-[0.2em] uppercase transition-all shadow-md hover:shadow-lg"
           >
             <span>EXPLORAR CATÁLOGO COMPLETO</span>
@@ -363,7 +363,7 @@
 
         <!-- Columna 1: Marca y Manifiesto -->
         <div class="space-y-4">
-          <span class="text-sm font-semibold tracking-[0.25em] text-[#111111] uppercase">FASHION STORE</span>
+          <span class="text-sm font-semibold tracking-[0.25em] text-[#111111] uppercase"><app-marca-tienda /></span>
           <p class="text-xs text-[#666666] leading-relaxed font-light">
             Arquitectura de prendas atemporales. Un compromiso continuo hacia la sobriedad formal, el patronaje escultórico y la trazabilidad responsable de cada fibra textil.
           </p>
@@ -415,7 +415,7 @@
 
       <!-- Barra Inferior de Copyright y Legal -->
       <div class="mt-12 pt-6 border-t border-[#E8E6E1] flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#777777] tracking-wider uppercase gap-3">
-        <span>© 2025 FASHION STORE. TODOS LOS DERECHOS RESERVADOS.</span>
+        <span>© 2025 <app-marca-tienda />. TODOS LOS DERECHOS RESERVADOS.</span>
         <div class="flex items-center space-x-6">
           <a href="#" class="hover:text-black transition-colors">Aviso Legal</a>
           <a href="#" class="hover:text-black transition-colors">Política de Privacidad</a>
@@ -429,28 +429,28 @@
   <!-- 8. NAVEGACIÓN MÓVIL INFERIOR (TAB BAR)                                    -->
   <!-- ========================================================================= -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEAE6] h-16 flex items-center justify-around px-2">
-    <a routerLink="/inicio" class="flex flex-col items-center justify-center text-black font-semibold space-y-1">
+    <a [routerLink]="'/inicio' | rutaPortal" class="flex flex-col items-center justify-center text-black font-semibold space-y-1">
       <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
         <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
       </svg>
       <span class="text-[9px] tracking-wider uppercase">Inicio</span>
     </a>
 
-    <a routerLink="/buscar" class="flex flex-col items-center justify-center text-[#777777] hover:text-black space-y-1">
+    <a [routerLink]="'/buscar' | rutaPortal" class="flex flex-col items-center justify-center text-[#777777] hover:text-black space-y-1">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
       <span class="text-[9px] tracking-wider uppercase">Buscar</span>
     </a>
 
-    <a routerLink="/catalogo" class="flex flex-col items-center justify-center text-[#777777] hover:text-black space-y-1">
+    <a [routerLink]="'/catalogo' | rutaPortal" class="flex flex-col items-center justify-center text-[#777777] hover:text-black space-y-1">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
       </svg>
       <span class="text-[9px] tracking-wider uppercase">Catálogo</span>
     </a>
 
-    <a routerLink="/perfil" class="flex flex-col items-center justify-center text-[#777777] hover:text-black space-y-1">
+    <a [routerLink]="'/perfil' | rutaPortal" class="flex flex-col items-center justify-center text-[#777777] hover:text-black space-y-1">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
       </svg>

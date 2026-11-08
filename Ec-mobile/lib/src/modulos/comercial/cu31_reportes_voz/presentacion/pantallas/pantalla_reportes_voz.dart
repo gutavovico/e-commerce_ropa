@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../datos/modelos/reportes_voz_dto.dart';
 import '../bloc/reportes_bloc.dart';
+import '../../../../../core/empresa_actual.dart';
 
 /// Pantalla institucional para CU31: Generar reportes ejecutivos y consultas por voz
 class PantallaReportesVoz extends StatefulWidget {
@@ -94,8 +95,8 @@ class _PantallaReportesVozState extends State<PantallaReportesVoz> {
           icon: const Icon(Icons.arrow_back_ios_new, size: 16, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'FASHION STORE  |  REPORTES',
+        title: Text(
+          '${EmpresaActual.instancia.marca.toUpperCase()}  |  REPORTES',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,

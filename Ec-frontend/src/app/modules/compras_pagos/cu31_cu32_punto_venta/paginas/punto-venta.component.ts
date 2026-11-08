@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -47,7 +48,7 @@ interface LineaCaja {
 @Component({
   selector: 'app-punto-venta',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe, TicketComprobanteComponent],
+  imports: [MarcaTiendaComponent, FormsModule, RouterLink, DatePipe, TicketComprobanteComponent],
   templateUrl: './punto-venta.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

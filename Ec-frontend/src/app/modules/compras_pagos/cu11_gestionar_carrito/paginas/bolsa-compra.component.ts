@@ -1,3 +1,6 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -32,7 +35,7 @@ const MINUTOS_VENTANA = 25;
 @Component({
   selector: 'app-bolsa-compra',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, FormsModule, RouterLink],
   templateUrl: './bolsa-compra.component.html',
   styleUrls: ['./bolsa-compra.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,6 +44,7 @@ export class BolsaCompraComponent implements OnInit, OnDestroy {
   private readonly carritoService = inject(CarritoService);
   private readonly location = inject(Location);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
 
   // --- Estado derivado del servicio ---
   protected readonly items = this.carritoService.items;
@@ -189,7 +193,7 @@ export class BolsaCompraComponent implements OnInit, OnDestroy {
       next: (venta) => {
         this.ordenConfirmada.set(venta);
         this.detenerTemporizador();
-        this.router.navigate(['/pago', venta.id_venta]);
+        this.router.navigate(this.portal.ruta(['/pago', venta.id_venta]));
       },
       error: () => {
         // Si el cupón fue el motivo del rechazo, se retira para que el cliente pueda reintentar.
@@ -201,7 +205,7 @@ export class BolsaCompraComponent implements OnInit, OnDestroy {
   }
 
   protected irACatalogo(): void {
-    this.router.navigate(['/catalogo']);
+    this.router.navigate(this.portal.ruta(['/catalogo']));
   }
 
   // ---------------------------------------------------------------------

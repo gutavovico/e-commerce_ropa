@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../core/tenant/marca-tienda.component';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,7 +12,7 @@ import { LoginService } from '../../autenticacion_seguridad/cu02_iniciar_sesion/
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, RouterLink, RouterLinkActive],
+  imports: [MarcaTiendaComponent, CommonModule, RouterModule, RouterLink, RouterLinkActive],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -71,51 +71,60 @@ def test_fijar_contexto_dentro_de_una_transaccion_lo_aplica_de_inmediato():
     assert db.ejecutadas and db.ejecutadas[-1][1] == {"t": "7", "u": "14", "p": ""}
 
 
-def test_sin_cabecera_usa_la_empresa_por_defecto(tenants):
+def test_sin_cabecera_la_sesion_queda_sin_empresa(tenants):
     db = SesionFalsa()
-    preparar_sesion(db, None, "fashionstore")
-    assert db.info[CLAVE_TENANT] == 1
+    preparar_sesion(db, None)  # P2-CU02: ya no hay empresa por defecto
+    assert db.info[CLAVE_TENANT] is None
     assert CLAVE_TENANT_CABECERA not in db.info
 
 
 def test_cabecera_con_empresa_inexistente_404(tenants):
     with pytest.raises(NotFoundError) as error:
-        preparar_sesion(SesionFalsa(), "no-existe", "fashionstore")
+        preparar_sesion(SesionFalsa(), "no-existe")
     assert error.value.code == "TENANT_NO_ENCONTRADO"
 
 
 def test_cabecera_con_empresa_suspendida_403(tenants):
     with pytest.raises(AuthorizationError) as error:
-        preparar_sesion(SesionFalsa(), "cerrada", "fashionstore")
+        preparar_sesion(SesionFalsa(), "cerrada")
     assert error.value.code == "TENANT_INACTIVO"
 
 
-def test_empresa_por_defecto_inexistente_deja_la_sesion_sin_empresa(tenants):
+def test_el_token_del_empleado_fija_su_empresa_sin_cabecera(tenants):
     db = SesionFalsa()
-    preparar_sesion(db, None, "no-existe")
-    assert db.info[CLAVE_TENANT] is None  # F5: sin empresa la RLS no deja ver nada
-
-
-def test_el_token_manda_sobre_la_empresa_por_defecto(tenants):
-    db = SesionFalsa()
-    preparar_sesion(db, None, "fashionstore")
-    aplicar_tenant_del_token(db, 2, id_usuario=30)
+    preparar_sesion(db, None)
+    aplicar_tenant_del_token(db, 2, id_usuario=30, rol="cajero")
     assert db.info[CLAVE_TENANT] == 2
 
 
 def test_token_y_cabecera_de_empresas_distintas_403(tenants):
     db = SesionFalsa()
-    preparar_sesion(db, "menshopping", "fashionstore")
+    preparar_sesion(db, "menshopping")
     with pytest.raises(AuthorizationError) as error:
-        aplicar_tenant_del_token(db, 1, id_usuario=14)
+        aplicar_tenant_del_token(db, 1, id_usuario=14, rol="cajero")
     assert error.value.code == "TENANT_NO_COINCIDE"
 
 
 def test_cliente_sin_empresa_en_el_token_conserva_la_del_portal(tenants):
     db = SesionFalsa()
-    preparar_sesion(db, "menshopping", "fashionstore")
-    aplicar_tenant_del_token(db, None, id_usuario=2)
+    preparar_sesion(db, "menshopping")
+    aplicar_tenant_del_token(db, None, id_usuario=2, rol="cliente")
     assert db.info[CLAVE_TENANT] == 2
+
+
+def test_cliente_con_token_antiguo_navega_en_la_tienda_de_la_cabecera(tenants):
+    """A10: un token de cliente anterior a P2-CU02 lleva empresa; la cabecera manda."""
+    db = SesionFalsa()
+    preparar_sesion(db, "menshopping")
+    aplicar_tenant_del_token(db, 1, id_usuario=2, rol="cliente")
+    assert db.info[CLAVE_TENANT] == 2
+
+
+def test_cliente_con_token_antiguo_sin_cabecera_conserva_su_empresa(tenants):
+    db = SesionFalsa()
+    preparar_sesion(db, None)
+    aplicar_tenant_del_token(db, 1, id_usuario=2, rol="cliente")
+    assert db.info[CLAVE_TENANT] == 1
 
 
 @pytest.mark.parametrize("rol, sin_empresa", [

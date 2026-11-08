@@ -1,3 +1,4 @@
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -32,7 +33,7 @@ const ESTILOS_BADGE: Record<string, string> = {
 @Component({
   selector: 'app-mis-reservas',
   standalone: true,
-  imports: [CommonModule, RouterLink, ModalCancelarReservaComponent],
+  imports: [RutaPortalPipe, CommonModule, RouterLink, ModalCancelarReservaComponent],
   templateUrl: './mis-reservas.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

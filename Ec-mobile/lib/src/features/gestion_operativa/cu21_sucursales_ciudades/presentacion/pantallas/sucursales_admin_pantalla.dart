@@ -7,6 +7,7 @@ import 'package:ec_mobile/src/features/gestion_operativa/cu21_sucursales_ciudade
 import 'package:ec_mobile/src/features/gestion_operativa/cu21_sucursales_ciudades/presentacion/widgets/selector_ciudades_chips.dart';
 import 'package:ec_mobile/src/features/gestion_operativa/cu21_sucursales_ciudades/presentacion/widgets/shimmer_carga_sucursales.dart';
 import 'package:ec_mobile/src/features/gestion_operativa/cu21_sucursales_ciudades/presentacion/widgets/tarjeta_sucursal.dart';
+import '../../../../../core/empresa_actual.dart';
 
 /// Pantalla principal de gestion administrativa de boutiques y territorios (AC-15, AC-16, AC-17, AC-18).
 class SucursalesAdminPantalla extends StatefulWidget {
@@ -201,7 +202,7 @@ class _SucursalesAdminPantallaState extends State<SucursalesAdminPantalla> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'FASHION STORE',
+              EmpresaActual.instancia.marca,
               style: AppTypography.labelSmall.copyWith(
                 color: AppColors.secondary500,
                 letterSpacing: 1.5,

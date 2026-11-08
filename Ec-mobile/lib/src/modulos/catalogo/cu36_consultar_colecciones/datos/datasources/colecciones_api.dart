@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import '../modelos/coleccion_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 class ColeccionesException implements Exception {
   final String mensaje;
@@ -24,7 +25,7 @@ abstract class ColeccionesApi {
 class ColeccionesApiImpl implements ColeccionesApi {
   final http.Client _client;
 
-  ColeccionesApiImpl({http.Client? client}) : _client = client ?? http.Client();
+  ColeccionesApiImpl({http.Client? client}) : _client = client ?? ClienteHttpApi();
 
   @override
   Future<ColeccionesActivasResponseDto> obtenerColeccionesActivas({

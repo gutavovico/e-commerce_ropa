@@ -5,6 +5,7 @@ import '../bloc/producto_detalle_bloc.dart';
 import '../../../cu10_vestidor_virtual/dominio/plataforma_vestidor.dart';
 import '../../../cu10_vestidor_virtual/dominio/prenda_vestidor.dart';
 import '../../../cu10_vestidor_virtual/presentacion/pantallas/pantalla_vestidor_virtual.dart';
+import '../../../../../core/empresa_actual.dart';
 
 /// Pantalla Completa de Detalle de Prenda de Alta Costura (CU07, CU08, CU09, CU12, CU10)
 ///
@@ -223,9 +224,9 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
           ),
         ),
       ),
-      title: const Center(
+      title: Center(
         child: Text(
-          'FASHION STORE',
+          EmpresaActual.instancia.marca,
           style: TextStyle(
             fontFamily: 'Outfit',
             color: Colors.black,

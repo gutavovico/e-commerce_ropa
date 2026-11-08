@@ -75,13 +75,13 @@ SessionLocal = sessionmaker(
 def get_db(request: Request) -> Generator[Session, None, None]:
     """Provee una sesión por request, ya ligada a su empresa (P2-CU13), y la cierra al finalizar.
 
-    La empresa sale de la cabecera `X-Tenant` o, en el modo de transición, de
-    `TENANT_POR_DEFECTO`; `get_current_user` la sustituye después por la del token.
+    La empresa sale de la cabecera `X-Tenant`; sin ella la sesión queda sin empresa (P2-CU02).
+    `get_current_user` la combina después con la del token.
     """
     db = SessionLocal()
 
     try:
-        preparar_sesion(db, request.headers.get(CABECERA_TENANT), settings.TENANT_POR_DEFECTO)
+        preparar_sesion(db, request.headers.get(CABECERA_TENANT))
         yield db
     finally:
         db.close()

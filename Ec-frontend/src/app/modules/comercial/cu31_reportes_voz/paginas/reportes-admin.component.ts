@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
 /**
  * Componente de Pagina Editorial para CU31: Generar reportes ejecutivos y consultas por voz.
  * Nomenclatura oficial estricta: "Generar reportes ejecutivos y consultas por voz"
@@ -27,7 +28,7 @@ import {
 @Component({
   selector: 'app-reportes-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [MarcaTiendaComponent, CommonModule, FormsModule, RouterLink],
   templateUrl: './reportes-admin.component.html',
   styleUrls: ['./reportes-admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

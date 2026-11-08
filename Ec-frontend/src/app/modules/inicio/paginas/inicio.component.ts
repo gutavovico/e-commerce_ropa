@@ -1,3 +1,6 @@
+import { TenantService } from '../../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -15,7 +18,7 @@ import { PerfilService } from '../../autenticacion_seguridad/cu04_gestionar_perf
 @Component({
   selector: 'app-inicio',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
   templateUrl: './inicio.component.html',
   styleUrls: ['./inicio.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,6 +27,7 @@ export class InicioComponent implements OnInit {
   protected readonly inicioService = inject(InicioService);
   protected readonly perfilService = inject(PerfilService);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
 
   // --- Signals derivadas para la vista ---
   protected readonly cargando = this.inicioService.cargando;
@@ -76,7 +80,7 @@ export class InicioComponent implements OnInit {
   }
 
   protected onVerPieza(idProducto: number): void {
-    this.router.navigate(['/catalogo'], { queryParams: { producto: idProducto } });
+    this.router.navigate(this.portal.ruta(['/catalogo']), { queryParams: { producto: idProducto } });
   }
 
   protected onReintentar(): void {

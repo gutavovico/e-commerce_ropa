@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,7 +23,7 @@ import {
 @Component({
   selector: 'app-inventario-global-admin',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [MarcaTiendaComponent, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './inventario-global-admin.component.html',
   styleUrls: ['./inventario-global-admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:ec_mobile/api_config.dart';
 import '../modelos/chatbot_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 class ChatbotException implements Exception {
   final String mensaje;
@@ -26,7 +27,7 @@ abstract class ChatbotApi {
 class ChatbotApiImpl implements ChatbotApi {
   final http.Client _client;
 
-  ChatbotApiImpl({http.Client? client}) : _client = client ?? http.Client();
+  ChatbotApiImpl({http.Client? client}) : _client = client ?? ClienteHttpApi();
 
   List<String> _obtenerEndpointsCandidatos() {
     final urls = <String>[];

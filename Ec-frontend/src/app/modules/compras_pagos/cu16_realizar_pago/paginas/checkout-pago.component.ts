@@ -1,3 +1,6 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -25,13 +28,14 @@ const CLAVE_SESION_ID_PAGO = 'fs_pago_id_pago_en_curso';
 @Component({
   selector: 'app-checkout-pago',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
   templateUrl: './checkout-pago.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CheckoutPagoComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
   protected readonly pagoService = inject(PagoService);
   private readonly stripeConfig = inject(StripeConfigService);
   private readonly stripeLoader = inject(StripeLoaderService);
@@ -109,7 +113,7 @@ export class CheckoutPagoComponent implements OnInit, OnDestroy {
     const paramId = this.route.snapshot.paramMap.get('idVenta');
     const id = Number(paramId);
     if (!id || isNaN(id)) {
-      this.router.navigate(['/bolsa']);
+      this.router.navigate(this.portal.ruta(['/bolsa']));
       return;
     }
     this.idVenta.set(id);
@@ -364,10 +368,10 @@ export class CheckoutPagoComponent implements OnInit, OnDestroy {
   }
 
   protected volverABolsa(): void {
-    this.router.navigate(['/bolsa']);
+    this.router.navigate(this.portal.ruta(['/bolsa']));
   }
 
   protected irACatalogo(): void {
-    this.router.navigate(['/catalogo']);
+    this.router.navigate(this.portal.ruta(['/catalogo']));
   }
 }

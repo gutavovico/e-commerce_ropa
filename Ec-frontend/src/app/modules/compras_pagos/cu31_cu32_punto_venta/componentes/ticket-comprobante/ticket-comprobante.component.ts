@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../../../core/tenant/marca-tienda.component';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -17,7 +18,7 @@ import { ETIQUETA_METODO, VentaPos } from '../../modelos/punto-venta.dto';
 @Component({
   selector: 'app-ticket-comprobante',
   standalone: true,
-  imports: [DatePipe],
+  imports: [MarcaTiendaComponent, DatePipe],
   templateUrl: './ticket-comprobante.component.html',
   styleUrls: ['./ticket-comprobante.component.scss'],
   encapsulation: ViewEncapsulation.None,

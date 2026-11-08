@@ -3,6 +3,7 @@ import '../../datos/modelos/coleccion_dto.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/colecciones_bloc.dart';
 import 'detalle_coleccion_screen.dart';
+import '../../../../../core/empresa_actual.dart';
 
 class ColeccionesScreen extends StatefulWidget {
   /// JWT de la sesión activa, usado cuando la pantalla abre la ficha de producto por su
@@ -156,8 +157,8 @@ class _ColeccionesScreenState extends State<ColeccionesScreen> {
         tooltip: 'Regresar',
       ),
       centerTitle: true,
-      title: const Text(
-        'FASHION STORE',
+      title: Text(
+        EmpresaActual.instancia.marca,
         style: TextStyle(
           fontFamily: 'Outfit',
           color: Colors.black,

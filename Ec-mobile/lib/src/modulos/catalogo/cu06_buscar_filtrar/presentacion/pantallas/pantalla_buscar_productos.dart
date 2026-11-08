@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../datos/modelos/producto_item_dto.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/catalogo_bloc.dart';
+import '../../../../../core/empresa_actual.dart';
 
 /// Paleta de 16 colores textiles de confección para el catálogo de FashionStore.
 class SwatchColorTextil {
@@ -310,8 +311,8 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
       titleSpacing: 16,
       title: Row(
         children: [
-          const Text(
-            'FASHION STORE',
+          Text(
+            EmpresaActual.instancia.marca,
             style: TextStyle(
               fontFamily: 'Outfit',
               fontSize: 13,

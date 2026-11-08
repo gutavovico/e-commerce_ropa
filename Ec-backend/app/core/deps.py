@@ -58,15 +58,16 @@ def get_current_user(
     except (ValueError, TypeError):
         raise AuthenticationError("Identificador de usuario invalido en token", code="TOKEN_INVALIDO")
 
-    # P2-CU13: los tokens llevan la empresa (nula para clientes sin empresa y super administrador).
+    # P2-CU13: los tokens llevan la empresa (nula para clientes y super administrador, P2-CU02 A10).
     # Un token emitido antes de la fundación multitenant no la lleva: hay que iniciar sesión de nuevo.
     if "id_tenant" not in payload:
         raise AuthenticationError(
             "La sesión pertenece a una versión anterior. Inicie sesión nuevamente.",
             code="TOKEN_INVALIDO",
         )
-    # La empresa del token manda (F4); se fija antes de leer `usuarios`, que tiene RLS.
-    aplicar_tenant_del_token(db, payload.get("id_tenant"), id_usuario)
+    # Se fija antes de leer `usuarios`, que tiene RLS: la empresa del empleado manda (F4) y el
+    # cliente navega en la de la cabecera (A10).
+    aplicar_tenant_del_token(db, payload.get("id_tenant"), id_usuario, payload.get("rol"))
 
     stmt = (
         select(UsuarioORM)
@@ -116,7 +117,7 @@ def get_optional_current_user(
     if "id_tenant" not in payload:
         return None
     try:
-        aplicar_tenant_del_token(db, payload.get("id_tenant"), id_usuario)
+        aplicar_tenant_del_token(db, payload.get("id_tenant"), id_usuario, payload.get("rol"))
     except Exception:
         return None
 

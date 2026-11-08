@@ -9,8 +9,16 @@ from typing import Any, Optional
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from core.errors import AuthorizationError
-from core.tenant import TenantInfo, buscar_tenant_por_id, contexto, exigir_activa, tenant_actual
+from core.errors import AuthorizationError, DomainError
+from core.tenant import (
+    CLAVE_TENANT_CABECERA,
+    TenantInfo,
+    buscar_tenant_por_id,
+    contexto,
+    empresas_disponibles,
+    exigir_activa,
+    tenant_actual,
+)
 from modules.plataforma.modelos import ClienteTenantORM, EmpleadoSucursalORM
 
 #: Roles que no pertenecen a ninguna empresa (RN04, F1).
@@ -57,16 +65,83 @@ class TenantServicio:
 
     @staticmethod
     def empresa_del_token(db: Any, usuario: Any) -> Optional[int]:
-        """Empresa que viaja en el JWT (F4): la del empleado; la de la sesión para un cliente
-        registrado en ella; ninguna para el super administrador o un cliente no registrado."""
+        """Empresa que viaja en el JWT (F4): la del empleado. Los clientes navegan en la empresa de
+        la cabecera `X-Tenant` y el super administrador no tiene empresa (P2-CU02 A10)."""
         if not es_rol_sin_empresa(usuario.rol):
             return getattr(usuario, "id_tenant", None)
-        if str(usuario.rol) != "cliente":
-            return None
-        actual = tenant_actual(db)
-        if actual is not None and TenantServicio.cliente_registrado(db, usuario.id_usuario, actual):
-            return actual
         return None
+
+    @staticmethod
+    def empresas_del_cliente(db: Any, usuario: Any) -> list[TenantInfo]:
+        """Tiendas disponibles en las que el cliente está registrado (P2-CU02 A15). Vacía si no es cliente.
+
+        La política de `cliente_tenant` deja ver al cliente todos sus registros (`app.id_usuario`).
+        """
+        if str(usuario.rol) != "cliente" or contexto(db) is None:
+            return []
+        registradas = set(db.execute(
+            select(ClienteTenantORM.id_tenant).where(
+                ClienteTenantORM.id_cliente == usuario.id_usuario,
+                ClienteTenantORM.activo.is_(True),
+            )
+        ).scalars().all())
+        return [t for t in empresas_disponibles(db) if t.id_tenant in registradas]
+
+    @staticmethod
+    def empresa_del_portal(db: Any) -> Optional[int]:
+        """Empresa pedida con la cabecera `X-Tenant` (portal web o tienda elegida en el móvil).
+
+        Si la hay, debe estar disponible: activa y con suscripción vigente (CU01 A6) → si no, 403
+        TENANT_INACTIVO. Devuelve None si la petición no indica empresa o la sesión es simulada.
+        """
+        info = contexto(db)
+        if info is None:
+            return None
+        pedido = info.get(CLAVE_TENANT_CABECERA)
+        if pedido is None:
+            return None
+        if not any(t.id_tenant == pedido for t in empresas_disponibles(db)):
+            raise AuthorizationError("Esta tienda no está disponible en este momento.", code="TENANT_INACTIVO")
+        return pedido
+
+    @staticmethod
+    def registrar_en_tienda(db: Session, usuario: Any) -> bool:
+        """«Registrarme en esta tienda» (P2-CU02 A8): registra al cliente en la empresa del portal.
+
+        Devuelve True si se registró y False si ya lo estaba. Idempotente.
+        """
+        if str(usuario.rol) != "cliente":
+            raise AuthorizationError(
+                "Solo los clientes se registran en una tienda; las cuentas de empleado pertenecen a su empresa.",
+                code="SOLO_CLIENTES",
+            )
+        if contexto(db) is None:
+            return False
+        destino = TenantServicio.empresa_del_portal(db)
+        if destino is None:
+            raise DomainError("Indique la tienda en la que desea registrarse.", code="TENANT_REQUERIDO")
+        existente = db.execute(
+            select(ClienteTenantORM).where(
+                ClienteTenantORM.id_tenant == destino,
+                ClienteTenantORM.id_cliente == usuario.id_usuario,
+            )
+        ).scalar_one_or_none()
+        if existente is not None:
+            if not existente.activo:
+                raise AuthorizationError(
+                    "Tu registro en esta tienda está desactivado. Contacta con la tienda.",
+                    code="CLIENTE_DESACTIVADO",
+                )
+            return False
+        db.add(ClienteTenantORM(id_tenant=destino, id_cliente=usuario.id_usuario))
+        db.flush()
+        return True
+
+    @staticmethod
+    def empresa_disponible(db: Any, codigo: str) -> Optional[TenantInfo]:
+        """Empresa activa y con suscripción vigente con ese código, o None (A12)."""
+        codigo = codigo.strip().lower()
+        return next((t for t in empresas_disponibles(db) if t.codigo == codigo), None)
 
     @staticmethod
     def datos_publicos(db: Any, id_tenant: Optional[int]) -> Optional[TenantInfo]:

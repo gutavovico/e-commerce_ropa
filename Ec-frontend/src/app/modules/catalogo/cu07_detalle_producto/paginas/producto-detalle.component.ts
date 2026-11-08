@@ -1,3 +1,6 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -25,7 +28,7 @@ import { CarritoService } from '../../../compras_pagos/cu11_gestionar_carrito/se
 @Component({
   selector: 'app-producto-detalle',
   standalone: true,
-  imports: [CommonModule, RouterLink, ModalReservaBoutiqueComponent, ModalVestidorArComponent],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink, ModalReservaBoutiqueComponent, ModalVestidorArComponent],
   templateUrl: './producto-detalle.component.html',
   styleUrls: ['./producto-detalle.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +36,7 @@ import { CarritoService } from '../../../compras_pagos/cu11_gestionar_carrito/se
 export class ProductoDetalleComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
   private readonly location = inject(Location);
   private readonly detalleService = inject(ProductoDetalleService);
   private readonly catalogoService = inject(CatalogoService);
@@ -333,7 +337,7 @@ export class ProductoDetalleComponent implements OnInit {
 
   /** Navega a la Bolsa de Compra desde la ficha de producto. */
   irABolsa(): void {
-    this.router.navigate(['/bolsa']);
+    this.router.navigate(this.portal.ruta(['/bolsa']));
   }
 
   /**

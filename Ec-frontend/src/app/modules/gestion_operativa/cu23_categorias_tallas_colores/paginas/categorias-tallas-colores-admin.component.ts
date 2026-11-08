@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -31,7 +32,7 @@ import {
 @Component({
   selector: 'app-categorias-tallas-colores-admin',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
+  imports: [MarcaTiendaComponent, CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
   templateUrl: './categorias-tallas-colores-admin.component.html',
   styleUrls: ['./categorias-tallas-colores-admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

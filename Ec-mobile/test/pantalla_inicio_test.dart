@@ -7,6 +7,7 @@ import 'package:ec_mobile/src/modulos/catalogo/cu18_recomendaciones/datos/dataso
 import 'package:ec_mobile/src/modulos/catalogo/cu18_recomendaciones/datos/modelos/recomendacion_item_dto.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu18_recomendaciones/presentacion/bloc/inicio_bloc.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu18_recomendaciones/presentacion/pantallas/pantalla_inicio.dart';
+import 'package:ec_mobile/src/core/empresa_actual.dart';
 
 class MockRecomendacionesApi implements RecomendacionesApi {
   final bool tieneHistorial;
@@ -117,6 +118,10 @@ final Uint8List _kTransparentImage = Uint8List.fromList([
 ]);
 
 void main() {
+  // P2-CU02: la marca visible es la de la tienda elegida (respuesta literal de GET /api/v1/mis-empresas)
+  setUp(() => EmpresaActual.instancia.elegir(const EmpresaTienda(codigo: 'fashionstore', nombre: 'FASHION STORE')));
+  tearDown(EmpresaActual.instancia.limpiar);
+
   setUp(() {
     HttpOverrides.global = TestHttpOverrides();
   });

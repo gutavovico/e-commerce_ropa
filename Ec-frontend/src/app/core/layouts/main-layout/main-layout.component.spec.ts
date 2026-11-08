@@ -1,3 +1,4 @@
+import { entrarEnTienda } from '../../tenant/tenant.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
@@ -48,6 +49,7 @@ describe('MainLayoutComponent', () => {
         { provide: LoginService, useValue: mockLoginService },
       ],
     }).compileComponents();
+    entrarEnTienda(); // P2-CU02: dentro del portal de FASHION STORE
 
     fixture = TestBed.createComponent(MainLayoutComponent);
     component = fixture.componentInstance;
@@ -91,7 +93,7 @@ describe('MainLayoutComponent', () => {
   it('debe enlazar el icono de la bolsa con la ruta /bolsa', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const enlaces = Array.from(compiled.querySelectorAll('a[href]'));
-    const enlaceBolsa = enlaces.find((a) => a.getAttribute('href') === '/bolsa');
+    const enlaceBolsa = enlaces.find((a) => a.getAttribute('href') === '/fashionstore/bolsa');
 
     expect(enlaceBolsa).toBeTruthy();
   });
@@ -124,6 +126,7 @@ describe('MainLayoutComponent sin sesión', () => {
         },
       ],
     }).compileComponents();
+    entrarEnTienda(); // P2-CU02: dentro del portal de FASHION STORE
 
     const fixture = TestBed.createComponent(MainLayoutComponent);
     fixture.detectChanges();

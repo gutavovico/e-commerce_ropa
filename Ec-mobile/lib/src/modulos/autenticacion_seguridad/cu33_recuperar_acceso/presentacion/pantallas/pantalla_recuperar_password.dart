@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../bloc/recuperar_password_bloc.dart';
+import '../../../../../core/empresa_actual.dart';
 
 class PantallaRecuperarPassword extends StatefulWidget {
   final RecuperarPasswordBloc? bloc;
@@ -201,8 +202,8 @@ class _PantallaRecuperarPasswordState extends State<PantallaRecuperarPassword> {
                               const SizedBox(height: 6),
 
                               // Título FASHION STORE
-                              const Text(
-                                'FASHION STORE',
+                              Text(
+                                EmpresaActual.instancia.marca,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: 'Outfit',

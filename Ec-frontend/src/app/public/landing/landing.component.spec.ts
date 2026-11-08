@@ -1,3 +1,4 @@
+import { entrarEnTienda } from '../../core/tenant/tenant.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ViewportScroller } from '@angular/common';
@@ -19,6 +20,7 @@ describe('LandingPageComponent', () => {
         { provide: ViewportScroller, useValue: mockViewportScroller },
       ],
     }).compileComponents();
+    entrarEnTienda(); // P2-CU02: dentro del portal de FASHION STORE
 
     fixture = TestBed.createComponent(LandingPageComponent);
     component = fixture.componentInstance;
@@ -37,8 +39,8 @@ describe('LandingPageComponent', () => {
 
   it('debe renderizar los botones de autenticación para Iniciar Sesión y Registrar', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    const loginLink = compiled.querySelector('a[href="/login"]');
-    const registroLink = compiled.querySelector('a[href="/registro"]');
+    const loginLink = compiled.querySelector('a[href="/fashionstore/login"]');
+    const registroLink = compiled.querySelector('a[href="/fashionstore/registro"]');
 
     expect(loginLink).toBeTruthy();
     expect(registroLink).toBeTruthy();

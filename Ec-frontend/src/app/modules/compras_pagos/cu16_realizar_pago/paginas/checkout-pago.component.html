@@ -19,8 +19,8 @@
       </button>
 
       <!-- Logo Central de Alta Costura -->
-      <a routerLink="/inicio" class="text-xl sm:text-2xl font-serif tracking-[0.25em] uppercase text-black hover:opacity-80 transition-opacity">
-        FASHION STORE
+      <a [routerLink]="'/inicio' | rutaPortal" class="text-xl sm:text-2xl font-serif tracking-[0.25em] uppercase text-black hover:opacity-80 transition-opacity">
+        <app-marca-tienda />
       </a>
 
       <!-- Insignia SSL 256-Bit & Avatar -->
@@ -32,7 +32,7 @@
           <span>PAGO SEGURO · SSL 256-BIT</span>
         </div>
 
-        <a routerLink="/perfil" class="w-8 h-8 rounded-full bg-neutral-200 border border-neutral-300 flex items-center justify-center text-neutral-700 hover:bg-neutral-300 transition-colors" title="Mi Cuenta Atelier">
+        <a [routerLink]="'/perfil' | rutaPortal" class="w-8 h-8 rounded-full bg-neutral-200 border border-neutral-300 flex items-center justify-center text-neutral-700 hover:bg-neutral-300 transition-colors" title="Mi Cuenta Atelier">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
@@ -166,7 +166,7 @@
             Explorar Nueva Colección
           </button>
           <a
-            routerLink="/perfil"
+            [routerLink]="'/perfil' | rutaPortal"
             class="px-8 py-3.5 border border-neutral-300 text-neutral-800 text-xs font-semibold tracking-[0.2em] uppercase hover:bg-neutral-100 transition-colors"
           >
             Ver Mis Pedidos

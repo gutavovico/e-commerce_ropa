@@ -8,6 +8,7 @@ import {
   UsuarioSesion,
 } from '../modelos/login.dto';
 import { ChatbotService } from '../../../catalogo/cu19_asistente_chatbot/servicios/chatbot.service';
+import { TenantService } from '../../../../core/tenant/tenant.service';
 
 @Injectable({
   providedIn: 'root',
@@ -16,6 +17,7 @@ export class LoginService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly chatbotService = inject(ChatbotService, { optional: true });
+  private readonly tenantService = inject(TenantService);
   private readonly endpoint = '/api/v1/autenticacion/login';
   private readonly logoutEndpoint = '/api/v1/autenticacion/logout';
 
@@ -76,9 +78,12 @@ export class LoginService {
         rol: respuesta.rol,
         token: respuesta.access_token,
         id_sucursal: respuesta.id_sucursal ?? null,
+        tenant: respuesta.tenant ?? null,
       },
       recordar
     );
+    // P2-CU02 (A15): tiendas del cliente, para «Mis tiendas» y el aviso de registro del portal
+    this.tenantService.misEmpresas.set(respuesta.rol === 'cliente' ? (respuesta.empresas ?? []) : null);
   }
 
   /**
@@ -190,14 +195,15 @@ export class LoginService {
 
   /**
    * Limpia inmediatamente el almacenamiento local, resetea las señales reactivas y redirige a /login.
-   * @param redirigir Si es true, navega automáticamente a ['/login'].
+   * @param redirigir Si es true, navega al login (el del portal si se está dentro de una tienda).
    */
   purgarSesionLocal(redirigir: boolean = true): void {
     this.usuarioActual.set(null);
     this.limpiarStorage();
     this.chatbotService?.limpiarConversacion();
+    this.tenantService.limpiarSesion();
     if (redirigir) {
-      this.router.navigate(['/login']);
+      this.router.navigate(this.tenantService.ruta('/login'));
     }
   }
 

@@ -7,7 +7,7 @@ y consulta inmutable de la tabla de auditoria.
 from datetime import datetime, time, timedelta, timezone
 from typing import Any, Optional
 
-from sqlalchemy import case, distinct, func, or_, select
+from sqlalchemy import case, distinct, func, insert, or_, select
 from sqlalchemy.orm import Session
 
 from modules.autenticacion_seguridad.modelos import UsuarioORM
@@ -241,7 +241,10 @@ class ServicioBitacoraAuditoria:
             es_autonoma = (db is None)
             audit_session = SessionLocal() if es_autonoma else db
             try:
-                nuevo = Bitacora(
+                # INSERT sin RETURNING: con RLS (P2-CU13) un evento sin empresa (p. ej. el login de un
+                # cliente fuera de un portal, P2-CU02) no es visible fuera del modo plataforma, y
+                # PostgreSQL rechaza un RETURNING sobre una fila que la política no deja leer.
+                sentencia = insert(Bitacora).values(
                     id_usuario=id_usuario,
                     usuario_nombre=usuario_nombre,
                     accion=accion,
@@ -251,14 +254,14 @@ class ServicioBitacoraAuditoria:
                     payload_anterior=payload_anterior,
                     payload_nuevo=payload_nuevo,
                 )
-                audit_session.add(nuevo)
                 if es_autonoma:
-                    # Sin refresh: con RLS (P2-CU13) un evento sin empresa no se puede releer fuera
-                    # del modo plataforma, y el objeto no se usa después.
+                    audit_session.execute(sentencia)
                     audit_session.commit()
                 else:
-                    audit_session.flush()
-                return nuevo
+                    # Punto de guardado: si la auditoría falla, la transacción del caso de uso sigue sana
+                    with audit_session.begin_nested():
+                        audit_session.execute(sentencia)
+                return None
             finally:
                 if es_autonoma:
                     audit_session.close()

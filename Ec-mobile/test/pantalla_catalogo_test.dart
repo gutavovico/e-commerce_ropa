@@ -4,6 +4,7 @@ import 'package:ec_mobile/src/modulos/catalogo/cu05_consultar_catalogo/datos/dat
 import 'package:ec_mobile/src/modulos/catalogo/cu05_consultar_catalogo/datos/modelos/catalogo_dto.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu05_consultar_catalogo/presentacion/bloc/catalogo_bloc.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu05_consultar_catalogo/presentacion/pantallas/pantalla_catalogo.dart';
+import 'package:ec_mobile/src/core/empresa_actual.dart';
 
 class MockCatalogoApi implements CatalogoApi {
   final CatalogoResponseDto mockResponse;
@@ -88,6 +89,10 @@ class MockCatalogoApi implements CatalogoApi {
 }
 
 void main() {
+  // P2-CU02: la marca visible es la de la tienda elegida (respuesta literal de GET /api/v1/mis-empresas)
+  setUp(() => EmpresaActual.instancia.elegir(const EmpresaTienda(codigo: 'fashionstore', nombre: 'FASHION STORE')));
+  tearDown(EmpresaActual.instancia.limpiar);
+
   group('CatalogoGeneralBloc Unit Tests', () {
     test('Estado inicial debe ser CatalogoGeneralInicial', () {
       final bloc = CatalogoGeneralBloc(api: MockCatalogoApi());

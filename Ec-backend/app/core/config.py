@@ -32,9 +32,6 @@ class Settings(BaseSettings):
     # aplicación (pruebas de aislamiento). Si faltan, esas pruebas se saltan.
     DATABASE_URL_PRUEBAS: str = ""
     DATABASE_URL_PRUEBAS_APP: str = ""
-    # Modo de transición (spec §1.3): empresa de las peticiones sin token ni cabecera X-Tenant y del
-    # login de empleados sin código de empresa. P2-CU02 la elimina.
-    TENANT_POR_DEFECTO: str = "fashionstore"
 
     # --- Opcionales (con default) ---
     JWT_EXPIRE_MINUTES: int = 1440

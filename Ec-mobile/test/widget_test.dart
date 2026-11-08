@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ec_mobile/main.dart';
 import 'package:ec_mobile/src/core/sesion_manager.dart';
+import 'package:ec_mobile/src/core/empresa_actual.dart';
 
 void main() {
   testWidgets('EcMobileApp inicia correctamente con PantallaLogin como pantalla principal', (WidgetTester tester) async {
     await tester.pumpWidget(const EcMobileApp());
 
     // Verificar presencia de la identidad de marca de Login
-    expect(find.text('FASHION STORE'), findsOneWidget);
+    expect(find.text(nombrePlataforma)  /* P2-CU02: antes de elegir tienda */, findsOneWidget);
     expect(find.text('— BIENVENIDO DE VUELTA —'), findsOneWidget);
     expect(find.text('FS'), findsOneWidget);
 

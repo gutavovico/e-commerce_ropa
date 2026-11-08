@@ -1,3 +1,6 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,7 +22,7 @@ import { RecuperarPasswordService } from '../servicios/recuperar-password.servic
 @Component({
   selector: 'app-recuperar-password',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './recuperar-password.component.html',
   styleUrls: ['./recuperar-password.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,6 +31,7 @@ export class RecuperarPasswordComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly recuperarService = inject(RecuperarPasswordService);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
   private readonly route = inject(ActivatedRoute);
 
   // Estados Reactivos con Signals
@@ -213,7 +217,7 @@ export class RecuperarPasswordComponent implements OnInit, OnDestroy {
           this.mensajeExito.set(resp.mensaje);
           // Redirigir al login tras 2 segundos para dar feedback visual de éxito
           setTimeout(() => {
-            this.router.navigate(['/login'], {
+            this.router.navigate(this.portal.ruta(['/login']), {
               queryParams: { restablecido: 'true' },
             });
           }, 1800);

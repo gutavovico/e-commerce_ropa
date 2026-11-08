@@ -23,9 +23,10 @@ export class RegistroService {
         let mensaje = 'Ocurrió un error inesperado al procesar el registro.';
 
         if (error.status === 409) {
+          // P2-CU02 (CU01 A1/A2): la cuenta es única en la plataforma; no se crea otra
           mensaje =
-            error.error?.detail ||
-            'El correo electrónico ya se encuentra registrado en la plataforma.';
+            'Este correo ya tiene una cuenta. Inicia sesión con ella y elige «Registrarme en esta tienda», ' +
+            'o recupera tu acceso si no recuerdas la contraseña.';
         } else if (error.status === 422) {
           mensaje = 'Por favor verifica que todos los campos tengan el formato correcto.';
         } else if (error.status === 400) {

@@ -5,6 +5,7 @@ import 'package:ec_mobile/src/modulos/catalogo/cu36_consultar_colecciones/datos/
 import 'package:ec_mobile/src/modulos/catalogo/cu36_consultar_colecciones/presentacion/bloc/colecciones_bloc.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu36_consultar_colecciones/presentacion/pantallas/colecciones_screen.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu36_consultar_colecciones/presentacion/pantallas/detalle_coleccion_screen.dart';
+import 'package:ec_mobile/src/core/empresa_actual.dart';
 
 class MockColeccionesApiWidgets implements ColeccionesApi {
   final ColeccionesActivasResponseDto mockActivas =
@@ -95,6 +96,10 @@ class MockColeccionesApiWidgets implements ColeccionesApi {
 }
 
 void main() {
+  // P2-CU02: la marca visible es la de la tienda elegida (respuesta literal de GET /api/v1/mis-empresas)
+  setUp(() => EmpresaActual.instancia.elegir(const EmpresaTienda(codigo: 'fashionstore', nombre: 'FASHION STORE')));
+  tearDown(EmpresaActual.instancia.limpiar);
+
   group('CU36 Mobile Widget Tests', () {
     testWidgets(
         'ColeccionesScreen renderiza AppBar, título, chips y secciones',

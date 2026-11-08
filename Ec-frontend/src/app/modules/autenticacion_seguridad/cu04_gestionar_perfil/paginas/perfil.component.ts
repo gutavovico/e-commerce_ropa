@@ -1,3 +1,6 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -23,7 +26,7 @@ import { MisReservasService } from '../../../reservas/cu13_consultar_cancelar_re
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
   templateUrl: './perfil.component.html',
   styleUrls: ['./perfil.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +36,7 @@ export class PerfilComponent implements OnInit {
   protected readonly misReservasService = inject(MisReservasService);
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
   private readonly fb = inject(FormBuilder);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -191,10 +195,10 @@ export class PerfilComponent implements OnInit {
 
     this.loginService.cerrarSesion().subscribe({
       next: () => {
-        this.router.navigate(['/login']);
+        this.router.navigate(this.portal.ruta(['/login']));
       },
       error: () => {
-        this.router.navigate(['/login']);
+        this.router.navigate(this.portal.ruta(['/login']));
       },
       complete: () => {
         this.cerrandoSesion.set(false);

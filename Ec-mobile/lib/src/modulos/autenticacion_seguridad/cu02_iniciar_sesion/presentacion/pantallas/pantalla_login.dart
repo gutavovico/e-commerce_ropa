@@ -6,6 +6,7 @@ import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu01_registrarse/p
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu33_recuperar_acceso/presentacion/pantallas/pantalla_recuperar_password.dart';
 import 'package:ec_mobile/api_config.dart';
 import 'package:http/http.dart' as http;
+import '../../../../../core/empresa_actual.dart';
 
 class PantallaLogin extends StatefulWidget {
   final VoidCallback? alCompletarLogin;
@@ -399,8 +400,8 @@ class _PantallaLoginState extends State<PantallaLogin> {
                             const SizedBox(height: 8),
 
                             // Título de Marca
-                            const Text(
-                              'FASHION STORE',
+                            Text(
+                              EmpresaActual.instancia.marca,
                               style: TextStyle(
                                 fontFamily: 'Outfit',
                                 fontSize: 24,

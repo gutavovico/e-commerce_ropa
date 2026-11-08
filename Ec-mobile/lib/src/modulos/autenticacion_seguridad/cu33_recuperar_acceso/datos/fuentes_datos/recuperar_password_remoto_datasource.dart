@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import '../modelos/recuperar_password_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 class RecuperarPasswordExcepcion implements Exception {
   final String mensaje;
@@ -18,7 +19,7 @@ class RecuperarPasswordRemotoDatasource {
   final http.Client _client;
 
   RecuperarPasswordRemotoDatasource({http.Client? client})
-      : _client = client ?? http.Client();
+      : _client = client ?? ClienteHttpApi();
 
   Future<SolicitarCodigoRespuestaDto> solicitarCodigo(
     SolicitarCodigoPeticionDto dto,

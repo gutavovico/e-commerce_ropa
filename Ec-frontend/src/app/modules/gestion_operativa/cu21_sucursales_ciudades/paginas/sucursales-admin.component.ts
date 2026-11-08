@@ -1,3 +1,4 @@
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -48,7 +49,7 @@ export function validarCoherenciaHorarios(
 @Component({
   selector: 'app-sucursales-admin',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
+  imports: [MarcaTiendaComponent, CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
   templateUrl: './sucursales-admin.component.html',
   styleUrls: ['./sucursales-admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

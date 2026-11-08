@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import '../modelos/recomendacion_item_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 abstract class RecomendacionesApi {
   Future<RecomendacionesResponseDto> obtenerRecomendaciones({
@@ -15,7 +16,7 @@ abstract class RecomendacionesApi {
 class RecomendacionesApiImpl implements RecomendacionesApi {
   final http.Client _client;
 
-  RecomendacionesApiImpl({http.Client? client}) : _client = client ?? http.Client();
+  RecomendacionesApiImpl({http.Client? client}) : _client = client ?? ClienteHttpApi();
 
   @override
   Future<RecomendacionesResponseDto> obtenerRecomendaciones({

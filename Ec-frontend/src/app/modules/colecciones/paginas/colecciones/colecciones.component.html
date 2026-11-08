@@ -4,14 +4,14 @@
   <header class="top-header">
     <div class="header-container">
       <!-- Botón Volver -->
-      <a routerLink="/inicio" class="back-link">
+      <a [routerLink]="'/inicio' | rutaPortal" class="back-link">
         <span class="arrow">←</span>
         <span>VOLVER</span>
       </a>
 
       <!-- Brand Logo Centrado -->
-      <a routerLink="/inicio" class="brand-title">
-        FASHION STORE
+      <a [routerLink]="'/inicio' | rutaPortal" class="brand-title">
+        <app-marca-tienda />
       </a>
 
       <!-- Espaciador simétrico para alineación perfecta -->
@@ -224,7 +224,7 @@
     <div class="footer-inner">
       <div class="brand-block">
         <span class="brand-name">
-          FASHION STORE
+          <app-marca-tienda />
         </span>
         <span class="brand-tagline">
           Curated Editorial & Modern Garments
@@ -232,9 +232,9 @@
       </div>
 
       <nav class="footer-nav">
-        <a routerLink="/colecciones">EDITORIAL</a>
-        <a routerLink="/inicio">ATELIER</a>
-        <a routerLink="/perfil">CONCIERGE</a>
+        <a [routerLink]="'/colecciones' | rutaPortal">EDITORIAL</a>
+        <a [routerLink]="'/inicio' | rutaPortal">ATELIER</a>
+        <a [routerLink]="'/perfil' | rutaPortal">CONCIERGE</a>
       </nav>
 
       <div class="copyright-block">

@@ -1,3 +1,6 @@
+import { TenantService } from '../../../../core/tenant/tenant.service';
+import { MarcaTiendaComponent } from '../../../../core/tenant/marca-tienda.component';
+import { RutaPortalPipe } from '../../../../core/tenant/ruta-portal.pipe';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -17,7 +20,7 @@ import {
 @Component({
   selector: 'app-catalogo',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
   templateUrl: './catalogo.component.html',
   styleUrls: ['./catalogo.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,6 +28,7 @@ import {
 export class CatalogoComponent implements OnInit {
   private readonly catalogoService = inject(CatalogoService);
   private readonly router = inject(Router);
+  private readonly portal = inject(TenantService);
   private readonly route = inject(ActivatedRoute);
 
   // --- Signals de Estado Reactivo ---
@@ -217,7 +221,7 @@ export class CatalogoComponent implements OnInit {
    * Redirige al módulo de búsqueda avanzada con filtros combinados (CU06).
    */
   irABusquedaAvanzada(): void {
-    this.router.navigate(['/buscar']);
+    this.router.navigate(this.portal.ruta(['/buscar']));
   }
 
   /**

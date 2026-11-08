@@ -3,6 +3,7 @@ import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu04_gestionar_per
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../../datos/modelos/recomendacion_item_dto.dart';
 import '../bloc/inicio_bloc.dart';
+import '../../../../../core/empresa_actual.dart';
 
 class PantallaInicio extends StatefulWidget {
   final InicioBloc? bloc;
@@ -165,8 +166,8 @@ class _PantallaInicioState extends State<PantallaInicio> {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      title: const Text(
-        'FASHION STORE',
+      title: Text(
+        EmpresaActual.instancia.marca,
         style: TextStyle(
           color: Colors.black,
           fontSize: 14,

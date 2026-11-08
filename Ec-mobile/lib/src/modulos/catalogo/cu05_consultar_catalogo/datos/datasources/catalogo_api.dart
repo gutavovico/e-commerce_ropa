@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import '../modelos/catalogo_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 class CatalogoException implements Exception {
   final String mensaje;
@@ -25,7 +26,7 @@ abstract class CatalogoApi {
 class CatalogoApiImpl implements CatalogoApi {
   final http.Client _client;
 
-  CatalogoApiImpl({http.Client? client}) : _client = client ?? http.Client();
+  CatalogoApiImpl({http.Client? client}) : _client = client ?? ClienteHttpApi();
 
   @override
   Future<CatalogoResponseDto> consultarCatalogo({

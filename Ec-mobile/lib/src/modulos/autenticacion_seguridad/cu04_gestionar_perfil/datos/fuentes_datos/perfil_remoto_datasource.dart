@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import 'package:ec_mobile/src/core/sesion_manager.dart';
 import '../modelos/perfil_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 class PerfilExcepcion implements Exception {
   final String mensaje;
@@ -19,7 +20,7 @@ class PerfilRemotoDatasource {
   final http.Client _client;
 
   PerfilRemotoDatasource({http.Client? client})
-      : _client = client ?? http.Client();
+      : _client = client ?? ClienteHttpApi();
 
   Future<PerfilClienteDto> obtenerPerfil(String token) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/api/v1/perfil');

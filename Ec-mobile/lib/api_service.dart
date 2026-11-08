@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
+import 'src/core/cliente_http_api.dart';
 
 /// Modelo de datos para la respuesta del endpoint de salud
 class HealthStatus {
@@ -34,7 +35,7 @@ class HealthStatus {
 class ApiService {
   final http.Client _client;
 
-  ApiService({http.Client? client}) : _client = client ?? http.Client();
+  ApiService({http.Client? client}) : _client = client ?? ClienteHttpApi();
 
   /// Consume el endpoint `GET /api/v1/health`
   Future<HealthStatus> checkHealth({String? customBaseUrl}) async {

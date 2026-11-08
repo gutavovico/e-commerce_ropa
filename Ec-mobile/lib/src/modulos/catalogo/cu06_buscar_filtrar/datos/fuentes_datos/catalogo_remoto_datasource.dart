@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:ec_mobile/api_config.dart';
 import '../modelos/producto_paginado_dto.dart';
 import '../modelos/filtros_disponibles_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 class CatalogoExcepcion implements Exception {
   final String mensaje;
@@ -19,7 +20,7 @@ class CatalogoRemotoDatasource {
   final http.Client _client;
 
   CatalogoRemotoDatasource({http.Client? client})
-      : _client = client ?? http.Client();
+      : _client = client ?? ClienteHttpApi();
 
   /// Realiza la consulta paginada al catálogo con filtros opcionales.
   Future<ProductoPaginadoDto> buscarProductos({

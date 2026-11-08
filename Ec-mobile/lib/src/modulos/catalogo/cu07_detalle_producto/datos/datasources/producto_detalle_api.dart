@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../../../../../api_config.dart';
 import '../../../../../core/sesion_manager.dart';
 import '../modelos/producto_detalle_dto.dart';
+import '../../../../../core/cliente_http_api.dart';
 
 class ProductoDetalleException implements Exception {
   final String mensaje;
@@ -36,7 +37,7 @@ class ProductoDetalleApiImpl implements ProductoDetalleApi {
   ProductoDetalleApiImpl({
     http.Client? client,
     String? customBaseUrl,
-  })  : _client = client ?? http.Client(),
+  })  : _client = client ?? ClienteHttpApi(),
         _customBaseUrl = customBaseUrl;
 
   String get _baseUrl => _customBaseUrl ?? ApiConfig.baseUrl;

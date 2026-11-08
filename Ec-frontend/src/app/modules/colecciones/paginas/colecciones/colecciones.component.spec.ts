@@ -1,3 +1,4 @@
+import { entrarEnTienda } from '../../../../core/tenant/tenant.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
@@ -146,6 +147,7 @@ describe('ColeccionesComponent', () => {
         { provide: ColeccionesService, useValue: mockColeccionesService },
       ],
     }).compileComponents();
+    entrarEnTienda(); // P2-CU02: dentro del portal de FASHION STORE
 
     fixture = TestBed.createComponent(ColeccionesComponent);
     component = fixture.componentInstance;
@@ -201,7 +203,7 @@ describe('ColeccionesComponent', () => {
     const articulo = fixture.nativeElement.querySelector('article');
     articulo.click();
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/productos', 1]);
+    expect(navigateSpy).toHaveBeenCalledWith(['/', 'fashionstore', 'productos', 1]);
   });
 
   it('debe navegar al detalle de la colección al hacer click en una card de Otras colecciones', () => {
@@ -210,7 +212,7 @@ describe('ColeccionesComponent', () => {
     const coleccionCard = articles[2] as HTMLElement;
     coleccionCard.click();
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/colecciones', 2]);
+    expect(navigateSpy).toHaveBeenCalledWith(['/', 'fashionstore', 'colecciones', 2]);
   });
 
   it('debe mostrar el estado de error y botón de reintento si falla la carga', () => {

@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from core.security import hash_password
+from modules.autenticacion_seguridad.cuentas import correo_ocupado
 from modules.autenticacion_seguridad.cu20_usuarios_roles.errores import (
     CambioRolNoPermitidoError,
     AutoModificacionBloqueadaError,
@@ -105,13 +106,8 @@ class ServicioGestionUsuarios:
         # P2-CU13: un empleado pertenece a la empresa de la sesión; un cliente no pertenece a ninguna
         id_tenant = TenantServicio.empresa_para_rol(db, datos.rol)
 
-        # 1. Comprobar unicidad de correo electronico (RN05, F8): entre los empleados de la empresa
-        #    o entre las cuentas globales, según el rol
-        stmt_dup = select(UsuarioORM).where(
-            func.lower(UsuarioORM.email) == email_norm,
-            UsuarioORM.id_tenant.is_(None) if id_tenant is None else UsuarioORM.id_tenant == id_tenant,
-        )
-        if db.scalars(stmt_dup).first():
+        # 1. Correo único en toda la plataforma (RN05, P2-CU02 A2)
+        if correo_ocupado(db, email_norm):
             raise EmailDuplicadoError(
                 f"El correo electronico '{datos.email}' ya se encuentra registrado en el sistema."
             )
@@ -256,14 +252,7 @@ class ServicioGestionUsuarios:
         # Validar colision de email si se intenta modificar
         if datos.email is not None:
             email_norm = datos.email.strip().lower()
-            stmt_dup = select(UsuarioORM).where(
-                func.lower(UsuarioORM.email) == email_norm,
-                UsuarioORM.id_usuario != id_usuario,
-                UsuarioORM.id_tenant.is_(None)
-                if getattr(usuario, "id_tenant", None) is None
-                else UsuarioORM.id_tenant == usuario.id_tenant,
-            )
-            if db.scalars(stmt_dup).first():
+            if correo_ocupado(db, email_norm, excluir_id=id_usuario):
                 raise EmailDuplicadoError(
                     f"El correo electronico '{datos.email}' ya pertenece a otro usuario."
                 )

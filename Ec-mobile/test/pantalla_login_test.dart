@@ -4,6 +4,7 @@ import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesio
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/repositorios/login_repositorio.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/bloc/login_bloc.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
+import 'package:ec_mobile/src/core/empresa_actual.dart';
 
 class MockLoginRepositorio implements LoginRepositorio {
   @override
@@ -41,7 +42,7 @@ void main() {
 
       // Verificar título de marca y subtítulo
       expect(find.text('— BIENVENIDO DE VUELTA —'), findsOneWidget);
-      expect(find.text('FASHION STORE'), findsOneWidget);
+      expect(find.text(nombrePlataforma)  /* P2-CU02: antes de elegir tienda */, findsOneWidget);
 
       // Verificar etiquetas de formulario
       expect(find.text('CORREO ELECTRÓNICO'), findsOneWidget);

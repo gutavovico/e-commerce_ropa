@@ -4,6 +4,7 @@ import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu33_recuperar_acc
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu33_recuperar_acceso/dominio/repositorios/recuperar_password_repositorio.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu33_recuperar_acceso/presentacion/bloc/recuperar_password_bloc.dart';
 import 'package:ec_mobile/src/modulos/autenticacion_seguridad/cu33_recuperar_acceso/presentacion/pantallas/pantalla_recuperar_password.dart';
+import 'package:ec_mobile/src/core/empresa_actual.dart';
 
 class MockRecuperarRepositorio implements RecuperarPasswordRepositorio {
   @override
@@ -32,7 +33,7 @@ void main() {
     // Monograma FS y Títulos editoriales
     expect(find.text('FS'), findsOneWidget);
     expect(find.text('— RESTABLECER ACCESO —'), findsOneWidget);
-    expect(find.text('FASHION STORE'), findsOneWidget);
+    expect(find.text(nombrePlataforma)  /* P2-CU02: antes de elegir tienda */, findsOneWidget);
 
     // Campo de correo en paso inicial
     expect(find.text('CORREO ELECTRÓNICO'), findsOneWidget);

@@ -2,132 +2,21 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminOnlyGuard, cajeroACajaGuard, roleGuard } from './core/guards/role.guard';
 import { MainLayoutComponent } from './core/layouts/main-layout/main-layout.component';
+import { PortalComponent } from './core/layouts/portal/portal.component';
+import { tenantGuard } from './core/guards/tenant.guard';
 
 export const routes: Routes = [
   // =========================================================================
-  // 0. LANDING PAGE INSTITUCIONAL PÚBLICA
+  // 0. DIRECTORIO DE TIENDAS (P2-CU02, decisión A4)
   // =========================================================================
   {
     path: '',
     loadComponent: () =>
-      import('./public/landing/landing.component').then(
-        (m) => m.LandingPageComponent
+      import('./modules/plataforma/directorio/paginas/directorio.component').then(
+        (m) => m.DirectorioComponent
       ),
     pathMatch: 'full',
-    title: 'FASHION STORE | Alta Costura y Sastrería Digital',
-  },
-
-  // =========================================================================
-  // 1. PANTALLAS RAÍZ (HUB) BAJO MAIN LAYOUT CON NAVBAR PERSISTENTE
-  // =========================================================================
-  {
-    path: '',
-    component: MainLayoutComponent,
-    children: [
-      {
-        path: 'inicio',
-        loadComponent: () =>
-          import('./modules/inicio/paginas/inicio.component').then(
-            (m) => m.InicioComponent
-          ),
-        title: 'FASHION STORE | Inicio & Atelier Exclusivo',
-      },
-      {
-        path: 'home',
-        redirectTo: 'inicio',
-        pathMatch: 'full',
-      },
-      {
-        path: 'buscar',
-        loadComponent: () =>
-          import(
-            './modules/catalogo/cu06_buscar_filtrar/paginas/buscar-productos.component'
-          ).then((m) => m.BuscarProductosComponent),
-        title: 'FASHION STORE | Búsqueda & Catálogo Atelier',
-      },
-      {
-        path: 'catalogo',
-        loadComponent: () =>
-          import(
-            './modules/catalogo/cu05_consultar_catalogo/paginas/catalogo.component'
-          ).then((m) => m.CatalogoComponent),
-        title: 'FASHION STORE | Catálogo & Exploración Atelier',
-      },
-      {
-        path: 'perfil',
-        canActivate: [authGuard],
-        loadComponent: () =>
-          import(
-            './modules/autenticacion_seguridad/cu04_gestionar_perfil/paginas/perfil.component'
-          ).then((m) => m.PerfilComponent),
-        title: 'FASHION STORE | Perfil de Cliente Atelier',
-      },
-      {
-        path: 'mi-cuenta',
-        redirectTo: 'perfil',
-        pathMatch: 'full',
-      },
-    ],
-  },
-
-  // =========================================================================
-  // 2. PANTALLAS SECUNDARIAS (HOJAS / SPOKE) FUERA DEL MAIN LAYOUT
-  // =========================================================================
-  {
-    path: 'colecciones',
-    loadComponent: () =>
-      import(
-        './modules/colecciones/paginas/colecciones/colecciones.component'
-      ).then((m) => m.ColeccionesComponent),
-    title: 'FASHION STORE | Colecciones & Archivo de Sastrería',
-  },
-  {
-    path: 'colecciones/:id',
-    loadComponent: () =>
-      import(
-        './modules/colecciones/paginas/coleccion-detalle/coleccion-detalle.component'
-      ).then((m) => m.ColeccionDetalleComponent),
-    title: 'FASHION STORE | Detalle de Colección',
-  },
-  {
-    path: 'bolsa',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import(
-        './modules/compras_pagos/cu11_gestionar_carrito/paginas/bolsa-compra.component'
-      ).then((m) => m.BolsaCompraComponent),
-    title: 'FASHION STORE | Bolsa de Compra & Checkout',
-  },
-  {
-    path: 'pago/:idVenta',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import(
-        './modules/compras_pagos/cu16_realizar_pago/paginas/checkout-pago.component'
-      ).then((m) => m.CheckoutPagoComponent),
-    title: 'FASHION STORE | Pago Seguro & Pasarela Atelier',
-  },
-  {
-    path: 'reservas',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import(
-        './modules/reservas/cu13_consultar_cancelar_reservas/paginas/mis-reservas.component'
-      ).then((m) => m.MisReservasComponent),
-    title: 'FASHION STORE | Mis Reservas de Probador',
-  },
-  {
-    path: 'productos/:id',
-    loadComponent: () =>
-      import(
-        './modules/catalogo/cu07_detalle_producto/paginas/producto-detalle.component'
-      ).then((m) => m.ProductoDetalleComponent),
-    title: 'FASHION STORE | Detalle de Prenda de Alta Costura',
-  },
-  {
-    path: 'catalogo/:id',
-    redirectTo: 'productos/:id',
-    pathMatch: 'full',
+    title: 'Tiendas',
   },
 
   // =========================================================================
@@ -144,13 +33,6 @@ export const routes: Routes = [
     path: 'iniciar-sesion',
     redirectTo: 'login',
     pathMatch: 'full',
-  },
-  {
-    path: 'registro',
-    loadComponent: () =>
-      import(
-        './modules/autenticacion_seguridad/cu01_registrarse/paginas/registro.component'
-      ).then((m) => m.RegistroComponent),
   },
   {
     path: 'recuperar-password',
@@ -301,7 +183,190 @@ export const routes: Routes = [
   },
 
   // =========================================================================
-  // 5. RUTA COMODÍN (404)
+  // 5. RUTAS ANTIGUAS DEL CLIENTE → DIRECTORIO (P2-CU02, decisión A14)
+  // =========================================================================
+  { path: 'inicio', redirectTo: '', pathMatch: 'full' },
+  { path: 'home', redirectTo: '', pathMatch: 'full' },
+  { path: 'buscar', redirectTo: '', pathMatch: 'full' },
+  { path: 'catalogo', redirectTo: '', pathMatch: 'full' },
+  { path: 'perfil', redirectTo: '', pathMatch: 'full' },
+  { path: 'mi-cuenta', redirectTo: '', pathMatch: 'full' },
+  { path: 'colecciones', redirectTo: '', pathMatch: 'full' },
+  { path: 'colecciones/:id', redirectTo: '', pathMatch: 'full' },
+  { path: 'bolsa', redirectTo: '', pathMatch: 'full' },
+  { path: 'pago/:idVenta', redirectTo: '', pathMatch: 'full' },
+  { path: 'reservas', redirectTo: '', pathMatch: 'full' },
+  { path: 'productos/:id', redirectTo: '', pathMatch: 'full' },
+  { path: 'catalogo/:id', redirectTo: '', pathMatch: 'full' },
+  { path: 'registro', redirectTo: '', pathMatch: 'full' },
+
+  // =========================================================================
+  // 6. PORTAL DE CADA TIENDA: /{codigo}/... (P2-CU02, decisión A3)
+  //    Va después de todas las rutas fijas: ':codigo' captura cualquier primer segmento.
+  // =========================================================================
+  {
+    path: ':codigo',
+    component: PortalComponent,
+    canActivate: [tenantGuard],
+    children: [
+      // =========================================================================
+      // 0. LANDING PAGE INSTITUCIONAL PÚBLICA
+      // =========================================================================
+      {
+        path: '',
+        loadComponent: () =>
+          import('./public/landing/landing.component').then(
+            (m) => m.LandingPageComponent
+          ),
+        pathMatch: 'full',
+        title: 'FASHION STORE | Alta Costura y Sastrería Digital',
+      },
+
+      // =========================================================================
+      // 1. PANTALLAS RAÍZ (HUB) BAJO MAIN LAYOUT CON NAVBAR PERSISTENTE
+      // =========================================================================
+      {
+        path: '',
+        component: MainLayoutComponent,
+        children: [
+          {
+            path: 'inicio',
+            loadComponent: () =>
+              import('./modules/inicio/paginas/inicio.component').then(
+                (m) => m.InicioComponent
+              ),
+            title: 'FASHION STORE | Inicio & Atelier Exclusivo',
+          },
+          {
+            path: 'home',
+            redirectTo: 'inicio',
+            pathMatch: 'full',
+          },
+          {
+            path: 'buscar',
+            loadComponent: () =>
+              import(
+                './modules/catalogo/cu06_buscar_filtrar/paginas/buscar-productos.component'
+              ).then((m) => m.BuscarProductosComponent),
+            title: 'FASHION STORE | Búsqueda & Catálogo Atelier',
+          },
+          {
+            path: 'catalogo',
+            loadComponent: () =>
+              import(
+                './modules/catalogo/cu05_consultar_catalogo/paginas/catalogo.component'
+              ).then((m) => m.CatalogoComponent),
+            title: 'FASHION STORE | Catálogo & Exploración Atelier',
+          },
+          {
+            path: 'perfil',
+            canActivate: [authGuard],
+            loadComponent: () =>
+              import(
+                './modules/autenticacion_seguridad/cu04_gestionar_perfil/paginas/perfil.component'
+              ).then((m) => m.PerfilComponent),
+            title: 'FASHION STORE | Perfil de Cliente Atelier',
+          },
+          {
+            path: 'mi-cuenta',
+            redirectTo: 'perfil',
+            pathMatch: 'full',
+          },
+        ],
+      },
+
+      // =========================================================================
+      // 2. PANTALLAS SECUNDARIAS (HOJAS / SPOKE) FUERA DEL MAIN LAYOUT
+      // =========================================================================
+      {
+        path: 'colecciones',
+        loadComponent: () =>
+          import(
+            './modules/colecciones/paginas/colecciones/colecciones.component'
+          ).then((m) => m.ColeccionesComponent),
+        title: 'FASHION STORE | Colecciones & Archivo de Sastrería',
+      },
+      {
+        path: 'colecciones/:id',
+        loadComponent: () =>
+          import(
+            './modules/colecciones/paginas/coleccion-detalle/coleccion-detalle.component'
+          ).then((m) => m.ColeccionDetalleComponent),
+        title: 'FASHION STORE | Detalle de Colección',
+      },
+      {
+        path: 'bolsa',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import(
+            './modules/compras_pagos/cu11_gestionar_carrito/paginas/bolsa-compra.component'
+          ).then((m) => m.BolsaCompraComponent),
+        title: 'FASHION STORE | Bolsa de Compra & Checkout',
+      },
+      {
+        path: 'pago/:idVenta',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import(
+            './modules/compras_pagos/cu16_realizar_pago/paginas/checkout-pago.component'
+          ).then((m) => m.CheckoutPagoComponent),
+        title: 'FASHION STORE | Pago Seguro & Pasarela Atelier',
+      },
+      {
+        path: 'reservas',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import(
+            './modules/reservas/cu13_consultar_cancelar_reservas/paginas/mis-reservas.component'
+          ).then((m) => m.MisReservasComponent),
+        title: 'FASHION STORE | Mis Reservas de Probador',
+      },
+      {
+        path: 'productos/:id',
+        loadComponent: () =>
+          import(
+            './modules/catalogo/cu07_detalle_producto/paginas/producto-detalle.component'
+          ).then((m) => m.ProductoDetalleComponent),
+        title: 'FASHION STORE | Detalle de Prenda de Alta Costura',
+      },
+      {
+        path: 'catalogo/:id',
+        redirectTo: 'productos/:id',
+        pathMatch: 'full',
+      },
+
+      // Acceso desde el portal (P2-CU02 §B.3)
+      {
+        path: 'login',
+        loadComponent: () =>
+          import(
+            './modules/autenticacion_seguridad/cu02_iniciar_sesion/paginas/login.component'
+          ).then((m) => m.LoginComponent),
+      },
+      {
+        path: 'registro',
+        loadComponent: () =>
+          import(
+            './modules/autenticacion_seguridad/cu01_registrarse/paginas/registro.component'
+          ).then((m) => m.RegistroComponent),
+      },
+      {
+        path: 'recuperar-password',
+        loadComponent: () =>
+          import(
+            './modules/autenticacion_seguridad/cu33_recuperar_acceso/paginas/recuperar-password.component'
+          ).then((m) => m.RecuperarPasswordComponent),
+      },
+      {
+        path: 'recuperar-acceso',
+        redirectTo: 'recuperar-password',
+        pathMatch: 'full',
+      },
+    ],
+  },
+
+  // =========================================================================
+  // 7. RUTA COMODÍN (404)
   // =========================================================================
   {
     path: '**',
