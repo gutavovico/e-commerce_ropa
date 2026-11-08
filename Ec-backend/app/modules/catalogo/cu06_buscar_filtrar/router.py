@@ -81,13 +81,9 @@ def buscar_productos(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=exc.message,
         ) from exc
-    except Exception as exc:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"{type(exc).__name__}: {str(exc)}",
-        ) from exc
+    # Cualquier otro error sube al middleware `capturar_errores_no_controlados`, que lo registra y
+    # responde el 500 genérico. Aquí antes se devolvía el tipo y el texto de la excepción, con el SQL
+    # incluido (defecto 56 del CHANGELOG).
 
 
 @router.get(

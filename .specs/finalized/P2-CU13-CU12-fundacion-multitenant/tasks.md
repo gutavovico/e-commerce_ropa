@@ -25,8 +25,8 @@
 - [x] **T-BE-09:** Suite completa en verde y prueba de humo de los GET.
 
 ## Bloque 3 — Producción (solo con confirmación explícita)
-- [ ] **T-PR-01:** `alembic upgrade head` en la rama principal de Neon.
-- [ ] **T-PR-02:** `DATABASE_URL` de `.env` y de Render pasan al rol `fashionstore_app`; verificación de extremo a extremo.
+- [x] **T-PR-01:** `alembic upgrade head` en la rama principal de Neon.
+- [x] **T-PR-02:** `DATABASE_URL` de `.env` y de Render pasan al rol `fashionstore_app`; verificación de extremo a extremo.
 
 ## Cierre
-- [ ] **T-CI-01:** Delta de la constitución (F20), `CLAUDE.md`, `CHANGELOG.md` y promoción de la spec.
+- [x] **T-CI-01:** Delta de la constitución (F20), `CLAUDE.md`, `CHANGELOG.md` y promoción de la spec.

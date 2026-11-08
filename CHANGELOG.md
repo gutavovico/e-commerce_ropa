@@ -2,6 +2,15 @@
 
 Todas las modificaciones notables, correcciones de errores de infraestructura y promociones de especificaciones del proyecto se documentan en este archivo.
 
+## [Unreleased] - 2026-11-08 (Parcial 2)
+
+### Fundación Multitenant — P2-CU13 (Aislar datos por empresa) y P2-CU12 (Validar suscripción y límites del plan)
+- **Base de datos (migraciones `0012`–`0014`):** tablas `tenants`, `planes`, `funcionalidades`, `plan_funcionalidades`, `suscripciones`, `historial_suscripcion`, `configuracion_tenant`, `cliente_tenant` y `empleado_sucursal`. FASHION STORE es la empresa 1 (plan Profesional hasta 2027-11-08). `id_tenant` en 24 tablas de negocio, `usuarios` y `bitacora`, con valor por defecto tomado del contexto de la transacción; claves únicas por empresa; 42 claves foráneas compuestas; Row Level Security en 31 tablas; vistas con `security_invoker`; rol `super_administrador`. La aplicación se conecta con `fashionstore_app` (sin `BYPASSRLS`) y las migraciones con el dueño (`DATABASE_URL_MIGRACIONES`). El `downgrade` restaura el esquema original exacto (verificado).
+- **Backend:** empresa de cada petición por la cabecera `X-Tenant` o `TENANT_POR_DEFECTO` (transición), aplicada en cada transacción; JWT con `id_tenant` (el token manda sobre la cabecera); login con `codigo_empresa` opcional; registro de clientes por empresa; validación de suscripción, funcionalidades y límites del plan en sucursales, empleados, reservas, checkout, venta en caja y reportes; webhook de Stripe con modo plataforma.
+- **Pruebas:** `pytest` 613/613, de ellas 18 de integración contra PostgreSQL real con el rol de la aplicación. En producción: humo 42 GET × 5 perfiles sin 5xx y escrituras de extremo a extremo 21/21.
+- **Efecto para los usuarios:** todos deben iniciar sesión de nuevo una vez (los tokens anteriores no llevan empresa). Web y móvil no cambian en este ciclo.
+- Defectos 53–56 de la bitácora.
+
 ## [Unreleased] - 2026-11-08
 
 ### Implementación y Cierre — CU31 (Registrar venta presencial) y CU32 (Procesar venta y emitir comprobante)
@@ -459,6 +468,20 @@ ejercitar nunca `fromJson`, de modo que ningún desajuste de nombres de campo er
     - *Causa:* las cinco pruebas del modo sin secreto enviaban el evento sin firma, pero heredaban `STRIPE_WEBHOOK_SECRET` del `.env`; con el secreto presente el servicio exige `Stripe-Signature` y respondían 400. Pasaban o fallaban según la máquina.
     - *Solución:* fixture `sin_secreto_webhook` que fija el modo sin secreto en esas pruebas, y una prueba nueva que firma el evento con HMAC-SHA256 como Stripe (`t=…,v1=…`) para cubrir el modo producción. El código del webhook no cambió.
     - *Verificación (49–52):* `pytest` 567/567 en verde, sin fallos previos arrastrados.
+53. **`Settings` Rechazaba Variables Nuevas del `.env` y el Backend Local no Arrancaba**:
+    - *Causa:* `pydantic-settings` lee `Ec-backend/.env` y, con su configuración por defecto, lanza `ValidationError` ante variables no declaradas. Al añadir `DATABASE_URL_MIGRACIONES`, `DATABASE_URL_PRUEBAS` y `DATABASE_URL_PRUEBAS_APP` para la fundación multitenant, el backend local dejó de arrancar (producción no se vio afectada: Render no las tenía).
+    - *Solución:* se declararon en `Settings`, junto con `TENANT_POR_DEFECTO`. Toda variable nueva del `.env` debe declararse en `core/config.py` en el mismo cambio.
+54. **P2-CU13 · El Personal Perdía el Carrito (Regresión Detectada por la Prueba de Humo)**:
+    - *Causa:* `asegurar_cliente` crea una ficha de cliente para cualquier usuario que use el carrito o reserve. Tras la migración `0013`, `carritos` y `reservas` apuntan a `cliente_tenant` con una FK compuesta, y la ficha recién creada del encargado 13 no estaba registrada en la empresa: `GET /carrito` respondía 500.
+    - *Solución:* `TenantServicio.exigir_cliente_en_tenant` antes de crear carritos o reservas. Un cliente no registrado en la empresa recibe 403 `CLIENTE_NO_REGISTRADO` (decisión D-B) y un empleado que compra en su propia empresa queda registrado, como funcionaba antes.
+    - *Verificación:* prueba de humo de 42 GET × 5 perfiles sin 5xx, en la rama de pruebas y en producción; dos pruebas de integración nuevas.
+55. **Despliegue de la Fundación Multitenant sin Migración: Producción Caída (Error 500 en Todo Acceso a Datos)**:
+    - *Causa:* Render desplegó el commit `4c4931b` pero no ejecutó el `preDeployCommand` (`alembic upgrade head`): la base siguió en `0011`. Al pasar `DATABASE_URL` al rol `fashionstore_app` —que sin la migración `0014` no tiene permisos—, toda consulta respondió `permission denied for schema fashionstore`. La causa más probable es que el plan gratuito de Render no ejecuta comandos previos al despliegue.
+    - *Solución:* `alembic upgrade head` aplicado a mano con `DATABASE_URL_MIGRACIONES` (dueño de las tablas). Verificado después: base en `0014`, datos intactos, humo sin 5xx y escrituras de extremo a extremo 21/21.
+    - *Prevención:* las migraciones se aplican a mano **antes** del push y se comprueba `alembic current` contra producción; no se cambia `DATABASE_URL` en Render hasta confirmar la migración (documentado en `CLAUDE.md`).
+56. **`GET /productos` Devolvía el SQL y el Tipo de Excepción en sus Errores 500**:
+    - *Causa:* el router de CU06 capturaba cualquier excepción y respondía `detail=f"{type(exc).__name__}: {exc}"`. Durante el incidente 55, la respuesta pública incluía `ProgrammingError … [SQL: SELECT …]`, que revela la estructura de la base.
+    - *Solución:* se eliminó ese `except`; el error sube al middleware `capturar_errores_no_controlados`, que lo registra y responde el 500 genérico (que además atraviesa CORS). Era el único router con ese patrón. Prueba nueva: `test_un_error_interno_no_expone_sql_ni_detalles`.
 
 ## [1.8.0] - 2026-09-21
 

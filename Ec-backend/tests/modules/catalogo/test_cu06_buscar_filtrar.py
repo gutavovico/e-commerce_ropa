@@ -605,3 +605,29 @@ def test_busqueda_palabras_sueltas_multiples_criterios():
     assert res_compuesto.items[0].color_sugerido == "Rojo Carmín"
 
 
+
+
+def test_un_error_interno_no_expone_sql_ni_detalles(monkeypatch):
+    """Defecto 56: `GET /productos` devolvía `ProgrammingError: ... [SQL: ...]` en el 500.
+
+    Ahora el error sube al middleware global, que responde el mensaje genérico."""
+    from unittest.mock import MagicMock
+
+    from fastapi.testclient import TestClient
+
+    from core.database import get_db
+    from main import RESPUESTA_ERROR_INTERNO, app
+    from modules.catalogo.cu06_buscar_filtrar import router as modulo_router
+
+    def falla(**_kwargs):
+        raise RuntimeError("permission denied for schema fashionstore [SQL: SELECT secreto FROM productos]")
+
+    monkeypatch.setattr(modulo_router.ServicioBuscarFiltro, "buscar_productos", staticmethod(falla))
+    app.dependency_overrides[get_db] = lambda: MagicMock()
+    try:
+        respuesta = TestClient(app).get("/api/v1/productos")
+    finally:
+        app.dependency_overrides.clear()
+    assert respuesta.status_code == 500
+    assert respuesta.json() == RESPUESTA_ERROR_INTERNO
+    assert "SQL" not in respuesta.text and "secreto" not in respuesta.text

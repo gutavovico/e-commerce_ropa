@@ -1,6 +1,6 @@
 """Pruebas unitarias de la fundación multitenant (P2-CU13 · P2-CU12), sin base de datos.
 
-Spec: `.specs/changes/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.4 y §A.5.
+Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.4 y §A.5.
 Las pruebas contra PostgreSQL real (RLS, FK compuestas, vistas) están en
 `tests/integracion/test_multitenant.py`.
 """

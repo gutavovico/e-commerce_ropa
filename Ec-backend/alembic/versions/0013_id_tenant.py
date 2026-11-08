@@ -1,6 +1,6 @@
 """P2-CU13 · Fundación multitenant (2/3): `id_tenant` en las tablas de negocio.
 
-Spec: `.specs/changes/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.2 (decisiones F1, F2, F8, F9,
+Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.2 (decisiones F1, F2, F8, F9,
 F10 y F11).
 
 - Todas las filas actuales pasan a la empresa 1 (FASHION STORE).

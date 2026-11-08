@@ -1,6 +1,6 @@
 """P2-CU13/CU12 · Fundación multitenant (1/3): empresas, planes, suscripciones y registro de clientes.
 
-Spec: `.specs/changes/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.1 (decisiones F9, F14 y F15).
+Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.1 (decisiones F9, F14 y F15).
 
 Crea las tablas del modelo de empresa (tenant) y siembra la empresa 1, FASHION STORE, que recibe
 todos los datos actuales en la migración 0013. Las tablas que pertenecen a una empresa toman

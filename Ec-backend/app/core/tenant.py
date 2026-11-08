@@ -1,6 +1,6 @@
 """Contexto de empresa (tenant) por petición y por transacción — P2-CU13.
 
-Spec: `.specs/changes/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.4 (decisiones F2–F6).
+Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.4 (decisiones F2–F6).
 
 Cómo llega la empresa a PostgreSQL:
 1. `preparar_sesion()` (llamada desde `get_db`) resuelve la empresa de la petición: cabecera

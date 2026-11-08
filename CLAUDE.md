@@ -135,14 +135,54 @@ sola cuando no hay `DATABASE_URL` en `Ec-backend/.env`.
 **La cadena de Alembic es lineal desde el defecto 45 del `CHANGELOG.md`:**
 `0001 → … → 0008 → 0009 → 0009a → 0010 → 0010a → 0011`. `0009a` (CU28) y `0010a` (CU29) son
 marcadores vacíos; los IDs llevan sufijo porque `0009` y `0010` ya pertenecían a migraciones con DDL
-real. La base de Neon está sellada en `0011` (la única cabeza), por lo que `alembic upgrade head`
-—que `render.yaml` ejecuta en `preDeployCommand`— es un no-op sobre ella. **Nueva migración:**
-`down_revision = "0011"` e ID nuevo y único (`0012`); comprueba `alembic heads` antes de enviarla.
-La cadena completa `0001 → 0011` sí reproduce el esquema desplegado en Neon (las 31 tablas, 236
+real. Desde la fundación multitenant la cadena sigue `0011 → 0012 → 0013 → 0014` y producción está
+en `0014`. **Nueva migración:** `down_revision = "0014"` e ID nuevo y único (`0015`); comprueba
+`alembic heads` antes de enviarla.
+
+**Las migraciones se aplican a mano, antes del push** (defecto 55): Render no ejecutó el
+`preDeployCommand` de `render.yaml`, y desplegar código que espera un esquema nuevo sobre una base sin
+migrar tumba producción. El orden es: ensayar en la rama de Neon `pruebas-multitenant`
+(`alembic -x db=pruebas upgrade head`, con `upgrade → downgrade → upgrade`), aplicar en producción
+(`alembic upgrade head`, que usa `DATABASE_URL_MIGRACIONES`), comprobar `alembic current` y solo
+entonces hacer push. Alembic se conecta como dueño de las tablas (`DATABASE_URL_MIGRACIONES`); la
+aplicación, con `fashionstore_app`, que no puede hacer DDL.
+
+La cadena `0001 → 0011` reproduce el esquema previo al Parcial 2 (las 31 tablas, 236
 columnas, 10 enums, 46 índices, 3 vistas y el trigger); dos tablas de Neon aún no tienen modelo
 ORM (`historial_navegacion` y `solicitudes_reporte_ia`; `sesiones_vestidor_virtual` e
 `interacciones_chatbot` ya lo tienen, en CU10 y CU19), por lo que cualquier `--autogenerate` debe
 revisarse antes de aplicarse.
+
+### Multitenancy: toda fila de negocio pertenece a una empresa (Parcial 2, P2-CU13)
+
+Spec permanente: `.specs/modules/plataforma/P2-CU13-CU12-fundacion-multitenant.md`.
+
+- **Tabla `tenants`, columna `id_tenant`.** Las tablas de negocio llevan `id_tenant NOT NULL` con
+  valor por defecto `NULLIF(current_setting('app.id_tenant', true), '')::bigint`: un `INSERT` que no la
+  indique toma la empresa del contexto. En el ORM se mapea con `server_default=FetchedValue()`.
+  Globales (sin `id_tenant`): `ciudades`, `tallas`, `colores`, `clientes`, `codigos_recuperacion`,
+  `tenants`, `planes`, `funcionalidades`. `usuarios` la lleva solo para empleados (clientes y super
+  administrador sin empresa; CHECK `chk_usuarios_tenant_segun_rol`).
+- **Contexto por transacción.** `get_db` fija la empresa (cabecera `X-Tenant` o
+  `TENANT_POR_DEFECTO` en la transición) y `get_current_user` la sustituye por la del token, que
+  manda. Un listener `after_begin` (`core/tenant.py`) aplica `set_config(..., true)` al empezar **cada**
+  transacción. Nunca uses `SET` de sesión: Neon usa PgBouncer en modo transacción.
+- **Row Level Security** en 31 tablas. Sin contexto no se ve ni se escribe nada. La app se conecta con
+  `fashionstore_app` (NOBYPASSRLS); `neondb_owner` se salta la RLS y solo lo usan migraciones y scripts.
+  El modo plataforma (`app.modo_plataforma = 'on'`) solo para el super administrador y la
+  localización del webhook de Stripe.
+- **Tabla nueva de negocio = `id_tenant` + `UNIQUE (id_tenant, pk)` + FK compuestas
+  `(id_tenant, fk) → (id_tenant, pk)` hacia otras tablas de empresa + política `aislamiento_tenant`.**
+  Una vista nueva necesita `security_invoker = true` o se salta la RLS.
+- **Claves únicas por empresa** (SKU, comprobante, cupón, categoría, temporada…), no globales.
+- **Clientes:** cuenta global, registrada por empresa en `cliente_tenant`. Carrito, reserva y venta
+  apuntan a `cliente_tenant`; un cliente no registrado recibe 403 `CLIENTE_NO_REGISTRADO`.
+- **Planes (P2-CU12):** `SuscripcionServicio.validar` y `requiere_funcionalidad(...)` antes de cada
+  operación restringida; los límites se leen de `planes`, nunca de constantes.
+- **Las pruebas simuladas no ven la RLS.** Lo que toque aislamiento se prueba en
+  `tests/integracion/test_multitenant.py`, contra la rama de pruebas con `DATABASE_URL_PRUEBAS_APP`.
+- **Toda variable nueva del `.env` se declara en `core/config.py`**: `pydantic-settings` rechaza las
+  desconocidas y el backend no arranca (defecto 53).
 
 ### Los tests verdes no prueban que el contrato funcione
 
@@ -197,7 +237,7 @@ app/core/{config,database,deps,errors,security,token_blacklist}.py
 
 Paquetes actuales: `autenticacion_seguridad`, `catalogo`, `reservas`, `compras_pagos` (incluye el POS
 `cu31_cu32_punto_venta`), `comercial` (CU27–CU29 y `cu31_reportes_voz`), `gestion_operativa` (CU21–CU26)
-y `seguridad` (CU30 bitácora).
+`seguridad` (CU30 bitácora) y `plataforma` (modelo SaaS: empresas, planes, suscripciones; P2-CU12).
 Las integraciones externas viven en `app/integrations/` (`stripe_service.py` y `gemini_service.py`,
 ambos con simulador/fallback determinista cuando falta la clave).
 
@@ -278,7 +318,10 @@ lib/src/{core,navegacion}/
 ## Despliegue
 
 - **Backend:** Render (`render.yaml`, `rootDir: Ec-backend`). Espera arranques en frío; la conexión
-  usa `pool_pre_ping`.
+  usa `pool_pre_ping`. `DATABASE_URL` usa el rol `fashionstore_app`; `DATABASE_URL_MIGRACIONES`, el
+  dueño. Render **no** aplica las migraciones: hazlo a mano antes del push (ver la cadena de Alembic).
 - **Web:** Vercel. `vercel.json` reescribe `/api/:path*` al backend de Render y todo lo demás a
   `index.html` — de ahí que la ruta comodín de Angular sea imprescindible.
 - **Base de datos:** Neon PostgreSQL, esquema `fashionstore`. `Ec-backend/.env` no está versionado.
+  Ramas: la principal (producción), `pruebas-multitenant` (ensayo de migraciones y pruebas de
+  integración) y `respaldo-pre-0012` (copia previa a la fundación multitenant).

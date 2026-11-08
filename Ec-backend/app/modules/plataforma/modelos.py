@@ -1,6 +1,6 @@
 """ORM del modelo multitenant (migraciones 0012 y 0013).
 
-Spec: `.specs/changes/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.1. Las columnas `id_tenant` de las
+Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.1. Las columnas `id_tenant` de las
 tablas de una empresa se mapean con `FetchedValue()`: si el código no las indica, PostgreSQL toma la
 empresa del contexto de la transacción (F2).
 """

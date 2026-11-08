@@ -9,6 +9,8 @@ services:
     plan: free
     rootDir: Ec-backend
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    # ATENCIÓN (defecto 55 del CHANGELOG): Render no ejecutó este comando al desplegar la fundación
+    # multitenant. Aplica las migraciones a mano ANTES del push (ver CLAUDE.md).
     preDeployCommand: alembic upgrade head
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:

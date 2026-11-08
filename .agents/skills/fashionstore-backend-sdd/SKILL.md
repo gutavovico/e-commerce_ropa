@@ -49,8 +49,8 @@ Especificar de más es tan malo como no especificar. Clasifica antes de empezar 
 
 ## Constitución del backend (principios que no se negocian en una tarea)
 
-0. **E-COMMERCE EXCLUSIVO PARA MUJERES Y JERARQUÍA CANÓNICA:**
-   - FashionStore es una plataforma **EXCLUSIVAMENTE DE MODA FEMENINA**. Todos los productos (`fashionstore.productos`), categorías, variantes y fotografías de catálogo pertenecen al segmento de alta costura para mujer. Prohibido registrar o asociar prendas masculinas.
+0. **CATÁLOGO POR EMPRESA Y JERARQUÍA CANÓNICA** (actualizado en el Parcial 2, decisión F20):
+   - FashionStore es una plataforma **SaaS multitenant**: cada empresa (tenant) tiene su propio catálogo. La empresa **FASHION STORE** (los datos originales) es **exclusivamente de moda femenina**: en ella está prohibido registrar o asociar prendas masculinas. La empresa de prueba **Menshopping** es de moda masculina. Nunca mezcles el catálogo de una empresa con el de otra.
    - Jerarquía relacional obligatoria: una **temporada** contiene una o más **colecciones** (`colecciones.id_temporada -> temporadas.id_temporada`), y una **colección** contiene múltiples **prendas de ropa** (`productos.id_coleccion -> colecciones.id_coleccion`).
    - Toda información provista a clientes web y móviles proviene estrictamente de la base de datos PostgreSQL real.
 
@@ -59,7 +59,8 @@ Especificar de más es tan malo como no especificar. Clasifica antes de empezar 
 3. **Service = negocio + transacción**: cada caso de uso es una unidad de trabajo. No importa `Request`/`HTTPException`; lanza excepciones de dominio (`StockInsuficiente`, `ReservaNoCancelable`…) que el router traduce. Así la lógica se prueba sin levantar HTTP.
 4. **ORM/Model = persistencia**: mapea tablas; no decide reglas de negocio.
 5. **Contrato estable**: `/api/v1/<paquete>/<recurso>`, JSON, códigos coherentes (200 lectura/actualización, 201 creación, 400/422 validación, 401 sin sesión, 403 sin permiso, 404, 409 conflicto como stock insuficiente o SKU duplicado, 502 fallo de pasarela o IA). Un cambio incompatible es *Ask First*.
-6. **Autorización por rol y por alcance**: roles `cliente`, `administrador`, `encargado_sucursal`, `cajero`, `proveedor`. Encargado y cajero operan **solo sobre su sucursal** (`usuarios.id_sucursal`); valídalo en el service, no confíes en lo que envíe el cliente.
+6. **Autorización por rol, por empresa y por alcance**: roles `cliente`, `administrador`, `encargado_sucursal`, `cajero` y `super_administrador` (`proveedor` sigue en el enum pero no se asigna). Toda petición opera en **una empresa** (contexto `app.id_tenant` fijado por `get_db` y el token; RLS en PostgreSQL): no filtres «a mano» como única defensa ni abras el modo plataforma fuera de los casos de uso del super administrador. Encargado y cajero operan **solo sobre sus sucursales autorizadas** (`empleado_sucursal`; `usuarios.id_sucursal` es la principal); valídalo en el service, no confíes en lo que envíe el cliente.
+6b. **Toda tabla nueva de negocio lleva `id_tenant`**, `UNIQUE (id_tenant, pk)`, FK compuestas hacia otras tablas de empresa y su política RLS; las operaciones restringidas por plan llaman a `SuscripcionServicio.validar` (P2-CU12). Detalle en `CLAUDE.md` § Multitenancy.
 7. **El servidor es la fuente de verdad de precios, totales, descuentos y sucursal.** Recalcula siempre; ignora montos enviados por el cliente.
 8. **Dinero con `Decimal`/`NUMERIC`, nunca `float`.** Fechas en UTC (`TIMESTAMPTZ`).
 9. **Todo cambio de stock deja rastro**: se escribe en `movimientos_inventario` en la **misma transacción** que modifica `inventario_sucursal`.

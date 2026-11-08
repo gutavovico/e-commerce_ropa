@@ -1,6 +1,6 @@
 """P2-CU12 · Validar suscripción y límites del plan.
 
-Spec: `.specs/changes/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.4 (F14, F17) y CU12 de
+Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.4 (F14, F17) y CU12 de
 `SI2-Parcial2.md`. Lo incluyen otros casos de uso; no modifica datos.
 
 - Suscripción en prueba o activa y dentro de sus fechas; si no → 403 SUSCRIPCION_NO_VIGENTE (RN14).

@@ -1,6 +1,6 @@
 """Pruebas de integración de la fundación multitenant contra PostgreSQL real (RNF11).
 
-Spec: `.specs/changes/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.5 (decisión F18).
+Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.5 (decisión F18).
 
 Se ejecutan en la rama de Neon `pruebas-multitenant` conectando con el rol de la aplicación
 (`fashionstore_app`, sin BYPASSRLS), que es lo que hace cumplir la seguridad por filas. Requieren en

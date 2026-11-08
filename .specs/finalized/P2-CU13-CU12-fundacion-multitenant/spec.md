@@ -5,7 +5,7 @@
 **Numeración:** casos de uso del Parcial 2 con prefijo `P2-` (decisión D7). No se renombra ningún módulo existente.
 **Nivel SDD:** **3 (alto riesgo)**: migraciones que alteran todas las tablas de negocio con datos de producción, seguridad por filas y cambios en la autenticación.
 **Bloques:** **solo backend y base de datos.** Web y móvil no cambian en este ciclo (ver §1.3).
-**Estado:** 🟡 Borrador pendiente de aprobación (gate 0).
+**Estado:** 🟢 Aprobada el 2026-11-08, implementada y en producción. Spec permanente: `.specs/modules/plataforma/P2-CU13-CU12-fundacion-multitenant.md`.
 **Fecha:** 2026-11-08
 
 ---

@@ -1,6 +1,6 @@
 """P2-CU13 · Fundación multitenant (3/3): Row Level Security, vistas, rol y permisos.
 
-Spec: `.specs/changes/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.3 (decisiones F5, F6, F7,
+Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.3 (decisiones F5, F6, F7,
 F12, F13 y F16).
 
 Contexto que fija el backend en cada transacción (`set_config(..., true)`):
