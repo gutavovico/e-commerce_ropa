@@ -9,6 +9,8 @@
 /// convierte con parseo tolerante y nunca con un `as num` directo.
 library;
 
+import '../../../../../core/url_recurso.dart';
+
 /// Convierte a `double` un valor que puede llegar como cadena, entero o decimal.
 double parsearImporte(dynamic valor) {
   if (valor == null) return 0.0;
@@ -80,7 +82,7 @@ class CarritoItemDto {
       tallaCodigo: json['talla_codigo'] as String? ?? '-',
       colorNombre: json['color_nombre'] as String? ?? '-',
       colorHex: json['color_hex'] as String?,
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
       precioLista: parsearImporte(json['precio_lista']),
       precioUnitario: parsearImporte(json['precio_unitario']),
       descuentoLinea: parsearImporte(json['descuento_linea']),
@@ -303,7 +305,7 @@ class VentaItemDto {
       nombreProducto: json['nombre_producto'] as String? ?? '',
       tallaCodigo: json['talla_codigo'] as String? ?? '-',
       colorNombre: json['color_nombre'] as String? ?? '-',
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
       cantidad: json['cantidad'] as int? ?? 1,
       precioUnitario: parsearImporte(json['precio_unitario']),
       subtotalLinea: parsearImporte(json['subtotal_linea']),

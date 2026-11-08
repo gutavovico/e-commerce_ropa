@@ -10,6 +10,7 @@ library;
 
 import '../../../../compras_pagos/cu11_gestionar_carrito/datos/modelos/carrito_dto.dart'
     show parsearImporte;
+import '../../../../../core/url_recurso.dart';
 
 class ReservaItemDto {
   final int idVariante;
@@ -39,7 +40,7 @@ class ReservaItemDto {
       tallaCodigo: json['talla_codigo'] as String? ?? '-',
       colorNombre: json['color_nombre'] as String? ?? '-',
       colorHex: json['color_hex'] as String?,
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
       cantidad: json['cantidad'] as int? ?? 0,
       precioUnitario: parsearImporte(json['precio_unitario']),
     );

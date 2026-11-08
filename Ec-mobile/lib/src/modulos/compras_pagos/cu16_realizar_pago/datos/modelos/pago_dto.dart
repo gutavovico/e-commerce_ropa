@@ -11,6 +11,7 @@
 library;
 
 import '../../../cu11_gestionar_carrito/datos/modelos/carrito_dto.dart' show parsearImporte;
+import '../../../../../core/url_recurso.dart';
 
 /// Línea de la orden con el precio ya congelado por CU15.
 class PagoItemDto {
@@ -45,7 +46,7 @@ class PagoItemDto {
       nombreProducto: json['nombre_producto'] as String? ?? '',
       tallaCodigo: json['talla_codigo'] as String? ?? '-',
       colorNombre: json['color_nombre'] as String? ?? '-',
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
       cantidad: json['cantidad'] as int? ?? 0,
       precioUnitario: parsearImporte(json['precio_unitario']),
       subtotalLinea: parsearImporte(json['subtotal_linea']),

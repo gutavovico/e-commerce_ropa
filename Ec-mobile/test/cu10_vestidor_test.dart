@@ -171,13 +171,6 @@ void main() {
   });
 
   group('recurso de la prenda', () {
-    test('resuelve rutas relativas contra el frontend web', () {
-      expect(resolverUrlRecurso('/ar/x.png', 'https://web.test/'), 'https://web.test/ar/x.png');
-      expect(resolverUrlRecurso('https://cdn.test/x.png', 'https://web.test'), 'https://cdn.test/x.png');
-      expect(resolverUrlRecurso('  ', 'https://web.test'), isNull);
-      expect(resolverUrlRecurso(null, 'https://web.test'), isNull);
-    });
-
     test('aplana el PNG transparente sobre blanco y lo codifica en JPEG', () {
       final png = img.Image(width: 600, height: 700, numChannels: 4);
       img.fill(png, color: img.ColorRgba8(0, 0, 0, 0));

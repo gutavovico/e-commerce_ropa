@@ -1,3 +1,5 @@
+import '../../../../../core/url_recurso.dart';
+
 /// DTOs para el catálogo de productos y variantes en Ec-mobile (CU06).
 class VarianteResumenDto {
   final int idVariante;
@@ -88,8 +90,8 @@ class ProductoItemDto {
       coleccion: json['coleccion'] as String? ?? '',
       temporada: json['temporada'] as String? ?? '',
       precioBase: double.tryParse(json['precio_base']?.toString() ?? '0.0') ?? 0.0,
-      imagenUrl: json['imagen_url'] as String? ?? '',
-      modeloArUrl: json['modelo_ar_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?) ?? '',
+      modeloArUrl: resolverUrlRecurso(json['modelo_ar_url'] as String?),
       activo: json['activo'] as bool? ?? true,
       badgeEditorial: json['badge_editorial'] as String? ?? 'ED. LIMITADA',
       subtituloAtelier: json['subtitulo_atelier'] as String? ?? 'ALTA COSTURA',

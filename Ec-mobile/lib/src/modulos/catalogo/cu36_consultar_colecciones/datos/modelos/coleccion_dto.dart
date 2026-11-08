@@ -1,3 +1,5 @@
+import '../../../../../core/url_recurso.dart';
+
 // DTOs inmutables para el caso de uso CU36: Consultar Colecciones.
 // Mapea los contratos OpenAPI expuestos por Ec-backend en /api/v1/colecciones/...
 
@@ -35,7 +37,7 @@ class ProductoColeccionItemDto {
       descripcion: json['descripcion'] as String?,
       precioBase:
           double.tryParse(json['precio_base']?.toString() ?? '0.0') ?? 0.0,
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
       badgeEditorial: json['badge_editorial'] as String? ?? 'ALTA COSTURA',
       subtituloTextil: json['subtitulo_textil'] as String? ?? 'TEJIDO NOBLE',
       categoria: json['categoria'] as String? ?? 'Prendas',
@@ -110,7 +112,7 @@ class ColeccionResumenDto {
       totalPrendas: json['total_prendas'] as int? ?? 0,
       esDestacada: json['es_destacada'] as bool? ?? false,
       badgeEdicion: json['badge_edicion'] as String? ?? 'EDICIÓN VIGENTE',
-      imagenPortada: json['imagen_portada'] as String?,
+      imagenPortada: resolverUrlRecurso(json['imagen_portada'] as String?),
       piezasClave: (json['piezas_clave'] as List<dynamic>?)
               ?.map((item) =>
                   ProductoColeccionItemDto.fromJson(item as Map<String, dynamic>))

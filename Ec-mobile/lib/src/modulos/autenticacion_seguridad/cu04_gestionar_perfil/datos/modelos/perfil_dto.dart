@@ -2,6 +2,8 @@
 /// Mapeo tipado 1:1 con la respuesta JSON de FastAPI.
 library;
 
+import '../../../../../core/url_recurso.dart';
+
 class ResumenAtelierDto {
   final int visitasRegistradas;
   final int boutiquesVisitadas;
@@ -190,7 +192,7 @@ class ItemPedidoMovilDto {
       idVariante: json['id_variante'] as int? ?? 0,
       sku: json['sku'] as String? ?? '',
       nombreProducto: json['nombre_producto'] as String? ?? 'Prenda FashionStore',
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
       talla: json['talla'] as String? ?? '-',
       color: json['color'] as String? ?? '-',
       colorHex: json['color_hex'] as String?,

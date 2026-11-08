@@ -6,16 +6,6 @@ import 'package:image/image.dart' as img;
 /// Lado mínimo que Decart recomienda para la imagen de referencia de la prenda.
 const int ladoMinimoReferenciaPx = 512;
 
-/// Resuelve `productos.modelo_ar_url` a una URL absoluta. La base de datos guarda los recursos del
-/// vestidor como rutas relativas del frontend web (`/ar/<prenda>.png`).
-String? resolverUrlRecurso(String? url, String baseWeb) {
-  final limpia = url?.trim() ?? '';
-  if (limpia.isEmpty) return null;
-  if (limpia.startsWith('http://') || limpia.startsWith('https://')) return limpia;
-  final base = baseWeb.replaceAll(RegExp(r'/+$'), '');
-  return limpia.startsWith('/') ? '$base$limpia' : '$base/$limpia';
-}
-
 /// Imagen de referencia lista para Lucy VTON.
 class ReferenciaVton {
   /// JPEG en base64, sin el prefijo `data:`.

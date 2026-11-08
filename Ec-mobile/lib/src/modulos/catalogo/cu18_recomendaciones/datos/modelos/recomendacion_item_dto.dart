@@ -1,3 +1,5 @@
+import '../../../../../core/url_recurso.dart';
+
 /// DTOs para el módulo de Recomendaciones Personalizadas (CU18) en Ec-mobile.
 class VarianteRecomendadaDto {
   final int idVariante;
@@ -97,9 +99,9 @@ class ProductoRecomendadoDto {
       categoria: json['categoria'] as String? ?? 'Alta Costura',
       coleccion: json['coleccion'] as String?,
       precioBase: double.tryParse(json['precio_base']?.toString() ?? '0.0') ?? 0.0,
-      imagenUrl: json['imagen_url'] as String? ??
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?) ??
           'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800',
-      modeloArUrl: json['modelo_ar_url'] as String?,
+      modeloArUrl: resolverUrlRecurso(json['modelo_ar_url'] as String?),
       activo: json['activo'] as bool? ?? true,
       badgeEditorial: json['badge_editorial'] as String? ?? 'EDICIÓN LIMITADA',
       subtituloAtelier: json['subtitulo_atelier'] as String? ?? 'ALTA COSTURA',

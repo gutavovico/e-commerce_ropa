@@ -1,6 +1,8 @@
 /// Modelos de transferencia de datos (DTO) para CU19: Asistente Inteligente / Chatbot.
 library;
 
+import '../../../../../core/url_recurso.dart';
+
 class MensajeChatbotPeticion {
   final String mensaje;
   final String canal;
@@ -43,7 +45,7 @@ class ProductoChatbotSugeridoDto {
       nombre: json['nombre'] as String? ?? 'Prenda Fashion',
       precio: (json['precio'] as num?)?.toDouble() ?? 0.0,
       categoria: json['categoria'] as String?,
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
       motivo: json['motivo'] as String?,
     );
   }

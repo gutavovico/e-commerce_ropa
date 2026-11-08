@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../../../../api_config.dart';
+import '../../../../../core/url_recurso.dart';
 import '../../datos/datasources/vestidor_api.dart';
 import '../../datos/modelos/vestidor_dto.dart';
 import '../../dominio/prenda_vestidor.dart';
@@ -101,8 +102,13 @@ class VestidorBloc extends ChangeNotifier {
   Timer? _timerConexion;
   Timer? _timerLimite;
 
-  /// URL absoluta del PNG transparente de la prenda (Motor 1 y referencia del Motor 2).
-  String? get urlRecursoPrenda => resolverUrlRecurso(prenda.modeloArUrl, _baseWeb);
+  /// URL absoluta del PNG transparente de la prenda (Motor 1 y referencia del Motor 2). El DTO de
+  /// detalle ya la entrega resuelta; resolver de nuevo es inocuo y protege a quien construya
+  /// [PrendaVestidor] con la ruta cruda.
+  String? get urlRecursoPrenda {
+    final url = resolverUrlRecurso(prenda.modeloArUrl, baseWeb: _baseWeb);
+    return (url == null || url.trim().isEmpty) ? null : url;
+  }
 
   bool get motorLocalActivo => _estado is VestidorMotorLocal;
 

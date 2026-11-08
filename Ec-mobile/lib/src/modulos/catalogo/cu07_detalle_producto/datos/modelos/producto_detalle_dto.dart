@@ -1,3 +1,5 @@
+import '../../../../../core/url_recurso.dart';
+
 /// DTO principal para el detalle exhaustivo de una prenda (CU07, CU08, CU09)
 class ProductoDetalleDto {
   final int idProducto;
@@ -99,9 +101,9 @@ class ProductoDetalleDto {
       categoriaNombre: json['categoria_nombre'] as String?,
       // `ProductoDetalleOut` emite `imagen_principal`; `imagen_url` es el nombre que usan
       // los DTO de listado (catálogo, piezas complementarias), no el de la ficha.
-      imagenUrl: json['imagen_principal'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_principal'] as String?),
       galeriaAngulos: galeria,
-      modeloArUrl: json['modelo_ar_url'] as String?,
+      modeloArUrl: resolverUrlRecurso(json['modelo_ar_url'] as String?),
       modeloInfo: json['modelo_info'] as String? ?? 'MODELO: 1,77M - TALLA 38 ES',
       composicion: composicion,
       coloresDisponibles: colores,
@@ -136,7 +138,7 @@ class ImagenAnguloDto {
 
   factory ImagenAnguloDto.fromJson(Map<String, dynamic> json) {
     return ImagenAnguloDto(
-      url: json['url'] as String? ?? '',
+      url: resolverUrlRecurso(json['url'] as String?) ?? '',
       etiqueta: json['etiqueta'] as String? ?? 'VISTA ATELIER',
       orden: json['orden'] as int? ?? 1,
     );
@@ -202,7 +204,7 @@ class ColorDetalleDto {
       nombre: json['nombre'] as String? ?? 'Color Atelier',
       codigoHex: json['codigo_hex'] as String? ?? '#000000',
       disponible: json['disponible'] as bool? ?? true,
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
     );
   }
 }
@@ -283,7 +285,7 @@ class VarianteDetalleDto {
       precioFinalVariante: ProductoDetalleDto._toDouble(json['precio_final_variante']),
       stockTotalDisponible: json['stock_total_disponible'] as int? ?? 0,
       tieneStock: json['tiene_stock'] as bool? ?? false,
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
     );
   }
 }
@@ -402,7 +404,7 @@ class PiezaLookDto {
       categoria: json['categoria'] as String? ?? 'Moda',
       precioBase: ProductoDetalleDto._toDouble(json['precio_base']),
       precioFinal: ProductoDetalleDto._toDouble(json['precio_final']),
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
     );
   }
 }

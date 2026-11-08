@@ -2,6 +2,8 @@
 /// Mapea los contratos OpenAPI expuestos por Ec-backend en /api/v1/catalogo.
 library;
 
+import '../../../../../core/url_recurso.dart';
+
 class ColorItemDto {
   final int idColor;
   final String nombre;
@@ -114,7 +116,7 @@ class ProductoCatalogoItemDto {
       precioFinal: precioFinalParsed,
       tieneDescuento: json['tiene_descuento'] as bool? ?? false,
       porcentajeDescuento: json['porcentaje_descuento'] as int?,
-      imagenUrl: json['imagen_url'] as String?,
+      imagenUrl: resolverUrlRecurso(json['imagen_url'] as String?),
       categoriaId: json['categoria_id'] as int? ?? 0,
       categoriaNombre: json['categoria_nombre'] as String? ?? 'Prendas',
       subtituloAtelier:
