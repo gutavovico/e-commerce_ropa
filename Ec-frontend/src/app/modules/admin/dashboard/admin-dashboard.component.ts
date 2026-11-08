@@ -56,8 +56,8 @@ export class AdminDashboardComponent {
   });
 
   readonly totalModulosActivos = computed(() => {
-    if (this.esAdmin()) return '13 Activos';
-    if (this.esEncargado()) return '10 Activos';
+    if (this.esAdmin()) return '14 Activos';
+    if (this.esEncargado()) return '11 Activos';
     return '0 Activos';
   });
 

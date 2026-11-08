@@ -175,7 +175,7 @@ Ver documento principal en [../../CHANGELOG.md](../../CHANGELOG.md).
 ## [2.3.0] - 2026-09-21
 
 ### Promocion a Baseline Permanente
-- **CU24 - Gestionar temporadas y colecciones (Calendario Editorial y Curaduria de Moda):** Promovido oficialmente a especificacion permanente del sistema en [`modules/catalogo/CU24-gestionar-temporadas-colecciones.md`](modules/catalogo/CU24-gestionar-temporadas-colecciones.md).
+- **CU24 - Gestionar temporadas y colecciones (Calendario Editorial y Curaduria de Moda):** Promovido oficialmente a especificacion permanente del sistema en [`modules/catalogo_productos/CU24-gestionar-temporadas-colecciones.md`](modules/catalogo_productos/CU24-gestionar-temporadas-colecciones.md).
 - **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `finalized/CU24/` (`spec.md`, `design.md`, `tasks.md`) y limpiado el directorio de cambios temporales `changes/`.
 - **Exclusion Formal Justificada de Ec-mobile:** Ratificada documentalmente la exclusion de la aplicacion movil (`Ec-mobile`). La planificacion del calendario estacional de moda, la vigencia de campanas y la estructuracion taxonomica de colecciones capsula corresponden a atribuciones de trastienda y back-office corporativo que residen exclusivamente en la plataforma web de escritorio (`Ec-frontend`). La aplicacion movil B2C queda formalmente excluida sin pantallas, modelos ni servicios mutables.
 - **Validacion Completa:**

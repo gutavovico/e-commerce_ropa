@@ -91,3 +91,25 @@ export const adminOnlyGuard: CanActivateFn = () => {
   return router.createUrlTree(['/admin']);
 };
 
+
+/**
+ * CU31-CU32: el cajero no comparte el panel corporativo con administrador y encargado.
+ * Su único espacio es la caja (`/admin/pos`); cualquier ruta del panel lo devuelve allí.
+ */
+export const cajeroACajaGuard: CanActivateFn = () => {
+  const loginService = inject(LoginService);
+  const router = inject(Router);
+  let usuario = loginService.usuarioActual();
+  if (!usuario && typeof window !== 'undefined') {
+    try {
+      const userJson =
+        localStorage.getItem('fashionstore_user') ||
+        sessionStorage.getItem('fashionstore_user');
+      usuario = userJson ? JSON.parse(userJson) : null;
+    } catch {
+      usuario = null;
+    }
+  }
+  const rol = String(usuario?.rol || '').toLowerCase().trim();
+  return rol === 'cajero' ? router.createUrlTree(['/admin/pos']) : true;
+};

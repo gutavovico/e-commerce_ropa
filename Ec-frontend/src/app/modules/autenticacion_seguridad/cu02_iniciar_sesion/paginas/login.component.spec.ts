@@ -80,6 +80,24 @@ describe('LoginComponent (CU02 - Iniciar Sesión)', () => {
     expect(router.navigate).not.toHaveBeenCalledWith(['/perfil']);
   });
 
+  it('CU31-CU32: un cajero autenticado entra directo a su caja, no al panel corporativo', () => {
+    vi.useFakeTimers();
+    mockLoginService.iniciarSesion.mockReturnValue(
+      of({ ...mockLoginRespuesta, email: 'cajero@fashionstore.com', rol: 'cajero' })
+    );
+
+    component.formulario.setValue({
+      email: 'cajero@fashionstore.com',
+      password: 'Password123!',
+      recordarDispositivo: false,
+    });
+    component.onSubmit();
+    vi.advanceTimersByTime(600);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/admin/pos']);
+    expect(router.navigate).not.toHaveBeenCalledWith(['/admin']);
+  });
+
   it('debe mostrar mensaje de error si falla la autenticación', () => {
     mockLoginService.iniciarSesion.mockReturnValue(
       throwError(() => new Error('Correo electrónico o contraseña incorrectos.'))

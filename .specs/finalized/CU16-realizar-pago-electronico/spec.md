@@ -14,7 +14,9 @@ concurrencia; ningún gate puede omitirse.
 directa el 2026-09-22.
 **Estado:** 🟢 Bloques 1 (Backend), 2 (Web) y 3 (Mobile) implementados y verificados (ronda 1) ·
 🟢 Ronda 2 (2026-09-28) completa: migración de tarjeta en crudo a tokens de Stripe en los tres
-bloques (ver §A.2, `tasks.md`). Pendiente de decisión: webhook de Stripe (fuera de esta ronda).
+bloques (ver §A.2, `tasks.md`). 🟢 Ronda 3 (2026-11-07/08) completa: webhook de Stripe
+(`POST /api/v1/pagos/webhook`), efectivo en sucursal en Web y Mobile y caja de mostrador en CU28.
+Promovida a `.specs/finalized/` el 2026-11-08.
 **Fecha:** 2026-09-22 (ronda 1) · 2026-09-28 (ronda 2, tokenización)
 
 ---
@@ -243,8 +245,8 @@ expira sin confirmación del cajero (movimiento `cancelacion_pedido`, venta a `a
 ### 1.6 Pago en efectivo en sucursal — diseño resuelto (2026-09-27)
 
 Las cuatro preguntas de implementación planteadas tras los mockups de §0.6 quedan decididas así.
-Sigue **sin implementarse** — esto es la especificación completa que habilita empezar a escribir
-código en un ciclo posterior, no la implementación en sí.
+**Implementado en la Ronda 3** (2026-11-07; comprobado en código el 2026-11-08): los dos endpoints
+administrativos, la regla `METODO_NO_SOPORTADO` en `_registrar_pago_efectivo` y la opción en Web y Mobile.
 
 1. **Confirmación por endpoint administrativo nuevo.** `POST
    /api/v1/admin/pagos/{id_pago}/confirmar-efectivo`, restringido por RBAC a `cajero` /

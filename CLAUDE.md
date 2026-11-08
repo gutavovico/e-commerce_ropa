@@ -84,11 +84,16 @@ El desarrollo se organiza por **caso de uso** (CU01, CU05, CU11…), no por capa
   entrada con causa y solución.
 
 **Colisión de numeración de CU.** En `SI2-Parcial1.md`, CU31 es «Registrar venta presencial» y
-CU32 «Procesar venta presencial y emitir comprobante» (POS de caja, **sin implementar**), mientras que
-CU34 es «Reportes» (con comandos de voz) y CU35 «Exportar». El código y las specs usan el nombre
-`cu31_reportes_voz` (`.specs/finalized/CU31/`) para el módulo que cubre CU34 + CU35. Cuando el usuario
-diga «CU31», aclara a cuál se refiere. El `design.md` de esa spec afirma que `Ec-mobile` queda
-excluido, pero el móvil sí tiene `PantallaReportesVoz`: la spec está desactualizada en ese punto.
+CU32 «Procesar venta presencial y emitir comprobante», mientras que CU34 es «Reportes» (con comandos de
+voz) y CU35 «Exportar». En el código conviven los dos nombres:
+- `cu31_cu32_punto_venta` (paquete `compras_pagos`, ruta web `/admin/pos`) es el POS de caja: CU31 + CU32
+  del documento. Spec en `.specs/finalized/CU31-CU32-punto-de-venta-presencial/` y
+  `.specs/modules/compras_pagos/CU31-CU32-punto-de-venta-presencial.md`. Solo web.
+- `cu31_reportes_voz` (paquete `comercial`, `.specs/finalized/CU31/`) cubre CU34 + CU35 en web y móvil.
+  Su spec permanente es `.specs/modules/comercial/CU31-reportes-voz.md`; los documentos de
+  `finalized/CU31/` que excluyen el móvil están marcados como superados.
+
+Cuando el usuario diga «CU31», aclara a cuál se refiere.
 
 **Flujo de gate:** el usuario aprueba la especificación antes de que se escriba código, y aprueba
 cada bloque (Backend → Web → Mobile) antes de pasar al siguiente. No cruces ese límite sin permiso
@@ -134,9 +139,10 @@ real. La base de Neon está sellada en `0011` (la única cabeza), por lo que `al
 —que `render.yaml` ejecuta en `preDeployCommand`— es un no-op sobre ella. **Nueva migración:**
 `down_revision = "0011"` e ID nuevo y único (`0012`); comprueba `alembic heads` antes de enviarla.
 La cadena completa `0001 → 0011` sí reproduce el esquema desplegado en Neon (las 31 tablas, 236
-columnas, 10 enums, 46 índices, 3 vistas y el trigger); cuatro tablas de Neon aún no tienen modelo
-ORM (`sesiones_vestidor_virtual`, `interacciones_chatbot`, `historial_navegacion` y
-`solicitudes_reporte_ia`), por lo que cualquier `--autogenerate` debe revisarse antes de aplicarse.
+columnas, 10 enums, 46 índices, 3 vistas y el trigger); dos tablas de Neon aún no tienen modelo
+ORM (`historial_navegacion` y `solicitudes_reporte_ia`; `sesiones_vestidor_virtual` e
+`interacciones_chatbot` ya lo tienen, en CU10 y CU19), por lo que cualquier `--autogenerate` debe
+revisarse antes de aplicarse.
 
 ### Los tests verdes no prueban que el contrato funcione
 
@@ -187,8 +193,9 @@ app/modules/<paquete_dominio>/modelos.py      # ORM a nivel de paquete
 app/core/{config,database,deps,errors,security,token_blacklist}.py
 ```
 
-Paquetes actuales: `autenticacion_seguridad`, `catalogo`, `reservas`, `compras_pagos`, `comercial`
-(CU27–CU29 y `cu31_reportes_voz`), `gestion_operativa` (CU21–CU26) y `seguridad` (CU30 bitácora).
+Paquetes actuales: `autenticacion_seguridad`, `catalogo`, `reservas`, `compras_pagos` (incluye el POS
+`cu31_cu32_punto_venta`), `comercial` (CU27–CU29 y `cu31_reportes_voz`), `gestion_operativa` (CU21–CU26)
+y `seguridad` (CU30 bitácora).
 Las integraciones externas viven en `app/integrations/` (`stripe_service.py` y `gemini_service.py`,
 ambos con simulador/fallback determinista cuando falta la clave).
 
@@ -244,6 +251,9 @@ src/app/core/{guards,interceptors,layouts}/
 - `authInterceptor` adjunta el JWT y gestiona el 401. Las claves de sesión (`fashionstore_token`,
   `fashionstore_user`) pertenecen en exclusiva a `LoginService`: usa `establecerSesion()` en lugar
   de escribir en `localStorage` desde otro sitio.
+- **El cajero no comparte el panel corporativo** (decisión del usuario, CU31-CU32): su único espacio es
+  `/admin/pos`. El login lo envía allí y `cajeroACajaGuard` lo devuelve desde `/admin` y desde las rutas
+  del panel sin guard de rol. Una ruta nueva del panel debe llevar `roleGuard` o `cajeroACajaGuard`.
 
 ### Mobile
 

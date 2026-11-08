@@ -416,3 +416,10 @@ def test_endpoint_recomendaciones_limite_invalido_devuelve_422(client):
 
     response2 = client.get("/api/v1/catalogo/recomendaciones/personalizadas?limite=50")
     assert response2.status_code == 422
+
+
+def test_api_key_vacia_no_toma_la_clave_del_entorno(monkeypatch):
+    """`api_key=""` fuerza el fallback aunque `IA_API_KEY` esté configurada (defecto: caía en la real)."""
+    monkeypatch.setattr("integrations.gemini_service.settings.IA_API_KEY", "clave_real_del_entorno")
+    assert GeminiService(api_key="").api_key == ""
+    assert GeminiService().api_key == "clave_real_del_entorno"

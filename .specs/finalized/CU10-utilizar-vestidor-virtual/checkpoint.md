@@ -5,7 +5,8 @@
 | 0 — Especificación | 🟢 Aprobada | Delta del Bloque 3: parámetro `canal` en `POST /vestidor/token` (ver `spec.md` §3.1). |
 | 1 — Backend | 🟢 Completo | `pytest` CU10 18/18 (canal móvil, timeout de 10 s, restricción de origen). |
 | 2 — Web | 🟢 Completo | Motor 1 sin seguimiento corporal por decisión del usuario (no se amplía el alcance web). |
-| 3 — Mobile | 🟡 Implementado, pendiente de prueba en dispositivo | Ver «Pendiente». |
+| 3 — Mobile | 🟢 Completo | Cerrado por el usuario el 2026-11-08. APK de producción compilado (`flutter build apk --release`). |
+| 4 — Cierre | 🟢 Promovido | `.specs/finalized/CU10-utilizar-vestidor-virtual/` y `.specs/modules/catalogo_productos/CU10-utilizar-vestidor-virtual.md`. |
 
 ## Mobile (Bloque 3)
 
@@ -20,7 +21,8 @@
 - [x] **CP-M09** `dart analyze` → «No issues found!» · `flutter test` 258/258.
 - [x] **CP-M10** Permisos nativos: `CAMERA` (Android), `NSCameraUsageDescription` e iOS 15.5 (mínimo de ML Kit).
 
-## Pendiente
+## Notas de cierre
 
-- Prueba en dispositivo físico Android/iOS (la skill de Decart lo exige: el emulador no tiene WebRTC real).
-- Producción: los recursos `/ar/...` se resuelven contra `WEB_URL` (por defecto `https://fashionstorefront.vercel.app`); `camiseta_basica_amarilla*.png` debe estar desplegado en Vercel.
+- La verificación en dispositivo físico (Motor 1 con ML Kit y Motor 2 por WebView) la realiza el equipo con el APK de producción, tras desplegar en Render (`DECART_API_KEY` en el panel) y Vercel (`/ar/...` y `frame-metadata-worker.js`).
+- Motor 1 web sin seguimiento corporal por decisión del usuario; el seguimiento con ML Kit es exclusivo del móvil.
+- Modo offline futuro del móvil: `core/url_recurso.dart` resuelve solo prefijos de servidor (`/ar/`, `/static/`) para no confundir rutas locales; ver defecto 48 del `CHANGELOG.md`.

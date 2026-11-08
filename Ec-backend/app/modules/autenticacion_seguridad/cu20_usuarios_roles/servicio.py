@@ -32,6 +32,34 @@ from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
 from modules.gestion_operativa.modelos import SucursalORM
 
 
+#: Roles de personal: su usuario debe tener ficha en `fashionstore.empleados`, porque
+#: `ventas.id_cajero` la referencia (CU31-CU32, decisión D3).
+CARGOS_PERSONAL = {
+    "administrador": "Administrador",
+    "encargado_sucursal": "Encargado de Sucursal",
+    "cajero": "Cajero",
+}
+
+
+def asegurar_ficha_empleado(db: Session, id_usuario: int, rol: str) -> None:
+    """Crea la ficha de empleado de un usuario de personal si no existe (idempotente).
+
+    Se usa SQL directo, igual que la comprobación de nómina de `eliminar_usuario`, para no
+    depender del modelo `EmpleadoORM` de otro paquete. No toca la transacción: la confirma
+    quien llama.
+    """
+    cargo = CARGOS_PERSONAL.get(rol)
+    if cargo is None:
+        return
+    db.execute(
+        text(
+            "INSERT INTO fashionstore.empleados (id_empleado, codigo_empleado, cargo) "
+            "VALUES (:uid, :codigo, :cargo) ON CONFLICT (id_empleado) DO NOTHING"
+        ),
+        {"uid": id_usuario, "codigo": f"EMP-{id_usuario}", "cargo": cargo},
+    )
+
+
 def _to_usuario_out(usuario: UsuarioORM, out_cls=UsuarioDetalleOut):
     """Mapea una entidad UsuarioORM a su respectivo DTO enriquecido."""
     sucursal_nombre = usuario.sucursal.nombre if usuario.sucursal else None
@@ -110,6 +138,8 @@ class ServicioGestionUsuarios:
             fecha_registro=datetime.now(timezone.utc),
         )
         db.add(usuario)
+        db.flush()
+        asegurar_ficha_empleado(db, usuario.id_usuario, datos.rol.value)
         db.commit()
         db.refresh(usuario)
 
@@ -274,6 +304,7 @@ class ServicioGestionUsuarios:
             usuario.telefono = datos.telefono
         if datos.rol is not None:
             usuario.rol = datos.rol.value
+            asegurar_ficha_empleado(db, usuario.id_usuario, datos.rol.value)
 
         db.commit()
         db.refresh(usuario)

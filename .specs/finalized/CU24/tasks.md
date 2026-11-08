@@ -180,10 +180,10 @@
     - `.specs/finalized/CU24/spec.md`
     - `.specs/finalized/CU24/design.md`
     - `.specs/finalized/CU24/tasks.md`
-    - `.specs/modules/catalogo/CU24-gestionar-temporadas-colecciones.md`
+    - `.specs/modules/catalogo_productos/CU24-gestionar-temporadas-colecciones.md`
   - **Descripcion:**
     * Promocionar formalmente los artefactos aprobados a `.specs/finalized/CU24/`.
-    * Consolidar la especificacion permanente en `.specs/modules/catalogo/CU24-gestionar-temporadas-colecciones.md`.
+    * Consolidar la especificacion permanente en `.specs/modules/catalogo_productos/CU24-gestionar-temporadas-colecciones.md`.
     * Purgar el directorio temporal `.specs/changes/CU24/` preservando `.specs/changes/.gitkeep`.
   - **Verificacion:** Sincronizacion documental completa en la linea base de especificaciones.
 

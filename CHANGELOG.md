@@ -2,11 +2,19 @@
 
 Todas las modificaciones notables, correcciones de errores de infraestructura y promociones de especificaciones del proyecto se documentan en este archivo.
 
+## [Unreleased] - 2026-11-08
+
+### Implementación y Cierre — CU31 (Registrar venta presencial) y CU32 (Procesar venta y emitir comprobante)
+- **Backend (`Ec-backend`):** paquete `compras_pagos/cu31_cu32_punto_venta/` bajo `/api/v1/pos` para administrador, encargado y cajero (el administrador elige boutique). Venta en caja espontánea o desde reserva con retención de stock (`reserva` → `venta_confirmada` al cobrar; `liberacion_reserva` de lo que el cliente deja), cobro en efectivo (cambio calculado en servidor), tarjeta (con registro del rechazo del datáfono), QR o transferencia, anulación con motivo y vencimiento perezoso a las 2 h. Comprobante en PDF de 80 mm (`GET /pos/ventas/{id}/comprobante.pdf`). Búsquedas de prenda (nombre, categoría o SKU), cliente (nombre o correo), reservas activas del cliente y cupones vigentes. Las reservas se operan por `reservas/atencion_caja.py`. 37 pruebas propias y verificación de extremo a extremo contra Neon con rollback.
+- **Frontend Web (`Ec-frontend`):** `/admin/pos` con pestañas «Nueva venta», «Pendientes y del día» y «Pedidos web por cobrar» (cobro en efectivo de CU16), ticket imprimible de 80 mm y descarga del PDF. Totales siempre desde `POST /pos/ventas/previsualizar`. 19 pruebas de la página.
+- **Mobile:** excluido por especificación (el cajero opera en la web).
+- **Métricas:** `pytest` 567/567 · `ng test` 624/624 · `ng build` limpio. Defectos 49–52 de la bitácora.
+
 ## [Unreleased] - 2026-11-07
 
 ### Implementación y Cierre Integral — CU17 (Historial de Compras) y CU16 (Pagos, Webhook y Caja Mostrador)
 - **CU17 - Consultar historial de compras personales (Fullstack):**
-  - **Backend (`Ec-backend`):** Implementado endpoint `GET /api/v1/ventas/historial` con paginación, filtros opcionales de estado y fecha, retorno de líneas con SKU, producto, variante, precio y subtotales reales de base de datos PostgreSQL. Suite de pruebas con 4 tests específicos (`test_cu17_historial_compras.py`).
+  - **Backend (`Ec-backend`):** Implementado endpoint `GET /api/v1/ventas/mias` con paginación, filtros opcionales de estado y fecha, retorno de líneas con SKU, producto, variante, precio y subtotales reales de base de datos PostgreSQL. Suite de pruebas con 4 tests específicos (`test_cu17_historial_compras.py`).
   - **Frontend Web (`Ec-frontend`):** Vista de historial de compras en `/perfil` (`PerfilComponent`, `PerfilService`), eliminando datos estáticos y renderizando compras pagadas/pendientes, comprobantes, montos y prendas reales. 9 pruebas unitarias actualizadas.
   - **Mobile (`Ec-mobile`):** Modelos `PerfilDto`, repositorio `PerfilRepositorio`, `PerfilBloc` y `PantallaPerfil` consumiendo el historial real paginado sin datos inventados. Pruebas de BLoC y widgets actualizadas.
 - **CU16 - Realizar Pago Electrónico (Ronda 3 - Webhook Stripe, Efectivo en Boutique y Caja Mostrador):**
@@ -220,7 +228,7 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 ## [2.3.0] - 2026-09-21
 
 ### Promocion a Baseline Permanente
-- **CU24 - Gestionar temporadas y colecciones (Calendario Editorial y Curaduria de Moda):** Promovido oficialmente a especificacion permanente del sistema en [`.specs/modules/catalogo/CU24-gestionar-temporadas-colecciones.md`](.specs/modules/catalogo/CU24-gestionar-temporadas-colecciones.md).
+- **CU24 - Gestionar temporadas y colecciones (Calendario Editorial y Curaduria de Moda):** Promovido oficialmente a especificacion permanente del sistema en [`.specs/modules/catalogo_productos/CU24-gestionar-temporadas-colecciones.md`](.specs/modules/catalogo_productos/CU24-gestionar-temporadas-colecciones.md).
 - **Cierre de Ciclo de Cambio:** Archivados los artefactos de propuesta en `.specs/finalized/CU24/` (`spec.md`, `design.md`, `tasks.md`) y limpiado el directorio de cambios temporales `.specs/changes/CU24/`.
 - **Exclusion Formal Justificada de Ec-mobile:** Ratificada documentalmente la exclusion de la aplicacion movil (`Ec-mobile`). La planificacion del calendario estacional de moda, la vigencia de campanas y la estructuracion taxonomica de colecciones capsula corresponden a atribuciones de trastienda y back-office corporativo que residen exclusivamente en la plataforma web de escritorio (`Ec-frontend`). La aplicacion movil B2C queda formalmente excluida sin pantallas, modelos ni servicios mutables.
 - **Validacion Completa:**
@@ -433,6 +441,24 @@ ejercitar nunca `fromJson`, de modo que ningún desajuste de nombres de campo er
     - *Causa:* las semillas insertaron filas con ids explícitos sin avanzar sus secuencias. En Neon, `variantes_producto_id_variante_seq` proponía 131 con un máximo de 136; `colecciones_id_coleccion_seq`, 5 con máximo 5; `proveedores_id_proveedor_seq`, 1 con máximo 1. Cualquier alta desde el panel (CU22 matriz de variantes, CU24 colecciones, CU25 proveedores) fallaba con `duplicate key value violates unique constraint` y se veía como un 500. Apareció al crear las variantes de la prenda de prueba de CU10: el producto se creó, la matriz de variantes se revirtió entera.
     - *Solución:* `setval(pg_get_serial_sequence(...), max(id), true)` sobre las tres secuencias, en una transacción: solo avanza el contador, no toca filas. Se revisaron todas las secuencias del esquema `fashionstore`; el resto estaba al día.
     - *Prevención:* toda semilla o carga con ids explícitos debe terminar con el mismo `setval` sobre las tablas que toque.
+48. **Móvil: Imágenes con Ruta Relativa No se Mostraban (Camiseta de Prueba en «ATELIER»)**:
+    - *Causa:* la base de datos guarda algunos recursos como rutas relativas (`/ar/...` del frontend web y, para las fotos subidas desde el panel, `/static/...` del backend). El navegador las completa con el origen de la página; `Image.network` de Flutter no, así que el móvil pintaba el marcador de respaldo. Las 20 prendas originales no lo sufrían porque usan URLs absolutas de Unsplash.
+    - *Solución:* `lib/src/core/url_recurso.dart` (`resolverUrlRecurso`) resuelve en la capa de datos, con prefijos conocidos: `/ar/` → `WEB_URL` y `/static/` → `API_URL`. Se aplica en las 19 lecturas de URLs de imagen de 10 DTO (catálogo, búsqueda, detalle y galería, recomendaciones, asistente, colecciones, bolsa, pago, reservas y perfil); las pantallas no cambian. El vestidor (CU10) usa la misma función.
+    - *Decisión de diseño (modo offline futuro):* se resuelven solo prefijos de servidor y todo lo demás se devuelve intacto, porque en Android las rutas de archivos locales también empiezan por `/` (`/data/user/0/...`). Las imágenes descargadas para el modo offline no se confundirán con rutas web.
+    - *Verificación:* `dart analyze` limpio · `flutter test` 266/266 (`test/url_recurso_test.dart`, con el payload real de `GET /api/v1/productos/22`).
+49. **CU31-CU32 · El Personal de Caja no Tenía Ficha en `empleados`**:
+    - *Causa:* CU20 creaba el usuario con rol `cajero` o `encargado_sucursal` pero no su fila en `empleados`, que la venta presencial exige como `id_empleado` (FK de `ventas`). Los usuarios 13 y 14 de Neon no la tenían: toda venta de caja habría fallado.
+    - *Solución:* `asegurar_ficha_empleado()` en el servicio de CU20 (alta y cambio de rol; `INSERT … ON CONFLICT DO NOTHING`, código `EMP-<id>`) y el script idempotente `Ec-backend/scripts/regularizar_fichas_empleado.py`, aplicado en Neon (EMP-13, EMP-14).
+50. **Web: el Cajero Aterrizaba en `/inicio` y Veía Módulos del Panel que no Podía Usar**:
+    - *Causa:* el login solo enviaba a `/admin` a administrador y encargado; y `/admin`, `/admin/atributos` y `/admin/productos` solo tenían `authGuard`, así que un cajero que llegara al panel veía y abría las tarjetas de categorías y productos (el backend las rechaza).
+    - *Solución:* el cajero entra directo a `/admin/pos` y `cajeroACajaGuard` lo devuelve allí desde esas tres rutas; la caja le muestra su nombre y «Cerrar sesión» en lugar de «Volver al Panel Principal». Administrador y encargado conservan su panel con la tarjeta «Punto de venta».
+51. **`GeminiService(api_key="")` Usaba la Clave Real del `.env`**:
+    - *Causa:* `self.api_key = api_key or settings.IA_API_KEY`: la cadena vacía es falsa y caía en la clave configurada. Las pruebas del fallback determinista de CU18 llamaban a Gemini de verdad y fallaban según lo que redactara la IA (en una máquina sin clave pasaban).
+    - *Solución:* `api_key if api_key is not None else settings.IA_API_KEY`, el mismo criterio que `StripeService`. Prueba nueva que fija una clave en el entorno y comprueba que `api_key=""` la ignora.
+52. **Pruebas del Webhook de Stripe (CU16) Dependían del `.env` Local**:
+    - *Causa:* las cinco pruebas del modo sin secreto enviaban el evento sin firma, pero heredaban `STRIPE_WEBHOOK_SECRET` del `.env`; con el secreto presente el servicio exige `Stripe-Signature` y respondían 400. Pasaban o fallaban según la máquina.
+    - *Solución:* fixture `sin_secreto_webhook` que fija el modo sin secreto en esas pruebas, y una prueba nueva que firma el evento con HMAC-SHA256 como Stripe (`t=…,v1=…`) para cubrir el modo producción. El código del webhook no cambió.
+    - *Verificación (49–52):* `pytest` 567/567 en verde, sin fallos previos arrastrados.
 
 ## [1.8.0] - 2026-09-21
 

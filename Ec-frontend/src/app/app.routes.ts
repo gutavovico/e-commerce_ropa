@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { adminOnlyGuard, roleGuard } from './core/guards/role.guard';
+import { adminOnlyGuard, cajeroACajaGuard, roleGuard } from './core/guards/role.guard';
 import { MainLayoutComponent } from './core/layouts/main-layout/main-layout.component';
 
 export const routes: Routes = [
@@ -170,7 +170,7 @@ export const routes: Routes = [
   // =========================================================================
   {
     path: 'admin',
-    canActivate: [authGuard],
+    canActivate: [authGuard, cajeroACajaGuard],
     loadComponent: () =>
       import(
         './modules/admin/dashboard/admin-dashboard.component'
@@ -194,7 +194,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin/atributos',
-    canActivate: [authGuard],
+    canActivate: [authGuard, cajeroACajaGuard],
     loadComponent: () =>
       import(
         './modules/gestion_operativa/cu23_categorias_tallas_colores/paginas/categorias-tallas-colores-admin.component'
@@ -202,7 +202,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin/productos',
-    canActivate: [authGuard],
+    canActivate: [authGuard, cajeroACajaGuard],
     loadComponent: () =>
       import(
         './modules/gestion_operativa/cu22_prendas_productos/paginas/productos-admin.component'
@@ -255,6 +255,15 @@ export const routes: Routes = [
       import(
         './modules/comercial/cu28_ventas_reservas/paginas/ventas-reservas-admin.component'
       ).then((m) => m.VentasReservasAdminComponent),
+  },
+  {
+    path: 'admin/pos',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal', 'cajero'])],
+    loadComponent: () =>
+      import(
+        './modules/compras_pagos/cu31_cu32_punto_venta/paginas/punto-venta.component'
+      ).then((m) => m.PuntoVentaComponent),
+    title: 'FASHION STORE | Punto de venta',
   },
   {
     path: 'admin/indicadores',

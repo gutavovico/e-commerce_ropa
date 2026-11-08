@@ -1,7 +1,7 @@
 """Pruebas de CU16: Realizar Pago Electrónico.
 
 Cada prueba cita el escenario Gherkin que verifica, definido en
-`.specs/changes/CU16-realizar-pago-electronico/spec.md`, sección A.5. Las pruebas de pago en
+`.specs/finalized/CU16-realizar-pago-electronico/spec.md`, sección A.5. Las pruebas de pago en
 efectivo en sucursal citan las secciones §1.5.2/§1.6 del mismo documento.
 
 **El backend nunca recibe datos de tarjeta** (revisado el 2026-09-28): el cobro digital se abre
@@ -1333,7 +1333,19 @@ def test_saneado_elimina_datos_sensibles_del_payload():
 # ==============================================================================
 
 
-def test_webhook_payment_intent_succeeded_confirma_y_liquida(client, db_con_ids):
+@pytest.fixture
+def sin_secreto_webhook(monkeypatch):
+    """Modo sin `STRIPE_WEBHOOK_SECRET` (simulador/desarrollo): el cuerpo se acepta como JSON plano.
+
+    Sin esta fijación los tests heredaban el secreto del `.env` local y exigían una firma real, de modo
+    que pasaban o fallaban según la máquina.
+    """
+    monkeypatch.setattr(
+        "modules.compras_pagos.cu16_realizar_pago.servicio.settings.STRIPE_WEBHOOK_SECRET", ""
+    )
+
+
+def test_webhook_payment_intent_succeeded_confirma_y_liquida(client, db_con_ids, sin_secreto_webhook):
     """Evento payment_intent.succeeded liquida la venta y consolida existencias."""
     venta = crear_venta()
     pago = pago_pendiente_digital()
@@ -1388,7 +1400,7 @@ def test_webhook_payment_intent_succeeded_confirma_y_liquida(client, db_con_ids)
     mock_bolsa.assert_called_once()
 
 
-def test_webhook_payment_intent_succeeded_idempotente(client, db_con_ids):
+def test_webhook_payment_intent_succeeded_idempotente(client, db_con_ids, sin_secreto_webhook):
     """Reenvío de payment_intent.succeeded sobre pago ya confirmado responde 200 sin repetir consolidación."""
     venta = crear_venta(estado="pagada")
     pago = pago_pendiente_digital()
@@ -1420,7 +1432,7 @@ def test_webhook_payment_intent_succeeded_idempotente(client, db_con_ids):
     mock_consolidar.assert_not_called()
 
 
-def test_webhook_payment_intent_failed_marca_rechazado(client, db_con_ids):
+def test_webhook_payment_intent_failed_marca_rechazado(client, db_con_ids, sin_secreto_webhook):
     """Evento payment_intent.payment_failed transiciona el pago a rechazado sin alterar inventario."""
     venta = crear_venta()
     pago = pago_pendiente_digital()
@@ -1460,7 +1472,7 @@ def test_webhook_payment_intent_failed_marca_rechazado(client, db_con_ids):
     mock_consolidar.assert_not_called()
 
 
-def test_webhook_evento_desconocido_ignorado_con_gracia(client, db_con_ids):
+def test_webhook_evento_desconocido_ignorado_con_gracia(client, db_con_ids, sin_secreto_webhook):
     """Eventos no relevantes para el checkout responden 200 ignorados."""
     payload_evento = {
         "id": "evt_test_126",
@@ -1476,7 +1488,7 @@ def test_webhook_evento_desconocido_ignorado_con_gracia(client, db_con_ids):
     assert resp.json()["ignorado"] is True
 
 
-def test_webhook_payload_invalido_responde_400(client, db_con_ids):
+def test_webhook_payload_invalido_responde_400(client, db_con_ids, sin_secreto_webhook):
     """Un cuerpo no parseable como JSON responde HTTP 400."""
     app.dependency_overrides[get_db] = lambda: db_con_ids
     try:
@@ -1508,3 +1520,33 @@ def test_webhook_firma_invalida_cuando_secreto_configurado_responde_400(client, 
         app.dependency_overrides.clear()
     assert resp.status_code == 400
     assert resp.json()["code"] in ("WEBHOOK_SIN_FIRMA", "FIRMA_WEBHOOK_INVALIDA")
+
+
+def test_webhook_con_firma_valida_de_stripe_se_procesa(client, db_con_ids, monkeypatch):
+    """Modo producción: con secreto configurado, un evento firmado como lo firma Stripe se acepta."""
+    import hashlib
+    import hmac
+    import json
+    import time
+
+    secreto = "whsec_clave_secreta_de_prueba_de_mas_de_10_caracteres"
+    monkeypatch.setattr(
+        "modules.compras_pagos.cu16_realizar_pago.servicio.settings.STRIPE_WEBHOOK_SECRET", secreto
+    )
+    cuerpo = json.dumps(
+        {"id": "evt_firmado", "object": "event", "type": "customer.created", "data": {"object": {"id": "cus_1"}}}
+    )
+    marca = int(time.time())
+    firma = hmac.new(secreto.encode(), f"{marca}.{cuerpo}".encode(), hashlib.sha256).hexdigest()
+
+    app.dependency_overrides[get_db] = lambda: db_con_ids
+    try:
+        resp = client.post(
+            "/api/v1/pagos/webhook",
+            content=cuerpo.encode(),
+            headers={"Content-Type": "application/json", "Stripe-Signature": f"t={marca},v1={firma}"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 200
+    assert resp.json()["ignorado"] is True

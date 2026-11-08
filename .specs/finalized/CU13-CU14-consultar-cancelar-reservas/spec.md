@@ -15,7 +15,7 @@ tienda queda fuera de alcance (pertenece a CU28/admin).
 «ORDEN EN CURSO · Bolsa de Compra · IR AL CHECKOUT» se sustituye por la de reservas.
 **Fuente de Verdad de Datos:** PostgreSQL en Neon, verificado por introspección directa el 2026-09-29.
 **Estado:** 🟢 Especificación aprobada el 2026-09-29 (D1-D5, todas las opciones recomendadas). Bloques 1
-(Backend), 2 (Web) y 3 (Mobile) completos y verificados. Pendiente de promoción a `.specs/finalized/`.
+(Backend), 2 (Web) y 3 (Mobile) completos y verificados. Promovida a `.specs/finalized/` el 2026-11-08; spec permanente en `.specs/modules/reservas/CU13-CU14-consultar-cancelar-reservas.md`.
 **Fecha:** 2026-09-29
 
 ---

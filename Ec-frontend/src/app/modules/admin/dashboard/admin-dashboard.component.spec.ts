@@ -85,7 +85,7 @@ describe('AdminDashboardComponent', () => {
     // Tarjeta 13 (CU31)
     expect(compiled.textContent).toContain('Generar reportes ejecutivos y consultas por voz');
 
-    expect(component.totalModulosActivos()).toBe('13 Activos');
+    expect(component.totalModulosActivos()).toBe('14 Activos');
   });
 
   it('debe contener los enlaces de navegacion hacia /admin/sucursales, /admin/atributos, /admin/temporadas-colecciones, /admin/productos, /admin/usuarios, /admin/inventario, /admin/proveedores, /admin/inventario-global, /admin/promociones, /admin/ventas-reservas, /admin/indicadores, /admin/bitacora y /admin/reportes', () => {
@@ -230,7 +230,7 @@ describe('AdminDashboardComponent', () => {
 
     expect(component.esAdmin()).toBe(false);
     expect(component.esEncargado()).toBe(true);
-    expect(component.totalModulosActivos()).toBe('10 Activos');
+    expect(component.totalModulosActivos()).toBe('11 Activos');
 
     const compiled = fixture.nativeElement as HTMLElement;
     // Deben estar visibles
@@ -272,7 +272,7 @@ describe('AdminDashboardComponent', () => {
     expect(botonVentasReservas).toBeTruthy();
     expect(botonIndicadores).toBeTruthy();
     expect(botonReportesVoz).toBeTruthy();
-    expect(component.totalModulosActivos()).toBe('10 Activos');
+    expect(component.totalModulosActivos()).toBe('11 Activos');
   });
 
   it('debe ocultar los botones de administracion operativa si el rol es cajero o cliente', () => {
@@ -310,6 +310,24 @@ describe('AdminDashboardComponent', () => {
     expect(botonIndicadores).toBeNull();
     expect(botonBitacora).toBeNull();
     expect(botonReportesVoz).toBeNull();
+  });
+
+  it('CU31-CU32: administrador y encargado también ven la tarjeta Punto de venta', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#btn-punto-venta')).toBeTruthy();
+
+    usuarioActualSignal.set({ ...mockAdmin, rol: 'encargado_sucursal' });
+    fixture.detectChanges();
+    expect(compiled.querySelector('#btn-punto-venta')).toBeTruthy();
+
+    // El cajero no usa el panel corporativo (cajeroACajaGuard lo lleva a /admin/pos).
+    usuarioActualSignal.set({ ...mockAdmin, rol: 'cajero' });
+    fixture.detectChanges();
+    expect(compiled.querySelector('#btn-punto-venta')).toBeNull();
+
+    usuarioActualSignal.set({ ...mockAdmin, rol: 'cliente' });
+    fixture.detectChanges();
+    expect(compiled.querySelector('#btn-punto-venta')).toBeNull();
   });
 
   it('debe reconocer rol admin como esAdmin=true y mostrar tarjeta Gestionar promociones', () => {

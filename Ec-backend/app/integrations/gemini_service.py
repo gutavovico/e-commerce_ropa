@@ -25,7 +25,10 @@ class GeminiService:
     GEMINI_FALLBACK_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or settings.IA_API_KEY
+        # `None` toma la clave de la configuración; una cadena vacía fuerza el fallback determinista
+        # (con `or`, `api_key=""` caía en la clave real del `.env` y llamaba a Gemini). Mismo
+        # criterio que `StripeService`.
+        self.api_key = api_key if api_key is not None else settings.IA_API_KEY
 
     def generar_motivo_recomendacion(
         self,

@@ -219,6 +219,32 @@ class CarritoServicio:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def precio_linea(
+        variante, cantidad: int, promociones: Dict[int, Tuple]
+    ) -> Tuple[Decimal, Decimal, Decimal, Decimal, Optional[str]]:
+        """Precio de una línea: única fórmula del proyecto (bolsa, checkout y punto de venta).
+
+        `precio_lista = precio_base + precio_extra`; la promoción de catálogo vigente del producto
+        (`promociones`, de `CarritoRepositorio.obtener_promociones_por_producto`) aplica su
+        porcentaje. Devuelve `(precio_lista, precio_unitario, bruto_linea, ahorro_linea,
+        nombre_promocion)`.
+        """
+        producto = variante.producto
+        precio_lista = redondear(
+            Decimal(producto.precio_base) + Decimal(variante.precio_extra or 0)
+        )
+        porcentaje, nombre_promo = promociones.get(producto.id_producto, (None, None))
+        if porcentaje:
+            precio_unitario = redondear(
+                precio_lista * (Decimal("100") - Decimal(porcentaje)) / Decimal("100")
+            )
+        else:
+            precio_unitario = precio_lista
+        ahorro_linea = redondear((precio_lista - precio_unitario) * cantidad)
+        bruto_linea = redondear(precio_lista * cantidad)
+        return precio_lista, precio_unitario, bruto_linea, ahorro_linea, nombre_promo
+
+    @staticmethod
     def calcular_lineas(
         db: Session, lineas: List[CarritoDetalleORM]
     ) -> Tuple[List[CarritoItemOut], Decimal, Decimal]:
@@ -242,20 +268,9 @@ class CarritoServicio:
             variante = linea.variante
             producto = variante.producto
 
-            precio_lista = redondear(
-                Decimal(producto.precio_base) + Decimal(variante.precio_extra or 0)
+            precio_lista, precio_unitario, bruto_linea, ahorro_linea, nombre_promo = (
+                CarritoServicio.precio_linea(variante, linea.cantidad, promociones)
             )
-
-            porcentaje, nombre_promo = promociones.get(producto.id_producto, (None, None))
-            if porcentaje:
-                precio_unitario = redondear(
-                    precio_lista * (Decimal("100") - Decimal(porcentaje)) / Decimal("100")
-                )
-            else:
-                precio_unitario = precio_lista
-
-            ahorro_linea = redondear((precio_lista - precio_unitario) * linea.cantidad)
-            bruto_linea = redondear(precio_lista * linea.cantidad)
 
             subtotal_lista += bruto_linea
             descuento_total += ahorro_linea

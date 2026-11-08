@@ -668,3 +668,33 @@ def test_ac13_reset_password_debil_422(client):
     assert resp.status_code == 422
     app.dependency_overrides.clear()
 
+
+
+# ==============================================================================
+# CU31-CU32 · D3: el personal tiene ficha en `empleados` (ventas.id_cajero la referencia)
+# ==============================================================================
+
+
+@pytest.mark.parametrize(
+    ("rol", "cargo"),
+    [("cajero", "Cajero"), ("encargado_sucursal", "Encargado de Sucursal"), ("administrador", "Administrador")],
+)
+def test_asegurar_ficha_empleado_para_personal(rol, cargo):
+    from modules.autenticacion_seguridad.cu20_usuarios_roles.servicio import asegurar_ficha_empleado
+
+    db = MagicMock()
+    asegurar_ficha_empleado(db, 14, rol)
+
+    sentencia, parametros = db.execute.call_args.args
+    assert "ON CONFLICT (id_empleado) DO NOTHING" in str(sentencia)
+    assert parametros == {"uid": 14, "codigo": "EMP-14", "cargo": cargo}
+
+
+@pytest.mark.parametrize("rol", ["cliente", "proveedor"])
+def test_asegurar_ficha_empleado_ignora_roles_no_personal(rol):
+    from modules.autenticacion_seguridad.cu20_usuarios_roles.servicio import asegurar_ficha_empleado
+
+    db = MagicMock()
+    asegurar_ficha_empleado(db, 20, rol)
+
+    db.execute.assert_not_called()

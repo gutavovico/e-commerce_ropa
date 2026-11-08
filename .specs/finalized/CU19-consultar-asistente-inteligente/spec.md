@@ -1,5 +1,8 @@
 # Especificación — CU19: Consultar Asistente Inteligente
 
+> **Ajuste al código (2026-11-08):** timeout de Gemini de 6 s (no 3 s) y contexto de 3 productos y 2 sucursales
+> (no 5 productos), tal como implementa `cu19_asistente_chatbot/servicio.py`. Promovida a `.specs/finalized/`.
+
 ## 1. Contexto y Objetivo
 
 En `SI2-Parcial1.md` (sección 2.1.4.4 y 2.2), el caso de uso **CU19. Consultar asistente inteligente** permite al cliente o visitante de FashionStore interactuar con un chatbot o asistente virtual de estilismo y atención omnicanal en lenguaje natural (ej. *«¿Tienen vestidos plisados en Madrid?»*, *«¿Qué prendas de fiesta recomiendan para una gala?»*, *«¿Cuál es el horario de la boutique de Serrano?»*).
@@ -15,7 +18,7 @@ Construir una solución omnicanal completa guiada por la regla **Cero datos inve
 2. Contextualiza sus respuestas con datos reales de PostgreSQL (`fashionstore.productos`, `fashionstore.sucursales`, `fashionstore.inventario_sucursal`).
 3. Retorna referencias clickeables a prendas y sucursales reales del catálogo para una navegación fluida.
 4. Persiste cada intercambio en `fashionstore.interacciones_chatbot` identificando el canal (`web` o `movil`) y asociando al cliente si está autenticado.
-5. Cuenta con un **fallback determinista inteligente** a costo cero y sin latencia cuando la clave de Gemini no esté configurada o la API externa no responda en 3 segundos.
+5. Cuenta con un **fallback determinista inteligente** a costo cero y sin latencia cuando la clave de Gemini no esté configurada o la API externa no responda en 6 segundos (timeout de `generar_respuesta_chat`).
 
 ---
 
@@ -119,8 +122,8 @@ Permite recuperar las interacciones recientes del cliente autenticado para dar c
 ### 4.1 Inyección de Contexto Real (RAG Liviano en PostgreSQL)
 Antes de invocar al modelo generativo:
 1. El backend detecta términos clave de búsqueda (categorías como "vestido", "blazer", "abrigo", "pantalón", "seda", ciudades como "Madrid", "Santa Cruz", o acciones como "horario", "reserva", "talla").
-2. Consulta en la base de datos hasta 5 productos y variantes coincidentes con stock positivo en `fashionstore.inventario_sucursal`.
-3. Consulta sucursales coincidentes o activas en `fashionstore.sucursales`.
+2. Consulta en la base de datos hasta 3 productos coincidentes con stock positivo en `fashionstore.inventario_sucursal` (acotados a `id_sucursal_preferida` si llega).
+3. Consulta hasta 2 sucursales coincidentes o activas en `fashionstore.sucursales`.
 4. Construye el prompt inyectando estos datos reales.
 
 ### 4.2 System Prompt y Tono de Marca
@@ -131,7 +134,7 @@ Antes de invocar al modelo generativo:
   - Incluir recomendaciones sobre combinación de prendas, ocasión de uso o reserva en probador.
 
 ### 4.3 Fallback Determinista Inteligente
-Si `IA_API_KEY` no está configurada o la llamada a Gemini excede el timeout de 3 segundos:
+Si `IA_API_KEY` no está configurada o la llamada a Gemini excede el timeout de 6 segundos:
 - El motor clasifica la intención mediante patrones léxicos (consulta de producto, consulta de sucursal/horario, reserva/probador, saludo/general).
 - Genera una respuesta redactada con el mismo estilo editorial de lujo.
 - Adjunta las tarjetas reales de productos y sucursales encontradas en la consulta de BD.

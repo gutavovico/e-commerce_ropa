@@ -3,7 +3,7 @@
 **ID del Cambio:** `CU16-realizar-pago-electronico`
 **Caso de Uso:** CU16 — Realizar Pago Electrónico
 **Metodología:** Spec-Driven Development (SDD)
-**Estado:** 🟡 Ronda 3 en especificación/planificación: Cierre de pago en efectivo en sucursal (Web y Mobile, CP-33), Panel Admin de caja mostrador (CU28) y Webhook de Stripe en Backend.
+**Estado:** 🟢 Rondas 1–3 completas (2026-11-08): efectivo en sucursal en Web y Mobile (CP-33), caja de mostrador en CU28 (CP-38) y webhook de Stripe (CP-37). Promovido a `.specs/finalized/`.
 
 ---
 
@@ -42,7 +42,7 @@
 - [x] **T-FE-12**: Pruebas Vitest con mocks construidos sobre payloads reales del backend (35/35 en `checkout-pago.component.spec.ts`, antes 5).
 - [x] **T-FE-13**: Vista expandida de Bizum/Código QR — QR real, cuenta atrás propia del código (5 min, independiente de la ventana de la orden) e instrucciones numeradas.
 - ❌ **T-FE-14** *(descartada el 2026-09-27, §1.5.1 de `spec.md`)*: ~~Checkbox «Guardar tarjeta para futuras compras»~~. Eliminado del componente y del template; verificado con test de regresión.
-- [ ] **T-FE-15** *(mockup §0.6 — diseño resuelto en §1.6 de `spec.md`, pendiente de implementar)*: Tarjeta de método «Pago en efectivo en sucursal», visible solo cuando `tipo_entrega: recogida_boutique`. Se deja para un ciclo posterior: requiere además la pantalla administrativa de confirmación/cancelación en caja (`T-BE-14`/`T-BE-15` ya cubren el backend).
+- [x] **T-FE-15** *(implementado en la Ronda 3, ver T-FE-15 más abajo; verificado en código el 2026-11-08: `esRecogidaBoutique()` en `checkout-pago.component`)*: Tarjeta de método «Pago en efectivo en sucursal», visible solo cuando `tipo_entrega: recogida_boutique`. Se deja para un ciclo posterior: requiere además la pantalla administrativa de confirmación/cancelación en caja (`T-BE-14`/`T-BE-15` ya cubren el backend).
 
 **Estados obligatorios cubiertos:** carga (skeleton), error (orden no disponible, con retorno a `/bolsa`), procesamiento y contenido — antes el formulario se pintaba incondicionalmente con literales de relleno (`|| '1.940,00'`, `|| 'Ana Valenzuela'`, dos prendas de ejemplo si `items` venía vacío) incluso mientras `resumen()` era `null`, violando la regla de «cero datos inventados» (CP-28). Corregido: el formulario solo se renderiza una vez que `resumen()` resuelve, sin ningún valor de respaldo inventado.
 
@@ -59,7 +59,7 @@
 - [x] **T-MO-09**: Pruebas de contrato (`pago_dto_test.dart`, 9), de BLoC (`pago_bloc_test.dart`, 7) y de widget (`checkout_payment_screen_test.dart`, 7), más `shopping_bag_test.dart` actualizado para la navegación (30 nuevas en total).
 - [x] **T-MO-10**: Vista expandida de Bizum/Código QR con el mismo generador que Web (`api.qrserver.com`), cuenta atrás propia e instrucciones numeradas.
 - ❌ **T-MO-11** *(descartada el 2026-09-27, §1.5.1 de `spec.md`)*: ~~Checkbox «Guardar tarjeta para futuras compras»~~. Nunca se implementó; verificado con test de regresión.
-- [ ] **T-MO-12** *(mockup §0.6 — diseño resuelto en §1.6 de `spec.md`, pendiente de implementar)*: Tarjeta de método «Pago en efectivo en sucursal» en Mobile, igual que `T-FE-15`. Se deja para un ciclo posterior.
+- [x] **T-MO-12** *(implementado en la Ronda 3, ver T-MO-12 más abajo; verificado en código el 2026-11-08: `resumen.esRecogidaBoutique` en `checkout_payment_screen.dart`)*: Tarjeta de método «Pago en efectivo en sucursal» en Mobile, igual que `T-FE-15`. Se deja para un ciclo posterior.
 
 **Defecto corregido durante la ejecución:** `RenderFlex overflowed` en la fila «Selecciona Forma de
 Pago» + badge «CIFRADO SEGURO» (sin `Expanded`) y en `_filaResumen` de la pantalla de confirmación.

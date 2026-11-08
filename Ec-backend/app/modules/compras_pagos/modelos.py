@@ -49,7 +49,7 @@ TIPOS_ENTREGA_VALIDOS = (TIPO_ENTREGA_DOMICILIO, TIPO_ENTREGA_RECOGIDA)
 MINUTOS_RETENCION_VENTA = 25
 
 # Ventana de espera para el pago en efectivo en sucursal (§1.5.2/§1.6 de
-# `.specs/changes/CU16-realizar-pago-electronico/spec.md`): tiempo que tiene el cliente para
+# `.specs/finalized/CU16-realizar-pago-electronico/spec.md`): tiempo que tiene el cliente para
 # presentarse en la boutique de recogida y liquidar en caja, distinto e independiente de los 25
 # minutos de retención de la bolsa. Se cuenta desde `pagos.creado_en`, no desde `ventas.fecha_venta`.
 HORAS_RETENCION_PAGO_EFECTIVO = 24

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, UrlTree } from '@angular/router';
 import { signal } from '@angular/core';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { adminOnlyGuard, roleGuard } from './role.guard';
+import { adminOnlyGuard, cajeroACajaGuard, roleGuard } from './role.guard';
 import { LoginService } from '../../modules/autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 import { UsuarioSesion } from '../../modules/autenticacion_seguridad/cu02_iniciar_sesion/modelos/login.dto';
 
@@ -180,5 +180,17 @@ describe('roleGuard', () => {
 
     expect(result).toBe(true);
     localStorage.removeItem('fashionstore_user');
+  });
+
+  it('CU31-CU32: cajeroACajaGuard lleva al cajero a su caja y deja pasar al resto', () => {
+    const base = { id_usuario: 3, email: 'x@fs.com', nombres: 'X', apellidos: 'Y', token: 'jwt' };
+
+    usuarioActualSignal.set({ ...base, rol: 'cajero' });
+    expect(TestBed.runInInjectionContext(() => cajeroACajaGuard({} as any, {} as any))).toBe('/admin/pos');
+
+    for (const rol of ['administrador', 'encargado_sucursal']) {
+      usuarioActualSignal.set({ ...base, rol } as UsuarioSesion);
+      expect(TestBed.runInInjectionContext(() => cajeroACajaGuard({} as any, {} as any))).toBe(true);
+    }
   });
 });

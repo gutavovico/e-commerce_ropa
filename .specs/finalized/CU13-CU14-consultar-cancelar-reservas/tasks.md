@@ -36,4 +36,4 @@ Estado: **Bloques 1 (Backend), 2 (Web) y 3 (Mobile) completos.** Pendiente de ci
 ## Cierre
 
 - [x] **T-DOC-01**: Entradas en `CHANGELOG.md` y `.specs/CHANGELOG.md` (reservas vencidas reteniendo stock; literales inventados eliminados del Perfil).
-- [ ] **T-DOC-02**: Promoción a `.specs/finalized/` y `.specs/modules/` tras aprobar el último bloque.
+- [x] **T-DOC-02**: Promoción a `.specs/finalized/` y `.specs/modules/` tras aprobar el último bloque.

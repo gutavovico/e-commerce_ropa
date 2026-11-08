@@ -1,7 +1,7 @@
 """Pruebas de CU11: Gestionar carrito de compras (Bolsa de Compra).
 
 Cada prueba cita el escenario Gherkin que verifica, definido en
-`.specs/changes/change-carrito-checkout.md`, sección A.6.
+`.specs/finalized/CU11-CU15-gestionar-carrito-checkout/change-carrito-checkout.md`, sección A.6.
 """
 
 from decimal import Decimal

@@ -1,0 +1,715 @@
+<div class="min-h-screen bg-slate-50 text-slate-900 font-['Outfit',sans-serif]">
+  <main class="max-w-[1440px] px-4 sm:px-6 py-8 mx-auto space-y-6">
+
+    <!-- 1. Cabecera -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200 pos-no-imprimir">
+      <div>
+        @if (esCajero()) {
+          <p class="text-[11px] font-semibold tracking-widest text-[#AD8C63] uppercase mb-2">
+            FASHION STORE <span class="text-slate-300 mx-1">/</span> <span class="text-slate-800">CAJA</span>
+          </p>
+        } @else {
+          <nav class="flex items-center gap-2 text-[11px] font-semibold tracking-widest text-[#AD8C63] uppercase mb-2" aria-label="Breadcrumb">
+            <a routerLink="/admin" class="hover:text-black transition-colors">INICIO</a>
+            <span>/</span>
+            <span>OPERACION</span>
+            <span>/</span>
+            <span class="text-slate-800">PUNTO DE VENTA</span>
+          </nav>
+        }
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Punto de venta</h1>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+            Caja presencial
+          </span>
+        </div>
+        <p class="text-xs md:text-sm text-slate-500 mt-1 max-w-2xl">
+          Registro de ventas en mostrador, cobro y emisión de comprobante.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 shrink-0">
+        @if (esAdmin()) {
+          <label class="flex items-center gap-2 text-xs font-semibold text-slate-600">
+            Sucursal
+            <select
+              id="select-sucursal-pos"
+              class="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs"
+              [ngModel]="idSucursal()"
+              (ngModelChange)="seleccionarSucursal($event)"
+            >
+              <option [ngValue]="null">Selecciona una boutique</option>
+              @for (s of sucursales(); track s.id_sucursal) {
+                <option [ngValue]="s.id_sucursal">{{ s.nombre }}</option>
+              }
+            </select>
+          </label>
+        }
+        @if (esCajero()) {
+          <div class="text-right" id="pos-sesion-cajero">
+            <p class="text-sm font-semibold text-slate-900">{{ nombreUsuario() }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Cajero</p>
+          </div>
+          <button
+            type="button"
+            id="btn-cerrar-sesion-pos"
+            (click)="cerrarSesion()"
+            [disabled]="cerrandoSesion()"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold tracking-wider transition-colors shadow-xs disabled:opacity-40"
+          >
+            {{ cerrandoSesion() ? 'Cerrando…' : 'Cerrar sesión' }}
+          </button>
+        } @else {
+        <a
+          routerLink="/admin"
+          id="btn-volver-dashboard-pos"
+          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold tracking-wider transition-colors shadow-xs"
+        >
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Volver al Panel Principal</span>
+        </a>
+        }
+      </div>
+    </header>
+
+    <!-- 2. Mensajes -->
+    @if (error()) {
+      <div role="alert" id="pos-error" class="flex items-start justify-between gap-4 p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm pos-no-imprimir">
+        <span>{{ error() }}</span>
+        <button type="button" (click)="cerrarError()" class="text-rose-500 hover:text-rose-800 font-bold" aria-label="Cerrar">×</button>
+      </div>
+    }
+    @if (aviso()) {
+      <div role="status" id="pos-aviso" class="flex items-start justify-between gap-4 p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm pos-no-imprimir">
+        <span>{{ aviso() }}</span>
+        <button type="button" (click)="aviso.set(null)" class="text-emerald-600 hover:text-emerald-900 font-bold" aria-label="Cerrar">×</button>
+      </div>
+    }
+
+    @if (!sucursalLista()) {
+      <div class="bg-white border border-slate-200 rounded-2xl p-10 text-center text-sm text-slate-500" id="pos-sin-sucursal">
+        Selecciona la boutique en la que vas a operar la caja.
+      </div>
+    } @else {
+
+      <!-- 3. Pestañas -->
+      <div class="flex flex-wrap gap-2 pos-no-imprimir" role="tablist">
+        <button type="button" role="tab" id="tab-nueva-venta" [attr.aria-selected]="pestana() === 'nueva'" (click)="cambiarPestana('nueva')"
+          class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border"
+          [class]="pestana() === 'nueva' ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'">
+          Nueva venta
+        </button>
+        <button type="button" role="tab" id="tab-pendientes" [attr.aria-selected]="pestana() === 'pendientes'" (click)="cambiarPestana('pendientes')"
+          class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border"
+          [class]="pestana() === 'pendientes' ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'">
+          Pendientes y del día
+        </button>
+        <button type="button" role="tab" id="tab-pedidos-web" [attr.aria-selected]="pestana() === 'web'" (click)="cambiarPestana('web')"
+          class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border"
+          [class]="pestana() === 'web' ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'">
+          Pedidos web por cobrar
+        </button>
+      </div>
+
+      <!-- Comprobante (visible en cualquier pestaña) -->
+      @if (ventaTicket(); as venta) {
+        <app-ticket-comprobante
+          [venta]="venta"
+          [descargandoPdf]="descargandoPdf()"
+          (descargarPdf)="descargarPdf()"
+          (cerrar)="cerrarTicket()"
+        />
+      }
+
+      <!-- ================================================================ -->
+      <!-- 4. Nueva venta (CU31) + cobro (CU32)                              -->
+      <!-- ================================================================ -->
+      @if (pestana() === 'nueva') {
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pos-no-imprimir">
+
+          <!-- Columna izquierda: captura -->
+          <section class="lg:col-span-2 space-y-6">
+
+            <!-- Prenda: búsqueda por nombre, categoría o SKU -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+              <label for="campo-prenda" class="block text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase mb-2">
+                Buscar prenda
+              </label>
+              <div class="relative">
+                <input
+                  #campoPrenda
+                  id="campo-prenda"
+                  type="search"
+                  autocomplete="off"
+                  class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-[#AD8C63] focus:outline-none text-sm"
+                  placeholder="Nombre, categoría o SKU (ej.: camiseta, vestidos)"
+                  [ngModel]="textoPrenda()"
+                  (ngModelChange)="alEscribirPrenda($event)"
+                  [disabled]="ventaEnCobro() !== null"
+                />
+                @if (buscandoPrendas()) {
+                  <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">Buscando…</span>
+                }
+              </div>
+
+              @if (resultadosPrendas(); as prendas) {
+                @if (prendas.length === 0) {
+                  <p class="mt-3 text-sm text-slate-500" id="pos-prendas-sin-resultados">
+                    Ninguna prenda coincide con «{{ textoPrenda() }}».
+                  </p>
+                } @else {
+                  <div class="mt-3 flex items-center justify-between">
+                    <p class="text-xs text-slate-500">{{ prendas.length }} coincidencia(s)</p>
+                    <button type="button" (click)="limpiarBusquedaPrenda()" class="text-xs font-semibold text-slate-500 hover:text-black">Limpiar</button>
+                  </div>
+                  <ul class="mt-2 max-h-80 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl" id="pos-resultados-prendas">
+                    @for (v of prendas; track v.id_variante) {
+                      <li class="px-3 py-2.5 flex items-center gap-3">
+                        <div class="min-w-0 flex-1">
+                          <p class="text-sm font-semibold truncate">{{ v.nombre_producto }}</p>
+                          <p class="text-xs text-slate-500 truncate">
+                            @if (v.categoria_nombre) { {{ v.categoria_nombre }} · }
+                            Talla {{ v.talla_codigo }} · {{ v.color_nombre }} · <span class="font-mono">{{ v.sku }}</span>
+                          </p>
+                        </div>
+                        <div class="text-right shrink-0">
+                          @if (v.precio_final !== v.precio_lista) {
+                            <span class="block text-[11px] text-slate-400 line-through">{{ v.precio_lista }} €</span>
+                          }
+                          <span class="text-sm font-semibold">{{ v.precio_final }} €</span>
+                          <span class="block text-[11px]"
+                            [class]="v.disponible_en_sucursal > 0 ? 'text-emerald-700' : 'text-rose-600'">
+                            {{ v.disponible_en_sucursal > 0 ? 'Stock: ' + v.disponible_en_sucursal : 'Agotada' }}
+                          </span>
+                        </div>
+                        <button type="button"
+                          [id]="'btn-anadir-' + v.id_variante"
+                          (click)="agregarVariante(v)"
+                          [disabled]="v.disponible_en_sucursal <= cantidadEnVenta(v.id_variante) || ventaEnCobro() !== null"
+                          class="shrink-0 px-3 py-2 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase disabled:opacity-30">
+                          Añadir
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              } @else if (textoPrenda().trim().length > 0 && textoPrenda().trim().length < minimoBusqueda) {
+                <p class="mt-2 text-xs text-slate-400">Escribe al menos {{ minimoBusqueda }} letras.</p>
+              }
+            </div>
+
+            <!-- Cliente y reserva -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+                <p class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase mb-2">Cliente</p>
+                @if (cliente(); as c) {
+                  <div class="flex items-start justify-between gap-3" id="pos-cliente">
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold truncate">{{ c.nombres }} {{ c.apellidos }}</p>
+                      <p class="text-xs text-slate-500 truncate">{{ c.email }}</p>
+                    </div>
+                    @if (!reserva()?.cliente) {
+                      <button type="button" (click)="ventaSinRegistro()" class="text-xs font-semibold text-slate-500 hover:text-black shrink-0">Quitar</button>
+                    }
+                  </div>
+                } @else {
+                  <div class="relative">
+                    <input
+                      id="campo-cliente"
+                      type="search"
+                      autocomplete="off"
+                      class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm"
+                      placeholder="Nombre, apellido o correo"
+                      [ngModel]="textoCliente()"
+                      (ngModelChange)="alEscribirCliente($event)"
+                      [disabled]="ventaEnCobro() !== null"
+                    />
+                    @if (buscandoClientes()) {
+                      <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">…</span>
+                    }
+                  </div>
+                  @if (resultadosClientes(); as clientes) {
+                    @if (clientes.length === 0) {
+                      <p class="mt-2 text-xs text-slate-500" id="pos-clientes-sin-resultados">
+                        Sin cuenta con ese nombre o correo: la venta se registrará como presencial sin cuenta.
+                      </p>
+                    } @else {
+                      <ul class="mt-2 max-h-56 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl" id="pos-resultados-clientes">
+                        @for (cl of clientes; track cl.id_cliente) {
+                          <li>
+                            <button type="button" (click)="seleccionarCliente(cl)"
+                              [id]="'btn-cliente-' + cl.id_cliente"
+                              class="w-full text-left px-3 py-2 hover:bg-slate-50">
+                              <span class="block text-sm font-semibold truncate">{{ cl.nombres }} {{ cl.apellidos }}</span>
+                              <span class="block text-xs text-slate-500 truncate">{{ cl.email }}</span>
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  }
+                  <p class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 text-[11px] font-semibold text-slate-600" id="pos-venta-sin-cuenta">
+                    Venta presencial sin cuenta
+                  </p>
+                }
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+                <p class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase mb-2">Reserva</p>
+                @if (reserva(); as r) {
+                  <div class="flex items-start justify-between gap-3" id="pos-reserva">
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold">{{ r.codigo }}</p>
+                      <p class="text-xs text-slate-500">Cita: {{ r.fecha_hora_atencion | date: 'dd/MM/yyyy HH:mm' }}</p>
+                    </div>
+                    <button type="button" (click)="quitarReserva()" class="text-xs font-semibold text-slate-500 hover:text-black shrink-0">Quitar</button>
+                  </div>
+                  <ul class="mt-3 space-y-1">
+                    @for (l of r.lineas; track l.id_variante) {
+                      <li class="flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          [id]="'reserva-linea-' + l.id_variante"
+                          [checked]="!estaExcluida(l.id_variante)"
+                          (change)="alternarExclusion(l.id_variante)"
+                        />
+                        <label [for]="'reserva-linea-' + l.id_variante" class="min-w-0 flex-1 truncate"
+                          [class.line-through]="estaExcluida(l.id_variante)">
+                          {{ l.cantidad }} × {{ l.nombre_producto }} ({{ l.talla_codigo }}/{{ l.color_nombre }})
+                        </label>
+                      </li>
+                    }
+                  </ul>
+                  <p class="text-[11px] text-slate-500 mt-2">Desmarca lo que el cliente no se lleva: se liberará al cobrar.</p>
+                } @else {
+                  @if (cliente()) {
+                    @if (cargandoReservasCliente()) {
+                      <p class="text-xs text-slate-500">Consultando reservas…</p>
+                    } @else if (reservasCliente(); as reservas) {
+                      @if (reservas.length === 0) {
+                        <p class="text-sm text-slate-500" id="pos-cliente-sin-reservas">
+                          Este cliente no tiene reservas activas en esta boutique.
+                        </p>
+                      } @else {
+                        <p class="text-xs font-semibold text-emerald-700 mb-2" id="pos-cliente-con-reservas">
+                          {{ reservas.length }} reserva(s) activa(s)
+                        </p>
+                        <ul class="space-y-2">
+                          @for (res of reservas; track res.id_reserva) {
+                            <li class="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-slate-100">
+                              <div class="min-w-0">
+                                <p class="text-sm font-semibold">{{ res.codigo }}</p>
+                                <p class="text-xs text-slate-500 truncate">
+                                  {{ res.fecha_hora_atencion | date: 'dd/MM HH:mm' }} · {{ res.lineas.length }} prenda(s) · {{ res.estado }}
+                                </p>
+                              </div>
+                              <button type="button" (click)="cargarReserva(res.codigo)"
+                                [id]="'btn-cargar-reserva-' + res.id_reserva"
+                                [disabled]="cargandoReserva() || ventaEnCobro() !== null"
+                                class="shrink-0 px-3 py-2 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase disabled:opacity-40">
+                                Cargar
+                              </button>
+                            </li>
+                          }
+                        </ul>
+                      }
+                    }
+                  } @else {
+                    <p class="text-xs text-slate-500 mb-2">Elige un cliente para ver sus reservas activas, o introduce el código.</p>
+                  }
+                  <form class="flex gap-2 mt-3" (ngSubmit)="cargarReserva()">
+                    <input
+                      id="campo-reserva"
+                      name="reserva"
+                      class="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
+                      placeholder="RES-2026-0001"
+                      [ngModel]="referenciaReserva()"
+                      (ngModelChange)="referenciaReserva.set($event)"
+                    />
+                    <button type="submit" id="btn-cargar-reserva" [disabled]="!referenciaReserva().trim() || cargandoReserva() || ventaEnCobro() !== null"
+                      class="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold disabled:opacity-40">
+                      {{ cargandoReserva() ? '…' : 'Cargar' }}
+                    </button>
+                  </form>
+                }
+              </div>
+            </div>
+
+            <!-- Líneas -->
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <p class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">Prendas</p>
+                @if (calculando()) {
+                  <span class="text-xs text-slate-500">Calculando…</span>
+                }
+              </div>
+              @if (!hayContenido()) {
+                <p class="p-8 text-center text-sm text-slate-500" id="pos-vacio">
+                  Busca una prenda o carga una reserva para empezar.
+                </p>
+              } @else {
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
+                      <tr>
+                        <th class="text-left px-5 py-2">Prenda</th>
+                        <th class="text-center px-3 py-2">Cant.</th>
+                        <th class="text-right px-3 py-2">Precio</th>
+                        <th class="text-right px-3 py-2">Importe</th>
+                        <th class="px-3 py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (linea of previsualizacion()?.lineas ?? []; track linea.id_variante + linea.origen) {
+                        <tr class="border-t border-slate-100">
+                          <td class="px-5 py-3">
+                            <p class="font-semibold">{{ linea.nombre_producto }}</p>
+                            <p class="text-xs text-slate-500">
+                              {{ linea.sku }} · {{ linea.talla_codigo }}/{{ linea.color_nombre }}
+                              @if (linea.origen === 'reserva') {
+                                <span class="ml-1 px-1.5 py-0.5 rounded bg-[#FAF7F2] text-[#AD8C63] text-[10px] font-bold uppercase">Reserva</span>
+                              }
+                            </p>
+                            @if (linea.motivo_descuento) {
+                              <p class="text-[11px] text-emerald-700">{{ linea.motivo_descuento }}</p>
+                            }
+                          </td>
+                          <td class="px-3 py-3 text-center">
+                            @if (linea.origen === 'caja') {
+                              <input
+                                type="number"
+                                min="1"
+                                class="w-16 px-2 py-1 rounded-lg border border-slate-300 text-center"
+                                [attr.aria-label]="'Cantidad de ' + linea.sku"
+                                [value]="linea.cantidad"
+                                (change)="cambiarCantidad(linea.id_variante, $any($event.target).value)"
+                              />
+                            } @else {
+                              {{ linea.cantidad }}
+                            }
+                          </td>
+                          <td class="px-3 py-3 text-right whitespace-nowrap">
+                            @if (linea.precio_unitario !== linea.precio_lista) {
+                              <span class="block text-[11px] text-slate-400 line-through">{{ linea.precio_lista }} €</span>
+                            }
+                            {{ linea.precio_unitario }} €
+                          </td>
+                          <td class="px-3 py-3 text-right font-semibold whitespace-nowrap">{{ linea.subtotal_linea }} €</td>
+                          <td class="px-3 py-3 text-right">
+                            @if (linea.origen === 'caja') {
+                              <button type="button" (click)="quitarLinea(linea.id_variante)"
+                                class="text-xs font-semibold text-rose-600 hover:text-rose-800">Quitar</button>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          </section>
+
+          <!-- Columna derecha: totales y cobro -->
+          <aside class="space-y-6">
+            @if (ventaEnCobro(); as venta) {
+              <!-- Panel de cobro (CU32) -->
+              <div class="bg-white border-2 border-[#AD8C63] rounded-2xl p-5 shadow-xs space-y-4" id="panel-cobro">
+                <div>
+                  <p class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">Cobro</p>
+                  <p class="text-sm font-semibold mt-1">{{ venta.numero_comprobante }}</p>
+                  <p class="text-3xl font-bold mt-2" id="cobro-total">{{ venta.total }} €</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  @for (m of metodos; track m.valor) {
+                    <button type="button" (click)="metodoPago.set(m.valor)"
+                      [id]="'metodo-' + m.valor"
+                      class="px-3 py-2 rounded-xl border text-xs font-semibold"
+                      [class]="metodoPago() === m.valor ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white border-slate-200 hover:bg-slate-100'">
+                      {{ m.etiqueta }}
+                    </button>
+                  }
+                </div>
+
+                @if (esEfectivo()) {
+                  <label class="block text-xs font-semibold text-slate-600">
+                    Monto recibido (€)
+                    <input id="campo-monto-recibido" inputmode="decimal"
+                      class="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm"
+                      placeholder="0.00"
+                      [ngModel]="montoRecibido()" (ngModelChange)="montoRecibido.set($event)" />
+                  </label>
+                  <p class="text-[11px] text-slate-500">El cambio lo calcula el servidor al confirmar.</p>
+                } @else {
+                  <label class="block text-xs font-semibold text-slate-600">
+                    {{ esTarjeta() ? 'Autorización del datáfono' : 'Referencia de la operación' }}
+                    <input id="campo-referencia-pago"
+                      class="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm"
+                      [ngModel]="referenciaPago()" (ngModelChange)="referenciaPago.set($event)" />
+                  </label>
+                }
+
+                @if (venta.pagos.length > 0) {
+                  <ul class="text-[11px] text-slate-500 space-y-0.5">
+                    @for (p of venta.pagos; track p.id_pago) {
+                      <li>{{ etiquetaMetodo(p.metodo_pago) }} · {{ p.estado }}</li>
+                    }
+                  </ul>
+                }
+
+                <div class="flex flex-col gap-2">
+                  <button type="button" id="btn-confirmar-cobro" (click)="cobrar(true)" [disabled]="cobrando()"
+                    class="w-full py-3 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider disabled:opacity-40">
+                    {{ cobrando() ? 'Procesando…' : 'Confirmar cobro' }}
+                  </button>
+                  @if (esTarjeta()) {
+                    <button type="button" id="btn-cobro-rechazado" (click)="cobrar(false)" [disabled]="cobrando()"
+                      class="w-full py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-bold uppercase tracking-wider disabled:opacity-40">
+                      Datáfono rechazó la tarjeta
+                    </button>
+                  }
+                  <div class="flex gap-2">
+                    <button type="button" (click)="cancelarCobro()"
+                      class="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold">
+                      Cobrar después
+                    </button>
+                    <button type="button" (click)="pedirAnulacion(venta)"
+                      class="flex-1 py-2.5 rounded-xl border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-xs font-semibold">
+                      Anular
+                    </button>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <!-- Totales y cupón (CU31) -->
+              <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4" id="panel-totales">
+                <p class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">Resumen</p>
+
+                @if (cuponAplicado()) {
+                  <div class="flex items-center justify-between text-xs" id="pos-cupon-aplicado">
+                    <span>Cupón <strong>{{ cuponAplicado() }}</strong></span>
+                    <button type="button" (click)="quitarCupon()" class="font-semibold text-slate-500 hover:text-black">Quitar</button>
+                  </div>
+                } @else {
+                  <div class="relative">
+                    <form class="flex gap-2" (ngSubmit)="aplicarCupon()">
+                      <input id="campo-cupon" name="cupon" type="search" autocomplete="off"
+                        class="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-slate-300 text-sm uppercase"
+                        placeholder="Cupón (opcional)"
+                        [ngModel]="cupon()" (ngModelChange)="alEscribirCupon($event)"
+                        (focus)="abrirCupones()" (blur)="cerrarCupones()" />
+                      <button type="submit" [disabled]="!cupon().trim() || !hayContenido()"
+                        class="px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold disabled:opacity-40">
+                        Aplicar
+                      </button>
+                    </form>
+                    @if (mostrarCupones()) {
+                      <!-- mousedown evita que el blur del campo cierre la lista antes del clic -->
+                      <div class="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto"
+                        id="pos-lista-cupones" (mousedown)="$event.preventDefault()">
+                        @if (buscandoCupones() && !cupones()) {
+                          <p class="px-3 py-2 text-xs text-slate-500">Cargando cupones…</p>
+                        } @else if (cupones(); as lista) {
+                          @if (lista.length === 0) {
+                            <p class="px-3 py-2 text-xs text-slate-500" id="pos-cupones-sin-resultados">
+                              {{ cupon().trim() ? 'Ningún cupón vigente coincide.' : 'No hay cupones vigentes.' }}
+                            </p>
+                          } @else {
+                            @for (c of lista; track c.codigo) {
+                              <button type="button" (click)="elegirCupon(c)" [id]="'btn-cupon-' + c.codigo"
+                                [disabled]="!hayContenido()"
+                                class="w-full text-left px-3 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0 disabled:opacity-50">
+                                <span class="flex items-center justify-between gap-2">
+                                  <span class="text-sm font-mono font-semibold">{{ c.codigo }}</span>
+                                  <span class="text-xs font-bold text-emerald-700">-{{ etiquetaCupon(c) }}</span>
+                                </span>
+                                <span class="block text-xs text-slate-500 truncate">
+                                  {{ c.nombre }}
+                                  @if (c.usos_restantes !== null) { · quedan {{ c.usos_restantes }} }
+                                </span>
+                              </button>
+                            }
+                          }
+                        }
+                        @if (!hayContenido()) {
+                          <p class="px-3 py-2 text-[11px] text-slate-400">Añade prendas para aplicar un cupón.</p>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (previsualizacion(); as p) {
+                  <dl class="text-sm space-y-1.5" id="pos-totales">
+                    <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd>{{ p.subtotal }} €</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Descuento</dt><dd>-{{ p.descuento }} €</dd></div>
+                    <div class="flex justify-between text-lg font-bold pt-2 border-t border-slate-100"><dt>Total</dt><dd id="pos-total">{{ p.total }} €</dd></div>
+                    <div class="flex justify-between text-[11px] text-slate-500"><dt>IVA (21 %) incluido</dt><dd>{{ p.iva_incluido }} €</dd></div>
+                  </dl>
+                  @if (p.lineas_reserva_excluidas.length > 0) {
+                    <p class="text-[11px] text-slate-500">
+                      Se liberarán {{ p.lineas_reserva_excluidas.length }} prenda(s) de la reserva al cobrar.
+                    </p>
+                  }
+                } @else {
+                  <p class="text-sm text-slate-500">Sin prendas.</p>
+                }
+
+                <div class="flex flex-col gap-2">
+                  <button type="button" id="btn-registrar-venta" (click)="registrarVenta()"
+                    [disabled]="!previsualizacion() || calculando() || registrando()"
+                    class="w-full py-3 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider disabled:opacity-40">
+                    {{ registrando() ? 'Registrando…' : 'Registrar y cobrar' }}
+                  </button>
+                  @if (hayContenido()) {
+                    <button type="button" (click)="limpiarVenta()"
+                      class="w-full py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold">
+                      Vaciar
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </aside>
+        </div>
+      }
+
+      <!-- ================================================================ -->
+      <!-- 5. Pendientes y del día                                           -->
+      <!-- ================================================================ -->
+      @if (pestana() === 'pendientes') {
+        <div class="space-y-6 pos-no-imprimir">
+          @if (cargandoListas()) {
+            <p class="text-sm text-slate-500">Cargando ventas…</p>
+          }
+
+          <section class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 class="text-sm font-bold uppercase tracking-wider">Pendientes de cobro</h2>
+              <button type="button" (click)="cargarListas()" class="text-xs font-semibold text-slate-500 hover:text-black">Actualizar</button>
+            </div>
+            @if (pendientes().length === 0 && !cargandoListas()) {
+              <p class="p-6 text-center text-sm text-slate-500" id="pos-sin-pendientes">No hay ventas pendientes de cobro.</p>
+            } @else {
+              <ul class="divide-y divide-slate-100">
+                @for (v of pendientes(); track v.id_venta) {
+                  <li class="px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold">{{ v.numero_comprobante }} · {{ v.total }} €</p>
+                      <p class="text-xs text-slate-500 truncate">
+                        {{ v.fecha_venta | date: 'dd/MM HH:mm' }} ·
+                        {{ v.cliente ? v.cliente.nombres + ' ' + v.cliente.apellidos : 'Venta sin registro' }}
+                        @if (v.reserva_codigo) { · {{ v.reserva_codigo }} }
+                      </p>
+                    </div>
+                    <div class="flex gap-2">
+                      <button type="button" (click)="abrirCobro(v)"
+                        class="px-3 py-2 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase">Cobrar</button>
+                      <button type="button" (click)="pedirAnulacion(v)"
+                        class="px-3 py-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold">Anular</button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <section class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100">
+              <h2 class="text-sm font-bold uppercase tracking-wider">Ventas del día</h2>
+            </div>
+            @if (ventasHoy().length === 0 && !cargandoListas()) {
+              <p class="p-6 text-center text-sm text-slate-500">Aún no hay ventas hoy.</p>
+            } @else {
+              <ul class="divide-y divide-slate-100">
+                @for (v of ventasHoy(); track v.id_venta) {
+                  <li class="px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold">
+                        {{ v.numero_comprobante }} · {{ v.total }} €
+                        <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase"
+                          [class]="v.estado === 'pagada' ? 'bg-emerald-50 text-emerald-700' : v.estado === 'anulada' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'">
+                          {{ v.estado }}
+                        </span>
+                      </p>
+                      <p class="text-xs text-slate-500">{{ v.fecha_venta | date: 'HH:mm' }}</p>
+                    </div>
+                    @if (v.estado !== 'pendiente') {
+                      <button type="button" (click)="verTicket(v)"
+                        class="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold">
+                        Reimprimir / PDF
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        </div>
+      }
+
+      <!-- ================================================================ -->
+      <!-- 6. Pedidos web por cobrar (CU16)                                  -->
+      <!-- ================================================================ -->
+      @if (pestana() === 'web') {
+        <section class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden pos-no-imprimir">
+          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-sm font-bold uppercase tracking-wider">Pedidos web con pago en efectivo</h2>
+            <button type="button" (click)="cargarPedidosWeb()" class="text-xs font-semibold text-slate-500 hover:text-black">Actualizar</button>
+          </div>
+          @if (cargandoPedidos()) {
+            <p class="p-6 text-sm text-slate-500">Cargando pedidos…</p>
+          } @else if (pedidosWeb().length === 0) {
+            <p class="p-6 text-center text-sm text-slate-500" id="pos-sin-pedidos-web">No hay pedidos web pendientes de cobro en esta boutique.</p>
+          } @else {
+            <ul class="divide-y divide-slate-100">
+              @for (p of pedidosWeb(); track p.id_pago) {
+                <li class="px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold">{{ p.numero_comprobante }} · {{ p.total }} €</p>
+                    <p class="text-xs text-slate-500 truncate">{{ p.cliente_nombre ?? 'Cliente' }} · {{ p.creado_en | date: 'dd/MM HH:mm' }}</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <button type="button" (click)="confirmarPedidoWeb(p)" [disabled]="procesandoPedido() !== null"
+                      class="px-3 py-2 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase disabled:opacity-40">
+                      Cobrar en efectivo
+                    </button>
+                    <button type="button" (click)="cancelarPedidoWeb(p)" [disabled]="procesandoPedido() !== null"
+                      class="px-3 py-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold disabled:opacity-40">
+                      Cancelar
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+    }
+
+    <!-- Diálogo de anulación -->
+    @if (ventaAnulando(); as v) {
+      <div class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 pos-no-imprimir" role="dialog" aria-modal="true" aria-labelledby="titulo-anulacion">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
+          <h2 id="titulo-anulacion" class="text-lg font-bold">Anular {{ v.numero_comprobante }}</h2>
+          <p class="text-sm text-slate-500">El stock retenido vuelve a estar disponible. Indica el motivo.</p>
+          <textarea id="campo-motivo-anulacion" rows="3"
+            class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm"
+            [ngModel]="motivoAnulacion()" (ngModelChange)="motivoAnulacion.set($event)"></textarea>
+          <div class="flex justify-end gap-2">
+            <button type="button" (click)="cancelarAnulacion()"
+              class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold">Volver</button>
+            <button type="button" id="btn-confirmar-anulacion" (click)="confirmarAnulacion()"
+              [disabled]="motivoAnulacion().trim().length < 3 || anulando()"
+              class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold uppercase disabled:opacity-40">
+              {{ anulando() ? 'Anulando…' : 'Anular venta' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </main>
+</div>

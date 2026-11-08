@@ -1,0 +1,87 @@
+// Sin encapsulación: las reglas @media print deben alcanzar al resto del documento.
+.pos-ticket {
+  width: 80mm;
+  max-width: 100%;
+  padding: 4mm;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #000;
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+
+  p {
+    margin: 0;
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px dashed #000;
+    margin: 6px 0;
+  }
+}
+
+.pos-ticket__marca {
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+}
+
+.pos-ticket__centro {
+  text-align: center;
+}
+
+.pos-ticket__anulada {
+  text-align: center;
+  font-weight: 700;
+  margin-top: 4px !important;
+}
+
+.pos-ticket__linea {
+  margin-bottom: 4px;
+}
+
+.pos-ticket__fila {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pos-ticket__total {
+  font-weight: 700;
+  font-size: 13px;
+  margin-top: 2px !important;
+}
+
+.pos-ticket__nota {
+  font-size: 10px;
+  color: #334155;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .pos-ticket,
+  .pos-ticket * {
+    visibility: visible !important;
+  }
+
+  .pos-ticket {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border: 0;
+  }
+
+  .pos-no-imprimir {
+    display: none !important;
+  }
+}

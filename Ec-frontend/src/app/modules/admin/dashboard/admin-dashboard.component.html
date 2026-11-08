@@ -70,6 +70,68 @@
     <!-- 3. Rejilla de Modulos (Tarjetas Boutique en 4 Columnas Responsivas) -->
     <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
+      <!-- Tarjeta POS: Punto de venta presencial (CU31-CU32) - Administrador y encargado -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Operacion de Caja
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Presencial
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Punto de venta
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Ventas en mostrador espontaneas o desde reserva, cobro y comprobante imprimible o en PDF.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Busqueda por nombre, categoria o SKU</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Efectivo, tarjeta, QR y transferencia</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-punto-venta"
+              routerLink="/admin/pos"
+              (click)="navegar('/admin/pos', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Abrir caja</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
       <!-- Tarjeta 1: Gestion Territorial y Operaciones (CU21) - Exclusivo Administrador -->
       @if (esAdmin()) {
         <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">

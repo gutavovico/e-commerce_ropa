@@ -6,6 +6,7 @@ import { ViewportScroller } from '@angular/common';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { routes } from './app.routes';
+import { cajeroACajaGuard } from './core/guards/role.guard';
 import { LandingPageComponent } from './public/landing/landing.component';
 import { MainLayoutComponent } from './core/layouts/main-layout/main-layout.component';
 
@@ -107,6 +108,20 @@ describe('app.routes', () => {
     const reservas = routes.find((ruta) => ruta.path === 'reservas');
     expect(reservas?.canActivate).toBeDefined();
     expect(reservas?.canActivate?.length).toBeGreaterThan(0);
+  });
+
+  it('CU31-CU32: /admin/pos se declara al nivel raíz, perezosa y con guard de autenticación y roles', () => {
+    const pos = routes.find((ruta) => ruta.path === 'admin/pos');
+    expect(pos).toBeDefined();
+    expect(pos?.loadComponent).toBeDefined();
+    expect(pos?.canActivate?.length).toBe(2);
+  });
+
+  it('CU31-CU32: el panel /admin y sus rutas sin guard de rol desvían al cajero a su caja', () => {
+    for (const path of ['admin', 'admin/atributos', 'admin/productos']) {
+      const ruta = routes.find((r) => r.path === path);
+      expect(ruta?.canActivate).toContain(cajeroACajaGuard);
+    }
   });
 
   it('existe una ruta comodín que evita la pantalla en blanco ante una URL desconocida', () => {

@@ -1,0 +1,102 @@
+<div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4 pos-no-imprimir">
+    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">Comprobante</h3>
+    <div class="flex flex-wrap gap-2">
+      <button
+        type="button"
+        id="btn-imprimir-ticket"
+        (click)="imprimir()"
+        [disabled]="!esComprobante()"
+        class="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold disabled:opacity-40"
+      >
+        Imprimir
+      </button>
+      <button
+        type="button"
+        id="btn-descargar-pdf"
+        (click)="descargarPdf.emit()"
+        [disabled]="!esComprobante() || descargandoPdf()"
+        class="px-3 py-2 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider disabled:opacity-40"
+      >
+        {{ descargandoPdf() ? 'Descargando…' : 'Descargar PDF' }}
+      </button>
+      <button
+        type="button"
+        (click)="cerrar.emit()"
+        class="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold"
+      >
+        Cerrar
+      </button>
+    </div>
+  </div>
+
+  @if (!esComprobante()) {
+    <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 pos-no-imprimir">
+      La venta sigue pendiente de cobro: aún no es un comprobante.
+    </p>
+  }
+
+  <div class="pos-ticket mx-auto" id="ticket-comprobante">
+    <p class="pos-ticket__marca">FASHION STORE</p>
+    <p class="pos-ticket__centro">{{ venta().nombre_sucursal }}</p>
+    @if (venta().direccion_sucursal) {
+      <p class="pos-ticket__centro">{{ venta().direccion_sucursal }}</p>
+    }
+    <hr />
+    <p><strong>Comprobante:</strong> {{ venta().numero_comprobante }}</p>
+    <p><strong>Fecha:</strong> {{ venta().fecha_venta | date: 'dd/MM/yyyy HH:mm' }}</p>
+    @if (venta().cajero_nombre) {
+      <p><strong>Cajero:</strong> {{ venta().cajero_nombre }}</p>
+    }
+    <p>
+      <strong>Cliente:</strong>
+      @if (venta().cliente; as cliente) {
+        {{ cliente.nombres }} {{ cliente.apellidos }}
+      } @else {
+        Venta sin registro
+      }
+    </p>
+    @if (venta().reserva_codigo) {
+      <p><strong>Reserva:</strong> {{ venta().reserva_codigo }}</p>
+    }
+    @if (venta().estado === 'anulada') {
+      <p class="pos-ticket__anulada">*** VENTA ANULADA ***</p>
+    }
+    <hr />
+    @for (linea of venta().lineas; track linea.id_variante) {
+      <div class="pos-ticket__linea">
+        <p>{{ linea.nombre_producto }} · {{ linea.talla_codigo }} / {{ linea.color_nombre }}</p>
+        <p class="pos-ticket__fila">
+          <span>{{ linea.cantidad }} × {{ linea.precio_unitario }} €</span>
+          <span>{{ linea.subtotal_linea }} €</span>
+        </p>
+        @if (linea.motivo_descuento) {
+          <p class="pos-ticket__nota">{{ linea.motivo_descuento }}</p>
+        }
+      </div>
+    }
+    <hr />
+    <p class="pos-ticket__fila"><span>Subtotal</span><span>{{ venta().subtotal }} €</span></p>
+    <p class="pos-ticket__fila"><span>Descuento</span><span>-{{ venta().descuento }} €</span></p>
+    @if (venta().cupon_aplicado) {
+      <p class="pos-ticket__nota">Cupón {{ venta().cupon_aplicado }}</p>
+    }
+    <p class="pos-ticket__fila pos-ticket__total"><span>TOTAL</span><span>{{ venta().total }} €</span></p>
+    <p class="pos-ticket__nota">IVA (21 %) incluido: {{ venta().iva_incluido }} €</p>
+    @if (pagoConfirmado(); as pago) {
+      <hr />
+      <p class="pos-ticket__fila"><span>Pago</span><span>{{ etiquetaMetodo(pago.metodo_pago) }}</span></p>
+      @if (pago.monto_recibido) {
+        <p class="pos-ticket__fila"><span>Recibido</span><span>{{ pago.monto_recibido }} €</span></p>
+      }
+      @if (pago.cambio) {
+        <p class="pos-ticket__fila"><span>Cambio</span><span>{{ pago.cambio }} €</span></p>
+      }
+      @if (pago.referencia) {
+        <p class="pos-ticket__fila"><span>Referencia</span><span>{{ pago.referencia }}</span></p>
+      }
+    }
+    <hr />
+    <p class="pos-ticket__centro">Gracias por su compra</p>
+  </div>
+</div>

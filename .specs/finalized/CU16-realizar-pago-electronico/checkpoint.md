@@ -3,7 +3,7 @@
 **ID del Cambio:** `CU16-realizar-pago-electronico`
 **Caso de Uso:** CU16 — Realizar Pago Electrónico
 **Metodología:** Spec-Driven Development (SDD) & Proceso Unificado de Desarrollo de Software (PUDS)
-**Estado:** 🟢 CP-01 a CP-32 y CP-34 a CP-36 aprobados · 🟡 Ronda 3 en ejecución: CP-33 (efectivo en sucursal en clientes Web y Mobile), CP-37 (webhook Stripe) y CP-38 (panel administrativo de caja)
+**Estado:** 🟢 CP-01 a CP-38 aprobados (2026-11-08). CP-37 verificado además en modo producción con un evento firmado (defecto 52 del `CHANGELOG.md`). Promovido a `.specs/finalized/`.
 **Actualización 2026-11-07 (Ronda 3):** inicio de ejecución del cierre de pago en efectivo en sucursal (Web y Mobile, CP-33), panel administrativo de cobro/cancelación en caja para cajeros/encargados (CU28, CP-38) y reconciliación asíncrona mediante Webhook de Stripe (CP-37).
 **Actualización 2026-09-27 (Backend):** se añadió el pago en efectivo en sucursal completo —
 `PagoServicio._registrar_pago_efectivo`, `confirmar_pago_efectivo`, `cancelar_pago_efectivo` y los
@@ -31,9 +31,9 @@ sección + badge sin `Expanded`) antes de que llegara a producción, siguiendo l
 en `CLAUDE.md` de usar `Expanded`/`ellipsis` en vez de reducir fuentes. `dart analyze` 0 incidencias
 · `flutter test` **173/173** en verde (30 nuevos: 9 de contrato de DTO, 7 de BLoC, 7 de widget y 1
 actualizado en `shopping_bag_test.dart` para reflejar la navegación).
-CP-01 a CP-32 quedan aprobados. Solo CP-33 (pago en efectivo en sucursal) sigue `⏳`: su diseño está
-resuelto (§1.6 de `spec.md`) y el Backend ya lo implementa, pero ningún cliente lo expone todavía
-(`T-FE-15`/`T-MO-12`), decisión deliberada para no ampliar más este ciclo.
+CP-01 a CP-32 quedaron aprobados en las rondas 1–2. CP-33 se cerró en la Ronda 3: la opción de efectivo
+solo aparece con `tipo_entrega: recogida_boutique` en Web (`esRecogidaBoutique()`) y Mobile
+(`resumen.esRecogidaBoutique`), comprobado en código el 2026-11-08.
 
 ---
 

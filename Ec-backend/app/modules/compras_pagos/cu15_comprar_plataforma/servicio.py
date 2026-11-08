@@ -354,8 +354,13 @@ class CheckoutServicio:
         codigo: Optional[str],
         base: Decimal,
         items,
+        consumir: bool = True,
     ) -> Tuple[Optional[PromocionORM], Decimal]:
-        """Valida el cupón y calcula su descuento. Sin código, no hay descuento ni error."""
+        """Valida el cupón y calcula su descuento. Sin código, no hay descuento ni error.
+
+        Con `consumir=False` (punto de venta: registrar y previsualizar) solo comprueba que quedan
+        usos; el uso se consume al cobrar (CU31-CU32, D7), de modo que una orden anulada no lo gasta.
+        """
         if not codigo or not codigo.strip():
             return None, Decimal("0.00")
 
@@ -378,8 +383,13 @@ class CheckoutServicio:
         if CheckoutServicio._es_posterior(ahora, promocion.fecha_fin):
             raise DomainError(f"El código '{codigo}' ha caducado.", code="CUPON_INVALIDO")
 
+        agotado_sin_consumir = (
+            not consumir
+            and promocion.limite_usos is not None
+            and (promocion.usos_actuales or 0) >= promocion.limite_usos
+        )
         # Consumo atómico: si otro checkout agotó el último uso, este UPDATE no afecta filas.
-        if not CarritoRepositorio.consumir_uso_cupon(db, promocion):
+        if agotado_sin_consumir or (consumir and not CarritoRepositorio.consumir_uso_cupon(db, promocion)):
             raise DomainError(
                 f"El código '{codigo}' ha alcanzado su límite de usos.",
                 code="CUPON_INVALIDO",
@@ -451,6 +461,18 @@ class CheckoutServicio:
             return base_global
 
         return base_global
+
+    @staticmethod
+    def evaluar_cupon(
+        db: Session, codigo: Optional[str], base: Decimal, items, consumir: bool
+    ) -> Tuple[Optional[PromocionORM], Decimal]:
+        """Punto de entrada público de la validación del cupón (lo usa el punto de venta)."""
+        return CheckoutServicio._resolver_cupon(db, codigo, base, items, consumir=consumir)
+
+    @staticmethod
+    def generar_numero_comprobante(db: Session) -> str:
+        """Punto de entrada público del comprobante `FS-<AAAA>-<NNNNNN>` (lo usa el punto de venta)."""
+        return CheckoutServicio._generar_numero_comprobante(db)
 
     @staticmethod
     def _generar_numero_comprobante(db: Session) -> str:

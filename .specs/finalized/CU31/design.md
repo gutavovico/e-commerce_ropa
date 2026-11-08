@@ -1,5 +1,11 @@
 # Diseno Tecnico de Arquitectura: [CU31] Generar reportes ejecutivos y consultas por voz
 
+> **Nota (2026-11-08):** la exclusión de `Ec-mobile` de este documento quedó superada. La spec permanente
+> `.specs/modules/comercial/CU31-reportes-voz.md` (v2.9.0, «Ampliación Multiplataforma Mobile») incluye
+> `PantallaReportesVoz` en `Ec-mobile/lib/src/modulos/comercial/cu31_reportes_voz/`. Este archivo se conserva
+> como historial del cambio. Recuerda también la colisión de numeración: este módulo cubre CU34 + CU35 de
+> `SI2-Parcial1.md`; el CU31/CU32 del documento (POS) está en `.specs/finalized/CU31-CU32-punto-de-venta-presencial/`.
+
 ## 1. Arquitectura General y Exclusion Formal de Mobile
 
 ### Justificacion de Arquitectura Exclusiva Web

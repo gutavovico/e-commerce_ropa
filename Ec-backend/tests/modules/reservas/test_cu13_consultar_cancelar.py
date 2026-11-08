@@ -1,7 +1,7 @@
 """Pruebas de CU13 (Consultar y cancelar reservas) y CU14 (Consultar estado de reserva).
 
 Cada prueba cita el escenario Gherkin que verifica, definido en
-`.specs/changes/CU13-CU14-consultar-cancelar-reservas/spec.md`, sección A.3.
+`.specs/finalized/CU13-CU14-consultar-cancelar-reservas/spec.md`, sección A.3.
 
 El repositorio se sustituye siempre por dobles (`patch.multiple`): la suite no sale a la red ni
 depende del orden de las consultas SQL, igual que en `test_cu16_pagos.py`.
