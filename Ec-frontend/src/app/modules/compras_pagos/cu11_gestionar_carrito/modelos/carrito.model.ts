@@ -50,7 +50,7 @@ export interface CarritoResumen {
   subtotal: string;
   descuento: string;
   total: string;
-  /** IVA contenido en el total (21 %). Informativo: los precios ya lo incluyen. */
+  /** IVA contenido en el total (13 %, Bolivia). Informativo: los precios ya lo incluyen. */
   iva_incluido: string;
   moneda: string;
 }

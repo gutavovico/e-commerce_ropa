@@ -1,6 +1,6 @@
 """Pruebas unitarias de P2-CU02 · Acceso por empresa, sin base de datos.
 
-Spec: `.specs/changes/P2-CU02-CU01-acceso-por-empresa/spec.md` §A.6. El comportamiento contra
+Spec: `.specs/finalized/P2-CU02-CU01-acceso-por-empresa/spec.md` §A.6. El comportamiento contra
 PostgreSQL (funciones de 0015, RLS y flujo completo del cliente) está en
 `tests/integracion/test_multitenant.py`.
 """

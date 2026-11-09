@@ -303,9 +303,9 @@ def test_carrito_requiere_autenticacion(client):
 
 
 def test_iva_incluido_se_desglosa_sobre_el_total():
-    """El IVA va incluido en el precio: se desglosa para mostrarlo, no se suma."""
-    # 1.940,00 / 1,21 = 1.603,31 -> IVA contenido = 336,69
-    assert calcular_iva_incluido(Decimal("1940.00")) == Decimal("336.69")
+    """El IVA de Bolivia (13 %) va incluido en el precio: se desglosa para mostrarlo, no se suma."""
+    # 1.940,00 / 1,13 = 1.716,81 -> IVA contenido = 223,19
+    assert calcular_iva_incluido(Decimal("1940.00")) == Decimal("223.19")
     assert calcular_iva_incluido(Decimal("0.00")) == Decimal("0.00")
 
 

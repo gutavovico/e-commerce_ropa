@@ -22,12 +22,14 @@ from modules.compras_pagos.cu11_gestionar_carrito.esquemas import (
     SucursalExpedicionOut,
 )
 from modules.compras_pagos.cu11_gestionar_carrito.repositorio import CarritoRepositorio
+from core.moneda import TASA_IVA
+from modules.plataforma.cu11_parametros_empresa.servicio import ParametrosEmpresaServicio
 from modules.compras_pagos.modelos import CarritoDetalleORM, CarritoORM, MINUTOS_RETENCION_VENTA
 
 CENTIMO = Decimal("0.01")
 
-# El IVA español está incluido en los precios de catálogo: se desglosa sólo para mostrarlo.
-TASA_IVA = Decimal("0.21")
+# El IVA de Bolivia (13 %, `core.moneda`) está incluido en los precios de catálogo: se desglosa
+# sólo para mostrarlo (fix de P2-CU11, M9).
 
 
 def redondear(valor: Decimal) -> Decimal:
@@ -322,6 +324,7 @@ class CarritoServicio:
             descuento=descuento,
             total=total,
             iva_incluido=calcular_iva_incluido(total),
+            moneda=ParametrosEmpresaServicio.moneda(db),
         )
 
         # Ventana informativa: la más antigua de las líneas marca el fin de la cortesía.

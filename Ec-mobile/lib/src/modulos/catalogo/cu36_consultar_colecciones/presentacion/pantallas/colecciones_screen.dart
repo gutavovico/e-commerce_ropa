@@ -4,6 +4,7 @@ import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacio
 import '../bloc/colecciones_bloc.dart';
 import 'detalle_coleccion_screen.dart';
 import '../../../../../core/empresa_actual.dart';
+import 'package:ec_mobile/src/core/moneda.dart';
 
 class ColeccionesScreen extends StatefulWidget {
   /// JWT de la sesión activa, usado cuando la pantalla abre la ficha de producto por su
@@ -456,7 +457,7 @@ class _ColeccionesScreenState extends State<ColeccionesScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Desde ${col.precioDesde.toStringAsFixed(0)} €',
+                'Desde ${formatoImporte(col.precioDesde)}',
                 style: const TextStyle(
                   fontFamily: 'Outfit',
                   fontSize: 12,
@@ -673,16 +674,21 @@ class _ColeccionesScreenState extends State<ColeccionesScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            '${pieza.precioBase.toStringAsFixed(0)} €',
-                            style: const TextStyle(
-                              fontFamily: 'Outfit',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F1116),
-                              letterSpacing: -0.2,
+                          Flexible(
+                            child: Text(
+                              formatoImporte(pieza.precioBase),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Outfit',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F1116),
+                                letterSpacing: -0.2,
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 4),
                           GestureDetector(
                             onTap: () => _bloc.agregarACesta(pieza),
                             child: Container(
@@ -809,7 +815,7 @@ class _ColeccionesScreenState extends State<ColeccionesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Fila Temporada y Precio "Desde X €"
+                  // Fila Temporada y Precio "Desde X" (moneda de la tienda)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -836,7 +842,7 @@ class _ColeccionesScreenState extends State<ColeccionesScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          'Desde ${col.precioDesde.toStringAsFixed(0)} €',
+                          'Desde ${formatoImporte(col.precioDesde)}',
                           style: const TextStyle(
                             fontFamily: 'Outfit',
                             fontSize: 10,

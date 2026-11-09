@@ -152,7 +152,7 @@
               {{ producto().nombre }}
             </h3>
             <div class="flex items-center gap-3 mt-2 text-xs font-mono">
-              <span class="text-amber-300 font-bold">{{ producto().precio_base | currency:'EUR':'symbol':'1.2-2' }}</span>
+              <span class="text-amber-300 font-bold">{{ producto().precio_base | importe }}</span>
               @if (variante()) {
                 <span class="text-stone-400">· Talla {{ variante()!.talla_codigo }}</span>
                 <span class="text-stone-400">· {{ variante()!.color_nombre }}</span>

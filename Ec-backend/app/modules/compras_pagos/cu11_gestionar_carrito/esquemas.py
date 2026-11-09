@@ -79,7 +79,7 @@ class CarritoResumenOut(BaseModel):
     iva_incluido: Decimal = Field(
         ..., description="IVA contenido en el total (21%). Informativo: no se persiste"
     )
-    moneda: str = "EUR"
+    moneda: str = "BOB"  # la de la empresa (fix de P2-CU11, M6)
 
 
 class SucursalExpedicionOut(BaseModel):

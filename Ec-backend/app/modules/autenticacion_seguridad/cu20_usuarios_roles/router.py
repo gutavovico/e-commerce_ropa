@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db
@@ -25,6 +25,10 @@ router = APIRouter(
     tags=["Administracion de Usuarios y Roles"],
 )
 servicio_usuarios = ServicioGestionUsuarios()
+
+
+def _ip(request: Request) -> str | None:
+    return request.client.host if request.client else None
 
 
 @router.get(
@@ -65,7 +69,7 @@ def listar_usuarios(
     "",
     response_model=UsuarioDetalleOut,
     status_code=status.HTTP_201_CREATED,
-    summary="Crear nueva cuenta corporativa o cliente",
+    summary="Crear la cuenta de un empleado de la empresa",
 )
 @router.post(
     "/",
@@ -75,11 +79,12 @@ def listar_usuarios(
 )
 def crear_usuario(
     datos: UsuarioCrearIn,
+    request: Request,
     db: Session = Depends(get_db),
-    _admin: UsuarioORM = Depends(require_roles(["administrador"])),
+    admin_sesion: UsuarioORM = Depends(require_roles(["administrador"])),
 ) -> UsuarioDetalleOut:
-    """Registra un nuevo usuario con roles y sucursales validados."""
-    return servicio_usuarios.crear_usuario(db=db, datos=datos)
+    """Registra un nuevo empleado con su rol y sus sucursales autorizadas."""
+    return servicio_usuarios.crear_usuario(db=db, datos=datos, actor=admin_sesion, ip=_ip(request))
 
 
 @router.get(
@@ -106,6 +111,7 @@ def obtener_usuario(
 def actualizar_usuario(
     id_usuario: int,
     datos: UsuarioActualizarIn,
+    request: Request,
     db: Session = Depends(get_db),
     admin_sesion: UsuarioORM = Depends(require_roles(["administrador"])),
 ) -> UsuarioDetalleOut:
@@ -115,6 +121,8 @@ def actualizar_usuario(
         id_usuario=id_usuario,
         datos=datos,
         id_admin_sesion=admin_sesion.id_usuario,
+        actor=admin_sesion,
+        ip=_ip(request),
     )
 
 
@@ -127,6 +135,7 @@ def actualizar_usuario(
 def cambiar_estado(
     id_usuario: int,
     datos: UsuarioEstadoIn,
+    request: Request,
     db: Session = Depends(get_db),
     admin_sesion: UsuarioORM = Depends(require_roles(["administrador"])),
 ) -> UsuarioDetalleOut:
@@ -136,6 +145,8 @@ def cambiar_estado(
         id_usuario=id_usuario,
         datos=datos,
         id_admin_sesion=admin_sesion.id_usuario,
+        actor=admin_sesion,
+        ip=_ip(request),
     )
 
 
@@ -148,14 +159,17 @@ def cambiar_estado(
 def reset_password(
     id_usuario: int,
     datos: ResetPasswordIn,
+    request: Request,
     db: Session = Depends(get_db),
-    _admin: UsuarioORM = Depends(require_roles(["administrador"])),
+    admin_sesion: UsuarioORM = Depends(require_roles(["administrador"])),
 ) -> UsuarioDetalleOut:
     """Asigna una nueva contrasena segura con hash criptografico."""
     return servicio_usuarios.reset_password(
         db=db,
         id_usuario=id_usuario,
         datos=datos,
+        actor=admin_sesion,
+        ip=_ip(request),
     )
 
 
@@ -166,6 +180,7 @@ def reset_password(
 )
 def eliminar_usuario(
     id_usuario: int,
+    request: Request,
     db: Session = Depends(get_db),
     admin_sesion: UsuarioORM = Depends(require_roles(["administrador"])),
 ) -> None:
@@ -174,4 +189,6 @@ def eliminar_usuario(
         db=db,
         id_usuario=id_usuario,
         id_admin_sesion=admin_sesion.id_usuario,
+        actor=admin_sesion,
+        ip=_ip(request),
     )

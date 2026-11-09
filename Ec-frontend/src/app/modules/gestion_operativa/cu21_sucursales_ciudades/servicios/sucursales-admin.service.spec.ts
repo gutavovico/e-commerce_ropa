@@ -5,7 +5,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SucursalesAdminService } from './sucursales-admin.service';
 import {
   Ciudad,
-  CiudadCrearPayload,
   SucursalAdmin,
   SucursalCrearPayload,
 } from '../modelos/sucursal.model';
@@ -107,97 +106,26 @@ describe('SucursalesAdminService (CU21)', () => {
     expect(service.error()).toBeNull();
   });
 
-  it('debe registrar una nueva ciudad y agregarla a la coleccion de la signal', () => {
-    const nuevaCiudadPayload: CiudadCrearPayload = {
-      nombre: 'Sevilla',
-      pais: 'Espana',
-    };
-
-    const ciudadCreada: Ciudad = {
-      id_ciudad: 3,
-      nombre: 'Sevilla',
-      pais: 'Espana',
-      creado_en: '2026-02-01T12:00:00Z',
-      total_sucursales: 0,
-    };
-
-    service.ciudades.set([...mockCiudades]);
-
-    service.crearCiudad(nuevaCiudadPayload).subscribe((res) => {
-      expect(res.id_ciudad).toBe(3);
-      expect(res.nombre).toBe('Sevilla');
-    });
-
-    expect(service.guardando()).toBe(true);
-
-    const req = httpMock.expectOne('/api/v1/admin/ciudades');
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(nuevaCiudadPayload);
-    req.flush(ciudadCreada);
-
-    expect(service.guardando()).toBe(false);
-    expect(service.ciudades().length).toBe(3);
-    expect(service.ciudades()[2].nombre).toBe('Sevilla');
-    expect(service.mensajeExito()).toContain('registrada correctamente');
+  it('carga el uso del plan de sucursales tal como lo devuelve el servidor (P2-CU04 B7)', () => {
+    service.cargarUsoPlan().subscribe();
+    const req = httpMock.expectOne('/api/v1/admin/sucursales/uso-plan');
+    expect(req.request.method).toBe('GET');
+    req.flush({ uso: 2, limite: 2, plan: 'Básico' });
+    expect(service.usoPlan()).toEqual({ uso: 2, limite: 2, plan: 'Básico' });
   });
 
-  it('debe actualizar los datos de una ciudad existente', () => {
-    service.ciudades.set([...mockCiudades]);
-
-    const ciudadActualizada: Ciudad = {
-      ...mockCiudades[0],
-      nombre: 'Madrid Capital',
-    };
-
-    service.actualizarCiudad(1, { nombre: 'Madrid Capital' }).subscribe((res) => {
-      expect(res.nombre).toBe('Madrid Capital');
-    });
-
-    const req = httpMock.expectOne('/api/v1/admin/ciudades/1');
-    expect(req.request.method).toBe('PUT');
-    req.flush(ciudadActualizada);
-
-    expect(service.ciudades()[0].nombre).toBe('Madrid Capital');
-    expect(service.mensajeExito()).toContain('actualizada');
-  });
-
-  it('debe eliminar una ciudad sin dependencias del listado', () => {
-    service.ciudades.set([...mockCiudades]);
-
-    service.eliminarCiudad(2).subscribe((res) => {
-      expect(res.mensaje).toBe('Ciudad eliminada');
-    });
-
-    const req = httpMock.expectOne('/api/v1/admin/ciudades/2');
-    expect(req.request.method).toBe('DELETE');
-    req.flush({ mensaje: 'Ciudad eliminada' });
-
-    expect(service.ciudades().length).toBe(1);
-    expect(service.ciudades()[0].id_ciudad).toBe(1);
-  });
-
-  it('debe capturar error 409 al intentar eliminar una ciudad con dependencias activas', () => {
-    service.ciudades.set([...mockCiudades]);
-
-    service.eliminarCiudad(1).subscribe({
-      next: () => {
-        throw new Error('No debio completarse con exito');
+  it('muestra el mensaje del servidor ante el límite del plan (409 LIMITE_PLAN_ALCANZADO)', () => {
+    let mensaje = '';
+    service.cambiarEstado(10, true).subscribe({ error: (err: Error) => (mensaje = err.message) });
+    httpMock.expectOne('/api/v1/admin/sucursales/10/estado').flush(
+      {
+        detail: 'El plan Básico permite 2 sucursales activas y la empresa ya usa 2. Cambie de plan o libere alguna.',
+        code: 'LIMITE_PLAN_ALCANZADO',
       },
-      error: (err) => {
-        expect(err.message).toContain('dependencias');
-      },
-    });
-
-    const req = httpMock.expectOne('/api/v1/admin/ciudades/1');
-    req.flush(
-      { detail: 'No se puede eliminar la ciudad porque cuenta con dependencias activas o sucursales asignadas.' },
-      { status: 409, statusText: 'Conflict' }
+      { status: 409, statusText: 'Conflict' },
     );
-
-    expect(service.guardando()).toBe(false);
-    expect(service.error()).toContain('dependencias');
+    expect(mensaje).toContain('El plan Básico permite 2 sucursales activas');
   });
-
   it('debe cargar sucursales administrativas con parametros de filtrado', () => {
     service.cargarSucursales({ id_ciudad: 1, activa: true, q: 'Serrano' }).subscribe((data) => {
       expect(data.length).toBe(1);

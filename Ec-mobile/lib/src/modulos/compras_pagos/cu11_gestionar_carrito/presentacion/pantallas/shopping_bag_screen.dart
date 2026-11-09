@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../cu16_realizar_pago/presentacion/pantallas/checkout_payment_screen.dart';
 import '../../datos/modelos/carrito_dto.dart';
 import '../bloc/carrito_bloc.dart';
+import 'package:ec_mobile/src/core/moneda.dart';
 
 /// Pantalla de Bolsa de Compra y Checkout (CU11 + CU15).
 ///
@@ -557,7 +558,7 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
                       Row(
                         children: [
                           Text(
-                            '${item.precioUnitario.toStringAsFixed(2)} €',
+                            formatoImporte(item.precioUnitario),
                             style: const TextStyle(
                               fontFamily: 'Outfit',
                               fontSize: 15,
@@ -567,7 +568,7 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
                           if (item.tieneDescuento) ...[
                             const SizedBox(width: 8),
                             Text(
-                              '${item.precioLista.toStringAsFixed(2)} €',
+                              formatoImporte(item.precioLista),
                               style: const TextStyle(
                                 fontFamily: 'Outfit',
                                 fontSize: 12,
@@ -582,7 +583,7 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: Text(
-                            'Ahorro ${item.descuentoLinea.toStringAsFixed(2)} € por '
+                            'Ahorro ${formatoImporte(item.descuentoLinea)} por '
                             '${item.motivoDescuento}',
                             style: const TextStyle(
                               fontFamily: 'Outfit',
@@ -1001,13 +1002,13 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
           _filaResumen(
             'Subtotal artículos (${resumen.totalPrendas} '
             '${resumen.totalPrendas == 1 ? 'prenda' : 'prendas'})',
-            '${resumen.subtotal.toStringAsFixed(2)} €',
+            formatoImporte(resumen.subtotal),
           ),
           if (resumen.tieneDescuento) ...[
             const SizedBox(height: 8),
             _filaResumen(
               'Beneficios y promociones',
-              '−${resumen.descuento.toStringAsFixed(2)} €',
+              '−${formatoImporte(resumen.descuento)}',
               color: _camel,
             ),
           ],
@@ -1015,8 +1016,8 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
           _filaResumen('Envío asegurado', 'GRATUITO'),
           const SizedBox(height: 8),
           _filaResumen(
-            'Impuestos estimados (IVA incluido)',
-            '${resumen.ivaIncluido.toStringAsFixed(2)} €',
+            'Impuestos estimados (IVA 13 % incluido)',
+            formatoImporte(resumen.ivaIncluido),
             color: _grisSuave,
           ),
           const Padding(
@@ -1025,7 +1026,7 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
           ),
           _filaResumen(
             'Total Estimado',
-            '${resumen.total.toStringAsFixed(2)} €',
+            formatoImporte(resumen.total),
             destacado: true,
           ),
         ],
@@ -1113,7 +1114,7 @@ class _ShoppingBagScreenState extends State<ShoppingBagScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${estado.resumen.total.toStringAsFixed(2)} €',
+                  formatoImporte(estado.resumen.total),
                   style: const TextStyle(
                     fontFamily: 'Outfit',
                     fontSize: 18,

@@ -227,7 +227,7 @@
 
                   <!-- Precio Base -->
                   <td class="py-4 px-6 text-right font-mono font-bold text-slate-900">
-                    {{ prenda.precio_base | currency:'EUR':'symbol':'1.2-2' }}
+                    {{ prenda.precio_base | importe }}
                   </td>
 
                   <!-- Stock Global Consolidado -->
@@ -375,7 +375,7 @@
           <!-- Precio Base -->
           <div>
             <label class="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
-              Precio Base (EUR) *
+              Precio Base ({{ '' | simboloMoneda }}) *
             </label>
             <input
               type="number"
@@ -567,7 +567,7 @@
               Variantes para: {{ prendaSeleccionada()?.nombre }}
             </h2>
             <p class="text-xs text-slate-500 mt-0.5">
-              Precio Base: <span class="font-mono font-bold text-slate-800">{{ prendaSeleccionada()?.precio_base | currency:'EUR':'symbol':'1.2-2' }}</span>
+              Precio Base: <span class="font-mono font-bold text-slate-800">{{ prendaSeleccionada()?.precio_base | importe }}</span>
             </p>
           </div>
           <button
@@ -649,7 +649,7 @@
             <div class="flex items-end justify-between gap-4 pt-2 border-t border-slate-200">
               <div class="max-w-xs">
                 <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">
-                  Recargo por Defecto (EUR)
+                  Recargo por Defecto ({{ '' | simboloMoneda }})
                 </label>
                 <input
                   type="number"
@@ -717,7 +717,7 @@
                           />
                         </td>
                         <td class="py-2 px-4 text-right font-bold text-slate-900">
-                          {{ fila.precio_final | currency:'EUR':'symbol':'1.2-2' }}
+                          {{ fila.precio_final | importe }}
                         </td>
                         <td class="py-2 px-4 text-center font-sans">
                           <button
@@ -778,7 +778,7 @@
                         </td>
                         <td class="py-2.5 px-4 font-bold text-slate-700 text-[11px]">{{ v.sku }}</td>
                         <td class="py-2.5 px-4 text-right font-bold text-slate-900">
-                          {{ v.precio_final | currency:'EUR':'symbol':'1.2-2' }}
+                          {{ v.precio_final | importe }}
                         </td>
                         <td class="py-2.5 px-4 text-center font-sans">
                           <button

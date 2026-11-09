@@ -127,6 +127,15 @@ describe('app.routes', () => {
     }
   });
 
+  it('P2-CU11: /admin/configuracion es una ruta fija, perezosa y con guard de autenticación y rol, antes del portal', () => {
+    const indice = routes.findIndex((r) => r.path === 'admin/configuracion');
+    const ruta = routes[indice];
+    expect(ruta?.loadComponent).toBeDefined();
+    expect(ruta?.canActivate).toContain(authGuard);
+    expect(ruta?.canActivate?.length).toBe(2);
+    expect(indice).toBeLessThan(routes.findIndex((r) => r.path === ':codigo'));
+  });
+
   it('existe una ruta comodín al final que evita la pantalla en blanco ante una URL desconocida', () => {
     const comodin = routes.find((ruta) => ruta.path === '**');
     expect(comodin).toBeDefined();

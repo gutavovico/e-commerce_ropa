@@ -51,7 +51,7 @@ void main() {
       expect(resumen.total, 1513.00);
       expect(resumen.subtotal - resumen.descuento, closeTo(resumen.total, 0.001));
       // El IVA va incluido en el precio: es informativo, no se suma.
-      expect(resumen.ivaIncluido, 262.62);
+      expect(resumen.ivaIncluido, 174.06);
     });
 
     test('VentaCreadaDto.fromJson lee la respuesta real de POST /api/v1/ventas/checkout', () {
@@ -373,7 +373,7 @@ void main() {
 
       expect(find.text('TRAMITAR PEDIDO'), findsOneWidget);
       expect(find.text('TOTAL PEDIDO'), findsOneWidget);
-      expect(find.textContaining('1513.00'), findsWidgets);
+      expect(find.textContaining('Bs 1.513,00'), findsWidgets);
     });
 
     testWidgets('renderiza la prenda con su boutique de expedición y el descuento',

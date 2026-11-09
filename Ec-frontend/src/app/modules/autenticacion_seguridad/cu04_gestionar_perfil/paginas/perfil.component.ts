@@ -22,11 +22,12 @@ import { PerfilService } from '../servicios/perfil.service';
 import { LoginService } from '../../cu02_iniciar_sesion/servicios/login.service';
 import { PedidoHistorico, PerfilClienteActualizar } from '../modelos/perfil.dto';
 import { MisReservasService } from '../../../reservas/cu13_consultar_cancelar_reservas/servicios/mis-reservas.service';
+import { ImportePipe } from '../../../../core/tenant/moneda';
 
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
+  imports: [ImportePipe, MarcaTiendaComponent, RutaPortalPipe, CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
   templateUrl: './perfil.component.html',
   styleUrls: ['./perfil.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

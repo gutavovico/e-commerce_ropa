@@ -179,6 +179,7 @@ from modules.compras_pagos.router import router as router_compras_pagos
 from modules.gestion_operativa.router import router as router_gestion_operativa
 from modules.reservas.router import router as router_reservas
 from modules.plataforma.cu02_acceso_empresa.router import router as router_acceso_empresa
+from modules.plataforma.cu11_parametros_empresa.router import router as router_parametros_empresa
 from modules.plataforma.router import router as router_plataforma
 from modules.seguridad.cu30_bitacora.router import router as router_bitacora
 
@@ -192,6 +193,7 @@ app.include_router(router_reservas, prefix="/api/v1")
 app.include_router(router_compras_pagos, prefix="/api/v1")
 app.include_router(router_bitacora, prefix="/api/v1")
 app.include_router(router_acceso_empresa, prefix="/api/v1")
+app.include_router(router_parametros_empresa, prefix="/api/v1")
 app.include_router(router_plataforma, prefix="/api/v1")
 
 # --- Almacenamiento Estatico Local ---

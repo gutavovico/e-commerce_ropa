@@ -35,6 +35,11 @@ export class PuntoVentaService {
       .pipe(map((lista) => lista.map((s) => ({ id_sucursal: s.id_sucursal, nombre: s.nombre }))));
   }
 
+  /** P2-CU03 B5 (RN07): sucursales autorizadas del cajero o encargado, la principal primero. */
+  misSucursales(): Observable<(SucursalOpcion & { es_principal: boolean })[]> {
+    return this.http.get<(SucursalOpcion & { es_principal: boolean })[]>('/api/v1/mis-sucursales');
+  }
+
   /** Todas las tallas/colores cuyo nombre, categoría o SKU coinciden, con el stock de la boutique. */
   buscarVariantes(texto: string, idSucursal: number | null): Observable<VariantePos[]> {
     return this.http.get<VariantePos[]>(`${this.base}/variantes`, {

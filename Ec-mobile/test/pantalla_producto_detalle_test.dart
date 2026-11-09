@@ -489,7 +489,7 @@ void main() {
       expect(find.text('Vestido Plisado en Seda Marfil Natural'), findsOneWidget);
       expect(find.text('ALTA COSTURA · MILÁN / LYON'), findsWidgets);
       expect(find.text('4.9 · 38 reseñas VIP'), findsOneWidget);
-      expect(find.text('890 €'), findsWidgets);
+      expect(find.text('Bs 890,00'), findsWidgets);
     });
 
     testWidgets('cumple Directriz Hub-and-Spoke: botón VOLVER presente y ausencia de BottomNavigationBar', (tester) async {
@@ -636,7 +636,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Botón inferior persistente
-      final botonBolsa = find.text('AÑADIR A LA BOLSA · 890 €');
+      final botonBolsa = find.text('AÑADIR A LA BOLSA · Bs 890,00');
       expect(botonBolsa, findsOneWidget);
 
       await tester.tap(botonBolsa);

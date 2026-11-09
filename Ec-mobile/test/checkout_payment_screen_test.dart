@@ -50,7 +50,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('1940.00'), findsWidgets);
+      expect(find.textContaining('Bs 1.940,00'), findsWidgets);
       expect(find.textContaining('CONFIRMAR Y PAGAR'), findsOneWidget);
     });
 

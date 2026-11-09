@@ -143,7 +143,6 @@
           <option value="administrador">Administrador</option>
           <option value="encargado_sucursal">Encargado de Sucursal</option>
           <option value="cajero">Cajero</option>
-          <option value="cliente">Cliente</option>
         </select>
       </div>
 
@@ -186,7 +185,7 @@
             <tr class="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
               <th scope="col" class="py-4 px-6">Usuario / Identidad</th>
               <th scope="col" class="py-4 px-6">Rol RBAC</th>
-              <th scope="col" class="py-4 px-6">Sucursal Asignada</th>
+              <th scope="col" class="py-4 px-6">Sucursales</th>
               <th scope="col" class="py-4 px-6 text-center">Estado</th>
               <th scope="col" class="py-4 px-6">Fecha Registro</th>
               <th scope="col" class="py-4 px-6 text-right">Acciones</th>
@@ -261,12 +260,19 @@
                   <!-- 3. Sucursal Asignada -->
                   <td class="py-4 px-6 whitespace-nowrap">
                     @if (usuario.sucursal_nombre) {
-                      <div>
-                        <div class="font-semibold text-slate-800">{{ usuario.sucursal_nombre }}</div>
-                        <div class="text-[10px] text-[#AD8C63] font-medium">{{ usuario.sucursal_ciudad }}</div>
+                      <div [title]="nombresSucursales(usuario)">
+                        <div class="font-semibold text-slate-800">
+                          {{ usuario.sucursal_nombre }}
+                          @if (sucursalesAdicionales(usuario) > 0) {
+                            <span class="ml-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold">
+                              +{{ sucursalesAdicionales(usuario) }}
+                            </span>
+                          }
+                        </div>
+                        <div class="text-[10px] text-[#AD8C63] font-medium">{{ usuario.sucursal_ciudad }} · principal</div>
                       </div>
                     } @else {
-                      <span class="text-slate-400 italic">Sede Central / Global</span>
+                      <span class="text-slate-400 italic">Todas las sucursales</span>
                     }
                   </td>
 
@@ -376,7 +382,7 @@
               {{ modoEdicion() ? 'Editar Cuenta de Usuario' : 'Nuevo Usuario Corporativo' }}
             </h3>
             <p class="text-xs text-slate-500 mt-0.5">
-              {{ modoEdicion() ? 'Actualice atributos, rol o sucursal asociada.' : 'Provisione una nueva cuenta con rol y sucursal validados.' }}
+              {{ modoEdicion() ? 'Actualice sus datos, su rol o sus sucursales.' : 'La cuenta pertenecerá a su empresa, con su rol y sus sucursales.' }}
             </p>
           </div>
           <button
@@ -482,8 +488,8 @@
                 <option value="administrador">Administrador</option>
                 <option value="encargado_sucursal">Encargado de Sucursal</option>
                 <option value="cajero">Cajero</option>
-                <option value="cliente">Cliente</option>
               </select>
+              <span class="text-slate-400 text-[10px] mt-1 block">Los clientes se registran por su cuenta desde la tienda.</span>
             </div>
           </div>
 
@@ -491,22 +497,51 @@
           @if (esRolOperativo()) {
             <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-3.5 space-y-1">
               <label class="block font-bold text-amber-900 uppercase tracking-wider text-[11px]">
-                Sucursal Fisica Asignada <span class="text-rose-600">*</span>
+                Sucursales autorizadas <span class="text-rose-600">*</span>
               </label>
               <p class="text-[10px] text-amber-700">
-                La asignacion de sede es obligatoria para roles operativos (encargados y cajeros).
+                Marque las sucursales en las que puede operar y elija cuál es la principal.
               </p>
-              <select
-                formControlName="id_sucursal"
-                class="w-full mt-1.5 px-3.5 py-2 bg-white border border-amber-300 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-[#AD8C63] transition-all"
-              >
-                <option [ngValue]="null">Seleccione una sucursal activa...</option>
-                @for (suc of sucursalesService.sucursales(); track suc.id_sucursal) {
-                  <option [ngValue]="suc.id_sucursal">{{ suc.nombre }} - {{ suc.ciudad_nombre }}</option>
+              @if (sucursalesActivas().length === 0) {
+                <p class="text-[11px] text-slate-500 italic mt-1.5">No hay sucursales activas en su empresa.</p>
+              }
+              <ul class="mt-1.5 space-y-1.5" role="group" aria-label="Sucursales autorizadas">
+                @for (suc of sucursalesActivas(); track suc.id_sucursal) {
+                  <li class="flex items-center justify-between gap-3 bg-white border border-amber-200 rounded-xl px-3 py-2">
+                    <label class="flex items-center gap-2 min-w-0 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        class="accent-[#AD8C63]"
+                        [attr.data-sucursal]="suc.id_sucursal"
+                        [checked]="estaMarcada(suc.id_sucursal)"
+                        (change)="alternarSucursal(suc.id_sucursal)"
+                      />
+                      <span class="truncate text-slate-800 font-semibold">{{ suc.nombre }}</span>
+                      <span class="truncate text-slate-500">· {{ suc.ciudad_nombre }}</span>
+                    </label>
+                    <label
+                      class="flex items-center gap-1.5 shrink-0 text-[10px] font-bold uppercase tracking-wider"
+                      [class.text-slate-300]="!estaMarcada(suc.id_sucursal)"
+                      [class.text-amber-800]="estaMarcada(suc.id_sucursal)"
+                    >
+                      <input
+                        type="radio"
+                        name="sucursal-principal"
+                        class="accent-[#AD8C63]"
+                        [attr.data-principal]="suc.id_sucursal"
+                        [disabled]="!estaMarcada(suc.id_sucursal)"
+                        [checked]="sucursalPrincipal() === suc.id_sucursal"
+                        (change)="elegirPrincipal(suc.id_sucursal)"
+                      />
+                      Principal
+                    </label>
+                  </li>
                 }
-              </select>
-              @if (formUsuario.get('id_sucursal')?.touched && formUsuario.get('id_sucursal')?.invalid) {
-                <span class="text-rose-600 text-[10px] mt-1 block font-bold">Debe seleccionar una sucursal valida para este rol.</span>
+              </ul>
+              @if (intentoGuardar() && !sucursalesValidas()) {
+                <span class="text-rose-600 text-[10px] mt-1 block font-bold">
+                  Marque al menos una sucursal y elija la principal.
+                </span>
               }
             </div>
           }

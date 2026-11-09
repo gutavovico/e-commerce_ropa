@@ -5,6 +5,7 @@ import 'package:flutter_stripe/flutter_stripe.dart' show CardField, CardFieldInp
 
 import '../../datos/modelos/pago_dto.dart';
 import '../bloc/pago_bloc.dart';
+import 'package:ec_mobile/src/core/moneda.dart';
 
 /// Pantalla de Pago Seguro (CU16), abierta desde la Bolsa de Compra tras tramitar el pedido.
 ///
@@ -404,7 +405,7 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
                 const SizedBox(height: 8),
                 _filaResumen(
                   esEfectivo ? 'Total a abonar en tienda' : 'Total liquidado',
-                  '${pago.monto.toStringAsFixed(2)} €',
+                  formatoImporte(pago.monto),
                   destacado: true,
                 ),
               ],
@@ -503,7 +504,7 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${resumen.total.toStringAsFixed(2)} €',
+                    formatoImporte(resumen.total),
                     style: const TextStyle(fontFamily: 'Outfit', fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -872,7 +873,7 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
         const SizedBox(height: 10),
         _pasoQr('1', 'Abre tu app bancaria de preferencia o el módulo Bizum.'),
         _pasoQr('2', 'Escanea el código o ingresa el código $codigoCorto.'),
-        _pasoQr('3', 'Autoriza el importe exacto de ${resumen.total.toStringAsFixed(2)} €.'),
+        _pasoQr('3', 'Autoriza el importe exacto de ${formatoImporte(resumen.total)}.'),
       ],
     );
   }
@@ -1002,7 +1003,7 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
               : Text(
                   esEfectivo
                       ? 'CONFIRMAR RESERVA Y ABONAR EN TIENDA'
-                      : 'CONFIRMAR Y PAGAR ${resumen.total.toStringAsFixed(2)} €',
+                      : 'CONFIRMAR Y PAGAR ${formatoImporte(resumen.total)}',
                   style: const TextStyle(fontFamily: 'Outfit', fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.6),
                 ),
         ),

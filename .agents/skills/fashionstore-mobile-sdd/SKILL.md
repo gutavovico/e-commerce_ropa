@@ -60,6 +60,7 @@ Antes de alterar o generar código dentro de `Ec-mobile/`, se debe ejecutar el s
 ## 3. Mapeo de Diseño y Centralización de Tokens (`AppTheme`)
 
 ### 3.0 REGLA DE NEGOCIO GLOBAL INQUEBRANTABLE: E-COMMERCE EXCLUSIVO PARA MUJERES
+* **Por empresa (Parcial 2):** la regla femenina es de la empresa **FASHION STORE**. Cada empresa (tenant) tiene su propio catálogo (Menshopping es masculina) y nunca se mezclan.
 * **Exclusividad Femenina:** FashionStore es una boutique y probador virtual (AR) **EXCLUSIVAMENTE PARA MUJERES**.
 * **Prohibición de Contenido Masculino:** Queda estrictamente prohibido utilizar modelos masculinos, prendas para hombre o fotografía de ropa masculina. Toda la experiencia móvil debe enfocarse en alta costura femenina.
 * **Integridad de Datos Reales (Cero Productos Inventados):** Todas las prendas provienen estrictamente de la base de datos PostgreSQL (`fashionstore.productos`). Jamás inventar o quemar en código productos inexistentes en base de datos.
@@ -79,6 +80,7 @@ La estética de FASHION STORE exige coherencia milimétrica con la versión web.
 
 ### 3.2 Nombre Oficial Normativo
 * En toda la aplicación móvil, textos de bienvenida, splash screen y configuraciones, el nombre es **FASHION STORE** (nunca "AURA STUDIO").
+* **P2-CU02:** la marca *visible* es la de la tienda elegida: `EmpresaActual.instancia.marca`. Nunca escribas «FASHION STORE» a mano en una pantalla.
 
 ---
 
@@ -97,6 +99,10 @@ Cada incremento se ubica en `lib/src/modulos/<paquete_dominio>/<cu>/` estructura
 ### 4.3 Almacenamiento Seguro de Sesión
 * Prohibido almacenar tokens JWT en `SharedPreferences`.
 * Usar siempre `flutter_secure_storage` mediante `SecureStorageService` para el `access_token`.
+
+### 4.3b Tienda elegida y cliente HTTP (P2-CU02)
+* Todo datasource nuevo usa `ClienteHttpApi()` como cliente por defecto (nunca `http.Client()`): añade `X-Tenant` con la tienda de `EmpresaActual`. Sin él, el backend no devuelve datos de ninguna empresa.
+* El cliente elige la tienda en `PantallaSeleccionEmpresa` (entre el login y el hub); el empleado usa la de su cuenta. El registro en tiendas nuevas es exclusivo de la web.
 
 ### 4.4 Manejo de Errores de Red
 * Toda llamada a la API debe capturar `DioException` o fallos de conexión, traduciendo el JSON `{"detail": "...", "code": "..."}` del backend a excepciones de dominio tipadas.

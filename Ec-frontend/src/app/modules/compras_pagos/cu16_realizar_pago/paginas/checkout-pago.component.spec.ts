@@ -26,8 +26,8 @@ const RESUMEN_MOCK: ResumenPago = {
   subtotal: '1940.00',
   descuento: '160.00',
   total: '1940.00',
-  iva_incluido: '336.69',
-  moneda: 'EUR',
+  iva_incluido: '223.19',
+  moneda: 'BOB',
   total_prendas: 3,
   items: [
     {
@@ -90,7 +90,7 @@ const PAGO_EXITOSO_MOCK: PagoConfirmado = {
   metodo_pago: 'tarjeta_credito',
   referencia_pasarela: 'pi_sbx_123456789',
   monto: '1940.00',
-  moneda: 'EUR',
+  moneda: 'BOB',
   marca_tarjeta: 'VISA',
   ultimos_digitos: '4242',
   confirmado_en: '2026-09-22T10:05:00Z',
@@ -164,10 +164,10 @@ describe('CheckoutPagoComponent (CU16 - Pasarela Stripe, modo simulador)', () =>
     expect(mockPagoService.obtenerResumenPago).toHaveBeenCalledWith(101);
   });
 
-  it('debe renderizar el título de resumen de la orden y el monto de 1.940,00 €', () => {
+  it('debe renderizar el título de resumen de la orden y el monto de Bs 1.940,00', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Resumen de la Orden');
-    expect(compiled.textContent).toContain('1940.00 €');
+    expect(compiled.textContent).toContain('Bs 1.940,00');
   });
 
   it('sin clave publicable real, muestra el panel de modo simulador en vez del formulario de Stripe', () => {

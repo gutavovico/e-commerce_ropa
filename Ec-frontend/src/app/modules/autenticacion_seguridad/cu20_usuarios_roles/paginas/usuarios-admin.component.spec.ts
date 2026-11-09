@@ -28,6 +28,7 @@ describe('UsuariosAdminComponent (CU20)', () => {
     id_sucursal: null,
     sucursal_nombre: null,
     sucursal_ciudad: null,
+    sucursales_autorizadas: [],
     activo: true,
     fecha_registro: '2026-09-20T12:00:00Z',
     ultimo_acceso: null,
@@ -44,6 +45,11 @@ describe('UsuariosAdminComponent (CU20)', () => {
     id_sucursal: 10,
     sucursal_nombre: 'Boutique Calacoto Central',
     sucursal_ciudad: 'La Paz',
+    // Payload literal de GET /api/v1/admin/usuarios (P2-CU03 B3)
+    sucursales_autorizadas: [
+      { id_sucursal: 10, nombre: 'Boutique Calacoto Central', es_principal: true },
+      { id_sucursal: 11, nombre: 'Boutique Sopocachi', es_principal: false },
+    ],
     activo: true,
     fecha_registro: '2026-09-21T09:00:00Z',
     ultimo_acceso: null,
@@ -99,7 +105,11 @@ describe('UsuariosAdminComponent (CU20)', () => {
     creado_en: '2026-09-20T10:00:00Z',
   };
 
-  const mockSucursalesSignal = signal<SucursalAdmin[]>([mockSucursal]);
+  const mockSucursalSopocachi: SucursalAdmin = { ...mockSucursal, id_sucursal: 11, nombre: 'Boutique Sopocachi' };
+  const mockSucursalInactiva: SucursalAdmin = {
+    ...mockSucursal, id_sucursal: 12, nombre: 'Boutique Cerrada', activa: false,
+  };
+  const mockSucursalesSignal = signal<SucursalAdmin[]>([mockSucursal, mockSucursalSopocachi, mockSucursalInactiva]);
   const mockSucursalesService = {
     sucursales: mockSucursalesSignal,
     cargarSucursales: vi.fn().mockReturnValue(of([mockSucursal])),
@@ -151,7 +161,7 @@ describe('UsuariosAdminComponent (CU20)', () => {
     expect(compiled.textContent).toContain('admin.corporativo@fashionstore.com');
     expect(compiled.textContent).toContain('GV');
     expect(compiled.textContent).toContain('Administrador');
-    expect(compiled.textContent).toContain('Sede Central / Global');
+    expect(compiled.textContent).toContain('Todas las sucursales');
 
     // Usuario 2: Cajero
     expect(compiled.textContent).toContain('Lucia Roca');
@@ -184,8 +194,12 @@ describe('UsuariosAdminComponent (CU20)', () => {
     expect(component.modalUsuarioAbierto()).toBe(true);
     expect(component.modoEdicion()).toBe(false);
 
-    // Por defecto es cliente -> sucursal oculta
-    expect(component.esRolOperativo()).toBe(false);
+    // Por defecto es cajero -> sucursales visibles (P2-CU03: ya no se crean clientes)
+    expect(component.esRolOperativo()).toBe(true);
+    const opcionesRol = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('select[formControlName="rol"] option'),
+    ).map((o) => (o as HTMLOptionElement).value);
+    expect(opcionesRol).toEqual(['administrador', 'encargado_sucursal', 'cajero']);
 
     // Cambiar rol a 'encargado_sucursal' -> sucursal visible y requerida
     component.formUsuario.patchValue({ rol: 'encargado_sucursal' });
@@ -212,8 +226,8 @@ describe('UsuariosAdminComponent (CU20)', () => {
       nombres: 'Pedro',
       apellidos: 'Guzman',
       rol: 'cajero',
-      id_sucursal: 10,
     });
+    component.alternarSucursal(10);
 
     component.guardarUsuario();
     expect(mockUsuariosService.crearUsuario).toHaveBeenCalledWith({
@@ -224,6 +238,8 @@ describe('UsuariosAdminComponent (CU20)', () => {
       telefono: null,
       rol: 'cajero',
       id_sucursal: 10,
+      sucursales_autorizadas: [10],
+      id_sucursal_principal: 10,
     });
     expect(component.modalUsuarioAbierto()).toBe(false);
   });
@@ -241,7 +257,7 @@ describe('UsuariosAdminComponent (CU20)', () => {
       password: 'PasswordSeguro2026!',
       nombres: 'Ana',
       apellidos: 'Perez',
-      rol: 'cliente',
+      rol: 'administrador',
     });
 
     component.guardarUsuario();
@@ -283,5 +299,66 @@ describe('UsuariosAdminComponent (CU20)', () => {
     component.confirmarEliminacion();
     expect(mockUsuariosService.eliminarUsuario).toHaveBeenCalledWith(2);
     expect(component.modalEliminarAbierto()).toBe(false);
+  });
+
+  // ------------------------------------------------------------------ P2-CU03 B3
+  describe('sucursales autorizadas (P2-CU03)', () => {
+    it('solo ofrece sucursales activas, con una casilla y una opción de principal por sucursal', () => {
+      component.abrirModalCrear();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const casillas = Array.from(el.querySelectorAll('input[type="checkbox"][data-sucursal]'));
+      expect(casillas.map((c) => c.getAttribute('data-sucursal'))).toEqual(['10', '11']);
+      // La principal no se puede elegir hasta marcar la sucursal
+      const radio = el.querySelector('input[data-principal="11"]') as HTMLInputElement;
+      expect(radio.disabled).toBe(true);
+    });
+
+    it('la primera sucursal marcada es la principal y se puede cambiar entre las marcadas', () => {
+      component.abrirModalCrear();
+      component.alternarSucursal(10);
+      component.alternarSucursal(11);
+      expect(component.sucursalPrincipal()).toBe(10);
+      component.elegirPrincipal(11);
+      expect(component.sucursalPrincipal()).toBe(11);
+      expect(component.formUsuario.get('id_sucursal')?.value).toBe(11);
+      // Desmarcar la principal pasa la principal a otra marcada
+      component.alternarSucursal(11);
+      expect(component.sucursalPrincipal()).toBe(10);
+    });
+
+    it('no envía un encargado o cajero sin sucursales', () => {
+      component.abrirModalCrear();
+      component.formUsuario.patchValue({
+        email: 'sin.sucursal@fashionstore.com',
+        password: 'PasswordSeguro2026!',
+        nombres: 'Sin',
+        apellidos: 'Sucursal',
+        rol: 'cajero',
+      });
+      component.guardarUsuario();
+      fixture.detectChanges();
+      expect(mockUsuariosService.crearUsuario).not.toHaveBeenCalled();
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('Marque al menos una sucursal');
+    });
+
+    it('al editar carga las sucursales autorizadas y envía la lista completa', () => {
+      component.abrirModalEditar(mockUsuarioCajero);
+      expect(component.sucursalesMarcadas()).toEqual([10, 11]);
+      expect(component.sucursalPrincipal()).toBe(10);
+      component.elegirPrincipal(11);
+      component.guardarUsuario();
+      expect(mockUsuariosService.actualizarUsuario).toHaveBeenCalledWith(
+        2,
+        expect.objectContaining({ id_sucursal: 11, sucursales_autorizadas: [10, 11], id_sucursal_principal: 11 }),
+      );
+    });
+
+    it('la tabla muestra la principal y cuántas más tiene', () => {
+      const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
+      expect(texto).toContain('Boutique Calacoto Central');
+      expect(texto).toContain('+1');
+      expect(texto).toContain('Todas las sucursales'); // administrador
+    });
   });
 });

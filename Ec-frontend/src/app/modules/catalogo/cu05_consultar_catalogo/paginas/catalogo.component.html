@@ -311,14 +311,14 @@
                   <div class="mt-2 flex items-baseline space-x-2">
                     @if (prod.tiene_descuento) {
                       <span class="text-sm font-bold text-[#991B1B]">
-                        {{ prod.precio_final }} €
+                        {{ prod.precio_final | importe }}
                       </span>
                       <span class="text-xs text-[#888888] line-through font-light">
-                        {{ prod.precio_base }} €
+                        {{ prod.precio_base | importe }}
                       </span>
                     } @else {
                       <span class="text-sm font-bold text-[#111111]">
-                        {{ prod.precio_base }} €
+                        {{ prod.precio_base | importe }}
                       </span>
                     }
                   </div>

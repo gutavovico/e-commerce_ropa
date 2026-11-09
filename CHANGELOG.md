@@ -47,6 +47,38 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 - **Efecto para los usuarios:** todos deben iniciar sesión de nuevo una vez (los tokens anteriores no llevan empresa). Web y móvil no cambian en este ciclo.
 - Defectos 53–56 de la bitácora.
 
+### Acceso por Empresa — P2-CU02 (Iniciar sesión) y P2-CU01 (Registrarse)
+- **Base de datos (migración `0015`):** correo único en toda la plataforma (`uq_usuarios_email`); funciones `SECURITY DEFINER` `cuenta_por_email` (solo `id_usuario` e `id_tenant`) y `empresas_disponibles` (empresas activas con suscripción vigente); códigos de empresa reservados (`chk_tenants_codigo_reservado`). Aplicada a mano en producción antes del push (0 correos repetidos).
+- **Backend:** login solo con correo y contraseña para todos los roles; la cuenta determina la empresa del empleado, que además necesita suscripción vigente. El token del cliente no lleva empresa: navega con `X-Tenant`. Endpoints `GET /tenants`, `GET /tenants/{codigo}`, `GET /mis-empresas` y `POST /mis-empresas` («Registrarme en esta tienda»). Se retira `TENANT_POR_DEFECTO`: sin tienda indicada no se ve ninguna empresa.
+- **Web:** directorio de tiendas en `/`; portal de cada tienda en `/{codigo}/...` con su login, registro y recuperación; aviso «Registrarme en esta tienda»; marca y títulos con el nombre de la tienda; las rutas antiguas del cliente redirigen al directorio.
+- **Móvil:** pantalla de selección de tienda entre el login y el hub, «Cambiar de tienda» en Perfil, `X-Tenant` en todas las peticiones (`ClienteHttpApi`) y marca por tienda.
+- **Pruebas:** `pytest` 624, `ng test` 638 y `flutter test` 276, todas en verde. En producción: API pública, directorio, portal y login comprobados; recorridos con sesión probados por el usuario en web y móvil.
+- **Efecto para los usuarios:** las apps móviles anteriores dejan de ver datos (no envían la tienda); hay que instalar el APK nuevo.
+- Defectos 57–62 de la bitácora.
+
+### Usuarios y Sucursales por Empresa — P2-CU03 (Gestionar usuarios y roles) y P2-CU04 (Gestionar sucursales)
+- **Seguridad:** el administrador de una empresa ya no ve ni modifica clientes ni al super administrador (defecto 63).
+- **Backend:** sucursales autorizadas por empleado con una principal (`empleado_sucursal`), aplicadas en caja, cobro en efectivo, inventario, ventas y reservas, indicadores y reportes por voz (RN07); solo se asignan roles de empleado; `GET /mis-sucursales` y `GET /admin/sucursales/uso-plan`; las ciudades son de solo lectura para el administrador (su gestión pasa a P2-CU08); límites del plan serializados por empresa con `pg_advisory_xact_lock` y límite de empleados al reactivar; bitácora de usuarios y sucursales. Sin migración.
+- **Web:** casillas de sucursales autorizadas y principal en «Usuarios», sin el rol cliente; uso del plan y aviso de límite en «Sucursales»; pestaña «Ciudades» de solo lectura; selector de sucursal en la caja para el cajero o encargado con más de una.
+- **Pruebas:** `pytest` 676 (integración contra la rama de pruebas: fuga cerrada, empleado con dos sucursales, uso del plan, bloqueo por empresa) y `ng test` 644, en verde; `ng build` correcto.
+- Defectos 63–65 de la bitácora.
+
+### Parámetros de la Empresa — P2-CU11 (Configurar parámetros de la empresa)
+- **Backend:** `GET` y `PUT /api/v1/admin/configuracion` (solo administrador; guardar exige suscripción vigente) sobre `configuracion_tenant`, que ya existía desde `0012`. Rangos: reserva 1–168 h, cambio de prenda 0–90 días, antigüedad sin conexión 1–30 días. Moneda y zona horaria solo se consultan. La fila que falte se crea con los valores por defecto. Bitácora `CONFIGURACION_MODIFICADA` con lo que cambió. `ParametrosEmpresaServicio.vigentes(db)` para los casos de uso que aplican cada parámetro. Sin migración.
+- **Web:** página `/admin/configuracion` con su tarjeta en el panel y el aviso de CU11 A2 al desactivar la operación sin conexión.
+- **Alcance:** CU11 configura; los parámetros se aplican en CU15 (vencimiento de reservas), CU18 (plazo de cambio), CU14 y CU19 (operación sin conexión). Cada operación guardará el valor que la rige al crearse.
+- **Pruebas:** `pytest` 695 (2 de integración contra la rama de pruebas) y `ng test` 651, en verde; `ng build` correcto.
+- **Pendiente para CU15:** el formulario de reserva web fija la cita en «mañana a las 11:30» sin usar la franja elegida y, sin sucursal elegida, usa el id `1`.
+
+### Moneda y Zona Horaria de Bolivia — fix de P2-CU11
+- **Base de datos (migración `0016`):** moneda `BOB` o `USD` y zona `America/La_Paz` (CHECK); todas las empresas pasan a BOB sin convertir importes (decisión del usuario: 120 € pasan a Bs 120); `empresas_disponibles()` devuelve la moneda. Aplicada a mano en producción antes del push.
+- **Backend:** «hoy» con la hora de Bolivia en todo el backend (`core/tiempo.py` y `TimeZone` de cada transacción de PostgreSQL); moneda y zona editables en Configuración, con la moneda bloqueada si la empresa tiene ventas (409 `MONEDA_CON_OPERACIONES`); moneda en directorio, portal, login, carrito, checkout y pago; Stripe cobra en la moneda de la empresa; `formatear_importe` (`Bs 1.234,50`, `US$ 1.234,50`) en el comprobante y los textos; IVA del 13 %; `tzdata` en las dependencias.
+- **Web:** pipe `importe` y moneda de la tienda (portal o empresa del empleado); 74 importes sin «€»; selectores de moneda y zona en Configuración.
+- **Móvil:** `EmpresaTienda.moneda` y `formatoImporte`; 31 importes sin «€»; IVA 13 %.
+- **Pruebas:** `pytest` 715, `ng test` 656 y `flutter test` 280, en verde.
+- **Efecto para los usuarios:** precios, ventas y pagos de FASHION STORE se leen en Bs con el mismo número. Las apps móviles anteriores siguen mostrando «€» hasta instalar el APK nuevo.
+- Defectos 66–68 de la bitácora.
+
 ## [Unreleased] - 2026-11-08
 
 ### Implementación y Cierre — CU31 (Registrar venta presencial) y CU32 (Procesar venta y emitir comprobante)
@@ -518,6 +550,48 @@ ejercitar nunca `fromJson`, de modo que ningún desajuste de nombres de campo er
 56. **`GET /productos` Devolvía el SQL y el Tipo de Excepción en sus Errores 500**:
     - *Causa:* el router de CU06 capturaba cualquier excepción y respondía `detail=f"{type(exc).__name__}: {exc}"`. Durante el incidente 55, la respuesta pública incluía `ProgrammingError … [SQL: SELECT …]`, que revela la estructura de la base.
     - *Solución:* se eliminó ese `except`; el error sube al middleware `capturar_errores_no_controlados`, que lo registra y responde el 500 genérico (que además atraviesa CORS). Era el único router con ese patrón. Prueba nueva: `test_un_error_interno_no_expone_sql_ni_detalles`.
+
+57. **P2-CU02 · Login de Cliente con Error 500 por un Evento de Bitácora sin Empresa**:
+    - *Causa:* sin empresa por defecto, el login de un cliente fuera de un portal deja la sesión sin empresa y su evento de bitácora se guarda con `id_tenant` nulo. El ORM inserta con `RETURNING` y PostgreSQL rechaza un `RETURNING` sobre una fila que la política de lectura no deja ver. El fallo se capturaba como «no bloqueante», pero dejaba la sesión inservible y la petición terminaba en 500.
+    - *Solución:* `registrar_evento_seguro` inserta sin `RETURNING` y, en la sesión del caso de uso, dentro de un punto de guardado: un fallo de auditoría ya no puede tumbar la operación.
+    - *Detección:* prueba de integración del flujo del cliente contra la rama de pruebas, antes de llegar a producción.
+58. **P2-CU02 · Web en Blanco al Arrancar por Dependencia Circular (NG0200)**:
+    - *Causa:* `TituloTiendaStrategy` inyectaba `TenantService`, que inyecta el `Router`, que necesita la estrategia de títulos para construirse. Angular no arrancaba. Las pruebas no lo veían porque ninguna usaba `appConfig`.
+    - *Solución:* la estrategia obtiene `TenantService` con el `Injector` al actualizar el título. `app.config.spec.ts` arranca con la configuración real y falla ante cualquier ciclo.
+    - *Detección:* el usuario, en `ng serve`, antes del despliegue.
+59. **Vercel Respondía 404 al Abrir o Recargar Cualquier Ruta que no Fuera la Raíz**:
+    - *Causa:* `vercel.json` tenía `"cleanUrls": true` desde el primer despliegue (2026-09-20). Con esa opción, la reescritura `/(.*) → /index.html` no encuentra el destino y Vercel responde `NOT_FOUND`. Navegando dentro de la aplicación no se notaba; abrir `/login` o `/admin` directamente siempre falló.
+    - *Solución:* se quitó `cleanUrls`. Era urgente con P2-CU02: el portal `/{codigo}` es el enlace que se comparte y la vuelta de Stripe tras 3D Secure recarga `/{codigo}/pago/...`.
+60. **Móvil · El Hub se Abría Dos Veces tras el Login**:
+    - *Causa:* `main.dart` pasaba a `PantallaLogin` dos callbacks (`alCompletarLoginConUsuario` y `alCompletarLoginConToken`) y la pantalla invocaba los dos: dos `pushAndRemoveUntil` seguidos.
+    - *Solución:* solo se usa `alCompletarLoginConUsuario`, que ahora decide entre la selección de tienda (cliente) y el hub (empleado).
+61. **Web · Con Sesión Abierta, el Login Enviaba al Encargado de Sucursal a `/inicio`**:
+    - *Causa:* `ngOnInit` del login solo distinguía cajero y administrador.
+    - *Solución:* el login usa el mismo destino por rol que el guard del portal (`destinoEmpleado`).
+62. **Móvil · RenderFlex Overflowed en el Botón «Iniciar Sesión» (Sexta Aparición)**:
+    - *Causa:* la fila texto + flecha del botón no cabía cuando el botón tenía muy poco ancho (14,4 px durante la animación del diseño en Chrome).
+    - *Solución:* `Row` con `mainAxisSize.min` y el texto en `Flexible` con `TextOverflow.ellipsis`, sin reducir la fuente.
+
+63. **P2-CU03 · El Administrador de Cualquier Empresa Veía y Podía Modificar a Todos los Clientes y al Super Administrador**:
+    - *Causa:* la política RLS de `usuarios` deja leer las cuentas sin empresa (clientes y super administrador) a cualquier sesión, porque el login y el carrito las necesitan. `cu20_usuarios_roles` no añadía ningún filtro propio, así que «Usuarios» listaba a los clientes de todas las tiendas y permitía cambiarles el correo, desactivarlos, eliminarlos o restablecerles la contraseña; también al super administrador, una escalada de privilegios. Presente en producción desde la fundación multitenant (`0014`).
+    - *Solución:* todas las consultas de `cu20` se limitan en SQL a roles de empleado con `id_tenant` de la empresa de la sesión, con una segunda comprobación sobre el objeto cargado; cualquier otra cuenta responde 404. El administrador ya no puede crear ni asignar el rol cliente (422 `ROL_NO_PERMITIDO`).
+    - *Detección y verificación:* revisión al escribir la spec de P2-CU03. Prueba de integración contra la rama de pruebas con clientes reales (listado, consulta, restablecimiento y desactivación → 404) y prueba unitaria que comprueba el filtro en el SQL generado.
+    - *Regla:* la RLS de `usuarios` no basta para listar o modificar cuentas; todo caso de uso que lo haga debe filtrar por rol y empresa (documentado en `CLAUDE.md`).
+64. **Eliminar un Empleado sin Movimientos de Inventario Daba Error 500**:
+    - *Causa:* `eliminar_usuario` comprobaba dependencias en `fashionstore.pedidos`, una tabla que no existe en el esquema; PostgreSQL respondía `UndefinedTable`. Las pruebas unitarias simulaban la sesión y no lo veían.
+    - *Solución:* se quitó esa comprobación (las ventas y reservas ya se protegen con sus claves foráneas y con la ficha de `empleados`).
+65. **Web · La Pestaña «Ciudades» de `/admin/sucursales` no se Podía Abrir**:
+    - *Causa:* el binding `[class.border-[#ECE4D8]="..."` de la tabla de ciudades estaba sin cerrar; al pintar la pestaña, el navegador lanzaba `InvalidCharacterError`. Ninguna prueba abría esa pestaña.
+    - *Solución:* binding corregido al dejar la pestaña de solo lectura, y prueba nueva que la abre y comprueba su contenido.
+66. **El Servidor Calculaba «Hoy» en UTC, Cuatro Horas por Delante de Bolivia**:
+    - *Causa:* catálogo, detalle, colecciones y carrito usaban `date.today()`; la caja, la medianoche UTC para «ventas del día»; la suscripción, `datetime.now(timezone.utc).date()`; PostgreSQL, su zona por defecto (UTC) en `current_date` y `date_trunc`; los reportes, `datetime.now()` sin zona. Render corre en UTC. Entre las 20:00 y las 24:00 de Bolivia se aplicaban las promociones del día siguiente, la lista del día de la caja se vaciaba, las suscripciones vencían 4 h antes y los indicadores llevaban esas ventas al día siguiente. `configuracion_tenant.zona_horaria` existía, pero ningún código la leía.
+    - *Solución:* `core/tiempo.py` (`ahora`, `ahora_local`, `hoy`, `inicio_del_dia` en `America/La_Paz`) en todos esos sitios y `set_config('TimeZone', 'America/La_Paz', true)` en el listener `after_begin`. Pruebas con un reloj fijo a las 22:30 de Bolivia y de integración (`current_setting('TimeZone')` y `current_date` contra la rama de pruebas).
+67. **Móvil · RenderFlex Overflowed en las Filas de Precio (Séptima Aparición)**:
+    - *Causa:* «Bs 890,00» es más largo que «890 €»: la fila de precios de la ficha de producto (precio, precio tachado y ahorro) y la de las piezas de colecciones (precio y «+ CESTA») desbordaban en pantallas estrechas.
+    - *Solución:* `Wrap` en la ficha (un precio no se trunca) y `Flexible` con elipsis en las piezas, sin reducir fuentes.
+68. **Web · Precios Inventados en la Landing**:
+    - *Causa:* las tarjetas ilustrativas del asistente en la landing mostraban «875 €» y «550 €» escritos a mano, sin relación con el catálogo.
+    - *Solución:* se quitaron las dos líneas de precio y se conservó la ilustración (regla «cero datos inventados»).
 
 ## [1.8.0] - 2026-09-21
 

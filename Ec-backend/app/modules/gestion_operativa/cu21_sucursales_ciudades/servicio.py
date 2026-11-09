@@ -2,17 +2,21 @@
 
 Encapsula la logica de negocio, invariantes y proteccion de integridad
 relacional para la infraestructura fisica de FashionStore.
+
+P2-CU04 (`.specs/finalized/P2-CU03-CU04-usuarios-sucursales/spec.md`):
+- B6: el administrador solo consulta las ciudades (catálogo global de P2-CU08).
+- B7: uso del límite de sucursales del plan.
+- B9: altas, cambios, activaciones y bajas de sucursales en la bitácora.
+- P2-CU03 B5: sucursales en las que opera el empleado de la sesión.
 """
 
 from datetime import time
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from modules.gestion_operativa.cu21_sucursales_ciudades.errores import (
-    CiudadConDependenciasError,
-    CiudadDuplicadaError,
     CiudadNoEncontradaError,
     HorarioSucursalInvalidoError,
     SucursalConOperacionesPendientesError,
@@ -20,51 +24,54 @@ from modules.gestion_operativa.cu21_sucursales_ciudades.errores import (
     SucursalNoEncontradaError,
 )
 from modules.gestion_operativa.cu21_sucursales_ciudades.esquemas import (
-    CiudadActualizarIn,
-    CiudadCrearIn,
     CiudadOut,
+    MiSucursalOut,
     SucursalActualizarIn,
     SucursalAdminOut,
     SucursalCrearIn,
     SucursalPublicaOut,
+    UsoPlanSucursalesOut,
 )
 from modules.gestion_operativa.modelos import CiudadORM, SucursalORM
 from modules.plataforma.cu12_validar_suscripcion.servicio import SuscripcionServicio
+from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
+from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+
+
+def _resumen(suc: SucursalORM) -> dict:
+    return {
+        "id_sucursal": suc.id_sucursal,
+        "nombre": suc.nombre,
+        "id_ciudad": suc.id_ciudad,
+        "activa": suc.activa,
+    }
 
 
 class ServicioGestionSucursal:
     """Servicio de negocio para administrar ciudades y sucursales fisicas."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, actor: Optional[Any] = None, ip: Optional[str] = None):
         self.db = db
+        self.actor = actor
+        self.ip = ip
+
+    def _registrar(self, accion: str, **payloads) -> None:
+        """B9: evento de bitácora tras confirmar la operación."""
+        actor = self.actor
+        ServicioBitacoraAuditoria.registrar_evento_seguro(
+            id_usuario=getattr(actor, "id_usuario", None),
+            usuario_nombre=(f"{actor.nombres} {actor.apellidos}".strip() or actor.email) if actor else None,
+            accion=accion,
+            tabla_modulo="sucursales",
+            direccion_ip=self.ip,
+            severidad="INFO",
+            db=self.db,
+            **payloads,
+        )
 
     # -------------------------------------------------------------------------
     # OPERACIONES SOBRE CIUDADES
     # -------------------------------------------------------------------------
-
-    def crear_ciudad(self, datos: CiudadCrearIn) -> CiudadOut:
-        """Registra una nueva ciudad previa verificacion de unicidad."""
-        stmt_existente = select(CiudadORM).where(
-            func.lower(CiudadORM.nombre) == func.lower(datos.nombre)
-        )
-        if self.db.execute(stmt_existente).scalar_one_or_none():
-            raise CiudadDuplicadaError(datos.nombre)
-
-        nueva_ciudad = CiudadORM(
-            nombre=datos.nombre,
-            pais=datos.pais,
-        )
-        self.db.add(nueva_ciudad)
-        self.db.commit()
-        self.db.refresh(nueva_ciudad)
-
-        return CiudadOut(
-            id_ciudad=nueva_ciudad.id_ciudad,
-            nombre=nueva_ciudad.nombre,
-            pais=nueva_ciudad.pais,
-            creado_en=nueva_ciudad.creado_en,
-            total_sucursales=0,
-        )
 
     def listar_ciudades(self) -> List[CiudadOut]:
         """Consulta el catalogo de ciudades con conteo de boutiques asociadas."""
@@ -91,80 +98,6 @@ class ServicioGestionSucursal:
                 )
             )
         return salida
-
-    def actualizar_ciudad(self, id_ciudad: int, datos: CiudadActualizarIn) -> CiudadOut:
-        """Actualiza el nombre o pais de una ciudad registrada."""
-        ciudad = self.db.get(CiudadORM, id_ciudad)
-        if not ciudad:
-            raise CiudadNoEncontradaError(id_ciudad)
-
-        if datos.nombre and datos.nombre.lower() != ciudad.nombre.lower():
-            stmt_dup = select(CiudadORM).where(
-                func.lower(CiudadORM.nombre) == func.lower(datos.nombre),
-                CiudadORM.id_ciudad != id_ciudad,
-            )
-            if self.db.execute(stmt_dup).scalar_one_or_none():
-                raise CiudadDuplicadaError(datos.nombre)
-            ciudad.nombre = datos.nombre
-
-        if datos.pais:
-            ciudad.pais = datos.pais
-
-        self.db.commit()
-        self.db.refresh(ciudad)
-
-        conteo_stmt = select(func.count(SucursalORM.id_sucursal)).where(
-            SucursalORM.id_ciudad == id_ciudad
-        )
-        total_suc = self.db.execute(conteo_stmt).scalar() or 0
-
-        return CiudadOut(
-            id_ciudad=ciudad.id_ciudad,
-            nombre=ciudad.nombre,
-            pais=ciudad.pais,
-            creado_en=ciudad.creado_en,
-            total_sucursales=total_suc,
-        )
-
-    def eliminar_ciudad(self, id_ciudad: int) -> None:
-        """Elimina una ciudad si no cuenta con sucursales o clientes asignados."""
-        ciudad = self.db.get(CiudadORM, id_ciudad)
-        if not ciudad:
-            raise CiudadNoEncontradaError(id_ciudad)
-
-        # 1. Verificar sucursales asignadas
-        conteo_sucursales = (
-            self.db.execute(
-                select(func.count(SucursalORM.id_sucursal)).where(
-                    SucursalORM.id_ciudad == id_ciudad
-                )
-            ).scalar()
-            or 0
-        )
-        if conteo_sucursales > 0:
-            raise CiudadConDependenciasError(
-                id_ciudad,
-                f"la ciudad tiene {conteo_sucursales} sucursal(es) asociada(s)",
-            )
-
-        # 2. Verificar clientes con ciudad preferida
-        conteo_clientes = (
-            self.db.execute(
-                text(
-                    "SELECT COUNT(*) FROM fashionstore.clientes WHERE ciudad_preferida = :id_ciudad"
-                ),
-                {"id_ciudad": id_ciudad},
-            ).scalar()
-            or 0
-        )
-        if conteo_clientes > 0:
-            raise CiudadConDependenciasError(
-                id_ciudad,
-                f"existen {conteo_clientes} cliente(s) con esta ciudad asignada como preferida",
-            )
-
-        self.db.delete(ciudad)
-        self.db.commit()
 
     # -------------------------------------------------------------------------
     # OPERACIONES SOBRE SUCURSALES
@@ -203,6 +136,7 @@ class ServicioGestionSucursal:
         self.db.add(nueva_sucursal)
         self.db.commit()
         self.db.refresh(nueva_sucursal)
+        self._registrar("SUCURSAL_CREADA", payload_nuevo=_resumen(nueva_sucursal))
 
         return self._construir_sucursal_admin_out(nueva_sucursal, ciudad.nombre)
 
@@ -289,6 +223,7 @@ class ServicioGestionSucursal:
         sucursal = self.db.get(SucursalORM, id_sucursal)
         if not sucursal:
             raise SucursalNoEncontradaError(id_sucursal)
+        anterior = _resumen(sucursal)
 
         nueva_ciudad_id = datos.id_ciudad or sucursal.id_ciudad
         if datos.id_ciudad and datos.id_ciudad != sucursal.id_ciudad:
@@ -325,6 +260,7 @@ class ServicioGestionSucursal:
 
         self.db.commit()
         self.db.refresh(sucursal)
+        self._registrar("SUCURSAL_MODIFICADA", payload_anterior=anterior, payload_nuevo=_resumen(sucursal))
 
         ciudad_actual = self.db.get(CiudadORM, sucursal.id_ciudad)
         ciudad_nombre = ciudad_actual.nombre if ciudad_actual else ""
@@ -380,9 +316,14 @@ class ServicioGestionSucursal:
                     f"mantiene {stock_disponible} prendas con inventario disponible en custodia",
                 )
 
+        anterior = sucursal.activa
         sucursal.activa = activa
         self.db.commit()
         self.db.refresh(sucursal)
+        if anterior != activa:
+            self._registrar(
+                "SUCURSAL_ACTIVADA" if activa else "SUCURSAL_DESACTIVADA", payload_nuevo=_resumen(sucursal)
+            )
 
         ciudad = self.db.get(CiudadORM, sucursal.id_ciudad)
         ciudad_nombre = ciudad.nombre if ciudad else ""
@@ -450,8 +391,45 @@ class ServicioGestionSucursal:
                 f"tiene {emp_cnt} empleado(s) actualmente asignado(s). Reubique al personal antes de eliminar.",
             )
 
+        resumen = _resumen(sucursal)
         self.db.delete(sucursal)
         self.db.commit()
+        self._registrar("SUCURSAL_ELIMINADA", payload_anterior=resumen)
+
+    def uso_plan(self) -> UsoPlanSucursalesOut:
+        """B7: sucursales activas frente al límite del plan vigente."""
+        uso = SuscripcionServicio.uso(self.db, "sucursales")
+        if uso is None:
+            activas = self.db.execute(
+                select(func.count(SucursalORM.id_sucursal)).where(SucursalORM.activa.is_(True))
+            ).scalar() or 0
+            return UsoPlanSucursalesOut(uso=int(activas))
+        return UsoPlanSucursalesOut(**uso)
+
+    def mis_sucursales(self, usuario: Any) -> List[MiSucursalOut]:
+        """P2-CU03 B5: activas y autorizadas para el empleado (todas para el administrador), con la
+        principal primero."""
+        stmt = (
+            select(SucursalORM, CiudadORM.nombre.label("ciudad_nombre"))
+            .join(CiudadORM, CiudadORM.id_ciudad == SucursalORM.id_ciudad)
+            .where(SucursalORM.activa.is_(True))
+        )
+        autorizadas = SucursalesEmpleadoServicio.autorizadas(usuario)
+        if autorizadas is not None:
+            if not autorizadas:
+                return []
+            stmt = stmt.where(SucursalORM.id_sucursal.in_(sorted(autorizadas)))
+        principal = getattr(usuario, "id_sucursal", None)
+        salida = [
+            MiSucursalOut(
+                id_sucursal=suc.id_sucursal,
+                nombre=suc.nombre,
+                ciudad=ciudad_nombre,
+                es_principal=suc.id_sucursal == principal,
+            )
+            for suc, ciudad_nombre in self.db.execute(stmt.order_by(SucursalORM.nombre.asc())).all()
+        ]
+        return sorted(salida, key=lambda s: not s.es_principal)
 
     # -------------------------------------------------------------------------
     # METODOS AUXILIARES DE AGREGACION
@@ -461,11 +439,13 @@ class ServicioGestionSucursal:
         self, suc: SucursalORM, ciudad_nombre: str
     ) -> SucursalAdminOut:
         """Calcula estadisticas auxiliares para la visualizacion administrativa."""
-        # Total empleados
+        # Total empleados autorizados en la sucursal (principal o adicional, P2-CU03 B3)
         total_empleados = (
             self.db.execute(
                 text(
-                    "SELECT COUNT(*) FROM fashionstore.usuarios WHERE id_sucursal = :id AND activo = true"
+                    "SELECT COUNT(*) FROM fashionstore.usuarios u WHERE u.activo AND u.id_tenant IS NOT NULL "
+                    "AND (u.id_sucursal = :id OR EXISTS (SELECT 1 FROM fashionstore.empleado_sucursal es "
+                    "WHERE es.id_empleado = u.id_usuario AND es.id_sucursal = :id))"
                 ),
                 {"id": suc.id_sucursal},
             ).scalar()

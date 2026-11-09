@@ -6,7 +6,7 @@ la regla de arquitectura exige pasar por el servicio del otro paquete, nunca por
 
 from typing import Any, Optional
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from core.errors import AuthorizationError, DomainError
@@ -19,7 +19,7 @@ from core.tenant import (
     exigir_activa,
     tenant_actual,
 )
-from modules.plataforma.modelos import ClienteTenantORM, EmpleadoSucursalORM
+from modules.plataforma.modelos import ClienteTenantORM
 
 #: Roles que no pertenecen a ninguna empresa (RN04, F1).
 ROLES_SIN_EMPRESA = ("cliente", "super_administrador")
@@ -145,10 +145,15 @@ class TenantServicio:
 
     @staticmethod
     def datos_publicos(db: Any, id_tenant: Optional[int]) -> Optional[TenantInfo]:
-        """Código y nombre de la empresa para la respuesta del login (solo con sesión real)."""
+        """Código, nombre y moneda de la empresa para la respuesta del login (solo con sesión real).
+
+        La moneda la trae `empresas_disponibles` (fix de P2-CU11, M6); una empresa no disponible
+        se devuelve con la moneda por defecto.
+        """
         if id_tenant is None or contexto(db) is None:
             return None
-        return buscar_tenant_por_id(db, id_tenant)
+        disponible = next((t for t in empresas_disponibles(db) if t.id_tenant == id_tenant), None)
+        return disponible or buscar_tenant_por_id(db, id_tenant)
 
     @staticmethod
     def exigir_cliente_en_tenant(db: Any, usuario: Any) -> None:
@@ -173,33 +178,6 @@ class TenantServicio:
             "Para comprar o reservar en esta tienda primero debes registrarte en ella.",
             code="CLIENTE_NO_REGISTRADO",
         )
-
-    @staticmethod
-    def sincronizar_sucursal_principal(db: Any, id_empleado: int, id_sucursal: Optional[int]) -> None:
-        """F10: `usuarios.id_sucursal` sigue siendo la sucursal principal; `empleado_sucursal` la refleja.
-
-        Se llama después de `asegurar_ficha_empleado` (la FK compuesta exige la fila de `empleados`).
-        """
-        if contexto(db) is None:
-            return
-        db.execute(
-            update(EmpleadoSucursalORM)
-            .where(EmpleadoSucursalORM.id_empleado == id_empleado, EmpleadoSucursalORM.es_principal.is_(True))
-            .values(es_principal=False)
-        )
-        if id_sucursal is None:
-            return
-        existente = db.execute(
-            select(EmpleadoSucursalORM).where(
-                EmpleadoSucursalORM.id_empleado == id_empleado,
-                EmpleadoSucursalORM.id_sucursal == id_sucursal,
-            )
-        ).scalar_one_or_none()
-        if existente is not None:
-            existente.es_principal = True
-        else:
-            db.add(EmpleadoSucursalORM(id_empleado=id_empleado, id_sucursal=id_sucursal, es_principal=True))
-        db.flush()
 
     @staticmethod
     def exigir_empresa_activa(db: Any, id_tenant: Optional[int]) -> None:

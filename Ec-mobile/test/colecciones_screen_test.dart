@@ -136,7 +136,7 @@ void main() {
           findsOneWidget);
       expect(find.text('EDICIÓN Nº 07 ATELIER'), findsOneWidget);
       expect(find.text('Vestido plisado seda'), findsOneWidget);
-      expect(find.text('890 €'), findsOneWidget);
+      expect(find.text('Bs 890,00'), findsOneWidget);
       expect(find.text('VER COLECCIÓN COMPLETA'), findsOneWidget);
 
       // Verificar Otras colecciones
@@ -200,7 +200,7 @@ void main() {
       // Debe estar en DetalleColeccionScreen
       expect(find.byType(DetalleColeccionScreen), findsOneWidget);
       expect(find.text('Camisa Lino Italiano'), findsOneWidget);
-      expect(find.text('340 €'), findsOneWidget);
+      expect(find.text('Bs 340,00'), findsOneWidget);
     });
 
     testWidgets('DetalleColeccionScreen renderiza prendas y toggle de bookmark',

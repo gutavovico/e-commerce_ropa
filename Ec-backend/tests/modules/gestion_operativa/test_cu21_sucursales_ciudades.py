@@ -2,11 +2,10 @@
 
 Cubre estrictamente los criterios de aceptacion:
 - # AC-1: Seguridad RBAC (JWT con rol administrador requerido).
-- # AC-2: Creacion de ciudad normalizada en UTC.
-- # AC-3: Rechazo de ciudad duplicada (409 Conflict).
+- # AC-2 / AC-3 / AC-6 (alta, duplicado y baja de ciudades): retirados en P2-CU04 B6; las ciudades
+  son un catálogo global que gestiona el super administrador (P2-CU08).
 - # AC-4: Creacion de sucursal con invariantes y unicidad.
 - # AC-5: Rechazo de horarios inconsistentes (422 Unprocessable Entity).
-- # AC-6: Proteccion de integridad en baja de ciudad con dependencias activas (409 Conflict).
 - # AC-7: Baja logica y restriccion de integridad en desactivacion de sucursal (409 Conflict).
 - # AC-8: Consulta publica de sucursales activas.
 - # AC-9: Consulta administrativa consolidada y metricas de sede.
@@ -26,8 +25,6 @@ from core.security import create_access_token
 from main import app
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.gestion_operativa.cu21_sucursales_ciudades.errores import (
-    CiudadConDependenciasError,
-    CiudadDuplicadaError,
     CiudadNoEncontradaError,
     HorarioSucursalInvalidoError,
     SucursalConOperacionesPendientesError,
@@ -35,8 +32,6 @@ from modules.gestion_operativa.cu21_sucursales_ciudades.errores import (
     SucursalNoEncontradaError,
 )
 from modules.gestion_operativa.cu21_sucursales_ciudades.esquemas import (
-    CiudadActualizarIn,
-    CiudadCrearIn,
     CiudadOut,
     SucursalActualizarIn,
     SucursalAdminOut,
@@ -86,19 +81,6 @@ def crear_usuario_cliente_mock(id_usuario: int = 2) -> UsuarioORM:
 # -----------------------------------------------------------------------------
 
 
-def test_esquema_ciudad_crear_valido():
-    # AC-2: Creacion de ciudad valida con normalizacion de espacios
-    datos = CiudadCrearIn(nombre="  Santa Cruz de la Sierra  ", pais="Bolivia")
-    assert datos.nombre == "Santa Cruz de la Sierra"
-    assert datos.pais == "Bolivia"
-
-
-def test_esquema_ciudad_crear_nombre_muy_corto():
-    # AC-2: Nombre menor a 2 caracteres debe fallar
-    with pytest.raises(ValidationError):
-        CiudadCrearIn(nombre="A", pais="Bolivia")
-
-
 def test_esquema_sucursal_crear_valido():
     # AC-4: Sucursal valida con horarios coherentes
     datos = SucursalCrearIn(
@@ -141,39 +123,6 @@ def test_esquema_sucursal_actualizar_horarios_inconsistentes():
 # -----------------------------------------------------------------------------
 
 
-def test_servicio_crear_ciudad_exitosa():
-    # AC-2: El sistema debera registrar la ciudad y responder con datos normalizados
-    db_mock = MagicMock()
-    db_mock.execute.return_value.scalar_one_or_none.return_value = None
-
-    def simular_refresh(instancia):
-        instancia.id_ciudad = 10
-        instancia.creado_en = datetime.now(timezone.utc)
-
-    db_mock.refresh.side_effect = simular_refresh
-
-    servicio = ServicioGestionSucursal(db_mock)
-    salida = servicio.crear_ciudad(CiudadCrearIn(nombre="Cochabamba", pais="Bolivia"))
-
-    assert salida.id_ciudad == 10
-    assert salida.nombre == "Cochabamba"
-    assert salida.total_sucursales == 0
-    assert db_mock.commit.called
-
-
-def test_servicio_crear_ciudad_duplicada():
-    # AC-3: Si el nombre ya existe, rechazar con CiudadDuplicadaError (409)
-    db_mock = MagicMock()
-    ciudad_existente = CiudadORM(id_ciudad=1, nombre="La Paz", pais="Bolivia")
-    db_mock.execute.return_value.scalar_one_or_none.return_value = ciudad_existente
-
-    servicio = ServicioGestionSucursal(db_mock)
-    with pytest.raises(CiudadDuplicadaError) as exc_info:
-        servicio.crear_ciudad(CiudadCrearIn(nombre="la paz", pais="Bolivia"))
-
-    assert exc_info.value.code == "CIUDAD_DUPLICADA"
-
-
 def test_servicio_crear_sucursal_ciudad_no_existe():
     # AC-4: Si la ciudad no existe, lanzar CiudadNoEncontradaError (404)
     db_mock = MagicMock()
@@ -212,21 +161,6 @@ def test_servicio_crear_sucursal_duplicada_en_ciudad():
             )
         )
     assert exc_info.value.code == "SUCURSAL_DUPLICADA"
-
-
-def test_servicio_eliminar_ciudad_con_sucursales_asociadas():
-    # AC-6: Bloqueo de eliminacion si tiene sucursales activas (409 Conflict)
-    db_mock = MagicMock()
-    db_mock.get.return_value = CiudadORM(id_ciudad=1, nombre="Santa Cruz")
-    # Conteo de sucursales = 2
-    db_mock.execute.return_value.scalar.return_value = 2
-
-    servicio = ServicioGestionSucursal(db_mock)
-    with pytest.raises(CiudadConDependenciasError) as exc_info:
-        servicio.eliminar_ciudad(id_ciudad=1)
-
-    assert exc_info.value.code == "CIUDAD_CON_DEPENDENCIAS_ACTIVAS"
-    assert "2 sucursal(es) asociada(s)" in exc_info.value.message
 
 
 def test_servicio_desactivar_sucursal_con_reservas_activas():
@@ -442,3 +376,107 @@ def test_endpoint_admin_listar_sucursales_enriquecidas_200(client):
     finally:
         app.dependency_overrides.pop(get_current_user, None)
         app.dependency_overrides.pop(get_db, None)
+
+
+# -----------------------------------------------------------------------------
+# P2-CU04 · B6 (ciudades de solo lectura), B7 (uso del plan), B9 (bitácora)
+# P2-CU03 · B5 (sucursales del empleado)
+# -----------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("metodo, ruta", [
+    ("POST", "/api/v1/admin/ciudades"),
+    ("PUT", "/api/v1/admin/ciudades/1"),
+    ("DELETE", "/api/v1/admin/ciudades/1"),
+])
+def test_p2_cu04_b6_admin_no_escribe_ciudades(client, metodo, ruta):
+    mock_db = MagicMock()
+    app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
+    app.dependency_overrides[get_db] = lambda: mock_db
+    try:
+        response = client.request(metodo, ruta, json={"nombre": "Tarija", "pais": "Bolivia"})
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_db, None)
+    assert response.status_code in (404, 405)
+    assert not mock_db.commit.called
+
+
+def test_p2_cu04_b7_uso_plan(client, monkeypatch):
+    from modules.plataforma.cu12_validar_suscripcion.servicio import SuscripcionServicio
+
+    monkeypatch.setattr(
+        SuscripcionServicio, "uso",
+        staticmethod(lambda db, recurso: {"uso": 2, "limite": 2, "plan": "Básico"}),
+    )
+    app.dependency_overrides[get_current_user] = lambda: crear_usuario_admin_mock()
+    app.dependency_overrides[get_db] = lambda: MagicMock()
+    try:
+        response = client.get("/api/v1/admin/sucursales/uso-plan")
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_db, None)
+    assert response.status_code == 200
+    assert response.json() == {"uso": 2, "limite": 2, "plan": "Básico"}
+
+
+def test_p2_cu04_b7_uso_plan_solo_administrador(client):
+    app.dependency_overrides[get_current_user] = lambda: crear_usuario_cliente_mock()
+    app.dependency_overrides[get_db] = lambda: MagicMock()
+    try:
+        response = client.get("/api/v1/admin/sucursales/uso-plan")
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_db, None)
+    assert response.status_code == 403
+
+
+def test_p2_cu04_b9_bitacora_al_desactivar(monkeypatch):
+    from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+
+    eventos = []
+    monkeypatch.setattr(
+        ServicioBitacoraAuditoria, "registrar_evento_seguro", classmethod(lambda cls, **kw: eventos.append(kw))
+    )
+    db_mock = MagicMock()
+    sucursal = SucursalORM(
+        id_sucursal=7, id_ciudad=1, nombre="Boutique Temporal", direccion="Av. Busch",
+        horario_apertura=time(9, 0), horario_cierre=time(19, 0), activa=True,
+        creado_en=datetime.now(timezone.utc),
+    )
+    db_mock.get.side_effect = lambda cls, ident: sucursal if cls == SucursalORM else CiudadORM(id_ciudad=1, nombre="Santa Cruz")
+    db_mock.execute.return_value.scalar.return_value = 0
+
+    admin = crear_usuario_admin_mock()
+    admin.nombres, admin.apellidos = "Ana", "Admin"
+    ServicioGestionSucursal(db_mock, actor=admin, ip="10.0.0.1").cambiar_estado_sucursal(7, activa=False)
+
+    assert [e["accion"] for e in eventos] == ["SUCURSAL_DESACTIVADA"]
+    assert eventos[0]["id_usuario"] == 1 and eventos[0]["direccion_ip"] == "10.0.0.1"
+    assert eventos[0]["payload_nuevo"]["activa"] is False
+
+
+def test_p2_cu03_b5_mis_sucursales_principal_primero():
+    db_mock = MagicMock()
+    centro = SucursalORM(id_sucursal=3, nombre="Centro")
+    norte = SucursalORM(id_sucursal=5, nombre="Norte")
+    db_mock.execute.return_value.all.return_value = [(centro, "Madrid"), (norte, "Madrid")]
+
+    cajero = MagicMock(spec=UsuarioORM)
+    cajero.rol, cajero.id_usuario, cajero.id_sucursal = "cajero", 9, 5
+    salida = ServicioGestionSucursal(db_mock).mis_sucursales(cajero)
+
+    assert [(s.id_sucursal, s.es_principal) for s in salida] == [(5, True), (3, False)]
+    sql = str(db_mock.execute.call_args.args[0].compile(compile_kwargs={"literal_binds": True}))
+    assert "sucursales.id_sucursal IN (5)" in sql  # usuario simulado: solo su principal
+
+
+def test_p2_cu03_b5_mis_sucursales_endpoint_roles(client):
+    app.dependency_overrides[get_current_user] = lambda: crear_usuario_cliente_mock()
+    app.dependency_overrides[get_db] = lambda: MagicMock()
+    try:
+        response = client.get("/api/v1/mis-sucursales")
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_db, None)
+    assert response.status_code == 403

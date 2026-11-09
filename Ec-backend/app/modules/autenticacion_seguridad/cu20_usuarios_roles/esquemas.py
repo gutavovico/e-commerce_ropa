@@ -9,12 +9,27 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, mo
 
 
 class RolUsuarioEnum(str, Enum):
-    """Enumeracion de roles permitidos en el sistema FashionStore."""
+    """Roles de entrada. `cliente` se acepta en el esquema para responder con un error de dominio
+    claro (P2-CU03 B2, 422 `ROL_NO_PERMITIDO`): los clientes se registran por su cuenta."""
 
     ADMINISTRADOR = "administrador"
     ENCARGADO_SUCURSAL = "encargado_sucursal"
     CAJERO = "cajero"
     CLIENTE = "cliente"
+
+
+#: P2-CU03 (RN07): roles que operan en sucursales concretas; el administrador opera en todas.
+ROLES_CON_SUCURSALES = (RolUsuarioEnum.ENCARGADO_SUCURSAL, RolUsuarioEnum.CAJERO)
+
+
+def _sin_repetidos(ids: Optional[List[int]]) -> Optional[List[int]]:
+    if ids is None:
+        return None
+    vistos: List[int] = []
+    for i in ids:
+        if i is not None and i > 0 and i not in vistos:
+            vistos.append(i)
+    return vistos
 
 
 def validar_complejidad_password(v: str) -> str:
@@ -39,7 +54,13 @@ class UsuarioCrearIn(BaseModel):
     apellidos: str = Field(..., min_length=2, max_length=100, description="Apellidos del usuario")
     telefono: Optional[str] = Field(None, max_length=30, description="Numero de contacto")
     rol: RolUsuarioEnum = Field(..., description="Rol RBAC asignado")
-    id_sucursal: Optional[int] = Field(None, description="Sucursal obligatoria para roles operativos")
+    id_sucursal: Optional[int] = Field(
+        None, description="Compatibilidad: equivale a una única sucursal autorizada y principal"
+    )
+    sucursales_autorizadas: Optional[List[int]] = Field(
+        None, description="P2-CU03 (RN07): sucursales en las que opera un encargado o cajero"
+    )
+    id_sucursal_principal: Optional[int] = Field(None, description="Debe estar entre las autorizadas")
 
     @field_validator("password")
     @classmethod
@@ -61,12 +82,25 @@ class UsuarioCrearIn(BaseModel):
 
     @model_validator(mode="after")
     def validar_sucursal_segun_rol(self) -> "UsuarioCrearIn":
-        if self.rol in (RolUsuarioEnum.ENCARGADO_SUCURSAL, RolUsuarioEnum.CAJERO):
-            if not self.id_sucursal or self.id_sucursal <= 0:
+        """Normaliza las sucursales: `id_sucursal` sola equivale a `[id_sucursal]` con esa principal.
+        Que la principal esté en la lista lo comprueba el servicio (`SUCURSAL_PRINCIPAL_INVALIDA`)."""
+        if self.rol in ROLES_CON_SUCURSALES:
+            lista = _sin_repetidos(self.sucursales_autorizadas)
+            if lista is None:
+                lista = _sin_repetidos([self.id_sucursal] if self.id_sucursal else [])
+            if not lista:
                 raise ValueError(
-                    f"El campo id_sucursal es estrictamente obligatorio para el rol '{self.rol.value}'."
+                    f"El rol '{self.rol.value}' requiere al menos una sucursal autorizada."
                 )
-        elif self.rol in (RolUsuarioEnum.ADMINISTRADOR, RolUsuarioEnum.CLIENTE):
+            principal = self.id_sucursal_principal or self.id_sucursal
+            if principal is None and len(lista) == 1:
+                principal = lista[0]
+            self.sucursales_autorizadas = lista
+            self.id_sucursal_principal = principal
+            self.id_sucursal = principal
+        else:
+            self.sucursales_autorizadas = []
+            self.id_sucursal_principal = None
             self.id_sucursal = None
         return self
 
@@ -80,6 +114,9 @@ class UsuarioActualizarIn(BaseModel):
     telefono: Optional[str] = Field(None, max_length=30)
     rol: Optional[RolUsuarioEnum] = None
     id_sucursal: Optional[int] = None
+    #: Si llega, sustituye la lista completa. Si solo llega `id_sucursal`, equivale a `[id_sucursal]`.
+    sucursales_autorizadas: Optional[List[int]] = None
+    id_sucursal_principal: Optional[int] = None
 
     @field_validator("email")
     @classmethod
@@ -100,13 +137,21 @@ class UsuarioActualizarIn(BaseModel):
 
     @model_validator(mode="after")
     def validar_sucursal_segun_rol(self) -> "UsuarioActualizarIn":
-        if self.rol in (RolUsuarioEnum.ENCARGADO_SUCURSAL, RolUsuarioEnum.CAJERO):
+        if self.rol in ROLES_CON_SUCURSALES:
             if self.id_sucursal is not None and self.id_sucursal <= 0:
                 raise ValueError(
                     f"El campo id_sucursal debe ser un identificador valido para el rol '{self.rol.value}'."
                 )
         elif self.rol in (RolUsuarioEnum.ADMINISTRADOR, RolUsuarioEnum.CLIENTE):
             self.id_sucursal = None
+            self.sucursales_autorizadas = []
+            self.id_sucursal_principal = None
+            return self
+        self.sucursales_autorizadas = _sin_repetidos(self.sucursales_autorizadas)
+        if self.sucursales_autorizadas is None and self.id_sucursal:
+            self.sucursales_autorizadas = [self.id_sucursal]
+        if self.id_sucursal_principal is None and self.id_sucursal:
+            self.id_sucursal_principal = self.id_sucursal
         return self
 
 
@@ -127,6 +172,14 @@ class ResetPasswordIn(BaseModel):
         return validar_complejidad_password(v)
 
 
+class SucursalAutorizadaOut(BaseModel):
+    """P2-CU03 (RN07): una sucursal autorizada del empleado."""
+
+    id_sucursal: int
+    nombre: Optional[str] = None
+    es_principal: bool = False
+
+
 class UsuarioResumenOut(BaseModel):
     """DTO de salida para listados y vistas resumidas."""
 
@@ -142,6 +195,7 @@ class UsuarioResumenOut(BaseModel):
     id_sucursal: Optional[int] = None
     sucursal_nombre: Optional[str] = None
     sucursal_ciudad: Optional[str] = None
+    sucursales_autorizadas: List[SucursalAutorizadaOut] = Field(default_factory=list)
     activo: bool
     fecha_registro: datetime
     ultimo_acceso: Optional[datetime] = None
@@ -162,6 +216,7 @@ class UsuarioDetalleOut(BaseModel):
     id_sucursal: Optional[int] = None
     sucursal_nombre: Optional[str] = None
     sucursal_ciudad: Optional[str] = None
+    sucursales_autorizadas: List[SucursalAutorizadaOut] = Field(default_factory=list)
     activo: bool
     fecha_registro: datetime
     ultimo_acceso: Optional[datetime] = None

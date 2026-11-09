@@ -16,11 +16,12 @@ import {
   CategoriaResumenItem,
   ProductoCatalogoItem,
 } from '../modelos/catalogo.model';
+import { ImportePipe } from '../../../../core/tenant/moneda';
 
 @Component({
   selector: 'app-catalogo',
   standalone: true,
-  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
+  imports: [ImportePipe, MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
   templateUrl: './catalogo.component.html',
   styleUrls: ['./catalogo.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

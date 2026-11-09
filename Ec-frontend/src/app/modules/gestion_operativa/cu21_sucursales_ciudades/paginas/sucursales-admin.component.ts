@@ -18,12 +18,7 @@ import {
 } from '@angular/forms';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SucursalesAdminService } from '../servicios/sucursales-admin.service';
-import {
-  Ciudad,
-  CiudadCrearPayload,
-  SucursalAdmin,
-  SucursalCrearPayload,
-} from '../modelos/sucursal.model';
+import { SucursalAdmin, SucursalCrearPayload } from '../modelos/sucursal.model';
 
 /**
  * Validador de coherencia horaria a nivel de formulario.
@@ -67,14 +62,12 @@ export class SucursalesAdminComponent implements OnInit {
 
   // Modales
   readonly modalBoutiqueAbierto = signal<boolean>(false);
-  readonly modalCiudadAbierto = signal<boolean>(false);
   readonly modalEliminarAbierto = signal<boolean>(false);
 
   // Elementos en edicion o baja
   readonly boutiqueEnEdicion = signal<SucursalAdmin | null>(null);
-  readonly ciudadEnEdicion = signal<Ciudad | null>(null);
   readonly elementoAEliminar = signal<{
-    tipo: 'boutique' | 'ciudad';
+    tipo: 'boutique';
     id: number;
     nombre: string;
   } | null>(null);
@@ -98,6 +91,21 @@ export class SucursalesAdminComponent implements OnInit {
   readonly totalInactivas = computed(
     () => this.sucursales().filter((s) => !s.activa).length
   );
+
+  /** P2-CU04 B7 / A1: uso del plan según el servidor. */
+  readonly usoPlan = this.sucursalesService.usoPlan;
+  readonly limiteAlcanzado = computed(() => {
+    const uso = this.usoPlan();
+    return !!uso && uso.limite !== null && uso.uso >= uso.limite;
+  });
+  readonly avisoLimite = computed(() => {
+    const uso = this.usoPlan();
+    if (!uso || uso.limite === null) return '';
+    return (
+      `El plan ${uso.plan ?? 'contratado'} permite ${uso.limite} sucursales activas y ya están todas en uso. ` +
+      'Desactive otra sucursal o cambie de plan para activar una nueva.'
+    );
+  });
 
   readonly sucursalesFiltradas = computed(() => {
     const lista = this.sucursales();
@@ -171,25 +179,6 @@ export class SucursalesAdminComponent implements OnInit {
     }
   );
 
-  readonly formularioCiudad = this.fb.group({
-    nombre: [
-      '',
-      [
-        Validators.required,
-        Validators.minLength(2),
-        Validators.maxLength(100),
-      ],
-    ],
-    pais: [
-      'Espana',
-      [
-        Validators.required,
-        Validators.minLength(2),
-        Validators.maxLength(100),
-      ],
-    ],
-  });
-
   ngOnInit(): void {
     this.cargarDatosIniciales();
   }
@@ -200,6 +189,15 @@ export class SucursalesAdminComponent implements OnInit {
       error: () => this.cdr.markForCheck(),
     });
     this.sucursalesService.cargarSucursales().subscribe({
+      next: () => this.cdr.markForCheck(),
+      error: () => this.cdr.markForCheck(),
+    });
+    this.recargarUsoPlan();
+  }
+
+  /** El uso del plan cambia al crear, activar, desactivar o eliminar una sucursal. */
+  private recargarUsoPlan(): void {
+    this.sucursalesService.cargarUsoPlan().subscribe({
       next: () => this.cdr.markForCheck(),
       error: () => this.cdr.markForCheck(),
     });
@@ -228,6 +226,12 @@ export class SucursalesAdminComponent implements OnInit {
   // --- Modales de Boutique ---
   abrirModalNuevaBoutique(): void {
     this.limpiarAlertas();
+    // CU04 A1: una sucursal nueva nace activa y cuenta para el límite del plan
+    if (this.limiteAlcanzado()) {
+      this.notificacionConflicto.set(this.avisoLimite());
+      this.cdr.markForCheck();
+      return;
+    }
     this.boutiqueEnEdicion.set(null);
     const primerCiudad = this.ciudades()[0]?.id_ciudad || 0;
     this.formularioBoutique.reset({
@@ -309,6 +313,7 @@ export class SucursalesAdminComponent implements OnInit {
       this.sucursalesService.crearSucursal(payload).subscribe({
         next: () => {
           this.cerrarModalBoutique();
+          this.recargarUsoPlan();
           this.cdr.markForCheck();
         },
         error: (err: Error) => {
@@ -323,11 +328,17 @@ export class SucursalesAdminComponent implements OnInit {
   alternarEstadoSucursal(sucursal: SucursalAdmin): void {
     this.limpiarAlertas();
     const nuevoEstado = !sucursal.activa;
+    if (nuevoEstado && this.limiteAlcanzado()) {
+      this.notificacionConflicto.set(this.avisoLimite());
+      this.cdr.markForCheck();
+      return;
+    }
 
     this.sucursalesService
       .cambiarEstado(sucursal.id_sucursal, nuevoEstado)
       .subscribe({
         next: () => {
+          this.recargarUsoPlan();
           this.cdr.markForCheck();
         },
         error: (err: Error) => {
@@ -335,86 +346,11 @@ export class SucursalesAdminComponent implements OnInit {
           this.cdr.markForCheck();
         },
       });
-  }
-
-  // --- Modales de Ciudad ---
-  abrirModalNuevaCiudad(): void {
-    this.limpiarAlertas();
-    this.ciudadEnEdicion.set(null);
-    this.formularioCiudad.reset({
-      nombre: '',
-      pais: 'Espana',
-    });
-    this.modalCiudadAbierto.set(true);
-    this.cdr.markForCheck();
-  }
-
-  abrirModalEditarCiudad(ciudad: Ciudad): void {
-    this.limpiarAlertas();
-    this.ciudadEnEdicion.set(ciudad);
-    this.formularioCiudad.patchValue({
-      nombre: ciudad.nombre,
-      pais: ciudad.pais,
-    });
-    this.modalCiudadAbierto.set(true);
-    this.cdr.markForCheck();
-  }
-
-  cerrarModalCiudad(): void {
-    this.modalCiudadAbierto.set(false);
-    this.ciudadEnEdicion.set(null);
-    this.formularioCiudad.reset();
-    this.cdr.markForCheck();
-  }
-
-  guardarCiudad(): void {
-    if (this.formularioCiudad.invalid) {
-      this.formularioCiudad.markAllAsTouched();
-      this.cdr.markForCheck();
-      return;
-    }
-
-    const val = this.formularioCiudad.getRawValue();
-    const ciudadActual = this.ciudadEnEdicion();
-
-    if (ciudadActual) {
-      this.sucursalesService
-        .actualizarCiudad(ciudadActual.id_ciudad, {
-          nombre: val.nombre.trim(),
-          pais: val.pais.trim(),
-        })
-        .subscribe({
-          next: () => {
-            this.cerrarModalCiudad();
-            this.cdr.markForCheck();
-          },
-          error: (err: Error) => {
-            this.notificacionConflicto.set(err.message);
-            this.cdr.markForCheck();
-          },
-        });
-    } else {
-      const payload: CiudadCrearPayload = {
-        nombre: val.nombre.trim(),
-        pais: val.pais.trim(),
-      };
-
-      this.sucursalesService.crearCiudad(payload).subscribe({
-        next: () => {
-          this.cerrarModalCiudad();
-          this.cdr.markForCheck();
-        },
-        error: (err: Error) => {
-          this.notificacionConflicto.set(err.message);
-          this.cdr.markForCheck();
-        },
-      });
-    }
   }
 
   // --- Eliminacion de Elementos ---
   solicitarEliminacion(
-    tipo: 'boutique' | 'ciudad',
+    tipo: 'boutique',
     id: number,
     nombre: string
   ): void {
@@ -434,31 +370,18 @@ export class SucursalesAdminComponent implements OnInit {
     const el = this.elementoAEliminar();
     if (!el) return;
 
-    if (el.tipo === 'boutique') {
-      this.sucursalesService.eliminarSucursal(el.id).subscribe({
-        next: () => {
-          this.cerrarModalEliminar();
-          this.cdr.markForCheck();
-        },
-        error: (err: Error) => {
-          this.cerrarModalEliminar();
-          this.notificacionConflicto.set(err.message);
-          this.cdr.markForCheck();
-        },
-      });
-    } else {
-      this.sucursalesService.eliminarCiudad(el.id).subscribe({
-        next: () => {
-          this.cerrarModalEliminar();
-          this.cdr.markForCheck();
-        },
-        error: (err: Error) => {
-          this.cerrarModalEliminar();
-          this.notificacionConflicto.set(err.message);
-          this.cdr.markForCheck();
-        },
-      });
-    }
+    this.sucursalesService.eliminarSucursal(el.id).subscribe({
+      next: () => {
+        this.cerrarModalEliminar();
+        this.recargarUsoPlan();
+        this.cdr.markForCheck();
+      },
+      error: (err: Error) => {
+        this.cerrarModalEliminar();
+        this.notificacionConflicto.set(err.message);
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   limpiarAlertas(): void {

@@ -1,7 +1,7 @@
 """Pruebas de integración de la fundación multitenant contra PostgreSQL real (RNF11).
 
 Specs: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.5 (decisión F18) y
-`.specs/changes/P2-CU02-CU01-acceso-por-empresa/spec.md` §A.6 (requiere la migración 0015).
+`.specs/finalized/P2-CU02-CU01-acceso-por-empresa/spec.md` §A.6 (requiere la migración 0015).
 
 Se ejecutan en la rama de Neon `pruebas-multitenant` conectando con el rol de la aplicación
 (`fashionstore_app`, sin BYPASSRLS), que es lo que hace cumplir la seguridad por filas. Requieren en
@@ -239,7 +239,7 @@ def test_login_de_empleado_solo_con_correo_y_contrasena(mundo):
     )
     assert respuesta.status_code == 200, respuesta.text
     cuerpo = respuesta.json()
-    assert cuerpo["tenant"] == {"codigo": "pruebas-b", "nombre": "Empresa B"}
+    assert cuerpo["tenant"] == {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "BOB"}
     assert cuerpo["empresas"] == []
     from core.security import decode_access_token
     assert decode_access_token(cuerpo["access_token"])["id_tenant"] == mundo["id_b"]
@@ -362,8 +362,8 @@ def test_directorio_y_portal(mundo):
     cliente = mundo["cliente"]
     directorio = cliente.get("/api/v1/tenants")
     assert directorio.status_code == 200
-    assert {"codigo": "pruebas-b", "nombre": "Empresa B"} in directorio.json()
-    assert cliente.get("/api/v1/tenants/pruebas-b").json() == {"codigo": "pruebas-b", "nombre": "Empresa B"}
+    assert {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "BOB"} in directorio.json()
+    assert cliente.get("/api/v1/tenants/pruebas-b").json() == {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "BOB"}
     assert cliente.get("/api/v1/tenants/no-existe").status_code == 404
 
 
@@ -384,7 +384,7 @@ def test_flujo_del_cliente_entre_dos_tiendas(mundo):
     login = cliente.post("/api/v1/autenticacion/login", json={"email": datos["email"], "password": CLAVE_PRUEBA})
     assert login.status_code == 200, login.text
     assert login.json()["tenant"] is None
-    assert login.json()["empresas"] == [{"codigo": "fashionstore", "nombre": "FASHION STORE"}]
+    assert login.json()["empresas"] == [{"codigo": "fashionstore", "nombre": "FASHION STORE", "moneda": "BOB"}]
     auth = {"Authorization": "Bearer " + login.json()["access_token"]}
 
     # En la tienda B todavía no puede comprar
@@ -395,7 +395,7 @@ def test_flujo_del_cliente_entre_dos_tiendas(mundo):
     # «Registrarme en esta tienda» (idempotente)
     alta = cliente.post("/api/v1/mis-empresas", headers={**auth, CABECERA_TENANT: "pruebas-b"})
     assert alta.status_code == 201, alta.text
-    assert alta.json() == {"empresa": {"codigo": "pruebas-b", "nombre": "Empresa B"}, "registrado_ahora": True}
+    assert alta.json() == {"empresa": {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "BOB"}, "registrado_ahora": True}
     otra_vez = cliente.post("/api/v1/mis-empresas", headers={**auth, CABECERA_TENANT: "pruebas-b"})
     assert otra_vez.status_code == 200
     assert otra_vez.json()["registrado_ahora"] is False
@@ -443,3 +443,197 @@ def test_alta_de_empleado_queda_en_la_empresa_del_administrador(mundo):
               "apellidos": "Cajero", "rol": "cajero", "id_sucursal": sucursal_b},
     )
     assert repetido.status_code == 409
+
+
+# --------------------------------------------------------------------------------- P2-CU03 · P2-CU04
+
+def _sucursales(mundo, tenant):
+    c = mundo["conexion"]
+    _contexto(c, tenant=tenant)
+    ids = [f[0] for f in c.execute(text("SELECT id_sucursal FROM fashionstore.sucursales ORDER BY id_sucursal"))]
+    _contexto(c)
+    return ids
+
+
+def test_p2_cu03_b1_el_administrador_no_ve_ni_toca_cuentas_sin_empresa(mundo):
+    """Defecto de fuga: la RLS de `usuarios` deja leer clientes y super administrador a cualquier empresa."""
+    cliente, admin = mundo["cliente"], _token(mundo["admin_b"], "administrador", mundo["id_b"])
+    c = mundo["conexion"]
+    _contexto(c, plataforma=True)
+    ajenos = [f[0] for f in c.execute(text(
+        "SELECT id_usuario FROM fashionstore.usuarios WHERE id_tenant IS NULL ORDER BY id_usuario LIMIT 3"))]
+    _contexto(c)
+    assert ajenos, "La rama de pruebas debería tener clientes"
+
+    listado = cliente.get("/api/v1/admin/usuarios?limite=100", headers=admin)
+    assert listado.status_code == 200, listado.text
+    assert {u["id_usuario"] for u in listado.json()["items"]} == {mundo["admin_b"]}
+    assert listado.json()["total"] == 1
+    assert cliente.get("/api/v1/admin/usuarios?rol=cliente", headers=admin).json()["total"] == 0
+
+    for id_ajeno in ajenos:
+        assert cliente.get(f"/api/v1/admin/usuarios/{id_ajeno}", headers=admin).status_code == 404
+        reset = cliente.post(f"/api/v1/admin/usuarios/{id_ajeno}/reset-password", headers=admin,
+                             json={"nuevo_password": "Intrusa2026!"})
+        assert reset.status_code == 404
+        assert cliente.patch(f"/api/v1/admin/usuarios/{id_ajeno}/estado", headers=admin,
+                             json={"activo": False}).status_code == 404
+
+
+def test_p2_cu03_b3_empleado_con_dos_sucursales(mundo):
+    from modules.autenticacion_seguridad.modelos import UsuarioORM
+    from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
+
+    cliente, admin = mundo["cliente"], _token(mundo["admin_b"], "administrador", mundo["id_b"])
+    b1, b2 = _sucursales(mundo, mundo["id_b"])
+    ajena = _sucursales(mundo, 1)[0]
+
+    # Una sucursal de otra empresa no existe para B (RLS)
+    intruso = cliente.post("/api/v1/admin/usuarios", headers=admin, json={
+        "email": "cajera.intrusa@empresa-b.com", "password": CLAVE_PRUEBA, "nombres": "Cajera", "apellidos": "Intrusa",
+        "rol": "cajero", "sucursales_autorizadas": [b1, ajena], "id_sucursal_principal": b1})
+    assert intruso.status_code == 422, intruso.text
+    assert intruso.json()["code"] == "SUCURSAL_INEXISTENTE_O_INACTIVA"
+
+    alta = cliente.post("/api/v1/admin/usuarios", headers=admin, json={
+        "email": "cajera.dos@empresa-b.com", "password": CLAVE_PRUEBA, "nombres": "Cajera", "apellidos": "Dos",
+        "rol": "cajero", "sucursales_autorizadas": [b1, b2], "id_sucursal_principal": b2})
+    assert alta.status_code == 201, alta.text
+    cuerpo = alta.json()
+    assert cuerpo["id_sucursal"] == b2
+    assert {(s["id_sucursal"], s["es_principal"]) for s in cuerpo["sucursales_autorizadas"]} == {(b1, False), (b2, True)}
+    id_cajera = cuerpo["id_usuario"]
+
+    # RN07 leído de `empleado_sucursal` con la sesión real
+    sesion = _sesion_b(mundo)
+    cajera = sesion.get(UsuarioORM, id_cajera)
+    assert SucursalesEmpleadoServicio.autorizadas(cajera) == frozenset({b1, b2})
+    assert not SucursalesEmpleadoServicio.autoriza(cajera, ajena)
+
+    mias = cliente.get("/api/v1/mis-sucursales", headers=_token(id_cajera, "cajero", mundo["id_b"]))
+    assert mias.status_code == 200, mias.text
+    assert [(s["id_sucursal"], s["es_principal"]) for s in mias.json()] == [(b2, True), (b1, False)]
+
+    # Editar: queda solo b1 (la principal pasa a ser la única)
+    edicion = cliente.put(f"/api/v1/admin/usuarios/{id_cajera}", headers=admin, json={"sucursales_autorizadas": [b1]})
+    assert edicion.status_code == 200, edicion.text
+    assert edicion.json()["id_sucursal"] == b1
+    assert [s["id_sucursal"] for s in edicion.json()["sucursales_autorizadas"]] == [b1]
+
+
+def test_p2_cu04_b7_uso_del_plan(mundo):
+    uso = mundo["cliente"].get("/api/v1/admin/sucursales/uso-plan",
+                               headers=_token(mundo["admin_b"], "administrador", mundo["id_b"]))
+    assert uso.status_code == 200, uso.text
+    assert uso.json() == {"uso": 2, "limite": 2, "plan": "Básico"}
+
+
+def test_p2_cu04_b8_el_limite_se_serializa_por_empresa(mundo, motor):
+    """Mientras una operación de la empresa B valida su límite de sucursales, otra conexión no puede
+    tomar el mismo bloqueo (esperaría), pero sí el de otra empresa o el de otro recurso."""
+    from modules.plataforma.cu12_validar_suscripcion.repositorio import SuscripcionRepositorio
+
+    sesion = _sesion_b(mundo)
+    SuscripcionRepositorio.bloquear_recurso(sesion, mundo["id_b"], "sucursales")
+    probar = "SELECT pg_try_advisory_xact_lock(hashtext(:clave), :t)"
+    with motor.connect() as otra:
+        with otra.begin():
+            assert otra.execute(text(probar), {"clave": "fashionstore.limite.sucursales", "t": mundo["id_b"]}).scalar() is False
+            assert otra.execute(text(probar), {"clave": "fashionstore.limite.sucursales", "t": 1}).scalar() is True
+            assert otra.execute(text(probar), {"clave": "fashionstore.limite.empleados", "t": mundo["id_b"]}).scalar() is True
+
+
+def test_p2_cu04_b6_ciudades_de_solo_lectura(mundo):
+    admin = _token(mundo["admin_b"], "administrador", mundo["id_b"])
+    assert mundo["cliente"].get("/api/v1/admin/ciudades", headers=admin).status_code == 200
+    alta = mundo["cliente"].post("/api/v1/admin/ciudades", headers=admin, json={"nombre": "Ciudad Intrusa", "pais": "X"})
+    assert alta.status_code == 405
+
+
+# --------------------------------------------------------------------------------- P2-CU11
+
+def test_p2_cu11_cada_empresa_configura_lo_suyo(mundo):
+    cliente, admin_b = mundo["cliente"], _token(mundo["admin_b"], "administrador", mundo["id_b"])
+
+    # La empresa B no tenía fila: se crea con los valores por defecto al leerla (C4)
+    lectura = cliente.get("/api/v1/admin/configuracion", headers=admin_b)
+    assert lectura.status_code == 200, lectura.text
+    assert lectura.json()["horas_vencimiento_reserva"] == 24
+
+    cambio = cliente.put("/api/v1/admin/configuracion", headers=admin_b, json={
+        "moneda": "BOB", "zona_horaria": "America/La_Paz",
+        "horas_vencimiento_reserva": 48, "dias_cambio_prenda": 30,
+        "operacion_offline_habilitada": False, "dias_antiguedad_offline": 7})
+    assert cambio.status_code == 200, cambio.text
+    assert cambio.json()["horas_vencimiento_reserva"] == 48
+
+    # FASHION STORE conserva los suyos (RLS)
+    c = mundo["conexion"]
+    _contexto(c, tenant=1)
+    fs = c.execute(text("SELECT horas_vencimiento_reserva, operacion_offline_habilitada "
+                        "FROM fashionstore.configuracion_tenant")).all()
+    _contexto(c)
+    assert fs == [(24, True)]
+
+
+def test_p2_cu11_la_base_rechaza_valores_invalidos(mundo):
+    c = mundo["conexion"]
+    _contexto(c, tenant=1)
+    error = _falla(c, "UPDATE fashionstore.configuracion_tenant SET horas_vencimiento_reserva = 0")
+    _contexto(c)
+    assert error and "chk_config_horas_reserva" in error
+
+
+# --------------------------------------------------------------------------------- Fix P2-CU11 (0016)
+
+CONFIG_BASE = {"zona_horaria": "America/La_Paz", "horas_vencimiento_reserva": 24, "dias_cambio_prenda": 15,
+               "operacion_offline_habilitada": True, "dias_antiguedad_offline": 7}
+
+
+def test_fix_cu11_la_sesion_trabaja_en_hora_de_bolivia(mundo):
+    from core.tiempo import hoy
+
+    sesion = _sesion_b(mundo)
+    zona, fecha = sesion.execute(text("SELECT current_setting('TimeZone'), current_date")).one()
+    assert zona == "America/La_Paz"
+    assert fecha == hoy()
+
+
+def test_fix_cu11_0016_monedas_y_zona(mundo):
+    c = mundo["conexion"]
+    _contexto(c, tenant=1)
+    assert c.execute(text("SELECT moneda, zona_horaria FROM fashionstore.configuracion_tenant")).one() == (
+        "BOB", "America/La_Paz")
+    assert "chk_config_moneda" in (_falla(c, "UPDATE fashionstore.configuracion_tenant SET moneda = 'EUR'") or "")
+    assert "chk_config_zona" in (
+        _falla(c, "UPDATE fashionstore.configuracion_tenant SET zona_horaria = 'Europe/Madrid'") or "")
+    _contexto(c)
+    monedas = {f[0]: f[1] for f in c.execute(text("SELECT codigo, moneda FROM fashionstore.empresas_disponibles()"))}
+    assert monedas["fashionstore"] == "BOB"
+
+
+def test_fix_cu11_moneda_bloqueada_con_ventas_y_libre_sin_ellas(mundo):
+    cliente = mundo["cliente"]
+
+    # FASHION STORE tiene ventas: no puede cambiar de moneda (M3)
+    c = mundo["conexion"]
+    _contexto(c, plataforma=True)
+    admin_fs = c.execute(text("SELECT id_usuario FROM fashionstore.usuarios WHERE id_tenant = 1 "
+                              "AND rol = 'administrador' AND activo ORDER BY id_usuario LIMIT 1")).scalar()
+    ventas_fs = c.execute(text("SELECT count(*) FROM fashionstore.ventas WHERE id_tenant = 1")).scalar()
+    _contexto(c)
+    assert admin_fs and ventas_fs, "La rama de pruebas debería tener un administrador y ventas de FASHION STORE"
+    fs = _token(admin_fs, "administrador", 1)
+    assert cliente.get("/api/v1/admin/configuracion", headers=fs).json()["moneda_bloqueada"] is True
+    bloqueo = cliente.put("/api/v1/admin/configuracion", headers=fs, json={**CONFIG_BASE, "moneda": "USD"})
+    assert bloqueo.status_code == 409, bloqueo.text
+    assert bloqueo.json()["code"] == "MONEDA_CON_OPERACIONES"
+
+    # La empresa B no tiene ventas: pasa a USD y el directorio y el login lo reflejan (M6)
+    admin_b = _token(mundo["admin_b"], "administrador", mundo["id_b"])
+    cambio = cliente.put("/api/v1/admin/configuracion", headers=admin_b, json={**CONFIG_BASE, "moneda": "USD"})
+    assert cambio.status_code == 200, cambio.text
+    assert {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "USD"} in cliente.get("/api/v1/tenants").json()
+    login = cliente.post("/api/v1/autenticacion/login", json={"email": "admin@empresa-b.com", "password": CLAVE_PRUEBA})
+    assert login.status_code == 200, login.text
+    assert login.json()["tenant"]["moneda"] == "USD"

@@ -47,6 +47,19 @@ class SuscripcionRepositorio:
         return list(db.execute(stmt).scalars().all())
 
     @staticmethod
+    def bloquear_recurso(db: Session, id_tenant: int, recurso: str) -> None:
+        """P2-CU04 B8: serializa por empresa y recurso las altas que cuentan para un límite.
+
+        Bloqueo consultivo de transacción: se libera en el `commit`/`rollback`, no necesita permisos
+        sobre ninguna tabla y funciona con PgBouncer en modo transacción. La segunda solicitud
+        espera y, al contar (READ COMMITTED), ya ve la fila que confirmó la primera.
+        """
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:clave), CAST(:t AS integer))"),
+            {"clave": f"fashionstore.limite.{recurso}", "t": id_tenant},
+        )
+
+    @staticmethod
     def sucursales_activas(db: Session, id_tenant: int) -> int:
         return int(db.execute(
             text("SELECT count(*) FROM fashionstore.sucursales WHERE id_tenant = :t AND activa"),

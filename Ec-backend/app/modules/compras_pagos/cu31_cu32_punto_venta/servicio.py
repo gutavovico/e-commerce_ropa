@@ -24,7 +24,9 @@ from core.errors import (
     NotFoundError,
     UnprocessableEntityError,
 )
+from modules.plataforma.cu11_parametros_empresa.servicio import ParametrosEmpresaServicio
 from modules.autenticacion_seguridad.modelos import UsuarioORM
+from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
 from modules.compras_pagos.cu11_gestionar_carrito.repositorio import CarritoRepositorio
 from modules.compras_pagos.cu11_gestionar_carrito.servicio import (
     CarritoServicio,
@@ -50,6 +52,7 @@ from modules.compras_pagos.cu31_cu32_punto_venta.repositorio import PuntoVentaRe
 from modules.compras_pagos.modelos import PagoORM, VentaDetalleORM, VentaORM
 from modules.reservas.atencion_caja import ReservaCajaServicio
 from modules.reservas.modelos import MovimientoInventarioORM
+from core.tiempo import inicio_del_dia
 
 logger = logging.getLogger("fashionstore.punto_venta")
 
@@ -120,7 +123,8 @@ class PuntoVentaServicio:
 
     @staticmethod
     def resolver_sucursal(db: Session, usuario: UsuarioORM, solicitada: Optional[int]) -> int:
-        """Cajero y encargado: su sucursal, fija. Administrador: la que elija (D9)."""
+        """Administrador: la que elija (D9). Cajero y encargado: una de sus sucursales autorizadas
+        (RN07, P2-CU03); sin indicarla, la principal."""
         if PuntoVentaServicio._es_admin(usuario):
             if not solicitada:
                 raise UnprocessableEntityError(
@@ -128,16 +132,17 @@ class PuntoVentaServicio:
                 )
             id_sucursal = solicitada
         else:
-            if usuario.id_sucursal is None:
+            autorizadas = SucursalesEmpleadoServicio.autorizadas(usuario)
+            if not autorizadas:
                 raise ConflictError(
                     "Tu usuario no tiene boutique asignada. Pide a un administrador que la configure.",
                     code="SUCURSAL_NO_ASIGNADA",
                 )
-            if solicitada and solicitada != usuario.id_sucursal:
+            if solicitada and solicitada not in autorizadas:
                 raise AuthorizationError(
-                    "Solo puedes operar la caja de tu propia boutique.", code="SUCURSAL_AJENA"
+                    "Solo puedes operar la caja de tus boutiques autorizadas.", code="SUCURSAL_AJENA"
                 )
-            id_sucursal = usuario.id_sucursal
+            id_sucursal = solicitada or usuario.id_sucursal or min(autorizadas)
 
         if not CarritoRepositorio.obtener_sucursal_activa(db, id_sucursal):
             raise UnprocessableEntityError("La boutique no existe o está inactiva.", code="SUCURSAL_INVALIDA")
@@ -145,9 +150,9 @@ class PuntoVentaServicio:
 
     @staticmethod
     def _verificar_alcance(usuario: UsuarioORM, venta: VentaORM) -> None:
-        if not PuntoVentaServicio._es_admin(usuario) and venta.id_sucursal != usuario.id_sucursal:
+        if not SucursalesEmpleadoServicio.autoriza(usuario, venta.id_sucursal):
             raise AuthorizationError(
-                "Solo puedes operar las ventas de tu propia boutique.", code="SUCURSAL_AJENA"
+                "Solo puedes operar las ventas de tus boutiques autorizadas.", code="SUCURSAL_AJENA"
             )
 
     # ==================================================================
@@ -720,8 +725,7 @@ class PuntoVentaServicio:
         PuntoVentaServicio._vencer_pendientes(db, usuario, sucursal)
         desde = None
         if solo_hoy:
-            hoy = _ahora()
-            desde = hoy.replace(hour=0, minute=0, second=0, microsecond=0)
+            desde = inicio_del_dia()  # medianoche de Bolivia (fix P2-CU11, M5)
         ventas = PuntoVentaRepositorio.listar_ventas(db, sucursal, estado, desde)
         return [PuntoVentaServicio._salida(db, v) for v in ventas]
 
@@ -743,7 +747,8 @@ class PuntoVentaServicio:
             raise ConflictError(
                 "La venta aún no está cobrada: su comprobante no es definitivo.", code="COMPROBANTE_NO_DISPONIBLE"
             )
-        return f"{venta.numero_comprobante}.pdf", generar_comprobante_pdf(venta)
+        moneda = ParametrosEmpresaServicio.moneda(db)
+        return f"{venta.numero_comprobante}.pdf", generar_comprobante_pdf(venta, moneda)
 
     @staticmethod
     def pedidos_web_efectivo(db: Session, usuario: UsuarioORM, id_sucursal: Optional[int]) -> List[PedidoWebEfectivoOut]:

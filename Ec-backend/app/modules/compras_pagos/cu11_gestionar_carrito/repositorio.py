@@ -4,7 +4,7 @@ Concentra las consultas de carrito, inventario y promociones. Ninguna función d
 abre ni cierra transacciones: la unidad de trabajo la gobierna el servicio.
 """
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
@@ -21,6 +21,7 @@ from modules.catalogo.modelos import (
 )
 from modules.compras_pagos.modelos import CarritoDetalleORM, CarritoORM
 from modules.plataforma.servicio_tenants import TenantServicio
+from core.tiempo import hoy as hoy_empresa
 
 
 class CarritoRepositorio:
@@ -282,7 +283,7 @@ class CarritoRepositorio:
         if not ids_productos:
             return {}
 
-        hoy = date.today()
+        hoy = hoy_empresa()  # Bolivia (fix P2-CU11, M5)
         stmt = (
             select(
                 PromocionProductoORM.id_producto,

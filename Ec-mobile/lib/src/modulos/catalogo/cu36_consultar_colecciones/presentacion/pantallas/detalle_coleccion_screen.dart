@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../datos/modelos/coleccion_dto.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/colecciones_bloc.dart';
+import 'package:ec_mobile/src/core/moneda.dart';
 
 class DetalleColeccionScreen extends StatefulWidget {
   final int idColeccion;
@@ -450,9 +451,9 @@ class _DetalleColeccionScreenState extends State<DetalleColeccionScreen> {
 
                     const SizedBox(height: 4),
 
-                    // Precio en EUR
+                    // Precio en la moneda de la tienda
                     Text(
-                      '${item.precioBase.toStringAsFixed(0)} €',
+                      formatoImporte(item.precioBase),
                       style: const TextStyle(
                         fontFamily: 'Outfit',
                         fontSize: 13,

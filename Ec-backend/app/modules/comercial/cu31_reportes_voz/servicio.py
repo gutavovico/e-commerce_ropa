@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
+from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
 from modules.catalogo.modelos import InventarioSucursalORM, ProductoORM, VarianteProductoORM
 from modules.comercial.cu28_ventas_reservas.modelos import ReservaORM, VentaORM
 from modules.comercial.cu31_reportes_voz.errores import (
@@ -31,6 +32,7 @@ from modules.comercial.cu31_reportes_voz.parser_voz import ParserComandosVoz
 from modules.gestion_operativa.modelos import SucursalORM
 from modules.seguridad.cu30_bitacora.modelos import Bitacora
 from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+from core.tiempo import ahora_local
 
 
 class ServicioReportesVoz:
@@ -63,9 +65,9 @@ class ServicioReportesVoz:
                 raise AccesoReporteDenegadoError(
                     "Los encargados de sucursal no pueden emitir reportes globales consolidados."
                 )
-            if usuario.id_sucursal != id_sucursal_solicitada:
+            if not SucursalesEmpleadoServicio.autoriza(usuario, id_sucursal_solicitada):
                 raise AccesoReporteDenegadoError(
-                    "No tienes autorizacion para emitir reportes de una sucursal distinta a la asignada."
+                    "No tienes autorizacion para emitir reportes de una sucursal que no tienes asignada."
                 )
 
     @staticmethod
@@ -142,9 +144,11 @@ class ServicioReportesVoz:
         if rol == "encargado_sucursal":
             if comando.modulo == ModuloReporteEnum.BITACORA:
                 comando.modulo = ModuloReporteEnum.VENTAS  # Degradacion contextual segura
-            comando.id_sucursal = usuario_actual.id_sucursal
-            if sucursales and usuario_actual.id_sucursal:
-                nombre_asignado = next((n for sid, n in sucursales if sid == usuario_actual.id_sucursal), None)
+            # RN07 (P2-CU03): la sucursal dictada si está autorizada; si no, la principal
+            if not SucursalesEmpleadoServicio.autoriza(usuario_actual, comando.id_sucursal):
+                comando.id_sucursal = usuario_actual.id_sucursal
+            if sucursales and comando.id_sucursal:
+                nombre_asignado = next((n for sid, n in sucursales if sid == comando.id_sucursal), None)
                 comando.nombre_sucursal = nombre_asignado
 
         # Calcular fechas concretas si es un rango conocido
@@ -223,7 +227,7 @@ class ServicioReportesVoz:
                 total_registros = 0
             resumen_fin = {"total_eventos_auditoria": total_registros}
 
-        fecha_str = datetime.now().strftime("%Y%m%d")
+        fecha_str = ahora_local().strftime("%Y%m%d")
         ext = "xlsx" if filtros.formato == FormatoReporteEnum.EXCEL else filtros.formato.value
         nombre_sugerido = f"reporte_{filtros.modulo.value}_{fecha_str}.{ext}"
 
@@ -406,7 +410,7 @@ class ServicioReportesVoz:
         cls.validar_permisos(usuario_actual, filtros.modulo, filtros.id_sucursal)
 
         titulo, subtitulo, columnas, filas, totales, metadatos = cls.extraer_datos_modulo(db, filtros)
-        fecha_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        fecha_str = ahora_local().strftime("%Y%m%d_%H%M%S")
 
         # 1. Despachar a generador binario
         if filtros.formato == FormatoReporteEnum.EXCEL:

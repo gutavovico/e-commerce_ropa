@@ -181,20 +181,20 @@ describe('ColeccionesComponent', () => {
 
     // Verificar presencia de las piezas clave
     expect(el.textContent).toContain('Vestido plisado en seda natural');
-    expect(el.textContent).toContain('890 €');
+    expect(el.textContent).toContain('Bs 890,00');
     expect(el.textContent).toContain('COLECCIÓN 07');
     expect(el.textContent).toContain('DISPONIBLE');
     expect(el.textContent).toContain('Blazer estructurado en lana virgen');
-    expect(el.textContent).toContain('740 €');
+    expect(el.textContent).toContain('Bs 740,00');
   });
 
   it('debe renderizar la sección "Otras colecciones" con sus tarjetas y precios de entrada', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Otras colecciones');
     expect(el.textContent).toContain('Edición Milano: Punto & Lino');
-    expect(el.textContent).toContain('Desde 340 €');
+    expect(el.textContent).toContain('Desde Bs 340,00');
     expect(el.textContent).toContain('Abrigos en Alpaca & Lana');
-    expect(el.textContent).toContain('Desde 680 €');
+    expect(el.textContent).toContain('Desde Bs 680,00');
     expect(el.textContent).toContain('VER COLECCIÓN');
   });
 

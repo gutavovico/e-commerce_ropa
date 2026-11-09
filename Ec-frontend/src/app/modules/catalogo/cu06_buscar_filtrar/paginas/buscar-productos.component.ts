@@ -20,11 +20,12 @@ import {
   FiltrosBusquedaState,
   ProductoItem,
 } from '../../modelos/catalogo.modelos';
+import { ImportePipe, SimboloMonedaPipe } from '../../../../core/tenant/moneda';
 
 @Component({
   selector: 'app-buscar-productos',
   standalone: true,
-  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
+  imports: [ImportePipe, SimboloMonedaPipe, MarcaTiendaComponent, RutaPortalPipe, CommonModule, ReactiveFormsModule, RouterLink, RouterLinkActive],
   templateUrl: './buscar-productos.component.html',
   styleUrls: ['./buscar-productos.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

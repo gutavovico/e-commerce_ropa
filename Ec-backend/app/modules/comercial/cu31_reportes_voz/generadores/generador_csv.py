@@ -4,6 +4,7 @@ import csv
 from datetime import datetime
 import io
 from typing import Any, Dict, List, Optional
+from core.tiempo import ahora_local
 
 
 class GeneradorCSV:
@@ -41,7 +42,7 @@ class GeneradorCSV:
         # 1. Cabecera Informativa
         writer.writerow([f"# {titulo.upper()} - REPORTE EJECUTIVO"])
         writer.writerow([f"# Criterio: {subtitulo}"])
-        texto_meta = f"# Emision: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        texto_meta = f"# Emision: {ahora_local().strftime('%Y-%m-%d %H:%M:%S')}"
         if metadatos:
             texto_meta += " | " + " | ".join([f"{k}: {v}" for k, v in metadatos.items()])
         writer.writerow([texto_meta])

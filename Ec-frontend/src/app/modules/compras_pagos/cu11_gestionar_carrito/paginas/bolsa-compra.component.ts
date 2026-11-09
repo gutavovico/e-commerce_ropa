@@ -21,6 +21,7 @@ import {
   TipoEntrega,
   VentaCreada,
 } from '../modelos/carrito.model';
+import { ImportePipe } from '../../../../core/tenant/moneda';
 
 /** Ventana de cortesía de la bolsa, en minutos. Debe coincidir con el backend. */
 const MINUTOS_VENTANA = 25;
@@ -35,7 +36,7 @@ const MINUTOS_VENTANA = 25;
 @Component({
   selector: 'app-bolsa-compra',
   standalone: true,
-  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, FormsModule, RouterLink],
+  imports: [ImportePipe, MarcaTiendaComponent, RutaPortalPipe, CommonModule, FormsModule, RouterLink],
   templateUrl: './bolsa-compra.component.html',
   styleUrls: ['./bolsa-compra.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

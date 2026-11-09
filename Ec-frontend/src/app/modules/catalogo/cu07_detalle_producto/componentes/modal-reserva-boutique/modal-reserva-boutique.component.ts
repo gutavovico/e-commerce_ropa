@@ -20,11 +20,12 @@ import {
 } from '../../modelos/producto-detalle.model';
 import { ReservaService } from '../../servicios/reserva.service';
 import { LoginService } from '../../../../autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
+import { ImportePipe } from '../../../../../core/tenant/moneda';
 
 @Component({
   selector: 'app-modal-reserva-boutique',
   standalone: true,
-  imports: [CommonModule],
+  imports: [ImportePipe, CommonModule],
   templateUrl: './modal-reserva-boutique.component.html',
   styleUrls: ['./modal-reserva-boutique.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

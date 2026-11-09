@@ -14,7 +14,7 @@ from decimal import Decimal
 from typing import Any, Optional
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, object_session, selectinload
 
 from core.config import settings
 from core.tenant import fijar_contexto
@@ -31,7 +31,10 @@ from integrations.stripe_service import (
     PasarelaPagos,
     StripeService,
 )
+from core.moneda import MONEDA_POR_DEFECTO
 from modules.autenticacion_seguridad.modelos import UsuarioORM
+from modules.plataforma.cu11_parametros_empresa.servicio import ParametrosEmpresaServicio
+from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
 from modules.catalogo.modelos import VarianteProductoORM, VentaDetalleORM, VentaORM
 from modules.compras_pagos.cu11_gestionar_carrito.repositorio import CarritoRepositorio
 from modules.compras_pagos.cu11_gestionar_carrito.servicio import (
@@ -128,6 +131,7 @@ class PagoServicio:
             descuento=venta.descuento,
             total=venta.total,
             iva_incluido=calcular_iva_incluido(venta.total),
+            moneda=ParametrosEmpresaServicio.moneda(db),
             total_prendas=sum(d.cantidad for d in venta.detalles),
             items=items,
             tipo_entrega=venta.tipo_entrega,
@@ -226,6 +230,7 @@ class PagoServicio:
                 descripcion=f"FashionStore · Orden {venta.numero_comprobante}",
                 metadatos=PagoServicio._metadatos_intento(venta),
                 idempotency_key=payload.clave_idempotencia,
+                moneda=ParametrosEmpresaServicio.moneda(db),
             )
         except ErrorPasarela as exc:
             raise DomainError(str(exc), code="PASARELA_NO_DISPONIBLE") from exc
@@ -700,12 +705,10 @@ class PagoServicio:
     @staticmethod
     def _verificar_alcance_caja(usuario: UsuarioORM, venta: VentaORM) -> None:
         """El `administrador` confirma cualquier boutique; `encargado_sucursal`/`cajero` solo
-        la suya, y únicamente si la venta se recoge en ella."""
-        if str(usuario.rol) == "administrador":
-            return
-        if venta.id_sucursal_retiro != usuario.id_sucursal:
+        las autorizadas (RN07, P2-CU03), y únicamente si la venta se recoge en una de ellas."""
+        if not SucursalesEmpleadoServicio.autoriza(usuario, venta.id_sucursal_retiro):
             raise AuthorizationError(
-                "Solo puedes confirmar o cancelar pagos en efectivo de tu propia sucursal.",
+                "Solo puedes confirmar o cancelar pagos en efectivo de tus sucursales autorizadas.",
                 code="SUCURSAL_AJENA",
             )
 
@@ -751,6 +754,15 @@ class PagoServicio:
         }
 
     @staticmethod
+    def _moneda_de(venta: VentaORM) -> str:
+        """Moneda de la empresa de la sesión a la que pertenece la venta (fix de P2-CU11, M6)."""
+        try:
+            sesion = object_session(venta)
+        except Exception:  # noqa: BLE001 - venta simulada en pruebas
+            sesion = None
+        return ParametrosEmpresaServicio.moneda(sesion) if sesion is not None else MONEDA_POR_DEFECTO
+
+    @staticmethod
     def _construir_confirmacion(
         venta: VentaORM,
         pago: PagoORM,
@@ -779,6 +791,7 @@ class PagoServicio:
                 resultado.ultimos_digitos if resultado else auditoria.get("ultimos_digitos")
             ),
             confirmado_en=pago.confirmado_en,
+            moneda=PagoServicio._moneda_de(venta),
         )
         if mensaje is not None:
             datos["mensaje_confirmacion"] = mensaje

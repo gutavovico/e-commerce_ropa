@@ -28,7 +28,7 @@ router = APIRouter(prefix="/colecciones", tags=["Colecciones"])
     summary="Consultar colecciones activas de la temporada vigente",
     description=(
         "Recupera las colecciones vigentes de la temporada comercial activa, "
-        "con desglose de colección destacada (hero), piezas clave y precio de entrada 'Desde X €'."
+        "con desglose de colección destacada (hero), piezas clave y precio de entrada 'Desde X' (en la moneda de la empresa)."
     ),
 )
 def obtener_colecciones_activas(

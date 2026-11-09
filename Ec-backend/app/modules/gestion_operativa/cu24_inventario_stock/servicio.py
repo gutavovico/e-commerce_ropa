@@ -7,6 +7,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from modules.autenticacion_seguridad.modelos import UsuarioORM
+from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
 from modules.catalogo.modelos import ProductoORM, VarianteProductoORM
 from modules.gestion_operativa.modelos import SucursalORM
 from .modelos import InventarioSucursalORM, MovimientoInventarioORM
@@ -53,7 +54,7 @@ class ServicioGestionInventario:
     def _validar_acceso_sucursal(usuario_sesion: UsuarioORM, id_sucursal_solicitada: int) -> None:
         """Aplica la regla de segregacion territorial estricta para encargados de sucursal."""
         if usuario_sesion.rol == "encargado_sucursal":
-            if usuario_sesion.id_sucursal != id_sucursal_solicitada:
+            if not SucursalesEmpleadoServicio.autoriza(usuario_sesion, id_sucursal_solicitada):
                 raise SucursalNoAutorizadaError(
                     id_sucursal_solicitada, usuario_sesion.id_sucursal or 0
                 )
@@ -129,9 +130,9 @@ class ServicioGestionInventario:
         # Segregacion forzada para encargado_sucursal
         id_sucursal_consulta = filtros.id_sucursal
         if usuario_sesion.rol == "encargado_sucursal":
-            if filtros.id_sucursal and filtros.id_sucursal != usuario_sesion.id_sucursal:
+            if filtros.id_sucursal and not SucursalesEmpleadoServicio.autoriza(usuario_sesion, filtros.id_sucursal):
                 raise SucursalNoAutorizadaError(filtros.id_sucursal, usuario_sesion.id_sucursal or 0)
-            id_sucursal_consulta = usuario_sesion.id_sucursal
+            id_sucursal_consulta = filtros.id_sucursal or usuario_sesion.id_sucursal
         elif id_sucursal_consulta:
             self._validar_acceso_sucursal(usuario_sesion, id_sucursal_consulta)
 

@@ -22,7 +22,7 @@ describe('ProductoDetalleComponent (CU07, CU08, CU09, CU10, CU12)', () => {
     tiene_descuento: false,
     descuento_monto: '0.00',
     porcentaje_descuento: null,
-    cuotas_info: 'o 3 pagos de 296,66 € sin intereses',
+    cuotas_info: 'o 3 pagos de Bs 296,66 sin intereses con Atelier Pay',
     subtitulo_atelier: 'ALTA COSTURA · MILÁN / LYON',
     linea_confeccion: 'ALTA COSTURA LYON',
     etiqueta_badge: 'EDICIÓN LIMITADA',

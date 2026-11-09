@@ -60,6 +60,7 @@ Antes de crear o modificar cualquier archivo en `Ec-frontend/`, debes ejecutar s
 ## 3. Principios de Código Angular (Constitución Frontend)
 
 ### 3.0 REGLA DE NEGOCIO GLOBAL INQUEBRANTABLE: E-COMMERCE EXCLUSIVO PARA MUJERES
+* **Por empresa (Parcial 2):** la regla femenina es de la empresa **FASHION STORE**. Cada empresa (tenant) tiene su propio catálogo (Menshopping es masculina) y nunca se mezclan.
 * **Exclusividad Femenina:** FashionStore es una boutique y galería digital de alta costura **EXCLUSIVAMENTE PARA MUJERES**.
 * **Prohibición de Contenido Masculino:** Queda estrictamente prohibido el uso de prendas masculinas, modelos masculinos, trajes de hombre o calzado/accesorios masculinos en cualquier pantalla, carrusel, card o fallback. Todo contenido gráfico debe representar moda femenina elegante.
 * **Integridad de Datos Reales (Cero Productos Inventados):** Todas las prendas de ropa mostradas en el frontend provienen exclusivamente de la base de datos PostgreSQL (`fashionstore.productos`). Jamás inventar o quemar en código productos ficticios que no existan en la base de datos.
@@ -122,6 +123,13 @@ Antes de crear o modificar cualquier archivo en `Ec-frontend/`, debes ejecutar s
 
 ### 4.2 Nomenclatura Normativa
 * Todo comentario, texto, título y metadata debe utilizar el nombre oficial: **FASHION STORE** (nunca "AURA STUDIO").
+* **P2-CU02:** la marca *visible* es la de la tienda del portal o la empresa del empleado: `<app-marca-tienda />` en plantillas (y `TituloTiendaStrategy` en títulos). Nunca escribas «FASHION STORE» a mano en una pantalla.
+
+### 4.3 Portal de tienda (P2-CU02)
+* El cliente navega en `/{codigo}/...`. Rutas nuevas del cliente: hijas de `:codigo` en `app.routes.ts` (raíces dentro de `MainLayoutComponent`, hojas fuera). Rutas fijas nuevas: **antes** de `:codigo` y su primer segmento añadido a los códigos reservados (`tenant.models.ts` y CHECK de la base).
+* Enlaces del cliente siempre con `| rutaPortal` o `TenantService.ruta(...)`; nunca absolutos.
+* La tienda viaja en `X-Tenant` vía `authInterceptor`; no la añadas a mano en servicios.
+* Ningún proveedor que el `Router` necesite puede inyectar servicios que dependan del `Router` (NG0200).
 * Paleta cromática: Utilizar las clases semánticas (`bg-surface`, `text-primary`, `bg-surface-container-lowest`, `border-outline-variant`). Para acentos de lujo usar la escala `camel` y para profundidad neutra la escala `slate`.
 
 ---

@@ -3,7 +3,8 @@
 **Fuente:** `SI2-Parcial2.md` (CU12, CU13, RF13, RF14, RNF02, RNF09, RNF16, RN01–RN18, RN51)
 **Paquete de Dominio:** `plataforma` (modelo SaaS) · `core/tenant.py` (contexto transversal)
 **Backend:** `app/core/tenant.py` · `app/core/database.py` · `app/core/deps.py` · `app/modules/plataforma/` · migraciones `0012`–`0014`
-**Frontend / Mobile:** sin cambios en este ciclo (modo de transición; P2-CU02 los adaptará)
+**Frontend / Mobile:** sin cambios en este ciclo; los adaptó P2-CU02
+**Superado en parte por:** `P2-CU02-CU01-acceso-por-empresa.md` (autenticación, correo único global y fin de `TENANT_POR_DEFECTO`). Donde difieran, manda esa spec.
 **Estado:** Aprobado y en producción (2026-11-08)
 **Historial del cambio:** `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/` · `CHANGELOG.md` defectos 53–56
 
@@ -20,19 +21,21 @@
 | `cliente_tenant` | De la empresa | Registro de un cliente (cuenta global) en una empresa. Carritos, reservas, ventas y demás tablas que referencian a un cliente apuntan aquí con FK compuesta. |
 | `empleado_sucursal` | De la empresa | Sucursales autorizadas (RN07); una principal por empleado, reflejo de `usuarios.id_sucursal`. |
 | 24 tablas de negocio | `id_tenant NOT NULL` | Valor por defecto del contexto; `UNIQUE (id_tenant, pk)`; FK compuestas entre ellas. |
-| `usuarios` | `id_tenant` solo para empleados | Clientes y super administrador sin empresa (CHECK `chk_usuarios_tenant_segun_rol`). Correo único por empresa para empleados y global para cuentas sin empresa (RN05). |
+| `usuarios` | `id_tenant` solo para empleados | Clientes y super administrador sin empresa (CHECK `chk_usuarios_tenant_segun_rol`). Correo único en toda la plataforma desde la migración `0015` (RN05, P2-CU02). |
 | `bitacora` | `id_tenant` nulo para plataforma | Lo ve la empresa; los eventos de plataforma, solo el super administrador (RN51). |
 | `ciudades`, `tallas`, `colores`, `clientes`, `codigos_recuperacion` | Globales | RN19 y cuenta de cliente global. |
 
 ## 2. Aislamiento en tres niveles (RNF02)
 
-1. **Backend:** `get_db` resuelve la empresa (cabecera `X-Tenant`, o `TENANT_POR_DEFECTO` mientras dure la transición) y `get_current_user` aplica la del token, que manda. Token y cabecera de empresas distintas → 403 `TENANT_NO_COINCIDE`. Empresa inexistente → 404 `TENANT_NO_ENCONTRADO`; inactiva → 403 `TENANT_INACTIVO`. Token sin `id_tenant` → 401.
+1. **Backend:** `get_db` resuelve la empresa con la cabecera `X-Tenant` (sin ella, ninguna: P2-CU02 retiró `TENANT_POR_DEFECTO`) y `get_current_user` aplica el token: manda la empresa del empleado; el cliente navega en la de la cabecera. Token y cabecera de empresas distintas → 403 `TENANT_NO_COINCIDE`. Empresa inexistente → 404 `TENANT_NO_ENCONTRADO`; inactiva → 403 `TENANT_INACTIVO`. Token sin `id_tenant` → 401.
 2. **Claves foráneas compuestas:** impiden relacionar filas de empresas distintas aunque el backend falle.
 3. **Row Level Security:** política `aislamiento_tenant` en 31 tablas, contra `app.id_tenant`, `app.modo_plataforma` y `app.id_usuario`, que se fijan con `set_config(..., true)` al empezar cada transacción. Sin contexto, nada es visible ni escribible. Las vistas usan `security_invoker`.
 
 La aplicación se conecta con `fashionstore_app` (NOBYPASSRLS, sin DDL). Las migraciones usan el dueño (`DATABASE_URL_MIGRACIONES`).
 
 ## 3. Autenticación (transición hasta P2-CU02)
+
+> **Superada por P2-CU02** (`P2-CU02-CU01-acceso-por-empresa.md` §2): login sin `codigo_empresa`, token de cliente sin empresa y registro con o sin tienda. Se conserva como historial.
 
 - JWT `{sub, email, rol, id_tenant}`: la empresa del empleado; la de la sesión para un cliente registrado en ella; nula para el super administrador o un cliente sin registro.
 - `POST /api/v1/autenticacion/login` admite `codigo_empresa` (opcional por ahora) y responde `tenant: {codigo, nombre}`.
@@ -62,4 +65,4 @@ Llega sin token: localiza el pago en modo plataforma, fija la empresa del pago y
 
 ## 7. Pendiente en otros casos de uso
 
-P2-CU02 (login con código obligatorio, selección de empresa en el móvil, portal web `/{codigo}` y fin de `TENANT_POR_DEFECTO`), P2-CU05 a P2-CU11 (gestión de empresas, planes, suscripciones, catálogos globales y parámetros), inventario sin temporada (RN21), totales calculados por la base de datos (RN26) y vencimiento de reservas a 24 h (RN25).
+~~P2-CU02~~ (hecho: login sin código, selección de tienda en el móvil, portal web `/{codigo}` y fin de `TENANT_POR_DEFECTO`), P2-CU05 a P2-CU11 (gestión de empresas, planes, suscripciones, catálogos globales y parámetros), inventario sin temporada (RN21), totales calculados por la base de datos (RN26) y vencimiento de reservas a 24 h (RN25).

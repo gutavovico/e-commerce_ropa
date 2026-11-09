@@ -2,11 +2,15 @@
  * Modelos y DTOs fuertemente tipados para CU20: Gestionar Usuarios y Roles (RBAC).
  */
 
-export type RolUsuario =
-  | 'administrador'
-  | 'encargado_sucursal'
-  | 'cajero'
-  | 'cliente';
+/** P2-CU03 B2: el administrador solo gestiona empleados; los clientes se registran por su cuenta. */
+export type RolUsuario = 'administrador' | 'encargado_sucursal' | 'cajero';
+
+/** P2-CU03 B3 (RN07): una sucursal en la que opera el empleado. */
+export interface SucursalAutorizada {
+  id_sucursal: number;
+  nombre: string | null;
+  es_principal: boolean;
+}
 
 export interface UsuarioAdmin {
   id_usuario: number;
@@ -19,6 +23,7 @@ export interface UsuarioAdmin {
   id_sucursal: number | null;
   sucursal_nombre: string | null;
   sucursal_ciudad: string | null;
+  sucursales_autorizadas: SucursalAutorizada[];
   activo: boolean;
   fecha_registro: string;
   ultimo_acceso: string | null;
@@ -32,6 +37,8 @@ export interface UsuarioCrearPayload {
   telefono?: string | null;
   rol: RolUsuario;
   id_sucursal?: number | null;
+  sucursales_autorizadas?: number[];
+  id_sucursal_principal?: number | null;
 }
 
 export interface UsuarioActualizarPayload {
@@ -41,6 +48,8 @@ export interface UsuarioActualizarPayload {
   telefono?: string | null;
   rol?: RolUsuario;
   id_sucursal?: number | null;
+  sucursales_autorizadas?: number[];
+  id_sucursal_principal?: number | null;
 }
 
 export interface ResetPasswordPayload {

@@ -70,8 +70,26 @@ export class UsuariosAdminComponent implements OnInit {
     nombres: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     apellidos: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     telefono: [''],
-    rol: ['cliente' as RolUsuario, [Validators.required]],
+    rol: ['cajero' as RolUsuario, [Validators.required]],
+    /** Sucursal principal (P2-CU03 B3); debe estar entre las autorizadas. */
     id_sucursal: [null as number | null],
+  });
+
+  /** P2-CU03 B3 (RN07): sucursales autorizadas del encargado o cajero que se edita. */
+  readonly sucursalesMarcadas = signal<number[]>([]);
+  readonly sucursalPrincipal = signal<number | null>(null);
+  readonly intentoGuardar = signal<boolean>(false);
+
+  /** Solo las sucursales activas se pueden autorizar (el servidor rechaza las inactivas). */
+  readonly sucursalesActivas = computed(() =>
+    this.sucursalesService.sucursales().filter((s) => s.activa),
+  );
+
+  readonly sucursalesValidas = computed(() => {
+    if (!this.esRolOperativo()) return true;
+    const marcadas = this.sucursalesMarcadas();
+    const principal = this.sucursalPrincipal();
+    return marcadas.length > 0 && principal !== null && marcadas.includes(principal);
   });
 
   // --- Formulario de Restablecimiento de Contrasena ---
@@ -80,7 +98,7 @@ export class UsuariosAdminComponent implements OnInit {
   });
 
   // Signal derivado para mostrar u ocultar el selector de sucursal
-  readonly rolSeleccionadoForm = signal<RolUsuario>('cliente');
+  readonly rolSeleccionadoForm = signal<RolUsuario>('cajero');
   readonly esRolOperativo = computed(() => {
     const rol = this.rolSeleccionadoForm();
     return rol === 'encargado_sucursal' || rol === 'cajero';
@@ -98,6 +116,8 @@ export class UsuariosAdminComponent implements OnInit {
       } else {
         sucursalControl?.clearValidators();
         sucursalControl?.setValue(null);
+        this.sucursalesMarcadas.set([]);
+        this.sucursalPrincipal.set(null);
       }
       sucursalControl?.updateValueAndValidity();
       this.cdr.markForCheck();
@@ -171,22 +191,61 @@ export class UsuariosAdminComponent implements OnInit {
     this.aplicarFiltros();
   }
 
+  // --- Sucursales autorizadas (P2-CU03 B3) ---
+
+  estaMarcada(idSucursal: number): boolean {
+    return this.sucursalesMarcadas().includes(idSucursal);
+  }
+
+  alternarSucursal(idSucursal: number): void {
+    const marcadas = this.sucursalesMarcadas();
+    const nuevas = marcadas.includes(idSucursal)
+      ? marcadas.filter((id) => id !== idSucursal)
+      : [...marcadas, idSucursal];
+    this.sucursalesMarcadas.set(nuevas);
+
+    // La principal siempre es una de las marcadas; con una sola, es esa
+    const principal = this.sucursalPrincipal();
+    if (principal === null || !nuevas.includes(principal)) {
+      this.elegirPrincipal(nuevas.length > 0 ? nuevas[0] : null);
+    }
+  }
+
+  elegirPrincipal(idSucursal: number | null): void {
+    if (idSucursal !== null && !this.sucursalesMarcadas().includes(idSucursal)) return;
+    this.sucursalPrincipal.set(idSucursal);
+    this.formUsuario.get('id_sucursal')?.setValue(idSucursal);
+    this.formUsuario.get('id_sucursal')?.markAsTouched();
+  }
+
+  /** «Centro +2»: la principal y cuántas más tiene autorizadas. */
+  sucursalesAdicionales(usuario: UsuarioAdmin): number {
+    return Math.max(0, (usuario.sucursales_autorizadas ?? []).length - 1);
+  }
+
+  nombresSucursales(usuario: UsuarioAdmin): string {
+    return (usuario.sucursales_autorizadas ?? []).map((s) => s.nombre ?? `#${s.id_sucursal}`).join(', ');
+  }
+
   // --- Modales y Acciones CRUD ---
 
   abrirModalCrear(): void {
     this.errorBanner.set(null);
     this.modoEdicion.set(false);
     this.usuarioEditandoId.set(null);
+    this.intentoGuardar.set(false);
+    this.sucursalesMarcadas.set([]);
+    this.sucursalPrincipal.set(null);
     this.formUsuario.reset({
       email: '',
       password: '',
       nombres: '',
       apellidos: '',
       telefono: '',
-      rol: 'cliente',
+      rol: 'cajero',
       id_sucursal: null,
     });
-    this.rolSeleccionadoForm.set('cliente');
+    this.rolSeleccionadoForm.set('cajero');
 
     // En creacion, la contrasena es estrictamente obligatoria
     this.formUsuario.get('password')?.setValidators([
@@ -203,6 +262,13 @@ export class UsuariosAdminComponent implements OnInit {
     this.errorBanner.set(null);
     this.modoEdicion.set(true);
     this.usuarioEditandoId.set(usuario.id_usuario);
+    this.intentoGuardar.set(false);
+    const autorizadas = (usuario.sucursales_autorizadas ?? []).map((s) => s.id_sucursal);
+    if (autorizadas.length === 0 && usuario.id_sucursal) {
+      autorizadas.push(usuario.id_sucursal);
+    }
+    this.sucursalesMarcadas.set(autorizadas);
+    this.sucursalPrincipal.set(usuario.id_sucursal);
 
     this.formUsuario.patchValue({
       email: usuario.email,
@@ -229,13 +295,20 @@ export class UsuariosAdminComponent implements OnInit {
   }
 
   guardarUsuario(): void {
-    if (this.formUsuario.invalid) {
+    this.intentoGuardar.set(true);
+    if (this.formUsuario.invalid || !this.sucursalesValidas()) {
       this.formUsuario.markAllAsTouched();
       return;
     }
 
     this.errorBanner.set(null);
     const formVals = this.formUsuario.getRawValue();
+    const operativo = this.esRolOperativo();
+    const sucursales = {
+      id_sucursal: operativo ? this.sucursalPrincipal() : null,
+      sucursales_autorizadas: operativo ? this.sucursalesMarcadas() : [],
+      id_sucursal_principal: operativo ? this.sucursalPrincipal() : null,
+    };
 
     if (this.modoEdicion()) {
       const id = this.usuarioEditandoId();
@@ -247,7 +320,7 @@ export class UsuariosAdminComponent implements OnInit {
         apellidos: formVals.apellidos,
         telefono: formVals.telefono || null,
         rol: formVals.rol,
-        id_sucursal: formVals.id_sucursal,
+        ...sucursales,
       };
 
       this.usuariosService.actualizarUsuario(id, payload).subscribe({
@@ -267,7 +340,7 @@ export class UsuariosAdminComponent implements OnInit {
         apellidos: formVals.apellidos,
         telefono: formVals.telefono || null,
         rol: formVals.rol,
-        id_sucursal: formVals.id_sucursal,
+        ...sucursales,
       };
 
       this.usuariosService.crearUsuario(payload).subscribe({
@@ -398,7 +471,7 @@ export class UsuariosAdminComponent implements OnInit {
       case 'cajero':
         return 'Cajero';
       default:
-        return 'Cliente';
+        return rol;
     }
   }
 

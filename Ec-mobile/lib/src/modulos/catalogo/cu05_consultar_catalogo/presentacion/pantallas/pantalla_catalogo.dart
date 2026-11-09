@@ -3,6 +3,7 @@ import '../../datos/modelos/catalogo_dto.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/catalogo_bloc.dart';
 import '../../../../../core/empresa_actual.dart';
+import 'package:ec_mobile/src/core/moneda.dart';
 
 /// Pantalla Principal del Catálogo de Prendas (CU05) para FashionStore Móvil.
 ///
@@ -847,7 +848,7 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
                         children: [
                           if (prod.tieneDescuento) ...[
                             Text(
-                              '${prod.precioFinal.toStringAsFixed(0)} €',
+                              formatoImporte(prod.precioFinal),
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
@@ -856,7 +857,7 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${prod.precioBase.toStringAsFixed(0)} €',
+                              formatoImporte(prod.precioBase),
                               style: const TextStyle(
                                 fontSize: 10,
                                 decoration: TextDecoration.lineThrough,
@@ -865,7 +866,7 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
                             ),
                           ] else
                             Text(
-                              '${prod.precioBase.toStringAsFixed(0)} €',
+                              formatoImporte(prod.precioBase),
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,

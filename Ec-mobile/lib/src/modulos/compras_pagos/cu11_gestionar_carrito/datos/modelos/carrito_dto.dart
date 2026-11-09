@@ -108,7 +108,7 @@ class CarritoResumenDto {
   final double descuento;
   final double total;
 
-  /// IVA contenido en el total (21 %). Informativo: los precios ya lo incluyen.
+  /// IVA contenido en el total (13 %, Bolivia). Informativo: los precios ya lo incluyen.
   final double ivaIncluido;
   final String moneda;
 
@@ -119,7 +119,7 @@ class CarritoResumenDto {
     this.descuento = 0.0,
     this.total = 0.0,
     this.ivaIncluido = 0.0,
-    this.moneda = 'EUR',
+    this.moneda = 'BOB',
   });
 
   bool get tieneDescuento => descuento > 0;
@@ -132,7 +132,7 @@ class CarritoResumenDto {
       descuento: parsearImporte(json['descuento']),
       total: parsearImporte(json['total']),
       ivaIncluido: parsearImporte(json['iva_incluido']),
-      moneda: json['moneda'] as String? ?? 'EUR',
+      moneda: json['moneda'] as String? ?? 'BOB',
     );
   }
 }

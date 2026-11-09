@@ -155,9 +155,9 @@ describe('InicioComponent', () => {
     const productCards = compiled.querySelectorAll('article');
     expect(productCards.length).toBe(2);
     expect(compiled.textContent).toContain('Vestido plisado en seda natural');
-    expect(compiled.textContent).toContain('890 €');
+    expect(compiled.textContent).toContain('Bs 890,00');
     expect(compiled.textContent).toContain('Blazer estructurado en lana virgen');
-    expect(compiled.textContent).toContain('740 €');
+    expect(compiled.textContent).toContain('Bs 740,00');
   });
 
   it('debe renderizar el contenedor Empty State con el copy normativo si no tiene compras previas (CU18)', () => {

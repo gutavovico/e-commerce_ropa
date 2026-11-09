@@ -206,8 +206,8 @@ void main() {
       expect(find.text('ALTA COSTURA'), findsOneWidget);
 
       // 5. Verificar precios
-      expect(find.text('740 €'), findsOneWidget);
-      expect(find.text('712 €'), findsOneWidget);
+      expect(find.text('Bs 740,00'), findsOneWidget);
+      expect(find.text('Bs 712,00'), findsOneWidget);
 
       // 6. Verificar sello editorial inferior
       expect(find.text('ATELIER FLAGSHIP MADRID · PARÍS'), findsOneWidget);

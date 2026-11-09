@@ -8,6 +8,8 @@ class EmpresaOut(BaseModel):
 
     codigo: str = Field(..., examples=["fashionstore"])
     nombre: str = Field(..., examples=["FASHION STORE"])
+    #: Fix de P2-CU11 (M6): moneda de la tienda, para formatear sus importes.
+    moneda: str = Field("BOB", examples=["BOB"])
 
 
 class RegistroEnTiendaOut(BaseModel):

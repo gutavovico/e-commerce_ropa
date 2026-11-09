@@ -7,6 +7,8 @@
 export interface EmpresaPublica {
   codigo: string;
   nombre: string;
+  /** Fix de P2-CU11 (M6): moneda de la tienda. Opcional por las sesiones guardadas antes del fix. */
+  moneda?: 'BOB' | 'USD';
 }
 
 /** Respuesta de `POST /api/v1/mis-empresas` («Registrarme en esta tienda»). */

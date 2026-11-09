@@ -13,3 +13,4 @@ stripe>=11,<13
 python-multipart>=0.0.9
 openpyxl>=3.1.0
 reportlab>=4.0.0
+tzdata>=2024.1  # zoneinfo de America/La_Paz en cualquier entorno (fix P2-CU11)

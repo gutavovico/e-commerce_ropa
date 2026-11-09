@@ -1,6 +1,5 @@
 """Repositorio de acceso a datos para CU05: Consultar Catálogo de Productos."""
 
-from datetime import date
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
@@ -18,6 +17,7 @@ from modules.catalogo.modelos import (
     TallaORM,
     VarianteProductoORM,
 )
+from core.tiempo import hoy as hoy_empresa
 
 
 class CatalogoRepositorio:
@@ -142,7 +142,7 @@ class CatalogoRepositorio:
         if not ids_productos:
             return {}
 
-        hoy = date.today()
+        hoy = hoy_empresa()  # Bolivia (fix P2-CU11, M5)
         stmt = (
             select(
                 PromocionProductoORM.id_producto,
