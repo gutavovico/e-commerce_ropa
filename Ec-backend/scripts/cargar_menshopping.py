@@ -65,7 +65,7 @@ def validar_clave(clave: str) -> None:
 
 def cargar_datos(ruta: Path = ARCHIVO_DATOS) -> dict[str, Any]:
     datos = json.loads(ruta.read_text(encoding="utf-8"))
-    claves_sucursal = {s["clave"] for s in datos["sucursales"]}
+    claves_sucursal = {s["codigo"] for s in datos["sucursales"]}
     if len(datos["sucursales"]) != 2:
         raise CargaError("Menshopping tiene exactamente 2 sucursales (RF15).")
     if len(datos["prendas"]) != 4 or len({p["categoria"] for p in datos["prendas"]}) != 4:
@@ -101,9 +101,9 @@ def verificar_imagenes(datos: dict[str, Any], carpeta: Path = CARPETA_AR) -> Ima
         )
     imagenes = Imagenes()
     for p in datos["prendas"]:
-        imagenes.vestidor[p["clave"]] = f"/ar/{p['imagen_vestidor']}"
+        imagenes.vestidor[p["codigo"]] = f"/ar/{p['imagen_vestidor']}"
         catalogo = p.get("imagen_catalogo")
-        imagenes.catalogo[p["clave"]] = (
+        imagenes.catalogo[p["codigo"]] = (
             f"/ar/{catalogo}" if catalogo and (carpeta / catalogo).is_file() else f"/ar/{p['imagen_vestidor']}"
         )
     return imagenes
@@ -171,7 +171,7 @@ def cargar(conexion, datos: dict[str, Any], hash_clave: str, imagenes: Imagenes,
     # 3. Sucursales, categorías y temporada
     sucursales = {}
     for s in datos["sucursales"]:
-        sucursales[s["clave"]] = q(
+        sucursales[s["codigo"]] = q(
             f"INSERT INTO {S}.sucursales (id_tenant, id_ciudad, nombre, direccion, telefono, "
             f"horario_apertura, horario_cierre, activa) VALUES (:t, :c, :n, :d, :tel, '09:00', '20:00', true) "
             f"RETURNING id_sucursal",
@@ -211,7 +211,7 @@ def cargar(conexion, datos: dict[str, Any], hash_clave: str, imagenes: Imagenes,
             f"INSERT INTO {S}.productos (id_tenant, id_categoria, nombre, descripcion, precio_base, "
             f"imagen_url, modelo_ar_url, activo) VALUES (:t, :c, :n, :d, :pr, :img, :ar, true) RETURNING id_producto",
             t=t, c=categorias[p["categoria"]], n=p["nombre"], d=p["descripcion"], pr=Decimal(p["precio"]),
-            img=imagenes.catalogo[p["clave"]], ar=imagenes.vestidor[p["clave"]])
+            img=imagenes.catalogo[p["codigo"]], ar=imagenes.vestidor[p["codigo"]])
         resumen["productos"] += 1
         for talla in datos["tallas"]:
             id_variante = q(
@@ -225,7 +225,7 @@ def cargar(conexion, datos: dict[str, Any], hash_clave: str, imagenes: Imagenes,
                     f"INSERT INTO {S}.inventario_sucursal (id_tenant, id_variante, id_sucursal, id_temporada, "
                     f"cantidad_disponible, cantidad_reservada, stock_minimo, stock_alerta, estado) "
                     f"VALUES (:t, :v, :s, :tem, :c, 0, 0, 1, 'disponible') RETURNING id_inventario",
-                    t=t, v=id_variante, s=sucursales[s["clave"]], tem=id_temporada, c=cantidad)
+                    t=t, v=id_variante, s=sucursales[s["codigo"]], tem=id_temporada, c=cantidad)
                 q(f"INSERT INTO {S}.movimientos_inventario (id_tenant, id_inventario, tipo_movimiento, cantidad, "
                   f"id_usuario_responsable, referencia_documento, observacion, saldo_anterior, saldo_nuevo) "
                   f"VALUES (:t, :i, 'ingreso_proveedor', :c, :u, 'CARGA-RF15', "
@@ -244,10 +244,10 @@ def _url(destino: str) -> str:
     from dotenv import dotenv_values
 
     valores = {**dotenv_values(RAIZ_BACKEND / ".env"), **os.environ}
-    clave = "DATABASE_URL_PRUEBAS" if destino == "pruebas" else "DATABASE_URL_MIGRACIONES"
-    url = valores.get(clave)
+    variable_url = "DATABASE_URL_PRUEBAS" if destino == "pruebas" else "DATABASE_URL_MIGRACIONES"
+    url = valores.get(variable_url)
     if not url:
-        raise CargaError(f"Falta {clave} en Ec-backend/.env (dueño de la base: la carga escribe catálogos globales).")
+        raise CargaError(f"Falta {variable_url} en Ec-backend/.env (dueño de la base: la carga escribe catálogos globales).")
     return url.replace("postgresql://", "postgresql+psycopg://", 1) if url.startswith("postgresql://") else url
 
 

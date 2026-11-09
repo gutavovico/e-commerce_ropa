@@ -656,8 +656,8 @@ def test_rf15_carga_de_menshopping_aislada_de_fashion_store(mundo):
     for usuario in datos["usuarios"]:
         usuario["email"] = usuario["email"].replace("@menshopping.com", "@rf15-prueba.com")
     imagenes = carga.Imagenes(
-        vestidor={p["clave"]: f"/ar/{p['imagen_vestidor']}" for p in datos["prendas"]},
-        catalogo={p["clave"]: f"/ar/{p['imagen_vestidor']}" for p in datos["prendas"]},
+        vestidor={p["codigo"]: f"/ar/{p['imagen_vestidor']}" for p in datos["prendas"]},
+        catalogo={p["codigo"]: f"/ar/{p['imagen_vestidor']}" for p in datos["prendas"]},
     )
     resumen = carga.cargar(c, datos, PasswordHasher().hash(CLAVE_PRUEBA), imagenes, date(2026, 11, 9))
     t = resumen["id_tenant"]

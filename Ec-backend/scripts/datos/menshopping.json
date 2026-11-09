@@ -12,7 +12,7 @@
   ],
   "sucursales": [
     {
-      "clave": "santacruz",
+      "codigo": "santacruz",
       "nombre": "Menshopping Santa Cruz",
       "ciudad": "Santa Cruz de la Sierra",
       "direccion": "Dirección por confirmar",
@@ -20,7 +20,7 @@
       "unidades_por_prenda": 10
     },
     {
-      "clave": "beni",
+      "codigo": "beni",
       "nombre": "Menshopping Beni",
       "ciudad": "Trinidad",
       "direccion": "Dirección por confirmar",
@@ -32,7 +32,7 @@
   "tallas": ["M", "L"],
   "prendas": [
     {
-      "clave": "camiseta",
+      "codigo": "camiseta",
       "categoria": "Camisetas",
       "nombre": "Camiseta básica negra",
       "descripcion": "Camiseta de hombre en algodón, cuello redondo y manga corta, corte recto.",
@@ -43,7 +43,7 @@
       "imagen_catalogo": "menshopping_camiseta_catalogo.jpg"
     },
     {
-      "clave": "pantalon",
+      "codigo": "pantalon",
       "categoria": "Pantalones",
       "nombre": "Pantalón chino azul marino",
       "descripcion": "Pantalón chino de hombre en sarga de algodón, corte recto y bolsillos laterales.",
@@ -54,7 +54,7 @@
       "imagen_catalogo": "menshopping_pantalon_catalogo.jpg"
     },
     {
-      "clave": "camisa",
+      "codigo": "camisa",
       "categoria": "Camisas formales",
       "nombre": "Camisa formal blanca",
       "descripcion": "Camisa formal de hombre en popelina de algodón, cuello clásico y puño de botón.",
@@ -65,7 +65,7 @@
       "imagen_catalogo": "menshopping_camisa_catalogo.jpg"
     },
     {
-      "clave": "pantalon_gala",
+      "codigo": "pantalon_gala",
       "categoria": "Pantalones de gala",
       "nombre": "Pantalón de gala negro",
       "descripcion": "Pantalón de vestir de hombre en lana fría, con raya marcada y pretina con botón.",
