@@ -121,7 +121,7 @@ describe('LoginComponent (CU02 - Iniciar Sesión)', () => {
 
     component.formulario.setValue({
       email: 'superadmin@fashionstore.com',
-      password: 'SuperAdmin2026!',
+      password: 'Password123!',
       recordarDispositivo: false,
     });
     component.onSubmit();

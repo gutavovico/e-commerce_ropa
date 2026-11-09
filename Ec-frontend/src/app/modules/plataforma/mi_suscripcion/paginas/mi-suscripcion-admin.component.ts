@@ -61,7 +61,7 @@ export class MiSuscripcionAdminComponent implements OnInit {
     const tc = Number(this.resumen()?.empresa?.tipo_cambio_bob);
     if (tc && tc > 0) return tc;
     const moneda = (this.resumen()?.empresa?.moneda || 'BOB').toUpperCase();
-    if (moneda === 'EUR') return 7.5;
+    if (moneda === 'BOB') return 1;
     return 6.96;
   });
 

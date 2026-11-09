@@ -40,7 +40,12 @@ from modules.plataforma.cu08_catalogos_globales.esquemas import (
 )
 from modules.plataforma.cu08_catalogos_globales.repositorio import CatalogosGlobalesRepositorio
 from modules.plataforma.cu08_catalogos_globales.servicio import CatalogosGlobalesServicio
-from modules.plataforma.dependencias import exigir_super_administrador
+from modules.plataforma.dependencias import (
+    CONTRASENAS_SUPERADMIN_BLOQUEADAS_SHA256,
+    HASHES_SUPERADMIN_REVOCADOS_SHA256,
+    exigir_super_administrador,
+    validar_contrasena_superadmin_segura,
+)
 
 
 class SesionFalsa:
@@ -93,6 +98,65 @@ def test_ac01_exigir_super_administrador_activa_modo_plataforma(super_admin):
     assert db.info[CLAVE_TENANT] is None
     assert db.info[CLAVE_USUARIO] == 999
     assert db.info[CLAVE_PLATAFORMA] is True
+
+
+def test_ac01_migracion_0017_no_contiene_credenciales_ni_semilla_superadmin():
+    from pathlib import Path
+
+    ruta_migracion = (
+        Path(__file__).resolve().parents[3] / "alembic" / "versions" / "0017_superadmin_catalogos.py"
+    )
+    contenido = ruta_migracion.read_text(encoding="utf-8")
+    assert "INSERT INTO" not in contenido
+    assert "$argon2id" not in contenido
+    assert "SUPERADMIN_HASH" not in contenido
+
+
+def test_ac01_seguridad_superadmin_bloquea_credenciales_revocadas(monkeypatch):
+    import hashlib
+    import modules.plataforma.dependencias as dep
+
+    assert (
+        "4a7372bd055b0d93fbd42915bd03a7d6a58c81f9e0be5ac9fe8f57c2b5c359b5"
+        in CONTRASENAS_SUPERADMIN_BLOQUEADAS_SHA256
+    )
+    assert (
+        "a64ab3309bfd41cb1b4505ff5d6dad17e3cea4162da8becbb33f4a5f94dc9e47"
+        in HASHES_SUPERADMIN_REVOCADOS_SHA256
+    )
+
+    clave_comprometida_simulada = "ClaveFiltradaEnGit#2099"
+    digest_clave = hashlib.sha256(clave_comprometida_simulada.encode("utf-8")).hexdigest()
+    monkeypatch.setattr(
+        dep,
+        "CONTRASENAS_SUPERADMIN_BLOQUEADAS_SHA256",
+        frozenset({digest_clave}),
+    )
+    with pytest.raises(ValueError, match="bloqueada permanentemente"):
+        validar_contrasena_superadmin_segura(clave_comprometida_simulada)
+
+    with pytest.raises(ValueError, match="al menos 12 caracteres"):
+        validar_contrasena_superadmin_segura("Corta1!")
+
+    validar_contrasena_superadmin_segura("NuevaClavePrivada#2026Segura")
+
+    hash_revocado_simulado = "$argon2id$v=19$m=65536,t=3,p=4$simulado$revocado"
+    digest_hash = hashlib.sha256(hash_revocado_simulado.encode("utf-8")).hexdigest()
+    monkeypatch.setattr(
+        dep,
+        "HASHES_SUPERADMIN_REVOCADOS_SHA256",
+        frozenset({digest_hash}),
+    )
+    db = SesionFalsa()
+    usuario_revocado = SimpleNamespace(
+        id_usuario=999,
+        email="superadmin@fashionstore.com",
+        rol="super_administrador",
+        password_hash=hash_revocado_simulado,
+    )
+    with pytest.raises(AuthorizationError) as exc:
+        exigir_super_administrador(usuario=usuario_revocado, db=db)  # type: ignore[arg-type]
+    assert exc.value.code == "CREDENCIAL_REVOCADA"
 
 
 # ---------------------------------------------------------------------------
