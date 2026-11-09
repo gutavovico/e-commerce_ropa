@@ -169,6 +169,9 @@ class HealthResponse(BaseModel):
 from modules.autenticacion_seguridad.cu04_gestionar_perfil.router import (
     router as router_perfil,
 )
+from modules.autenticacion_seguridad.cu04_perfil_empleado.router import (
+    router as router_perfil_empleado,
+)
 from modules.autenticacion_seguridad.cu20_usuarios_roles.router import (
     router as router_usuarios_admin,
 )
@@ -189,6 +192,7 @@ app.include_router(router_catalogo, prefix="/api/v1")
 app.include_router(router_comercial, prefix="/api/v1")
 app.include_router(router_gestion_operativa, prefix="/api/v1")
 app.include_router(router_usuarios_admin, prefix="/api/v1")
+app.include_router(router_perfil_empleado, prefix="/api/v1")
 app.include_router(router_reservas, prefix="/api/v1")
 app.include_router(router_compras_pagos, prefix="/api/v1")
 app.include_router(router_bitacora, prefix="/api/v1")

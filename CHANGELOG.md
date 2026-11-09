@@ -4,6 +4,17 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ## [Unreleased] - 2026-11-09 (Parcial 2)
 
+### Fix · «Mi perfil» del empleado (defecto sin numerar: se numera al fusionar)
+- **Causa:**
+  - «MI CUENTA» en el dashboard, productos, categorías y sucursales enlazaba a `/perfil`, una ruta antigua del cliente que desde P2-CU02 redirige al directorio de tiendas.
+  - `/admin/perfil` (desde el 2026-09-22) reutilizaba la pantalla de perfil del cliente: `GET /api/v1/perfil` solo admite clientes y respondía 403 a cualquier empleado. La pantalla mostraba entonces sus textos fijos de FASHION STORE («Consola Administrativa Corporativa», «12 módulos», foto y tallas de mujer).
+  - Un empleado no tenía forma de cambiar su propia contraseña.
+- **Solución:**
+  - `GET/PATCH /api/v1/mi-perfil-empleado` para administrador, encargado y cajero: datos, rol, empresa con su moneda y sucursales autorizadas (RN07).
+  - `POST /api/v1/mi-perfil-empleado/contrasena`: cambio de la propia contraseña pidiendo la actual; la bitácora nunca guarda contraseñas.
+  - Página «Mi perfil» en `/admin/perfil`, con la marca de la empresa del empleado; los enlaces del panel apuntan a ella y el cajero entra desde la caja. El perfil del cliente queda solo para clientes.
+- **Pruebas:** 10 unitarias y 2 de integración contra la rama de pruebas (empresa y sucursales reales; cambio de contraseña con login posterior); 6 de web.
+
 ### Integración continua y revisión obligatoria de PR
 - **Motivo:** el PR #2 se fusionó en `main` con solo los checks de Vercel. Traía una migración (`0017`) con el hash y la contraseña en claro del super administrador en un repositorio público, y tres migraciones sin aplicar en producción. Ninguna de las pruebas locales se ejecutaba en GitHub.
 - **CI** (`.github/workflows/ci.yml`): backend, migraciones en un PostgreSQL temporal (cadena completa, `downgrade`/`upgrade` y `test_esquema_bd`), integración contra `pruebas-multitenant`, web, móvil y guardas (`.github/scripts/guardas.sh` y gitleaks). No toca producción.

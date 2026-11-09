@@ -183,13 +183,14 @@ export const routes: Routes = [
     title: 'FASHION STORE | Generar reportes ejecutivos y consultas por voz',
   },
   {
+    // «Mi perfil» del empleado; el perfil del cliente solo admite clientes (GET /perfil → 403)
     path: 'admin/perfil',
-    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal', 'cajero'])],
     loadComponent: () =>
       import(
-        './modules/autenticacion_seguridad/cu04_gestionar_perfil/paginas/perfil.component'
-      ).then((m) => m.PerfilComponent),
-    title: 'FASHION STORE | Perfil Institucional Administrador',
+        './modules/autenticacion_seguridad/cu04_perfil_empleado/paginas/perfil-empleado.component'
+      ).then((m) => m.PerfilEmpleadoComponent),
+    title: 'Mi perfil',
   },
   {
     path: 'admin/plataforma',

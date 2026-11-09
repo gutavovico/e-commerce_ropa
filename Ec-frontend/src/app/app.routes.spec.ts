@@ -136,6 +136,13 @@ describe('app.routes', () => {
     expect(indice).toBeLessThan(routes.findIndex((r) => r.path === ':codigo'));
   });
 
+  it('/admin/perfil es el perfil del empleado (cajero incluido), no el del cliente', async () => {
+    const ruta = routes.find((r) => r.path === 'admin/perfil');
+    expect(ruta?.canActivate?.length).toBe(2);
+    const componente = await (ruta?.loadComponent as () => Promise<unknown>)();
+    expect((componente as { name: string }).name).toContain('PerfilEmpleadoComponent');
+  });
+
   it('existe una ruta comodín al final que evita la pantalla en blanco ante una URL desconocida', () => {
     const comodin = routes.find((ruta) => ruta.path === '**');
     expect(comodin).toBeDefined();
