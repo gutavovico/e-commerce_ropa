@@ -1,0 +1,740 @@
+<div class="min-h-screen bg-[#F9F6F0] text-black font-sans">
+  <!-- Cabecera Editorial de Aprendizaje Automático (P2-CU23, P2-CU24, P2-CU25) -->
+  <header class="bg-black text-[#F9F6F0] border-b border-black/15">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-widest text-[#D4AF37] font-semibold">
+          Analítica Predictiva &amp; Segmentación · Moneda: Bolivianos (Bs. / BOB) · T.C. 1 USD = {{ tipoCambioBob() }} Bs.
+        </p>
+        <h1 class="text-2xl md:text-3xl font-serif tracking-wide mt-1">
+          Aprendizaje Automático (CU23 · CU24 · CU25)
+        </h1>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a
+          routerLink="/admin/reportes-ia"
+          class="px-4 py-2 text-xs uppercase tracking-widest border border-white/30 hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors"
+        >
+          Reportes con IA (CU21)
+        </a>
+        <a
+          routerLink="/admin/dashboard"
+          class="px-4 py-2 text-xs uppercase tracking-widest bg-[#D4AF37] text-black font-semibold hover:bg-[#e3be42] transition-colors"
+        >
+          Volver al Dashboard
+        </a>
+      </div>
+    </div>
+
+    <!-- Navegación por pestañas (CU23, CU24, CU25) -->
+    <nav class="max-w-7xl mx-auto px-6 flex flex-wrap gap-1 border-t border-white/10">
+      <button
+        type="button"
+        id="tab-ml-cu23"
+        (click)="cambiarPestana('datos_modelos')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'datos_modelos'"
+        [class.text-black]="pestanaActiva() === 'datos_modelos'"
+        [class.text-white/75]="pestanaActiva() !== 'datos_modelos'"
+        class="px-5 py-3 text-xs uppercase tracking-widest font-semibold transition-colors"
+      >
+        1. Gestionar Datos y Modelos (CU23)
+      </button>
+      <button
+        type="button"
+        id="tab-ml-cu24"
+        (click)="cambiarPestana('predicciones')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'predicciones'"
+        [class.text-black]="pestanaActiva() === 'predicciones'"
+        [class.text-white/75]="pestanaActiva() !== 'predicciones'"
+        class="px-5 py-3 text-xs uppercase tracking-widest font-semibold transition-colors"
+      >
+        2. Consultar Predicciones (CU24)
+      </button>
+      <button
+        type="button"
+        id="tab-ml-cu25"
+        (click)="cambiarPestana('segmentos')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'segmentos'"
+        [class.text-black]="pestanaActiva() === 'segmentos'"
+        [class.text-white/75]="pestanaActiva() !== 'segmentos'"
+        class="px-5 py-3 text-xs uppercase tracking-widest font-semibold transition-colors"
+      >
+        3. Segmentos de Clientes (CU25)
+      </button>
+    </nav>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    @if (mensajeExito()) {
+      <div class="border border-emerald-800 bg-emerald-50 text-emerald-950 px-5 py-3 flex items-center justify-between text-sm">
+        <span>{{ mensajeExito() }}</span>
+        <button type="button" (click)="limpiarMensajes()" class="text-xs uppercase tracking-widest underline">
+          Cerrar
+        </button>
+      </div>
+    }
+
+    @if (mensajeError()) {
+      <div class="border border-red-800 bg-red-50 text-red-950 px-5 py-3 flex items-center justify-between text-sm">
+        <span>{{ mensajeError() }}</span>
+        <button type="button" (click)="limpiarMensajes()" class="text-xs uppercase tracking-widest underline">
+          Cerrar
+        </button>
+      </div>
+    }
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 1: GESTIONAR DATOS Y MODELOS DE APRENDIZAJE (P2-CU23)           -->
+    <!-- ======================================================================= -->
+    @if (pestanaActiva() === 'datos_modelos') {
+      @if (resumen(); as ctx) {
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-white border border-black/15 p-4">
+            <p class="text-xs uppercase tracking-wider text-black/60">Empresa</p>
+            <p class="text-lg font-serif font-semibold mt-1">{{ ctx.nombre_empresa }}</p>
+            <p class="text-xs text-black/60 font-mono mt-1">
+              Moneda: {{ ctx.simbolo_moneda }} ({{ ctx.moneda }}) · T.C. {{ ctx.tipo_cambio_bob }} Bs./USD
+            </p>
+          </div>
+          <div class="bg-white border border-black/15 p-4">
+            <p class="text-xs uppercase tracking-wider text-black/60">Registros Reales</p>
+            <p class="text-lg font-serif font-semibold mt-1">
+              {{ ctx.registros_reales_ventas }} ventas · {{ ctx.registros_reales_clientes }} clientas
+            </p>
+            <p class="text-xs text-black/60 mt-1">Base histórica de la empresa</p>
+          </div>
+          <div class="bg-white border border-black/15 p-4">
+            <p class="text-xs uppercase tracking-wider text-black/60">Modelo Supervisado Activo (CU24)</p>
+            <p class="text-sm font-serif font-semibold mt-1">
+              {{ ctx.modelo_supervisado_activo?.nombre || 'Ninguno activo' }}
+            </p>
+            <p class="text-xs text-black/60 mt-1">
+              {{ ctx.modelo_supervisado_activo ? 'Origen: ' + ctx.modelo_supervisado_activo.origen_datos : 'Entrena y activa uno abajo' }}
+            </p>
+          </div>
+          <div class="bg-white border border-black/15 p-4">
+            <p class="text-xs uppercase tracking-wider text-black/60">Modelo No Supervisado Activo (CU25)</p>
+            <p class="text-sm font-serif font-semibold mt-1">
+              {{ ctx.modelo_no_supervisado_activo?.nombre || 'Ninguno activo' }}
+            </p>
+            <p class="text-xs text-black/60 mt-1">
+              {{ ctx.modelo_no_supervisado_activo ? 'Origen: ' + ctx.modelo_no_supervisado_activo.origen_datos : 'Entrena y activa uno abajo' }}
+            </p>
+          </div>
+        </section>
+      }
+
+      <!-- Paso 1 a 3: Crear Conjunto de Datos y Preprocesamiento (CU23) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section class="bg-white border border-black/15 p-6 space-y-4">
+          <div class="border-b border-black/10 pb-3">
+            <span class="text-xs uppercase tracking-widest text-[#D4AF37] bg-black px-2 py-0.5 font-semibold">
+              CU23 · Pasos 1 a 3
+            </span>
+            <h2 class="text-lg font-serif font-semibold mt-2">
+              Crear Conjunto de Datos y Preprocesar Variables
+            </h2>
+            <p class="text-xs text-black/65">
+              Elige el origen (`sintetico`, `real` o `mixto`), define los parámetros y ejecuta limpieza, codificación y escala en Bolivianos (Bs. / BOB).
+            </p>
+          </div>
+
+          <form [formGroup]="formDataset" (ngSubmit)="crearDataset()" class="space-y-4">
+            <div>
+              <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">
+                Nombre del Conjunto de Datos *
+              </label>
+              <input
+                type="text"
+                formControlName="nombre"
+                class="w-full border border-black/25 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">
+                  Origen (RN49) *
+                </label>
+                <select
+                  formControlName="origen"
+                  class="w-full border border-black/25 px-3 py-2 text-xs bg-white"
+                >
+                  <option value="sintetico">Sintético (Simulado)</option>
+                  <option value="mixto">Mixto (Real + Sintético)</option>
+                  <option value="real">Solo Datos Reales</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">
+                  Registros Sintéticos
+                </label>
+                <input
+                  type="number"
+                  formControlName="cantidad_registros_sinteticos"
+                  class="w-full border border-black/25 px-3 py-2 text-xs font-mono"
+                />
+              </div>
+              <div>
+                <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">
+                  Horizonte (Meses)
+                </label>
+                <input
+                  type="number"
+                  formControlName="horizonte_meses"
+                  class="w-full border border-black/25 px-3 py-2 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <p class="text-xs uppercase tracking-wider text-black/70 mb-2">
+                Variables a Preprocesar (Limpieza, Codificación y Escala) *
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                @for (v of resumen()?.variables_disponibles ?? []; track v.codigo) {
+                  <label class="flex items-center gap-2 text-xs bg-[#F9F6F0] border border-black/15 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      [checked]="variablesDatasetSeleccionadas().includes(v.codigo)"
+                      (change)="toggleVariableDataset(v.codigo)"
+                    />
+                    <span>{{ v.etiqueta }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              id="btn-crear-dataset-ml"
+              [disabled]="procesando()"
+              class="w-full py-2.5 bg-black text-[#D4AF37] text-xs uppercase tracking-widest font-semibold hover:bg-black/85"
+            >
+              {{ procesando() ? 'Generando y Preprocesando...' : 'Generar y Preprocesar Conjunto de Datos' }}
+            </button>
+          </form>
+        </section>
+
+        <!-- Paso 4 a 6: Entrenar y Evaluar Modelo Supervisado o No Supervisado -->
+        <section class="bg-white border border-black/15 p-6 space-y-4">
+          <div class="border-b border-black/10 pb-3">
+            <span class="text-xs uppercase tracking-widest text-[#D4AF37] bg-black px-2 py-0.5 font-semibold">
+              CU23 · Pasos 4 a 7 · RN49
+            </span>
+            <h2 class="text-lg font-serif font-semibold mt-2">
+              Entrenar y Evaluar Modelo de Aprendizaje
+            </h2>
+            <p class="text-xs text-black/65">
+              Entrena un modelo supervisado (con variable objetivo obligatoria) o no supervisado (clustering de clientas) y guarda sus métricas de entrenamiento, validación y prueba.
+            </p>
+          </div>
+
+          <form [formGroup]="formModelo" (ngSubmit)="entrenarModelo()" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">
+                  Conjunto de Datos Base *
+                </label>
+                <select
+                  formControlName="id_dataset"
+                  class="w-full border border-black/25 px-3 py-2 text-xs bg-white"
+                >
+                  <option [ngValue]="null">Selecciona un dataset...</option>
+                  @for (ds of datasetsDisponibles(); track ds.id_dataset) {
+                    <option [ngValue]="ds.id_dataset">
+                      #{{ ds.id_dataset }} · {{ ds.nombre }} ({{ ds.origen }} · {{ ds.cantidad_registros }} reg.)
+                    </option>
+                  }
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">
+                  Tipo de Modelo *
+                </label>
+                <select
+                  formControlName="tipo_modelo"
+                  class="w-full border border-black/25 px-3 py-2 text-xs bg-white"
+                >
+                  <option value="supervisado">Supervisado (Predicción Demanda / Ingresos Bs.)</option>
+                  <option value="no_supervisado">No Supervisado (Segmentación de Clientas RFM)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">
+                Nombre del Modelo *
+              </label>
+              <input
+                type="text"
+                formControlName="nombre"
+                class="w-full border border-black/25 px-3 py-2 text-sm"
+              />
+            </div>
+
+            @if (formModelo.get('tipo_modelo')?.value === 'supervisado') {
+              <div>
+                <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">
+                  Variable Objetivo Supervisada (CU23 A2 · RN49) *
+                </label>
+                <select
+                  formControlName="variable_objetivo"
+                  class="w-full border border-black/25 px-3 py-2 text-xs bg-white"
+                >
+                  @for (vo of resumen()?.variables_objetivo_supervisado ?? []; track vo.codigo) {
+                    <option [value]="vo.codigo">{{ vo.etiqueta }}</option>
+                  }
+                </select>
+              </div>
+            } @else {
+              <div>
+                <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">
+                  Número de Segmentos / Clusters (K-Means)
+                </label>
+                <input
+                  type="number"
+                  min="2"
+                  max="6"
+                  formControlName="numero_clusters"
+                  class="w-full border border-black/25 px-3 py-2 text-xs font-mono"
+                />
+              </div>
+            }
+
+            <label class="flex items-center gap-2 text-xs pt-1">
+              <input type="checkbox" formControlName="activar_inmediatamente" />
+              <span>Activar modelo automáticamente tras evaluar sus métricas (disponible para CU24 / CU25)</span>
+            </label>
+
+            <button
+              type="submit"
+              id="btn-entrenar-modelo-ml"
+              [disabled]="procesando()"
+              class="w-full py-2.5 bg-black text-[#F9F6F0] text-xs uppercase tracking-widest font-semibold hover:bg-black/85"
+            >
+              {{ procesando() ? 'Entrenando y Evaluando...' : 'Entrenar y Evaluar Modelo' }}
+            </button>
+          </form>
+        </section>
+      </div>
+
+      <!-- Resumen de Preprocesamiento del Dataset Seleccionado -->
+      @if (datasetDetalle(); as ds) {
+        <section class="bg-white border border-black/15 p-5 space-y-3">
+          <div class="flex items-center justify-between border-b border-black/10 pb-2">
+            <h3 class="text-sm font-serif font-semibold">
+              Preprocesamiento Ejecutado · Dataset #{{ ds.id_dataset }} «{{ ds.nombre }}» (Origen: {{ ds.origen | uppercase }})
+            </h3>
+            <button type="button" (click)="datasetDetalle.set(null)" class="text-xs underline">
+              Ocultar
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono bg-[#F9F6F0] p-3 border border-black/10">
+            <div>
+              <strong>Limpieza:</strong> {{ ds.resumen_preprocesamiento['limpieza_nulos'] | json }}
+            </div>
+            <div>
+              <strong>Codificación:</strong> {{ ds.resumen_preprocesamiento['codificacion_categorica'] | json }}
+            </div>
+            <div>
+              <strong>Escalado (Bs. BOB):</strong> {{ ds.resumen_preprocesamiento['escalado_numerico'] | json }}
+            </div>
+          </div>
+        </section>
+      }
+
+      <!-- Tabla de Modelos Entrenados y Métricas por Subconjunto (RN49) -->
+      <section class="bg-white border border-black/15 p-6 space-y-4">
+        <div>
+          <h2 class="text-lg font-serif font-semibold">
+            Modelos Entrenados y Métricas de Evaluación (Entrenamiento · Validación · Prueba — RN49)
+          </h2>
+          <p class="text-xs text-black/65">
+            Revisa las métricas antes de activar un modelo o archívalo sin perder su historial (CU23 A4 y A5).
+          </p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-black/15 bg-black/5 text-xs uppercase tracking-wider">
+                <th class="p-3">Modelo / Algoritmo</th>
+                <th class="p-3">Tipo / Origen</th>
+                <th class="p-3">Métricas Entrenamiento</th>
+                <th class="p-3">Métricas Validación</th>
+                <th class="p-3">Métricas Prueba</th>
+                <th class="p-3">Estado</th>
+                <th class="p-3 text-right">Acciones (CU23)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-black/10">
+              @for (mod of modelosRegistrados(); track mod.id_modelo) {
+                <tr>
+                  <td class="p-3 text-xs">
+                    <div class="font-semibold">{{ mod.nombre }}</div>
+                    <div class="text-black/60 font-mono">{{ mod.algoritmo }}</div>
+                    @if (mod.variable_objetivo) {
+                      <div class="text-black/70">Objetivo: <code>{{ mod.variable_objetivo }}</code></div>
+                    }
+                  </td>
+                  <td class="p-3 text-xs uppercase font-mono">
+                    <div>{{ mod.tipo_modelo }}</div>
+                    <div class="text-black/60">Datos: {{ mod.origen_datos }}</div>
+                  </td>
+                  <td class="p-3 text-xs font-mono">
+                    @if (mod.tipo_modelo === 'supervisado') {
+                      R²={{ mod.metricas_entrenamiento['r2'] }} · RMSE={{ mod.metricas_entrenamiento['rmse'] }}
+                    } @else {
+                      Silhouette={{ mod.metricas_entrenamiento['silhouette_score'] }}
+                    }
+                  </td>
+                  <td class="p-3 text-xs font-mono">
+                    @if (mod.tipo_modelo === 'supervisado') {
+                      R²={{ mod.metricas_validacion['r2'] }} · RMSE={{ mod.metricas_validacion['rmse'] }}
+                    } @else {
+                      Silhouette={{ mod.metricas_validacion['silhouette_score'] }}
+                    }
+                  </td>
+                  <td class="p-3 text-xs font-mono">
+                    @if (mod.tipo_modelo === 'supervisado') {
+                      R²={{ mod.metricas_prueba['r2'] }} · RMSE={{ mod.metricas_prueba['rmse'] }}
+                    } @else {
+                      Silhouette={{ mod.metricas_prueba['silhouette_score'] }}
+                    }
+                  </td>
+                  <td class="p-3 text-xs">
+                    <span
+                      class="px-2 py-0.5 text-xs uppercase tracking-wider font-semibold"
+                      [class.bg-emerald-900]="mod.activo"
+                      [class.text-white]="mod.activo"
+                      [class.bg-black/10]="!mod.activo"
+                    >
+                      {{ mod.activo ? 'ACTIVO' : mod.estado | uppercase }}
+                    </span>
+                  </td>
+                  <td class="p-3 text-right space-x-3 whitespace-nowrap">
+                    @if (!mod.activo && mod.estado !== 'fallido') {
+                      <button
+                        type="button"
+                        (click)="activarModelo(mod)"
+                        class="text-xs uppercase tracking-wider underline font-semibold text-emerald-900"
+                      >
+                        Activar
+                      </button>
+                    }
+                    @if (mod.estado !== 'archivado') {
+                      <button
+                        type="button"
+                        (click)="archivarModelo(mod)"
+                        class="text-xs uppercase tracking-wider underline text-black/70"
+                      >
+                        Archivar (A5)
+                      </button>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="p-6 text-center text-xs text-black/60">
+                    Aún no se han entrenado modelos en tu empresa. Crea un dataset y entrena un modelo arriba.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 2: CONSULTAR PREDICCIONES (P2-CU24 · RN50)                      -->
+    <!-- ======================================================================= -->
+    @if (pestanaActiva() === 'predicciones') {
+      @if (consultaPredicciones(); as pred) {
+        @if (!pred.tiene_modelo_activo) {
+          <!-- Curso Alterno CU24 A1 -->
+          <section class="bg-white border-2 border-amber-700 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <span class="px-2 py-0.5 bg-amber-800 text-white text-xs uppercase tracking-widest font-semibold">
+                CU24 A1 · Sin Modelo Supervisado Activo
+              </span>
+              <h2 class="text-lg font-serif font-semibold mt-2">{{ pred.mensaje_estado }}</h2>
+            </div>
+            <button
+              type="button"
+              (click)="cambiarPestana('datos_modelos')"
+              class="px-5 py-2.5 bg-black text-[#D4AF37] text-xs uppercase tracking-widest font-semibold"
+            >
+              Ir a Gestionar Modelos (CU23)
+            </button>
+          </section>
+        } @else {
+          <!-- Curso Alterno CU24 A3: Aviso de datos sintéticos -->
+          @if (pred.aviso_datos_sinteticos) {
+            <div class="bg-amber-50 border border-amber-700 px-5 py-3 text-xs text-amber-950">
+              <strong>{{ pred.mensaje_datos_sinteticos }}</strong>
+            </div>
+          }
+
+          <!-- Información del Modelo Activo y Métricas de Confianza -->
+          @if (pred.modelo_activo; as mod) {
+            <section class="bg-white border border-black/15 p-5 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <p class="text-xs uppercase tracking-wider text-black/60">Modelo Supervisado Activo</p>
+                <p class="text-base font-serif font-semibold mt-1">{{ mod.nombre }}</p>
+                <p class="text-xs font-mono text-black/60">Origen: {{ mod.origen_datos | uppercase }}</p>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-wider text-black/60">Métrica Entrenamiento / Prueba</p>
+                <p class="text-base font-mono font-semibold mt-1">
+                  R² {{ mod.metricas_entrenamiento['r2'] }} / {{ mod.metricas_prueba['r2'] }}
+                </p>
+                <p class="text-xs text-black/60">Error RMSE: {{ mod.metricas_prueba['rmse'] }}</p>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-wider text-black/60">Demanda Total Esperada</p>
+                <p class="text-xl font-serif font-semibold mt-1">
+                  {{ pred.resumen_kpis_bob['demanda_total_unidades'] }} unid.
+                </p>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-wider text-black/60">Ingresos Proyectados (Bs. / BOB)</p>
+                <p class="text-xl font-serif font-semibold mt-1">
+                  Bs. {{ pred.resumen_kpis_bob['ingresos_proyectados_bob'] | number: '1.2-2' }}
+                </p>
+                <p class="text-xs font-mono text-black/60">
+                  Eq. USD {{ pred.resumen_kpis_bob['equivalente_proyectado_usd'] | number: '1.2-2' }} (T.C. {{ pred.tipo_cambio_bob }})
+                </p>
+              </div>
+            </section>
+          }
+
+          <!-- Filtros de Predicciones (Producto, Sucursal, Período) -->
+          <section class="bg-white border border-black/15 p-5 flex flex-wrap items-end gap-4">
+            <div class="flex-1 min-w-44">
+              <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">Producto</label>
+              <select
+                [ngModel]="filtroPredProducto()"
+                (ngModelChange)="filtroPredProducto.set($event)"
+                class="w-full border border-black/25 px-3 py-2 text-xs bg-white"
+              >
+                <option [ngValue]="null">Todos los productos</option>
+                @for (p of resumen()?.productos_empresa ?? []; track p.id_producto) {
+                  <option [ngValue]="p.id_producto">{{ p.nombre }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="flex-1 min-w-44">
+              <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">Sucursal</label>
+              <select
+                [ngModel]="filtroPredSucursal()"
+                (ngModelChange)="filtroPredSucursal.set($event)"
+                class="w-full border border-black/25 px-3 py-2 text-xs bg-white"
+              >
+                <option [ngValue]="null">Todas las sucursales</option>
+                @for (s of resumen()?.sucursales_empresa ?? []; track s.id_sucursal) {
+                  <option [ngValue]="s.id_sucursal">{{ s.nombre }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="flex-1 min-w-44">
+              <label class="block text-xs uppercase tracking-wider text-black/70 mb-1">Período</label>
+              <select
+                [ngModel]="filtroPredPeriodo()"
+                (ngModelChange)="filtroPredPeriodo.set($event)"
+                class="w-full border border-black/25 px-3 py-2 text-xs bg-white"
+              >
+                <option value="">Todos los períodos</option>
+                @for (per of pred.periodos_disponibles; track per) {
+                  <option [value]="per">{{ per }}</option>
+                }
+              </select>
+            </div>
+
+            <button
+              type="button"
+              (click)="cargarPredicciones()"
+              class="px-5 py-2 bg-black text-[#D4AF37] text-xs uppercase tracking-widest font-semibold"
+            >
+              Filtrar Predicciones
+            </button>
+          </section>
+
+          <!-- Tabla y Gráfico de Barras de Probabilidad (RN50: 0 a 1) -->
+          <section class="bg-white border border-black/15 overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-black/15 bg-black text-[#F9F6F0] text-xs uppercase tracking-wider">
+                  <th class="p-3">Prenda</th>
+                  <th class="p-3">Sucursal</th>
+                  <th class="p-3">Período</th>
+                  <th class="p-3">Demanda Esperada</th>
+                  <th class="p-3">Ingresos Esperados (Bs. BOB)</th>
+                  <th class="p-3">Equivalente USD</th>
+                  <th class="p-3">Probabilidad (0 a 1 · RN50)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-black/10">
+                @for (item of pred.predicciones; track item.id_prediccion) {
+                  <tr>
+                    <td class="p-3 text-xs font-semibold">{{ item.nombre_producto }}</td>
+                    <td class="p-3 text-xs">{{ item.nombre_sucursal }}</td>
+                    <td class="p-3 text-xs font-mono">{{ item.periodo }}</td>
+                    <td class="p-3 text-xs font-mono font-semibold">{{ item.demanda_esperada }} unid.</td>
+                    <td class="p-3 text-xs font-mono font-semibold">
+                      Bs. {{ item.ingresos_esperados_bob | number: '1.2-2' }}
+                    </td>
+                    <td class="p-3 text-xs font-mono text-black/65">
+                      USD {{ item.equivalente_usd | number: '1.2-2' }}
+                    </td>
+                    <td class="p-3 text-xs">
+                      <div class="flex items-center gap-2">
+                        <span class="font-mono font-semibold">{{ item.probabilidad }}</span>
+                        <div class="w-24 bg-black/10 h-2.5 overflow-hidden">
+                          <div
+                            class="bg-black h-2.5"
+                            [style.width.%]="porcentajeProbabilidad(item.probabilidad)"
+                          ></div>
+                        </div>
+                        <span class="text-xs uppercase">{{ item.nivel_confianza }}</span>
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7" class="p-6 text-center text-xs text-black/60">
+                      No existen predicciones para los filtros seleccionados (CU24 A2).
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+      }
+    }
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 3: CONSULTAR SEGMENTOS DE CLIENTES (P2-CU25)                    -->
+    <!-- ======================================================================= -->
+    @if (pestanaActiva() === 'segmentos') {
+      @if (consultaSegmentos(); as segRes) {
+        @if (!segRes.tiene_modelo_activo) {
+          <!-- Curso Alterno CU25 A1 -->
+          <section class="bg-white border-2 border-amber-700 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <span class="px-2 py-0.5 bg-amber-800 text-white text-xs uppercase tracking-widest font-semibold">
+                CU25 A1 · Sin Modelo No Supervisado Activo
+              </span>
+              <h2 class="text-lg font-serif font-semibold mt-2">{{ segRes.mensaje_estado }}</h2>
+            </div>
+            <button
+              type="button"
+              (click)="cambiarPestana('datos_modelos')"
+              class="px-5 py-2.5 bg-black text-[#D4AF37] text-xs uppercase tracking-widest font-semibold"
+            >
+              Ir a Gestionar Modelos (CU23)
+            </button>
+          </section>
+        } @else {
+          <!-- Curso Alterno CU25 A3: Aviso de datos sintéticos -->
+          @if (segRes.aviso_datos_sinteticos) {
+            <div class="bg-amber-50 border border-amber-700 px-5 py-3 text-xs text-amber-950">
+              <strong>{{ segRes.mensaje_datos_sinteticos }}</strong>
+            </div>
+          }
+
+          <!-- Tarjetas de Segmentos Detectados -->
+          <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            @for (seg of segRes.segmentos; track seg.id_segmento) {
+              <article
+                (click)="seleccionarSegmento(seg)"
+                [class.border-black]="segmentoSeleccionado()?.id_segmento === seg.id_segmento"
+                [class.border-2]="segmentoSeleccionado()?.id_segmento === seg.id_segmento"
+                class="bg-white border border-black/15 p-5 cursor-pointer space-y-3 transition-all"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-mono uppercase bg-black text-[#D4AF37] px-2 py-0.5">
+                    {{ seg.codigo_grupo }}
+                  </span>
+                  <span class="text-xs font-mono font-semibold">
+                    {{ seg.cantidad_clientes }} clientas ({{ seg.porcentaje_clientes }}%)
+                  </span>
+                </div>
+                <h3 class="text-base font-serif font-semibold">{{ seg.nombre_grupo }}</h3>
+                <p class="text-xs text-black/70">{{ seg.descripcion }}</p>
+
+                <div class="pt-2 border-t border-black/10 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span class="text-black/55 block">Ticket Promedio:</span>
+                    <strong class="font-mono">Bs. {{ seg.caracteristicas['ticket_promedio_bob'] }}</strong>
+                  </div>
+                  <div>
+                    <span class="text-black/55 block">Frecuencia Media:</span>
+                    <strong class="font-mono">{{ seg.caracteristicas['frecuencia_mensual_media'] }} / mes</strong>
+                  </div>
+                </div>
+              </article>
+            }
+          </section>
+
+          <!-- Detalle del Segmento Seleccionado y Clientas del Grupo (CU25 pasos 3-4) -->
+          @if (segmentoSeleccionado(); as sel) {
+            <section class="bg-white border-2 border-black p-6 space-y-4">
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-black/15 pb-3">
+                <div>
+                  <h2 class="text-lg font-serif font-semibold">
+                    Detalle del Segmento: {{ sel.nombre_grupo }} ({{ sel.codigo_grupo }})
+                  </h2>
+                  <p class="text-xs text-black/65">{{ sel.descripcion }}</p>
+                </div>
+                <span class="px-3 py-1 bg-black text-[#D4AF37] text-xs font-mono font-semibold">
+                  Ticket Promedio: Bs. {{ sel.caracteristicas['ticket_promedio_bob'] }} (BOB)
+                </span>
+              </div>
+
+              @if (sel.sin_clientes) {
+                <div class="bg-[#F9F6F0] p-4 text-xs text-black/70">
+                  Este grupo no registra clientas activas actualmente (CU25 A2).
+                </div>
+              } @else {
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr class="border-b border-black/15 bg-black/5 text-xs uppercase tracking-wider">
+                        <th class="p-3">Clienta</th>
+                        <th class="p-3">Correo</th>
+                        <th class="p-3">Compras Pagadas</th>
+                        <th class="p-3">Reservas</th>
+                        <th class="p-3 text-right">Monto Acumulado (Bs. BOB)</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-black/10">
+                      @for (cli of sel.clientes_muestra; track cli.id_usuario) {
+                        <tr>
+                          <td class="p-3 text-xs font-semibold">{{ cli.nombre_completo }}</td>
+                          <td class="p-3 text-xs font-mono">{{ cli.email }}</td>
+                          <td class="p-3 text-xs font-mono">{{ cli.compras_realizadas }}</td>
+                          <td class="p-3 text-xs font-mono">{{ cli.reservas_realizadas }}</td>
+                          <td class="p-3 text-xs font-mono font-semibold text-right">
+                            Bs. {{ cli.monto_total_bob | number: '1.2-2' }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </section>
+          }
+        }
+      }
+    }
+  </main>
+</div>
+

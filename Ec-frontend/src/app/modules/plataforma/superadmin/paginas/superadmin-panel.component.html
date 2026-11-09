@@ -1,0 +1,1516 @@
+<div class="min-h-screen bg-[#F9F6F0] text-black font-sans">
+  <!-- Cabecera editorial del Super Administrador -->
+  <header class="border-b border-black/15 bg-black text-[#F9F6F0]">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <p class="text-[11px] uppercase tracking-[0.28em] text-[#D4AF37] font-medium">
+          FashionStore · Gobierno Multitenant SaaS
+        </p>
+        <h1 class="text-2xl md:text-3xl font-serif tracking-wide mt-1">
+          Panel del Super Administrador
+        </h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <a
+          routerLink="/"
+          class="px-4 py-2 text-xs uppercase tracking-[0.18em] border border-[#F9F6F0]/30 hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors"
+        >
+          Directorio Público
+        </a>
+        <button
+          type="button"
+          (click)="cerrarSesion()"
+          class="px-4 py-2 text-xs uppercase tracking-[0.18em] bg-[#D4AF37] text-black font-semibold hover:bg-[#e3be42] transition-colors"
+        >
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+
+    <!-- Navegación por pestañas (CU05, CU06, CU07, CU08) -->
+    <nav class="max-w-7xl mx-auto px-6 flex flex-wrap gap-1 border-t border-white/10">
+      <button
+        type="button"
+        (click)="cambiarPestana('empresas')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'empresas'"
+        [class.text-black]="pestanaActiva() === 'empresas'"
+        [class.text-white/75]="pestanaActiva() !== 'empresas'"
+        class="px-5 py-3 text-xs uppercase tracking-[0.18em] font-medium transition-colors"
+      >
+        Empresas y Supervisión (CU05)
+      </button>
+      <button
+        type="button"
+        (click)="cambiarPestana('planes')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'planes'"
+        [class.text-black]="pestanaActiva() === 'planes'"
+        [class.text-white/75]="pestanaActiva() !== 'planes'"
+        class="px-5 py-3 text-xs uppercase tracking-[0.18em] font-medium transition-colors"
+      >
+        Planes y Funcionalidades (CU06)
+      </button>
+      <button
+        type="button"
+        (click)="cambiarPestana('suscripciones')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'suscripciones'"
+        [class.text-black]="pestanaActiva() === 'suscripciones'"
+        [class.text-white/75]="pestanaActiva() !== 'suscripciones'"
+        class="px-5 py-3 text-xs uppercase tracking-[0.18em] font-medium transition-colors"
+      >
+        Suscripciones (CU07)
+      </button>
+      <button
+        type="button"
+        (click)="cambiarPestana('catalogos')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'catalogos'"
+        [class.text-black]="pestanaActiva() === 'catalogos'"
+        [class.text-white/75]="pestanaActiva() !== 'catalogos'"
+        class="px-5 py-3 text-xs uppercase tracking-[0.18em] font-medium transition-colors"
+      >
+        Catálogos Globales (CU08)
+      </button>
+      <button
+        type="button"
+        id="tab-reportes-ia-cu22"
+        (click)="cambiarPestana('reportes_ia')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'reportes_ia'"
+        [class.text-black]="pestanaActiva() === 'reportes_ia'"
+        [class.text-white/75]="pestanaActiva() !== 'reportes_ia'"
+        class="px-5 py-3 text-xs uppercase tracking-[0.18em] font-medium transition-colors"
+      >
+        Catálogo Reportes IA (CU22)
+      </button>
+      <button
+        type="button"
+        (click)="cambiarPestana('bitacora')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'bitacora'"
+        [class.text-black]="pestanaActiva() === 'bitacora'"
+        [class.text-white/75]="pestanaActiva() !== 'bitacora'"
+        class="px-5 py-3 text-xs uppercase tracking-[0.18em] font-medium transition-colors"
+      >
+        Bitácora de Plataforma
+      </button>
+    </nav>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <!-- Alertas de retroalimentación -->
+    @if (mensajeExito()) {
+      <div class="border border-emerald-800 bg-emerald-50 text-emerald-950 px-5 py-3 flex items-center justify-between text-sm">
+        <span>{{ mensajeExito() }}</span>
+        <button type="button" (click)="limpiarMensajes()" class="text-xs uppercase tracking-widest underline">
+          Cerrar
+        </button>
+      </div>
+    }
+
+    @if (mensajeError()) {
+      <div class="border border-red-800 bg-red-50 text-red-950 px-5 py-3 flex items-center justify-between text-sm">
+        <span>{{ mensajeError() }}</span>
+        <button type="button" (click)="limpiarMensajes()" class="text-xs uppercase tracking-widest underline">
+          Cerrar
+        </button>
+      </div>
+    }
+
+    @if (advertenciasPlan().length > 0) {
+      <div class="border border-amber-700 bg-amber-50 text-amber-950 p-4 space-y-1 text-sm">
+        <p class="font-semibold uppercase tracking-wider text-xs">
+          Advertencias de límites tras editar el plan (CU06 A1):
+        </p>
+        <ul class="list-disc list-inside space-y-1">
+          @for (adv of advertenciasPlan(); track adv) {
+            <li>{{ adv }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 1: EMPRESAS Y SUPERVISIÓN (P2-CU05)                             -->
+    <!-- ======================================================================= -->
+    @if (pestanaActiva() === 'empresas') {
+      @if (metricas(); as m) {
+        <section class="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div class="bg-white border border-black/15 p-4">
+            <p class="text-[11px] uppercase tracking-widest text-black/60">Empresas Totales</p>
+            <p class="text-2xl font-serif mt-1">{{ m.empresas_totales }}</p>
+            <p class="text-xs text-black/60 mt-1">
+              {{ m.empresas_activas }} activas · {{ m.empresas_suspendidas }} susp. · {{ m.empresas_baja }} baja
+            </p>
+          </div>
+          <div class="bg-white border border-black/15 p-4">
+            <p class="text-[11px] uppercase tracking-widest text-black/60">Suscripciones Vigentes</p>
+            <p class="text-2xl font-serif mt-1">{{ m.suscripciones_vigentes }}</p>
+            <p class="text-xs text-black/60 mt-1">
+              {{ m.suscripciones_vencidas_o_suspendidas }} no vigentes
+            </p>
+          </div>
+          <div class="bg-white border border-black/15 p-4">
+            <p class="text-[11px] uppercase tracking-widest text-black/60">Sucursales Activas</p>
+            <p class="text-2xl font-serif mt-1">{{ m.sucursales_activas_totales }}</p>
+          </div>
+          <div class="bg-white border border-black/15 p-4">
+            <p class="text-[11px] uppercase tracking-widest text-black/60">Empleados Activos</p>
+            <p class="text-2xl font-serif mt-1">{{ m.empleados_activos_totales }}</p>
+          </div>
+          <div class="bg-white border border-black/15 p-4">
+            <p class="text-[11px] uppercase tracking-widest text-black/60">Ventas Pagadas</p>
+            <p class="text-2xl font-serif mt-1">{{ m.ventas_pagadas_totales }}</p>
+            <p class="text-xs text-black/60 mt-1">Volumen: {{ m.monto_ventas_pagadas_total }}</p>
+          </div>
+        </section>
+      }
+
+      <!-- Barra de filtros y alta de empresa -->
+      <section class="bg-white border border-black/15 p-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
+          <div>
+            <label class="block text-[11px] uppercase tracking-widest text-black/70 mb-1">Buscar empresa</label>
+            <input
+              type="text"
+              [ngModel]="filtroEmpresaQ()"
+              (ngModelChange)="filtroEmpresaQ.set($event)"
+              placeholder="Código, nombre o correo..."
+              class="w-full border border-black/25 px-3 py-2 text-sm focus:outline-none focus:border-black"
+            />
+          </div>
+          <div>
+            <label class="block text-[11px] uppercase tracking-widest text-black/70 mb-1">Estado</label>
+            <select
+              [ngModel]="filtroEmpresaEstado()"
+              (ngModelChange)="filtroEmpresaEstado.set($event)"
+              class="w-full border border-black/25 px-3 py-2 text-sm bg-white focus:outline-none focus:border-black"
+            >
+              <option value="">Todos</option>
+              <option value="activa">Activa</option>
+              <option value="suspendida">Suspendida</option>
+              <option value="baja">Baja</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button
+              type="button"
+              (click)="filtrarEmpresas()"
+              class="px-5 py-2 bg-black text-white text-xs uppercase tracking-widest hover:bg-black/85 transition-colors"
+            >
+              Filtrar
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          (click)="abrirModalNuevaEmpresa()"
+          class="px-5 py-2.5 bg-[#D4AF37] text-black text-xs uppercase tracking-widest font-semibold hover:bg-[#e3be42] transition-colors"
+        >
+          + Registrar Nueva Empresa
+        </button>
+      </section>
+
+      <!-- Formulario de edición rápida de empresa -->
+      @if (empresaEditando(); as empEdit) {
+        <section class="bg-white border-2 border-black p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-serif text-lg">
+              Editar Empresa: <span class="font-mono text-sm">{{ empEdit.codigo }}</span>
+            </h3>
+            <button type="button" (click)="cancelarEdicionEmpresa()" class="text-xs uppercase tracking-widest underline">
+              Cancelar
+            </button>
+          </div>
+          <form [formGroup]="formEditarEmpresa" (ngSubmit)="guardarEdicionEmpresa()" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-1">Nombre Comercial *</label>
+              <input type="text" formControlName="nombre" class="w-full border border-black/30 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-1">Correo de Contacto</label>
+              <input type="email" formControlName="correo_contacto" class="w-full border border-black/30 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-1">Teléfono</label>
+              <input type="text" formControlName="telefono" class="w-full border border-black/30 px-3 py-2 text-sm" />
+            </div>
+            <div class="md:col-span-3 flex justify-end gap-2">
+              <button
+                type="submit"
+                [disabled]="procesandoAccion()"
+                class="px-5 py-2 bg-black text-white text-xs uppercase tracking-widest"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </section>
+      }
+
+      <!-- Tabla de empresas -->
+      <section class="bg-white border border-black/15 overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-black/15 bg-black/5 text-[11px] uppercase tracking-wider text-black/70">
+              <th class="p-4">Empresa / Código</th>
+              <th class="p-4">Estado</th>
+              <th class="p-4">Plan y Vigencia</th>
+              <th class="p-4">Indicadores Operativos</th>
+              <th class="p-4 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-black/10">
+            @for (emp of empresas(); track emp.id_tenant) {
+              <tr class="hover:bg-black/[0.02]">
+                <td class="p-4">
+                  <div class="font-medium text-base">{{ emp.nombre }}</div>
+                  <div class="text-xs text-black/60 font-mono">/{{ emp.codigo }}</div>
+                  @if (emp.correo_contacto) {
+                    <div class="text-xs text-black/60">{{ emp.correo_contacto }}</div>
+                  }
+                </td>
+                <td class="p-4">
+                  <span
+                    class="inline-block px-2.5 py-1 text-[11px] uppercase tracking-wider font-medium border"
+                    [class.border-emerald-700]="emp.estado === 'activa'"
+                    [class.bg-emerald-50]="emp.estado === 'activa'"
+                    [class.text-emerald-900]="emp.estado === 'activa'"
+                    [class.border-amber-700]="emp.estado === 'suspendida'"
+                    [class.bg-amber-50]="emp.estado === 'suspendida'"
+                    [class.text-amber-900]="emp.estado === 'suspendida'"
+                    [class.border-red-800]="emp.estado === 'baja'"
+                    [class.bg-red-50]="emp.estado === 'baja'"
+                    [class.text-red-900]="emp.estado === 'baja'"
+                  >
+                    {{ emp.estado }}
+                  </span>
+                </td>
+                <td class="p-4">
+                  @if (emp.suscripcion_actual; as susc) {
+                    <div class="font-medium">{{ susc.nombre_plan }}</div>
+                    <div class="text-xs text-black/60">
+                      {{ susc.estado }} · vence {{ susc.fecha_vencimiento }}
+                    </div>
+                  } @else {
+                    <span class="text-xs text-black/50 italic">Sin suscripción</span>
+                  }
+                </td>
+                <td class="p-4 text-xs space-y-0.5">
+                  <div>
+                    Sucursales activas: <strong>{{ emp.indicadores.sucursales_activas }}</strong> / {{ emp.indicadores.sucursales_totales }}
+                  </div>
+                  <div>
+                    Empleados activos: <strong>{{ emp.indicadores.empleados_activos }}</strong> · Productos: <strong>{{ emp.indicadores.productos_activos }}</strong>
+                  </div>
+                  <div>
+                    Ventas pagadas: <strong>{{ emp.indicadores.ventas_pagadas_cantidad }}</strong> ({{ emp.indicadores.ventas_pagadas_monto }})
+                  </div>
+                </td>
+                <td class="p-4 text-right space-x-2 whitespace-nowrap">
+                  <a
+                    [routerLink]="['/', emp.codigo]"
+                    class="px-2.5 py-1 text-xs border border-black/25 hover:border-black inline-block"
+                  >
+                    Portal
+                  </a>
+                  <button
+                    type="button"
+                    (click)="iniciarEdicionEmpresa(emp)"
+                    class="px-2.5 py-1 text-xs border border-black/25 hover:border-black"
+                  >
+                    Editar
+                  </button>
+                  @if (emp.estado === 'activa') {
+                    <button
+                      type="button"
+                      (click)="cambiarEstadoEmpresa(emp, 'suspendida')"
+                      class="px-2.5 py-1 text-xs border border-amber-700 text-amber-900 hover:bg-amber-50"
+                    >
+                      Suspender
+                    </button>
+                  }
+                  @if (emp.estado === 'suspendida') {
+                    <button
+                      type="button"
+                      (click)="cambiarEstadoEmpresa(emp, 'activa')"
+                      class="px-2.5 py-1 text-xs border border-emerald-700 text-emerald-900 hover:bg-emerald-50"
+                    >
+                      Reactivar
+                    </button>
+                    <button
+                      type="button"
+                      (click)="cambiarEstadoEmpresa(emp, 'baja')"
+                      class="px-2.5 py-1 text-xs border border-red-800 text-red-900 hover:bg-red-50"
+                    >
+                      Dar de Baja
+                    </button>
+                  }
+                  @if (emp.estado === 'baja') {
+                    <button
+                      type="button"
+                      (click)="cambiarEstadoEmpresa(emp, 'activa')"
+                      class="px-2.5 py-1 text-xs border border-emerald-700 text-emerald-900 hover:bg-emerald-50"
+                    >
+                      Reactivar
+                    </button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="p-8 text-center text-black/60">
+                  No se encontraron empresas con los filtros seleccionados.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Modal de alta atómica de nueva empresa -->
+      @if (mostrarModalNuevaEmpresa()) {
+        <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
+          <div class="bg-[#F9F6F0] border border-black max-w-3xl w-full p-6 space-y-5 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-black/15 pb-3">
+              <div>
+                <p class="text-[10px] uppercase tracking-widest text-[#D4AF37] bg-black inline-block px-2 py-0.5">
+                  P2-CU05 · Alta Atómica
+                </p>
+                <h2 class="text-xl font-serif mt-1">Registrar Nueva Empresa en la Plataforma</h2>
+              </div>
+              <button type="button" (click)="cerrarModalNuevaEmpresa()" class="text-xs uppercase tracking-widest underline">
+                Cerrar
+              </button>
+            </div>
+
+            <form [formGroup]="formNuevaEmpresa" (ngSubmit)="guardarNuevaEmpresa()" class="space-y-5">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs uppercase tracking-wider mb-1">Código de Empresa (URL) *</label>
+                  <input
+                    type="text"
+                    formControlName="codigo"
+                    placeholder="ej: atelier-milano"
+                    class="w-full border border-black/30 bg-white px-3 py-2 text-sm font-mono"
+                  />
+                  <p class="text-[11px] text-black/60 mt-1">3-60 caracteres: minúsculas, números y guiones (RN03).</p>
+                </div>
+                <div>
+                  <label class="block text-xs uppercase tracking-wider mb-1">Nombre Comercial *</label>
+                  <input
+                    type="text"
+                    formControlName="nombre"
+                    placeholder="Atelier Milano"
+                    class="w-full border border-black/30 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs uppercase tracking-wider mb-1">Correo de Contacto</label>
+                  <input
+                    type="email"
+                    formControlName="correo_contacto"
+                    class="w-full border border-black/30 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs uppercase tracking-wider mb-1">Teléfono</label>
+                  <input
+                    type="text"
+                    formControlName="telefono"
+                    class="w-full border border-black/30 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div class="border-t border-black/15 pt-4">
+                <h3 class="text-xs uppercase tracking-widest font-semibold mb-3">Suscripción Inicial (RN13)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Plan *</label>
+                    <select formControlName="id_plan" class="w-full border border-black/30 bg-white px-3 py-2 text-sm">
+                      @for (p of planesActivos(); track p.id_plan) {
+                        <option [ngValue]="p.id_plan">{{ p.nombre }} ({{ p.precio_mensual }}/mes)</option>
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Estado Inicial *</label>
+                    <select formControlName="estado_suscripcion" class="w-full border border-black/30 bg-white px-3 py-2 text-sm">
+                      <option value="activa">Activa</option>
+                      <option value="prueba">Prueba</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Fecha Inicio *</label>
+                    <input type="date" formControlName="fecha_inicio" class="w-full border border-black/30 bg-white px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Fecha Vencimiento *</label>
+                    <input type="date" formControlName="fecha_vencimiento" class="w-full border border-black/30 bg-white px-3 py-2 text-sm" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-t border-black/15 pt-4">
+                <h3 class="text-xs uppercase tracking-widest font-semibold mb-3">
+                  Cuenta del Administrador Inicial de la Empresa (RN04, RN05)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Nombres *</label>
+                    <input type="text" formControlName="admin_nombres" class="w-full border border-black/30 bg-white px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Apellidos *</label>
+                    <input type="text" formControlName="admin_apellidos" class="w-full border border-black/30 bg-white px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Correo Electrónico (Único Global) *</label>
+                    <input type="email" formControlName="admin_email" class="w-full border border-black/30 bg-white px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Contraseña Inicial (mín. 8) *</label>
+                    <input type="password" formControlName="admin_password" class="w-full border border-black/30 bg-white px-3 py-2 text-sm" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  (click)="cerrarModalNuevaEmpresa()"
+                  class="px-4 py-2 border border-black/30 text-xs uppercase tracking-widest"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  [disabled]="procesandoAccion()"
+                  class="px-6 py-2 bg-black text-[#F9F6F0] text-xs uppercase tracking-widest font-semibold"
+                >
+                  Crear Empresa y Administrador
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 2: PLANES Y FUNCIONALIDADES (P2-CU06)                           -->
+    <!-- ======================================================================= -->
+    @if (pestanaActiva() === 'planes') {
+      <section class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-serif">Planes de Suscripción y Catálogo de Funcionalidades</h2>
+          <p class="text-xs text-black/60">
+            Define precios mensuales, límites de sucursales/empleados y módulos habilitados por plan (RN11, RN12).
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="abrirNuevoPlan()"
+          class="px-5 py-2.5 bg-black text-white text-xs uppercase tracking-widest"
+        >
+          + Crear Nuevo Plan
+        </button>
+      </section>
+
+      @if (mostrarFormularioPlan()) {
+        <section class="bg-white border-2 border-black p-6 space-y-5">
+          <div class="flex items-center justify-between">
+            <h3 class="font-serif text-lg">
+              {{ planEditando() ? 'Editar Plan: ' + planEditando()!.nombre : 'Nuevo Plan de Suscripción' }}
+            </h3>
+            <button type="button" (click)="cerrarFormularioPlan()" class="text-xs uppercase tracking-widest underline">
+              Cerrar
+            </button>
+          </div>
+
+          <form [formGroup]="formPlan" (ngSubmit)="guardarPlan()" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs uppercase tracking-wider mb-1">Nombre del Plan *</label>
+                <input type="text" formControlName="nombre" class="w-full border border-black/30 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs uppercase tracking-wider mb-1">Precio Mensual (EUR) *</label>
+                <input type="number" step="0.01" formControlName="precio_mensual" class="w-full border border-black/30 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs uppercase tracking-wider mb-1">Máx. Sucursales Activas *</label>
+                <input type="number" formControlName="max_sucursales_activas" class="w-full border border-black/30 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs uppercase tracking-wider mb-1">Límite de Empleados</label>
+                <div class="flex items-center gap-2 mb-1">
+                  <input type="checkbox" formControlName="sin_limite_empleados" id="chkSinLimiteEmp" />
+                  <label for="chkSinLimiteEmp" class="text-xs">Sin límite de empleados</label>
+                </div>
+                @if (!formPlan.get('sin_limite_empleados')?.value) {
+                  <input type="number" formControlName="max_empleados" class="w-full border border-black/30 px-3 py-1.5 text-sm" />
+                }
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-2">Funcionalidades Incluidas (RN11) *</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                @for (func of funcionalidades(); track func.codigo) {
+                  <label
+                    class="border p-3 flex items-start gap-2 cursor-pointer text-xs"
+                    [class.border-black]="tieneFuncionalidadSeleccionada(func.codigo)"
+                    [class.bg-black/5]="tieneFuncionalidadSeleccionada(func.codigo)"
+                    [class.border-black/20]="!tieneFuncionalidadSeleccionada(func.codigo)"
+                  >
+                    <input
+                      type="checkbox"
+                      [checked]="tieneFuncionalidadSeleccionada(func.codigo)"
+                      (change)="toggleFuncionalidadPlan(func.codigo)"
+                      class="mt-0.5"
+                    />
+                    <div>
+                      <div class="font-semibold">{{ func.nombre }}</div>
+                      <div class="font-mono text-[11px] text-black/60">{{ func.codigo }}</div>
+                    </div>
+                  </label>
+                }
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2">
+              <button type="submit" [disabled]="procesandoAccion()" class="px-6 py-2 bg-black text-white text-xs uppercase tracking-widest">
+                Guardar Plan
+              </button>
+            </div>
+          </form>
+        </section>
+      }
+
+      <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        @for (plan of planes(); track plan.id_plan) {
+          <div class="bg-white border border-black/15 p-6 flex flex-col justify-between space-y-4">
+            <div class="space-y-3">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="text-xl font-serif">{{ plan.nombre }}</h3>
+                  <p class="text-2xl font-light mt-1">
+                    {{ plan.precio_mensual }} <span class="text-xs uppercase tracking-widest text-black/60">EUR / mes</span>
+                  </p>
+                </div>
+                <span
+                  class="px-2.5 py-1 text-[11px] uppercase tracking-wider border"
+                  [class.border-emerald-700]="plan.activo"
+                  [class.bg-emerald-50]="plan.activo"
+                  [class.text-emerald-900]="plan.activo"
+                  [class.border-black/30]="!plan.activo"
+                  [class.text-black/60]="!plan.activo"
+                >
+                  {{ plan.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+
+              <div class="text-xs space-y-1 border-y border-black/10 py-3">
+                <div>Máximo de sucursales activas: <strong>{{ plan.max_sucursales_activas }}</strong></div>
+                <div>
+                  Máximo de empleados activos:
+                  <strong>{{ plan.max_empleados === null ? 'Sin límite' : plan.max_empleados }}</strong>
+                </div>
+                <div>
+                  Empresas suscritas vigentes: <strong>{{ plan.empresas_suscritas_vigentes }}</strong> (histórico: {{ plan.empresas_suscritas_totales }})
+                </div>
+              </div>
+
+              <div>
+                <p class="text-[11px] uppercase tracking-widest text-black/60 mb-2">Módulos habilitados:</p>
+                <div class="flex flex-wrap gap-1.5">
+                  @for (f of plan.funcionalidades; track f.codigo) {
+                    <span class="px-2 py-0.5 bg-black/5 border border-black/15 text-xs">
+                      {{ f.nombre }}
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-black/10">
+              <button
+                type="button"
+                (click)="iniciarEdicionPlan(plan)"
+                class="px-3 py-1.5 text-xs border border-black/30 hover:border-black"
+              >
+                Editar Plan
+              </button>
+              <button
+                type="button"
+                (click)="alternarEstadoPlan(plan)"
+                class="px-3 py-1.5 text-xs border border-black/30 hover:border-black"
+              >
+                {{ plan.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    }
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 3: SUSCRIPCIONES DE EMPRESAS (P2-CU07)                          -->
+    <!-- ======================================================================= -->
+    @if (pestanaActiva() === 'suscripciones') {
+      <section class="bg-white border border-black/15 p-5 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-serif">Suscripciones y Consumo de Límites por Empresa</h2>
+          <p class="text-xs text-black/60">
+            Supervisa la vigencia, asigna cambios de plan, renueva o suspende suscripciones (RN13–RN17).
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <select
+            [ngModel]="filtroSuscripcionEstado()"
+            (ngModelChange)="filtroSuscripcionEstado.set($event); cargarSuscripciones()"
+            class="border border-black/25 px-3 py-2 text-sm bg-white"
+          >
+            <option value="">Todos los estados</option>
+            <option value="activa">Activa</option>
+            <option value="prueba">Prueba</option>
+            <option value="vencida">Vencida</option>
+            <option value="suspendida">Suspendida</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="bg-white border border-black/15 overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-black/15 bg-black/5 text-[11px] uppercase tracking-wider text-black/70">
+              <th class="p-4">Empresa</th>
+              <th class="p-4">Plan Actual</th>
+              <th class="p-4">Estado y Vigencia</th>
+              <th class="p-4">Uso vs Límites (RN15)</th>
+              <th class="p-4 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-black/10">
+            @for (s of suscripciones(); track s.id_suscripcion) {
+              <tr>
+                <td class="p-4">
+                  <div class="font-medium">{{ s.nombre_empresa }}</div>
+                  <div class="text-xs font-mono text-black/60">/{{ s.codigo_empresa }}</div>
+                </td>
+                <td class="p-4">
+                  <div class="font-medium">{{ s.nombre_plan }}</div>
+                  <div class="text-xs text-black/60">{{ s.precio_mensual }} EUR/mes</div>
+                </td>
+                <td class="p-4">
+                  <span
+                    class="inline-block px-2 py-0.5 text-[11px] uppercase tracking-wider border"
+                    [class.border-emerald-700]="s.vigente"
+                    [class.bg-emerald-50]="s.vigente"
+                    [class.text-emerald-900]="s.vigente"
+                    [class.border-red-800]="!s.vigente"
+                    [class.bg-red-50]="!s.vigente"
+                    [class.text-red-900]="!s.vigente"
+                  >
+                    {{ s.estado }} {{ s.vigente ? '(Vigente)' : '(No vigente)' }}
+                  </span>
+                  <div class="text-xs text-black/60 mt-1">
+                    {{ s.fecha_inicio }} → {{ s.fecha_vencimiento }}
+                  </div>
+                </td>
+                <td class="p-4 text-xs space-y-1">
+                  <div>
+                    Sucursales activas: <strong>{{ s.sucursales_activas }} / {{ s.max_sucursales_activas }}</strong>
+                  </div>
+                  <div>
+                    Empleados activos:
+                    <strong>{{ s.empleados_activos }} / {{ s.max_empleados === null ? '∞' : s.max_empleados }}</strong>
+                  </div>
+                </td>
+                <td class="p-4 text-right">
+                  <button
+                    type="button"
+                    (click)="abrirGestionSuscripcion(s)"
+                    class="px-3 py-1.5 bg-black text-white text-xs uppercase tracking-widest"
+                  >
+                    Gestionar / Historial
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="p-8 text-center text-black/60">
+                  No hay suscripciones registradas para el filtro actual.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Modal de gestión e historial de suscripción (P2-CU07) -->
+      @if (mostrarModalOperacionSuscripcion() && suscripcionSeleccionada(); as suscSel) {
+        <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
+          <div class="bg-[#F9F6F0] border border-black max-w-4xl w-full p-6 space-y-5 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-black/15 pb-3">
+              <div>
+                <p class="text-[10px] uppercase tracking-widest text-[#D4AF37] bg-black inline-block px-2 py-0.5">
+                  P2-CU07 · Suscripción e Historial
+                </p>
+                <h3 class="text-xl font-serif mt-1">
+                  {{ suscSel.nombre_empresa }} ({{ suscSel.codigo_empresa }})
+                </h3>
+              </div>
+              <button type="button" (click)="cerrarGestionSuscripcion()" class="text-xs uppercase tracking-widest underline">
+                Cerrar
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Formulario de operación -->
+              <form [formGroup]="formOperacionSuscripcion" (ngSubmit)="ejecutarOperacionSuscripcion()" class="bg-white border border-black/15 p-4 space-y-3">
+                <h4 class="text-xs uppercase tracking-widest font-semibold">Ejecutar Operación</h4>
+
+                <div>
+                  <label class="block text-xs uppercase tracking-wider mb-1">Tipo de Operación *</label>
+                  <select formControlName="operacion" class="w-full border border-black/30 px-3 py-2 text-sm bg-white">
+                    <option value="cambio_plan">Cambiar de Plan</option>
+                    <option value="renovacion">Renovar Vigencia</option>
+                    <option value="suspension">Suspender Suscripción</option>
+                    <option value="reactivacion">Reactivar Suscripción</option>
+                    <option value="cancelacion">Cancelar Suscripción</option>
+                    <option value="alta">Nueva Suscripción (Alta)</option>
+                  </select>
+                </div>
+
+                @if (formOperacionSuscripcion.get('operacion')?.value === 'cambio_plan' || formOperacionSuscripcion.get('operacion')?.value === 'alta') {
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Plan Destino *</label>
+                    <select formControlName="id_plan" class="w-full border border-black/30 px-3 py-2 text-sm bg-white">
+                      @for (p of planesActivos(); track p.id_plan) {
+                        <option [ngValue]="p.id_plan">
+                          {{ p.nombre }} (máx. {{ p.max_sucursales_activas }} suc. / {{ p.max_empleados ?? '∞' }} emp.)
+                        </option>
+                      }
+                    </select>
+                  </div>
+                }
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Fecha Inicio</label>
+                    <input type="date" formControlName="fecha_inicio" class="w-full border border-black/30 px-3 py-1.5 text-sm" />
+                  </div>
+                  <div>
+                    <label class="block text-xs uppercase tracking-wider mb-1">Fecha Vencimiento</label>
+                    <input type="date" formControlName="fecha_vencimiento" class="w-full border border-black/30 px-3 py-1.5 text-sm" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs uppercase tracking-wider mb-1">Motivo / Observación</label>
+                  <input type="text" formControlName="motivo" class="w-full border border-black/30 px-3 py-1.5 text-sm" />
+                </div>
+
+                <button
+                  type="submit"
+                  [disabled]="procesandoAccion()"
+                  class="w-full py-2 bg-black text-white text-xs uppercase tracking-widest font-semibold"
+                >
+                  Aplicar Operación
+                </button>
+              </form>
+
+              <!-- Historial de suscripción (RN17) -->
+              <div class="bg-white border border-black/15 p-4 space-y-3 max-h-80 overflow-y-auto">
+                <h4 class="text-xs uppercase tracking-widest font-semibold">Historial de Eventos (RN17)</h4>
+                @for (h of historialSuscripcion(); track h.id_historial) {
+                  <div class="border-b border-black/10 pb-2 text-xs">
+                    <div class="flex justify-between font-medium">
+                      <span class="uppercase">{{ h.evento }}</span>
+                      <span class="text-black/60">{{ h.creado_en | date: 'short' }}</span>
+                    </div>
+                    @if (h.detalle) {
+                      <pre class="text-[11px] text-black/70 bg-black/5 p-1.5 mt-1 overflow-x-auto">{{ h.detalle | json }}</pre>
+                    }
+                  </div>
+                } @empty {
+                  <p class="text-xs text-black/50 italic">Sin registros de historial.</p>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 4: CATÁLOGOS GLOBALES (P2-CU08)                                 -->
+    <!-- ======================================================================= -->
+    @if (pestanaActiva() === 'catalogos') {
+      <section class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-serif">Catálogos Globales de la Plataforma (RN21)</h2>
+          <p class="text-xs text-black/60">
+            Ciudades, tallas y colores compartidos por todas las empresas. Los elementos en uso se desactivan sin eliminarse (CU08 A2).
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            (click)="subPestanaCatalogo.set('ciudades')"
+            [class.bg-black]="subPestanaCatalogo() === 'ciudades'"
+            [class.text-white]="subPestanaCatalogo() === 'ciudades'"
+            class="px-4 py-2 text-xs uppercase tracking-widest border border-black"
+          >
+            Ciudades ({{ ciudades().length }})
+          </button>
+          <button
+            type="button"
+            (click)="subPestanaCatalogo.set('tallas')"
+            [class.bg-black]="subPestanaCatalogo() === 'tallas'"
+            [class.text-white]="subPestanaCatalogo() === 'tallas'"
+            class="px-4 py-2 text-xs uppercase tracking-widest border border-black"
+          >
+            Tallas ({{ tallas().length }})
+          </button>
+          <button
+            type="button"
+            (click)="subPestanaCatalogo.set('colores')"
+            [class.bg-black]="subPestanaCatalogo() === 'colores'"
+            [class.text-white]="subPestanaCatalogo() === 'colores'"
+            class="px-4 py-2 text-xs uppercase tracking-widest border border-black"
+          >
+            Colores ({{ colores().length }})
+          </button>
+        </div>
+      </section>
+
+      <!-- Sub-sección: Ciudades -->
+      @if (subPestanaCatalogo() === 'ciudades') {
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <form [formGroup]="formCiudad" (ngSubmit)="guardarCiudad()" class="bg-white border border-black/15 p-5 space-y-4 h-fit">
+            <h3 class="font-serif text-lg">
+              {{ ciudadEditando() ? 'Editar Ciudad' : 'Nueva Ciudad Global' }}
+            </h3>
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-1">Nombre de Ciudad *</label>
+              <input type="text" formControlName="nombre" class="w-full border border-black/30 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-1">País *</label>
+              <input type="text" formControlName="pais" class="w-full border border-black/30 px-3 py-2 text-sm" />
+            </div>
+            <div class="flex justify-end gap-2">
+              @if (ciudadEditando()) {
+                <button type="button" (click)="cancelarEdicionCiudad()" class="px-3 py-2 text-xs border border-black/30">
+                  Cancelar
+                </button>
+              }
+              <button type="submit" class="px-5 py-2 bg-black text-white text-xs uppercase tracking-widest">
+                Guardar
+              </button>
+            </div>
+          </form>
+
+          <div class="md:col-span-2 bg-white border border-black/15 overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-black/15 bg-black/5 text-[11px] uppercase tracking-wider">
+                  <th class="p-3">Ciudad</th>
+                  <th class="p-3">País</th>
+                  <th class="p-3">Sucursales</th>
+                  <th class="p-3">Estado</th>
+                  <th class="p-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-black/10">
+                @for (c of ciudades(); track c.id_ciudad) {
+                  <tr>
+                    <td class="p-3 font-medium">{{ c.nombre }}</td>
+                    <td class="p-3">{{ c.pais }}</td>
+                    <td class="p-3">{{ c.sucursales_asociadas }}</td>
+                    <td class="p-3">
+                      <span class="text-xs" [class.text-emerald-800]="c.activo" [class.text-black/50]="!c.activo">
+                        {{ c.activo ? 'Activa' : 'Inactiva' }}
+                      </span>
+                    </td>
+                    <td class="p-3 text-right space-x-2">
+                      <button type="button" (click)="editarCiudad(c)" class="text-xs underline">Editar</button>
+                      <button type="button" (click)="alternarEstadoCiudad(c)" class="text-xs underline">
+                        {{ c.activo ? 'Desactivar' : 'Activar' }}
+                      </button>
+                      <button
+                        type="button"
+                        (click)="eliminarCiudad(c)"
+                        class="text-xs text-red-800 underline"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Sub-sección: Tallas -->
+      @if (subPestanaCatalogo() === 'tallas') {
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <form [formGroup]="formTalla" (ngSubmit)="guardarTalla()" class="bg-white border border-black/15 p-5 space-y-4 h-fit">
+            <h3 class="font-serif text-lg">
+              {{ tallaEditando() ? 'Editar Talla' : 'Nueva Talla Global' }}
+            </h3>
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-1">Código de Talla *</label>
+              <input type="text" formControlName="codigo" placeholder="ej: XL, 42" class="w-full border border-black/30 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-1">Orden de Visualización *</label>
+              <input type="number" formControlName="orden" class="w-full border border-black/30 px-3 py-2 text-sm" />
+            </div>
+            <div class="flex justify-end gap-2">
+              @if (tallaEditando()) {
+                <button type="button" (click)="cancelarEdicionTalla()" class="px-3 py-2 text-xs border border-black/30">
+                  Cancelar
+                </button>
+              }
+              <button type="submit" class="px-5 py-2 bg-black text-white text-xs uppercase tracking-widest">
+                Guardar
+              </button>
+            </div>
+          </form>
+
+          <div class="md:col-span-2 bg-white border border-black/15 overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-black/15 bg-black/5 text-[11px] uppercase tracking-wider">
+                  <th class="p-3">Orden</th>
+                  <th class="p-3">Código</th>
+                  <th class="p-3">Variantes</th>
+                  <th class="p-3">Estado</th>
+                  <th class="p-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-black/10">
+                @for (t of tallas(); track t.id_talla) {
+                  <tr>
+                    <td class="p-3 font-mono text-xs">{{ t.orden }}</td>
+                    <td class="p-3 font-medium">{{ t.codigo }}</td>
+                    <td class="p-3">{{ t.variantes_asociadas }}</td>
+                    <td class="p-3">
+                      <span class="text-xs" [class.text-emerald-800]="t.activo" [class.text-black/50]="!t.activo">
+                        {{ t.activo ? 'Activa' : 'Inactiva' }}
+                      </span>
+                    </td>
+                    <td class="p-3 text-right space-x-2">
+                      <button type="button" (click)="editarTalla(t)" class="text-xs underline">Editar</button>
+                      <button type="button" (click)="alternarEstadoTalla(t)" class="text-xs underline">
+                        {{ t.activo ? 'Desactivar' : 'Activar' }}
+                      </button>
+                      <button type="button" (click)="eliminarTalla(t)" class="text-xs text-red-800 underline">
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Sub-sección: Colores -->
+      @if (subPestanaCatalogo() === 'colores') {
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <form [formGroup]="formColor" (ngSubmit)="guardarColor()" class="bg-white border border-black/15 p-5 space-y-4 h-fit">
+            <h3 class="font-serif text-lg">
+              {{ colorEditando() ? 'Editar Color' : 'Nuevo Color Global' }}
+            </h3>
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-1">Nombre del Color *</label>
+              <input type="text" formControlName="nombre" class="w-full border border-black/30 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider mb-1">Código Hexadecimal (#RRGGBB) *</label>
+              <input type="text" formControlName="codigo_hex" placeholder="#000000" class="w-full border border-black/30 px-3 py-2 text-sm font-mono" />
+            </div>
+            <div class="flex justify-end gap-2">
+              @if (colorEditando()) {
+                <button type="button" (click)="cancelarEdicionColor()" class="px-3 py-2 text-xs border border-black/30">
+                  Cancelar
+                </button>
+              }
+              <button type="submit" class="px-5 py-2 bg-black text-white text-xs uppercase tracking-widest">
+                Guardar
+              </button>
+            </div>
+          </form>
+
+          <div class="md:col-span-2 bg-white border border-black/15 overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr class="border-b border-black/15 bg-black/5 text-[11px] uppercase tracking-wider">
+                  <th class="p-3">Muestra</th>
+                  <th class="p-3">Nombre</th>
+                  <th class="p-3">Variantes</th>
+                  <th class="p-3">Estado</th>
+                  <th class="p-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-black/10">
+                @for (col of colores(); track col.id_color) {
+                  <tr>
+                    <td class="p-3">
+                      <span
+                        class="inline-block w-5 h-5 border border-black/30 align-middle mr-2"
+                        [style.backgroundColor]="col.codigo_hex || '#000000'"
+                      ></span>
+                      <span class="font-mono text-xs">{{ col.codigo_hex }}</span>
+                    </td>
+                    <td class="p-3 font-medium">{{ col.nombre }}</td>
+                    <td class="p-3">{{ col.variantes_asociadas }}</td>
+                    <td class="p-3">
+                      <span class="text-xs" [class.text-emerald-800]="col.activo" [class.text-black/50]="!col.activo">
+                        {{ col.activo ? 'Activo' : 'Inactivo' }}
+                      </span>
+                    </td>
+                    <td class="p-3 text-right space-x-2">
+                      <button type="button" (click)="editarColor(col)" class="text-xs underline">Editar</button>
+                      <button type="button" (click)="alternarEstadoColor(col)" class="text-xs underline">
+                        {{ col.activo ? 'Desactivar' : 'Activar' }}
+                      </button>
+                      <button type="button" (click)="eliminarColor(col)" class="text-xs text-red-800 underline">
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 5: CATÁLOGO DE REPORTES PERMITIDOS CON IA (P2-CU22)             -->
+    <!-- ======================================================================= -->
+    @if (pestanaActiva() === 'reportes_ia') {
+      <section class="bg-white border border-black/15 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.22em] text-[#D4AF37] font-semibold">
+            Gobernanza de Consultas en Lenguaje Natural · RN45
+          </p>
+          <h2 class="text-xl font-serif mt-1">
+            Catálogo Cerrado de Reportes Permitidos con IA (P2-CU22)
+          </h2>
+          <p class="text-xs text-black/65 mt-1">
+            Define las vistas autorizadas, métricas en Bolivianos (Bs. / BOB), dimensiones, filtros y gráficos que el asistente de IA puede ejecutar en cada empresa con Plan Profesional.
+          </p>
+        </div>
+        <button
+          type="button"
+          id="btn-nuevo-reporte-catalogo"
+          (click)="abrirNuevoReporteCatalogo()"
+          class="px-5 py-2.5 bg-black text-[#F9F6F0] text-xs uppercase tracking-[0.18em] font-medium hover:bg-black/85 transition-colors"
+        >
+          + Nuevo Reporte Permitido
+        </button>
+      </section>
+
+      @if (mostrarFormularioReporteCatalogo()) {
+        <section class="bg-white border-2 border-black p-6 space-y-5">
+          <div class="flex items-center justify-between border-b border-black/15 pb-3">
+            <h3 class="text-base font-serif uppercase tracking-wider">
+              {{ reporteCatalogoEditando() ? 'Editar Reporte del Catálogo IA' : 'Registrar Nuevo Reporte en el Catálogo IA' }}
+            </h3>
+            <button
+              type="button"
+              (click)="cerrarFormularioReporteCatalogo()"
+              class="text-xs uppercase tracking-widest underline"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          <form [formGroup]="formReporteCatalogo" (ngSubmit)="guardarReporteCatalogo()" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-[11px] uppercase tracking-widest text-black/70 mb-1">
+                  Código Técnico (snake_case) *
+                </label>
+                <input
+                  type="text"
+                  formControlName="codigo"
+                  placeholder="ej. ventas_por_sucursal"
+                  class="w-full border border-black/25 px-3 py-2 text-sm font-mono"
+                />
+              </div>
+              <div>
+                <label class="block text-[11px] uppercase tracking-widest text-black/70 mb-1">
+                  Nombre del Reporte *
+                </label>
+                <input
+                  type="text"
+                  formControlName="nombre"
+                  placeholder="ej. Ventas e ingresos por sucursal (Bs.)"
+                  class="w-full border border-black/25 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label class="block text-[11px] uppercase tracking-widest text-black/70 mb-1">
+                  Vista de Datos Autorizada (CU22 A1) *
+                </label>
+                <select
+                  formControlName="vista_origen"
+                  class="w-full border border-black/25 px-3 py-2 text-sm bg-white font-mono"
+                >
+                  @for (v of vistasPermitidasCatalogo(); track v) {
+                    <option [value]="v">{{ v }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] uppercase tracking-widest text-black/70 mb-1">
+                Descripción Funcional
+              </label>
+              <input
+                type="text"
+                formControlName="descripcion"
+                placeholder="Resumen de lo que responde este reporte en Bolivianos (Bs. / BOB)..."
+                class="w-full border border-black/25 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#F9F6F0] p-4 border border-black/15">
+              <div class="space-y-2">
+                <p class="text-xs font-semibold uppercase tracking-wider">Métrica Principal (CU22 A2)</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    formControlName="metrica_codigo"
+                    placeholder="Código métrica"
+                    class="border border-black/25 px-2.5 py-1.5 text-xs font-mono bg-white"
+                  />
+                  <input
+                    type="text"
+                    formControlName="metrica_etiqueta"
+                    placeholder="Etiqueta (ej. Total Bs.)"
+                    class="border border-black/25 px-2.5 py-1.5 text-xs bg-white"
+                  />
+                  <input
+                    type="text"
+                    formControlName="metrica_expresion"
+                    placeholder="Expresión (ej. SUM(total))"
+                    class="border border-black/25 px-2.5 py-1.5 text-xs font-mono bg-white"
+                  />
+                </div>
+                <label class="inline-flex items-center gap-2 text-xs pt-1">
+                  <input type="checkbox" formControlName="metrica_es_monetaria" />
+                  <span>Métrica monetaria expresada en Bolivianos (Bs. / BOB)</span>
+                </label>
+              </div>
+
+              <div class="space-y-2">
+                <p class="text-xs font-semibold uppercase tracking-wider">Dimensión Principal (CU22 A2)</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    formControlName="dimension_codigo"
+                    placeholder="Código dimensión"
+                    class="border border-black/25 px-2.5 py-1.5 text-xs font-mono bg-white"
+                  />
+                  <input
+                    type="text"
+                    formControlName="dimension_etiqueta"
+                    placeholder="Etiqueta (ej. Sucursal)"
+                    class="border border-black/25 px-2.5 py-1.5 text-xs bg-white"
+                  />
+                  <input
+                    type="text"
+                    formControlName="dimension_expresion"
+                    placeholder="Expresión (ej. sucursal.nombre)"
+                    class="border border-black/25 px-2.5 py-1.5 text-xs font-mono bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p class="text-[11px] uppercase tracking-widest text-black/70 mb-2">
+                  Tipos de Gráfico Permitidos *
+                </p>
+                <div class="flex flex-wrap gap-3">
+                  @for (g of tiposGraficoCatalogo(); track g) {
+                    <label class="inline-flex items-center gap-1.5 text-xs border border-black/20 px-3 py-1.5 bg-[#F9F6F0]">
+                      <input
+                        type="checkbox"
+                        [checked]="graficosReporteSeleccionados().includes(g)"
+                        (change)="toggleGraficoReporteCatalogo(g)"
+                      />
+                      <span class="uppercase tracking-wider">{{ g }}</span>
+                    </label>
+                  }
+                </div>
+              </div>
+              <div>
+                <p class="text-[11px] uppercase tracking-widest text-black/70 mb-2">
+                  Filtros Autorizados
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  @for (f of filtrosPermitidosCatalogo(); track f) {
+                    <label class="inline-flex items-center gap-1.5 text-xs border border-black/20 px-2.5 py-1 bg-[#F9F6F0]">
+                      <input
+                        type="checkbox"
+                        [checked]="filtrosReporteSeleccionados().includes(f)"
+                        (change)="toggleFiltroReporteCatalogo(f)"
+                      />
+                      <span class="font-mono">{{ f }}</span>
+                    </label>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] uppercase tracking-widest text-black/70 mb-1">
+                Ejemplos de Consulta en Lenguaje Natural (uno por línea)
+              </label>
+              <textarea
+                rows="2"
+                formControlName="ejemplos_texto"
+                class="w-full border border-black/25 px-3 py-2 text-xs"
+              ></textarea>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                (click)="cerrarFormularioReporteCatalogo()"
+                class="px-4 py-2 border border-black/30 text-xs uppercase tracking-widest"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                [disabled]="procesandoAccion()"
+                class="px-6 py-2 bg-black text-[#D4AF37] text-xs uppercase tracking-widest font-semibold"
+              >
+                {{ procesandoAccion() ? 'Guardando...' : 'Guardar en Catálogo (CU22)' }}
+              </button>
+            </div>
+          </form>
+        </section>
+      }
+
+      <section class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        @for (rep of reportesCatalogo(); track rep.id_reporte_catalogo) {
+          <article class="bg-white border border-black/15 p-5 flex flex-col justify-between space-y-4">
+            <div class="space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 bg-black/5 border border-black/15">
+                    {{ rep.codigo }}
+                  </span>
+                  <h3 class="text-base font-serif font-semibold mt-1">{{ rep.nombre }}</h3>
+                </div>
+                <span
+                  class="px-2.5 py-0.5 text-[10px] uppercase tracking-widest font-semibold"
+                  [class.bg-emerald-900]="rep.activo"
+                  [class.text-white]="rep.activo"
+                  [class.bg-neutral-200]="!rep.activo"
+                  [class.text-neutral-700]="!rep.activo"
+                >
+                  {{ rep.activo ? 'Activo' : 'Inactivo (CU22 A3)' }}
+                </span>
+              </div>
+
+              @if (rep.descripcion) {
+                <p class="text-xs text-black/70">{{ rep.descripcion }}</p>
+              }
+
+              <div class="text-xs space-y-1 pt-1">
+                <div>
+                  <span class="text-black/55 uppercase tracking-wider text-[10px]">Vista Origen: </span>
+                  <span class="font-mono font-medium">{{ rep.vista_origen }}</span>
+                </div>
+                <div>
+                  <span class="text-black/55 uppercase tracking-wider text-[10px]">Gráficos: </span>
+                  <span class="uppercase font-medium">{{ rep.tipos_grafico.join(', ') }}</span>
+                </div>
+                <div>
+                  <span class="text-black/55 uppercase tracking-wider text-[10px]">Filtros: </span>
+                  <span class="font-mono">{{ rep.filtros_permitidos.join(', ') }}</span>
+                </div>
+              </div>
+
+              @if (rep.ejemplos_consulta.length > 0) {
+                <div class="bg-[#F9F6F0] p-2.5 border border-black/10 text-xs">
+                  <p class="text-[10px] uppercase tracking-wider text-black/60 mb-1">Ejemplos sugeridos al administrador:</p>
+                  <ul class="list-disc list-inside space-y-0.5 text-black/80">
+                    @for (ej of rep.ejemplos_consulta; track ej) {
+                      <li>«{{ ej }}»</li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+
+            <div class="flex items-center justify-end gap-4 pt-3 border-t border-black/10">
+              <button
+                type="button"
+                (click)="abrirEditarReporteCatalogo(rep)"
+                class="text-xs uppercase tracking-wider underline"
+              >
+                Editar Definición
+              </button>
+              <button
+                type="button"
+                (click)="alternarEstadoReporteCatalogo(rep)"
+                class="text-xs uppercase tracking-wider underline font-semibold"
+              >
+                {{ rep.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="col-span-2 bg-white border border-black/15 p-8 text-center text-sm text-black/60">
+            No se encontraron reportes registrados en el catálogo de IA.
+          </div>
+        }
+      </section>
+    }
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 6: BITÁCORA GLOBAL DE PLATAFORMA                                -->
+    <!-- ======================================================================= -->
+    @if (pestanaActiva() === 'bitacora') {
+      <section class="bg-white border border-black/15 p-5 flex flex-wrap items-end justify-between gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 flex-1">
+          <div>
+            <label class="block text-[11px] uppercase tracking-widest text-black/70 mb-1">Búsqueda</label>
+            <input
+              type="text"
+              [ngModel]="filtroBitacoraQ()"
+              (ngModelChange)="filtroBitacoraQ.set($event)"
+              placeholder="Usuario, acción o módulo..."
+              class="w-full border border-black/25 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label class="block text-[11px] uppercase tracking-widest text-black/70 mb-1">Severidad</label>
+            <select
+              [ngModel]="filtroBitacoraSeveridad()"
+              (ngModelChange)="filtroBitacoraSeveridad.set($event)"
+              class="w-full border border-black/25 px-3 py-2 text-sm bg-white"
+            >
+              <option value="">Todas</option>
+              <option value="INFO">INFO</option>
+              <option value="WARN">WARN</option>
+              <option value="ERROR">ERROR</option>
+              <option value="CRITICAL">CRITICAL</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 pt-5">
+            <input
+              type="checkbox"
+              id="chkSoloPlataforma"
+              [ngModel]="filtroBitacoraSoloPlataforma()"
+              (ngModelChange)="filtroBitacoraSoloPlataforma.set($event)"
+            />
+            <label for="chkSoloPlataforma" class="text-xs">Solo eventos globales de plataforma</label>
+          </div>
+          <div class="flex items-end">
+            <button
+              type="button"
+              (click)="cargarBitacora(1)"
+              class="px-5 py-2 bg-black text-white text-xs uppercase tracking-widest"
+            >
+              Consultar Bitácora
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="bg-white border border-black/15 overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-black/15 bg-black/5 text-[11px] uppercase tracking-wider">
+              <th class="p-3">Fecha</th>
+              <th class="p-3">Ámbito / Empresa</th>
+              <th class="p-3">Usuario</th>
+              <th class="p-3">Acción / Módulo</th>
+              <th class="p-3">Severidad</th>
+              <th class="p-3 text-right">Detalle</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-black/10">
+            @for (ev of bitacoraItems(); track ev.id_bitacora) {
+              <tr>
+                <td class="p-3 text-xs whitespace-nowrap">{{ ev.creado_en | date: 'short' }}</td>
+                <td class="p-3 text-xs">
+                  @if (ev.codigo_empresa) {
+                    <span class="font-medium">{{ ev.nombre_empresa }}</span>
+                    <span class="text-black/60 font-mono"> ({{ ev.codigo_empresa }})</span>
+                  } @else {
+                    <span class="px-2 py-0.5 bg-black text-[#D4AF37] text-[10px] uppercase tracking-widest">
+                      Plataforma
+                    </span>
+                  }
+                </td>
+                <td class="p-3 text-xs">{{ ev.usuario_nombre || 'Sistema' }}</td>
+                <td class="p-3 text-xs">
+                  <div class="font-semibold">{{ ev.accion }}</div>
+                  <div class="text-black/60 font-mono">{{ ev.tabla_modulo }}</div>
+                </td>
+                <td class="p-3 text-xs font-mono">{{ ev.severidad }}</td>
+                <td class="p-3 text-right">
+                  @if (ev.tiene_payload) {
+                    <button
+                      type="button"
+                      (click)="toggleDetalleBitacora(ev.id_bitacora)"
+                      class="text-xs underline"
+                    >
+                      {{ eventoBitacoraExpandido() === ev.id_bitacora ? 'Ocultar' : 'Ver JSON' }}
+                    </button>
+                  }
+                </td>
+              </tr>
+              @if (eventoBitacoraExpandido() === ev.id_bitacora) {
+                <tr class="bg-black/5">
+                  <td colspan="6" class="p-4 text-xs font-mono space-y-2">
+                    @if (ev.payload_anterior) {
+                      <div>
+                        <strong>Anterior:</strong>
+                        <pre class="overflow-x-auto">{{ ev.payload_anterior | json }}</pre>
+                      </div>
+                    }
+                    @if (ev.payload_nuevo) {
+                      <div>
+                        <strong>Nuevo:</strong>
+                        <pre class="overflow-x-auto">{{ ev.payload_nuevo | json }}</pre>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            } @empty {
+              <tr>
+                <td colspan="6" class="p-8 text-center text-black/60">
+                  No se encontraron eventos de bitácora.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  </main>
+</div>
+

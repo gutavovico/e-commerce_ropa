@@ -42,13 +42,14 @@ export class LoginComponent implements OnInit {
   }
 
   /**
-   * P2-CU02 §B.3: el empleado va a su panel; el cliente, a la tienda del portal por el que entró o,
-   * desde el login general, al directorio con «Mis tiendas». El super administrador aún no tiene
-   * pantalla (P2-CU05): va al directorio.
+   * P2-CU02 §B.3 / P2-CU05: el super administrador va a `/admin/plataforma`; el empleado va a su panel;
+   * el cliente, a la tienda del portal por el que entró o, desde el login general, al directorio.
    */
   private irAlDestino(rolCrudo: string): void {
     const rol = String(rolCrudo || '').toLowerCase().trim();
-    if (esRolEmpleado(rol)) {
+    if (rol === 'super_administrador') {
+      this.router.navigate(['/admin/plataforma']);
+    } else if (esRolEmpleado(rol)) {
       this.router.navigate([destinoEmpleado(rol)]);
     } else if (this.portal.tenantActual()) {
       this.router.navigate(this.portal.ruta(['/inicio']));

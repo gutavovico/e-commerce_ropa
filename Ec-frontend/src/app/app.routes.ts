@@ -181,6 +181,42 @@ export const routes: Routes = [
       ).then((m) => m.PerfilComponent),
     title: 'FASHION STORE | Perfil Institucional Administrador',
   },
+  {
+    path: 'admin/plataforma',
+    canActivate: [authGuard, roleGuard(['super_administrador'])],
+    loadComponent: () =>
+      import(
+        './modules/plataforma/superadmin/paginas/superadmin-panel.component'
+      ).then((m) => m.SuperadminPanelComponent),
+    title: 'FASHION STORE | Panel del Super Administrador SaaS',
+  },
+  {
+    path: 'admin/suscripcion',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin'])],
+    loadComponent: () =>
+      import(
+        './modules/plataforma/mi_suscripcion/paginas/mi-suscripcion-admin.component'
+      ).then((m) => m.MiSuscripcionAdminComponent),
+    title: 'FASHION STORE | Mi Suscripción y Renovación con Stripe',
+  },
+  {
+    path: 'admin/reportes-ia',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/cu21_reportes_ia/paginas/reportes-ia-admin.component'
+      ).then((m) => m.ReportesIaAdminComponent),
+    title: 'FASHION STORE | Asistente de Reportes con IA en Bolivianos (CU21)',
+  },
+  {
+    path: 'admin/aprendizaje-ml',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin'])],
+    loadComponent: () =>
+      import(
+        './modules/comercial/cu23_cu25_aprendizaje_ml/paginas/aprendizaje-ml-admin.component'
+      ).then((m) => m.AprendizajeMlAdminComponent),
+    title: 'FASHION STORE | Aprendizaje Automático y Segmentación ML (CU23–CU25)',
+  },
 
   // =========================================================================
   // 5. RUTAS ANTIGUAS DEL CLIENTE → DIRECTORIO (P2-CU02, decisión A14)
