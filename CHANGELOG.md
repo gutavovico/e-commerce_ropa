@@ -4,6 +4,13 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ## [Unreleased] - 2026-11-09 (Parcial 2)
 
+### Empresa de prueba Menshopping — P2-RF15
+- **Qué:** segunda empresa del SaaS, de moda masculina, cargada en producción: plan Básico, sucursales en Santa Cruz y Beni (Trinidad, ciudad global nueva), 4 prendas en BOB (Bs 120 / 280 / 350 / 480) con tallas M y L, stock 5 + 5 y 2 + 2, y 5 empleados (administrador, encargado y cajero por sucursal). Sin ventas inventadas: las ventas son las reales hechas en la caja de cada sucursal.
+- **Cómo:** `Ec-backend/scripts/cargar_menshopping.py` con los datos en `scripts/datos/menshopping.json` (sin contraseñas); una transacción, ensayo sin `--aplicar` y contraseña inicial por `getpass`. PNG del vestidor en `Ec-frontend/public/ar/menshopping_*.png`, desplegados antes de la carga.
+- **Pruebas:** 14 unitarias del script y una de integración con rollback en `pruebas-multitenant` (aislamiento con FASHION STORE en ambos sentidos, directorio, login y catálogo). Ensayo aplicado en la rama de pruebas antes de producción.
+- **Incidencia del CI:** la guarda de contraseñas en claro tomó por contraseña el identificador `"clave": "santacruz"` del archivo de datos. Se renombró a `codigo` en lugar de aflojar la guarda. En local no saltó porque la guarda solo revisa archivos ya versionados.
+- **Spec:** `.specs/modules/plataforma/P2-RF15-menshopping.md` · historial en `.specs/finalized/P2-RF15-menshopping/`.
+
 ### Fix · «Mi perfil» del empleado (defecto sin numerar: se numera al fusionar)
 - **Causa:**
   - «MI CUENTA» en el dashboard, productos, categorías y sucursales enlazaba a `/perfil`, una ruta antigua del cliente que desde P2-CU02 redirige al directorio de tiendas.
