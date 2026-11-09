@@ -5,7 +5,7 @@
 - [x] **T-0-02 (Gate 0):** Aprobación de la especificación y decisiones S1–S4 por el usuario.
 
 ## Bloque 1 — Backend (`Ec-backend/`)
-- [x] **T-BE-01:** Migración `0016_superadmin_catalogos` (`activo` en `ciudades`, `tallas`, `colores` + usuario `super_administrador` inicial) y actualización de modelos ORM.
+- [x] **T-BE-01:** Migración `0017_superadmin_catalogos` (`activo` en `ciudades`, `tallas`, `colores`, sin credenciales en código) + script fuera de banda `scripts/crear_superadmin.py` y actualización de modelos ORM.
 - [x] **T-BE-02:** Dependencia `exigir_super_administrador` en `app/modules/plataforma/dependencias.py` (activa `app.modo_plataforma = 'on'`).
 - [x] **T-BE-03 (CU05):** Implementar `cu05_empresas_supervision` (listar empresas, crear empresa + admin + config + suscripción + historial, cambiar estado, bitácora global de plataforma).
 - [x] **T-BE-04 (CU06):** Implementar `cu06_planes_funcionalidades` (listar funcionalidades y planes, crear/editar plan, advertencia de reducción de límites A1 y bloqueo de desactivación con suscritos A2).
