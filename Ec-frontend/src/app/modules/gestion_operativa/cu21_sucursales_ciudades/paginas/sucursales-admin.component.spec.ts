@@ -77,9 +77,12 @@ describe('SucursalesAdminComponent (CU21)', () => {
 
       cargarCiudades: vi.fn().mockReturnValue(of(mockCiudades)),
       cargarSucursales: vi.fn().mockReturnValue(of(mockSucursales)),
-      crearCiudad: vi.fn().mockReturnValue(of(mockCiudades[0])),
-      actualizarCiudad: vi.fn().mockReturnValue(of(mockCiudades[0])),
-      eliminarCiudad: vi.fn().mockReturnValue(of({ mensaje: 'Ciudad eliminada' })),
+      usoPlan: signal<{ uso: number; limite: number | null; plan: string | null } | null>({
+        uso: 1,
+        limite: 2,
+        plan: 'Básico',
+      }),
+      cargarUsoPlan: vi.fn().mockReturnValue(of({ uso: 1, limite: 2, plan: 'Básico' })),
       crearSucursal: vi.fn().mockReturnValue(of(mockSucursales[0])),
       actualizarSucursal: vi.fn().mockReturnValue(of(mockSucursales[0])),
       cambiarEstado: vi.fn().mockReturnValue(of(mockSucursales[0])),
@@ -251,25 +254,47 @@ describe('SucursalesAdminComponent (CU21)', () => {
     expect(mockService.cambiarEstado).toHaveBeenCalledWith(10, false);
   });
 
-  it('debe gestionar apertura y guardado de modal para nueva ciudad', () => {
+  it('la pestaña de ciudades es de solo lectura (P2-CU04 B6)', () => {
     fixture.detectChanges();
-    component.abrirModalNuevaCiudad();
-    expect(component.modalCiudadAbierto()).toBe(true);
-
-    component.formularioCiudad.setValue({
-      nombre: 'Valencia',
-      pais: 'Espana',
-    });
-
-    component.guardarCiudad();
-    expect(mockService.crearCiudad).toHaveBeenCalledWith({
-      nombre: 'Valencia',
-      pais: 'Espana',
-    });
-    expect(component.modalCiudadAbierto()).toBe(false);
+    component.cambiarPestana('ciudades');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Madrid');
+    expect(el.textContent).toContain('pida su alta al');
+    expect(el.textContent).not.toContain('Nueva Ciudad');
+    const botones = Array.from(el.querySelectorAll('button')).map((b) => b.textContent?.trim());
+    expect(botones).not.toContain('Editar');
+    expect(botones).not.toContain('Eliminar');
   });
 
-  it('debe solicitar y confirmar eliminacion de boutique o ciudad', () => {
+  it('muestra el uso del plan y avisa antes de superar el límite (P2-CU04 B7, CU04 A1)', () => {
+    fixture.detectChanges();
+    const tarjeta = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="uso-plan"]');
+    expect(tarjeta?.textContent).toContain('Plan Básico');
+    expect(tarjeta?.textContent).toContain('de 2 activas');
+
+    mockService.usoPlan.set({ uso: 2, limite: 2, plan: 'Básico' });
+    const inactiva = { ...mockSucursales[0], activa: false };
+    component.alternarEstadoSucursal(inactiva);
+    expect(mockService.cambiarEstado).not.toHaveBeenCalled();
+    expect(component.notificacionConflicto()).toContain('permite 2 sucursales activas');
+
+    component.abrirModalNuevaBoutique();
+    expect(component.modalBoutiqueAbierto()).toBe(false);
+
+    // Desactivar sigue permitido en el límite
+    component.alternarEstadoSucursal(mockSucursales[0]);
+    expect(mockService.cambiarEstado).toHaveBeenCalledWith(10, false);
+  });
+
+  it('sin límite en el plan lo indica', () => {
+    mockService.usoPlan.set({ uso: 7, limite: null, plan: 'Profesional' });
+    fixture.detectChanges();
+    const tarjeta = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="uso-plan"]');
+    expect(tarjeta?.textContent).toContain('sin límite');
+  });
+
+  it('debe solicitar y confirmar eliminacion de boutique', () => {
     fixture.detectChanges();
 
     // Solicitar eliminacion de boutique
@@ -281,10 +306,7 @@ describe('SucursalesAdminComponent (CU21)', () => {
     expect(mockService.eliminarSucursal).toHaveBeenCalledWith(10);
     expect(component.modalEliminarAbierto()).toBe(false);
 
-    // Solicitar eliminacion de ciudad
-    component.solicitarEliminacion('ciudad', 2, 'Barcelona');
-    component.confirmarEliminacion();
-    expect(mockService.eliminarCiudad).toHaveBeenCalledWith(2);
+    expect(mockService.cargarUsoPlan).toHaveBeenCalledTimes(2); // al iniciar y tras eliminar
   });
 
   it('debe incluir el enlace de retorno al Panel Principal (/admin)', () => {

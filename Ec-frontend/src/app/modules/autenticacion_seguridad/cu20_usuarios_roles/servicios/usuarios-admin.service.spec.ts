@@ -27,6 +27,7 @@ describe('UsuariosAdminService (CU20)', () => {
     id_sucursal: null,
     sucursal_nombre: null,
     sucursal_ciudad: null,
+    sucursales_autorizadas: [],
     activo: true,
     fecha_registro: '2026-09-20T10:00:00Z',
     ultimo_acceso: null,

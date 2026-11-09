@@ -127,7 +127,10 @@ describe('PuntoVentaComponent (CU31-CU32)', () => {
   let http: HttpTestingController;
   const usuarioActual = signal<UsuarioSesion | null>(CAJERO);
 
-  async function crear(usuario: UsuarioSesion): Promise<void> {
+  /** Payload literal de GET /api/v1/mis-sucursales (P2-CU03 B5): un cajero con una sola sucursal. */
+  const UNA_SUCURSAL = [{ id_sucursal: 2, nombre: 'Boutique Calacoto', ciudad: 'La Paz', es_principal: true }];
+
+  async function crear(usuario: UsuarioSesion, misSucursales: unknown[] = UNA_SUCURSAL): Promise<void> {
     usuarioActual.set(usuario);
     await TestBed.configureTestingModule({
       imports: [PuntoVentaComponent],
@@ -142,6 +145,10 @@ describe('PuntoVentaComponent (CU31-CU32)', () => {
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
+    if (usuario.rol !== 'administrador') {
+      http.expectOne('/api/v1/mis-sucursales').flush(misSucursales);
+      fixture.detectChanges();
+    }
   }
 
   function texto(): string {
@@ -445,6 +452,28 @@ describe('PuntoVentaComponent (CU31-CU32)', () => {
       http.expectOne('/api/v1/pos/pedidos-web-efectivo').flush([]);
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('#pos-sin-pedidos-web')).toBeTruthy();
+    });
+  });
+
+  describe('como cajero con dos sucursales autorizadas (P2-CU03, RN07)', () => {
+    beforeEach(async () =>
+      crear(CAJERO, [
+        { id_sucursal: 5, nombre: 'Boutique Sopocachi', ciudad: 'La Paz', es_principal: true },
+        { id_sucursal: 2, nombre: 'Boutique Calacoto', ciudad: 'La Paz', es_principal: false },
+      ]),
+    );
+
+    it('empieza en su sucursal principal, puede cambiar a la otra y la envía en las peticiones', () => {
+      const selector = (fixture.nativeElement as HTMLElement).querySelector('#select-sucursal-pos');
+      expect(selector).toBeTruthy();
+      expect(component.idSucursal()).toBe(5);
+      expect(component.sucursales().map((s) => s.nombre)).toEqual(['Boutique Sopocachi', 'Boutique Calacoto']);
+
+      component.seleccionarSucursal(2);
+      anadir();
+      const prev = http.expectOne('/api/v1/pos/ventas/previsualizar');
+      expect(prev.request.body.id_sucursal).toBe(2);
+      prev.flush(PREVISUALIZACION);
     });
   });
 

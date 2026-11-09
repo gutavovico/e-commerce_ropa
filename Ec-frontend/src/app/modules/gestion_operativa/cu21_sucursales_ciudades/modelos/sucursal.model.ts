@@ -1,5 +1,6 @@
 /**
  * Modelos e interfaces TypeScript para CU21: Gestionar Sucursales y Ciudades.
+ * P2-CU04 B6: las ciudades son un catálogo global de solo lectura para el administrador.
  */
 
 export interface Ciudad {
@@ -10,14 +11,11 @@ export interface Ciudad {
   total_sucursales: number;
 }
 
-export interface CiudadCrearPayload {
-  nombre: string;
-  pais: string;
-}
-
-export interface CiudadActualizarPayload {
-  nombre?: string;
-  pais?: string;
+/** P2-CU04 B7: sucursales activas frente al límite del plan (`limite` nulo: sin límite). */
+export interface UsoPlanSucursales {
+  uso: number;
+  limite: number | null;
+  plan: string | null;
 }
 
 export interface SucursalPublica {

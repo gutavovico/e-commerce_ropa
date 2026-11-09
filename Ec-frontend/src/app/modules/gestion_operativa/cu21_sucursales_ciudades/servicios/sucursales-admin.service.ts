@@ -3,12 +3,11 @@ import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular
 import { Observable, tap, catchError, throwError } from 'rxjs';
 import {
   Ciudad,
-  CiudadActualizarPayload,
-  CiudadCrearPayload,
   FiltrosSucursalAdmin,
   SucursalAdmin,
   SucursalActualizarPayload,
   SucursalCrearPayload,
+  UsoPlanSucursales,
 } from '../modelos/sucursal.model';
 
 @Injectable({
@@ -21,6 +20,8 @@ export class SucursalesAdminService {
   // --- Signals de Estado Reactivo ---
   readonly ciudades = signal<Ciudad[]>([]);
   readonly sucursales = signal<SucursalAdmin[]>([]);
+  /** P2-CU04 B7: uso del límite de sucursales del plan, tal como lo devuelve el servidor. */
+  readonly usoPlan = signal<UsoPlanSucursales | null>(null);
   readonly cargando = signal<boolean>(false);
   readonly guardando = signal<boolean>(false);
   readonly error = signal<string | null>(null);
@@ -63,73 +64,16 @@ export class SucursalesAdminService {
       );
   }
 
-  crearCiudad(payload: CiudadCrearPayload): Observable<Ciudad> {
-    this.guardando.set(true);
-    this.error.set(null);
+  // --- USO DEL PLAN (P2-CU04 B7) ---
 
+  cargarUsoPlan(): Observable<UsoPlanSucursales> {
     return this.http
-      .post<Ciudad>(`${this.baseUrl}/ciudades`, payload, {
-        headers: this.obtenerHeaders(),
-      })
+      .get<UsoPlanSucursales>(`${this.baseUrl}/sucursales/uso-plan`, { headers: this.obtenerHeaders() })
       .pipe(
-        tap((nuevaCiudad) => {
-          this.ciudades.update((lista) => [...lista, nuevaCiudad]);
-          this.guardando.set(false);
-          this.mensajeExito.set(`Ciudad "${nuevaCiudad.nombre}" registrada correctamente.`);
-        }),
+        tap((uso) => this.usoPlan.set(uso)),
         catchError((err: HttpErrorResponse) => {
-          this.guardando.set(false);
-          const msg = this.interpretarError(err);
-          this.error.set(msg);
-          return throwError(() => new Error(msg));
-        })
-      );
-  }
-
-  actualizarCiudad(idCiudad: number, payload: CiudadActualizarPayload): Observable<Ciudad> {
-    this.guardando.set(true);
-    this.error.set(null);
-
-    return this.http
-      .put<Ciudad>(`${this.baseUrl}/ciudades/${idCiudad}`, payload, {
-        headers: this.obtenerHeaders(),
-      })
-      .pipe(
-        tap((ciudadActualizada) => {
-          this.ciudades.update((lista) =>
-            lista.map((c) => (c.id_ciudad === idCiudad ? ciudadActualizada : c))
-          );
-          this.guardando.set(false);
-          this.mensajeExito.set(`Ciudad "${ciudadActualizada.nombre}" actualizada.`);
-        }),
-        catchError((err: HttpErrorResponse) => {
-          this.guardando.set(false);
-          const msg = this.interpretarError(err);
-          this.error.set(msg);
-          return throwError(() => new Error(msg));
-        })
-      );
-  }
-
-  eliminarCiudad(idCiudad: number): Observable<{ mensaje: string }> {
-    this.guardando.set(true);
-    this.error.set(null);
-
-    return this.http
-      .delete<{ mensaje: string }>(`${this.baseUrl}/ciudades/${idCiudad}`, {
-        headers: this.obtenerHeaders(),
-      })
-      .pipe(
-        tap(() => {
-          this.ciudades.update((lista) => lista.filter((c) => c.id_ciudad !== idCiudad));
-          this.guardando.set(false);
-          this.mensajeExito.set('Ciudad eliminada exitosamente.');
-        }),
-        catchError((err: HttpErrorResponse) => {
-          this.guardando.set(false);
-          const msg = this.interpretarError(err);
-          this.error.set(msg);
-          return throwError(() => new Error(msg));
+          this.usoPlan.set(null);
+          return throwError(() => new Error(this.interpretarError(err)));
         })
       );
   }
@@ -302,7 +246,10 @@ export class SucursalesAdminService {
       );
     }
     if (err.status === 422) {
-      return 'Datos inconsistentes: verifique que la hora de cierre sea posterior a la apertura.';
+      return (
+        (typeof err.error?.detail === 'string' && err.error.detail) ||
+        'Datos inconsistentes: verifique que la hora de cierre sea posterior a la apertura.'
+      );
     }
     if (err.status === 0) {
       return 'No fue posible contactar con el servidor. Compruebe su conexion a la red.';

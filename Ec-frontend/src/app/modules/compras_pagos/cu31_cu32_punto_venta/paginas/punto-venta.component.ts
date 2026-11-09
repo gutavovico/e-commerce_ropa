@@ -77,9 +77,11 @@ export class PuntoVentaComponent implements OnInit {
   });
   readonly cerrandoSesion = signal(false);
   readonly sucursales = signal<SucursalOpcion[]>([]);
-  /** Solo el administrador elige sucursal; cajero y encargado operan en la suya (D9). */
+  /** El administrador elige sucursal (D9); cajero y encargado, solo si tienen más de una
+   *  autorizada (P2-CU03, RN07). Con una sola, el servidor usa su sucursal principal. */
   readonly idSucursal = signal<number | null>(null);
-  readonly sucursalLista = computed(() => !this.esAdmin() || this.idSucursal() !== null);
+  readonly eligeSucursal = computed(() => this.esAdmin() || this.sucursales().length > 1);
+  readonly sucursalLista = computed(() => !this.eligeSucursal() || this.idSucursal() !== null);
 
   readonly pestana = signal<Pestana>('nueva');
   readonly error = signal<string | null>(null);
@@ -218,6 +220,19 @@ export class PuntoVentaComponent implements OnInit {
         .subscribe({
           next: (lista) => this.sucursales.set(lista),
           error: (e) => this.mostrarError(e, 'No se pudieron cargar las sucursales.'),
+        });
+    } else {
+      this.servicio
+        .misSucursales()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (lista) => {
+            if (lista.length <= 1) return;
+            this.sucursales.set(lista.map((s) => ({ id_sucursal: s.id_sucursal, nombre: s.nombre })));
+            // Empieza en la principal, que es donde ya operaba
+            this.seleccionarSucursal(lista.find((s) => s.es_principal)?.id_sucursal ?? lista[0].id_sucursal);
+          },
+          error: (e) => this.mostrarError(e, 'No se pudieron cargar tus sucursales.'),
         });
     }
     this.enfocarBuscador();
@@ -453,7 +468,7 @@ export class PuntoVentaComponent implements OnInit {
 
   private cuerpoVenta(): VentaPosIn {
     return {
-      id_sucursal: this.esAdmin() ? this.idSucursal() : null,
+      id_sucursal: this.eligeSucursal() ? this.idSucursal() : null,
       id_cliente: this.cliente()?.id_cliente ?? null,
       reserva: this.reserva()?.codigo ?? null,
       codigo_cupon: this.cuponAplicado(),
