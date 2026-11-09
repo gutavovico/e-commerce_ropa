@@ -642,15 +642,23 @@ class _PantallaLoginState extends State<PantallaLogin> {
                                               color: Colors.white,
                                             ),
                                           )
+                                        // Flexible + elipsis: con poco ancho (ventana estrecha o
+                                        // mientras se anima el diseño) la fila no se desborda.
                                         : const Row(
                                             mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text(
-                                                'INICIAR SESIÓN',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  letterSpacing: 1.5,
+                                              Flexible(
+                                                child: Text(
+                                                  'INICIAR SESIÓN',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  softWrap: false,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    letterSpacing: 1.5,
+                                                  ),
                                                 ),
                                               ),
                                               SizedBox(width: 8),
