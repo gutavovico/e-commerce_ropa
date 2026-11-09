@@ -18,6 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Session
 
 from modules.autenticacion_seguridad.modelos import UsuarioORM
+from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
 from modules.comercial.cu29_indicadores.errores import (
     AccesoComparativaDenegadoError,
     RangoTemporalInvalidoError,
@@ -63,6 +64,9 @@ class ServicioIndicadoresEmpresariales:
                 raise SucursalNoAutorizadaError(
                     "El encargado de sucursal no tiene una sede asignada en su perfil."
                 )
+            # RN07 (P2-CU03): una de sus sucursales autorizadas; si no, la principal
+            if id_sucursal_solicitado and SucursalesEmpleadoServicio.autoriza(usuario, id_sucursal_solicitado):
+                return id_sucursal_solicitado
             return usuario.id_sucursal
         raise SucursalNoAutorizadaError(
             "No cuenta con privilegios autorizados para consultar indicadores empresariales."

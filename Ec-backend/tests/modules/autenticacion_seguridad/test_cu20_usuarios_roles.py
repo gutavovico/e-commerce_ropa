@@ -133,7 +133,7 @@ def test_esquema_usuario_crear_invariantes_sucursal():
             rol=RolUsuarioEnum.ENCARGADO_SUCURSAL,
             id_sucursal=None,
         )
-    assert "id_sucursal es estrictamente obligatorio" in str(exc.value)
+    assert "al menos una sucursal autorizada" in str(exc.value)
 
     # 2. Cajero con sucursal negativa o 0 -> Falla
     with pytest.raises(ValidationError) as exc:
@@ -145,7 +145,7 @@ def test_esquema_usuario_crear_invariantes_sucursal():
             rol=RolUsuarioEnum.CAJERO,
             id_sucursal=0,
         )
-    assert "id_sucursal es estrictamente obligatorio" in str(exc.value)
+    assert "al menos una sucursal autorizada" in str(exc.value)
 
     # 3. Administrador con sucursal indicada -> Se auto-nulifica a None
     admin_in = UsuarioCrearIn(
@@ -397,7 +397,7 @@ def test_ac8_actualizar_usuario_exito(client):
     admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
     db_mock = MagicMock()
 
-    usuario_target = crear_usuario_mock(id_usuario=2, rol="cliente")
+    usuario_target = crear_usuario_mock(id_usuario=2, rol="cajero", id_sucursal=1)
     db_mock.scalars.return_value.unique.return_value.first.return_value = usuario_target
 
     app.dependency_overrides[get_db] = lambda: db_mock
@@ -451,7 +451,7 @@ def test_ac11_salvaguarda_ultimo_admin_activo_bloqueo_degradacion_409(client):
     app.dependency_overrides[get_db] = lambda: db_mock
     app.dependency_overrides[get_current_user] = lambda: admin_sesion
 
-    payload = {"rol": "cliente"}
+    payload = {"rol": "cajero", "id_sucursal": 1}
     resp = client.put("/api/v1/admin/usuarios/2", json=payload)
     assert resp.status_code == 409
     assert resp.json()["code"] == "ULTIMO_ADMINISTRADOR_BLOQUEADO"
@@ -539,7 +539,7 @@ def test_ac14_eliminar_usuario_sin_dependencias_exito_204(client):
     admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
     db_mock = MagicMock()
 
-    usuario_target = crear_usuario_mock(id_usuario=4, rol="cliente")
+    usuario_target = crear_usuario_mock(id_usuario=4, rol="cajero", id_sucursal=1)
     db_mock.scalar.return_value = usuario_target
 
     # Simular ausencia de dependencias operativas
@@ -571,27 +571,25 @@ def test_ac14_eliminar_propio_admin_en_sesion_409(client):
     app.dependency_overrides.clear()
 
 
-def test_ac2_crear_usuario_cliente_exito(client):
-    """# AC-2: Creacion de usuario con rol cliente e instanciacion de perfil."""
+def test_p2_cu03_b2_crear_cliente_rechazado_422(client):
+    """P2-CU03 B2 (A4): el administrador no crea clientes; se registran por su cuenta."""
     admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
     db_mock = MagicMock()
-    db_mock.scalars.return_value.first.return_value = None
-
     app.dependency_overrides[get_db] = lambda: db_mock
     app.dependency_overrides[get_current_user] = lambda: admin_sesion
-
-    payload = {
-        "email": "nuevo.cliente@gmail.com",
-        "password": "PasswordCliente2026!",
-        "nombres": "Camila",
-        "apellidos": "Suarez",
-        "rol": "cliente",
-    }
-    resp = client.post("/api/v1/admin/usuarios", json=payload)
-    assert resp.status_code == 201
-    assert resp.json()["rol"] == "cliente"
-    assert resp.json()["id_sucursal"] is None
-    app.dependency_overrides.clear()
+    try:
+        resp = client.post("/api/v1/admin/usuarios", json={
+            "email": "nuevo.cliente@gmail.com",
+            "password": "PasswordCliente2026!",
+            "nombres": "Camila",
+            "apellidos": "Suarez",
+            "rol": "cliente",
+        })
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "ROL_NO_PERMITIDO"
+    assert not db_mock.add.called
 
 
 def test_ac8_actualizar_usuario_rol_operativo_sin_sucursal_422(client):
@@ -613,23 +611,203 @@ def test_ac8_actualizar_usuario_rol_operativo_sin_sucursal_422(client):
     app.dependency_overrides.clear()
 
 
-@pytest.mark.parametrize("rol_actual, rol_nuevo", [("cliente", "cajero"), ("cajero", "cliente")])
-def test_p2_cu13_cliente_y_empleado_no_se_convierten_409(client, rol_actual, rol_nuevo):
-    """P2-CU13 (RN04, RN05): la cuenta de cliente es global y la de empleado pertenece a una empresa;
-    un usuario no pasa de una a otra (lo impide también la FK compuesta empleados → usuarios)."""
+# ------------------------------------------------------------------------------
+# P2-CU03 B1: el administrador solo gestiona empleados de su empresa (defecto de fuga)
+# ------------------------------------------------------------------------------
+
+OPERACIONES_SOBRE_USUARIO = [
+    ("get", "/api/v1/admin/usuarios/7", None),
+    ("put", "/api/v1/admin/usuarios/7", {"nombres": "Intruso"}),
+    ("patch", "/api/v1/admin/usuarios/7/estado", {"activo": False}),
+    ("post", "/api/v1/admin/usuarios/7/reset-password", {"nuevo_password": "NuevaClave2026!"}),
+    ("delete", "/api/v1/admin/usuarios/7", None),
+]
+
+
+@pytest.mark.parametrize("rol_ajeno", ["cliente", "super_administrador"])
+@pytest.mark.parametrize("metodo, ruta, cuerpo", OPERACIONES_SOBRE_USUARIO)
+def test_p2_cu03_b1_cuentas_sin_empresa_dan_404(client, rol_ajeno, metodo, ruta, cuerpo):
+    """Aunque la RLS deje leer clientes y super administrador (las cuentas sin empresa), el
+    administrador no puede verlos ni tocarlos: 404 sin modificar nada."""
     admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
+    ajeno = crear_usuario_mock(id_usuario=7, rol=rol_ajeno, email="ajeno@correo.com")
+    ajeno.id_tenant = None
     db_mock = MagicMock()
-    usuario_target = crear_usuario_mock(id_usuario=5, rol=rol_actual, id_sucursal=1 if rol_actual == "cajero" else None)
-    db_mock.scalars.return_value.unique.return_value.first.return_value = usuario_target
+    db_mock.scalars.return_value.unique.return_value.first.return_value = ajeno
+    db_mock.scalar.return_value = ajeno
 
     app.dependency_overrides[get_db] = lambda: db_mock
     app.dependency_overrides[get_current_user] = lambda: admin_sesion
     try:
-        resp = client.put("/api/v1/admin/usuarios/5", json={"rol": rol_nuevo, "id_sucursal": 1})
+        kwargs = {"json": cuerpo} if cuerpo is not None else {}
+        resp = client.request(metodo.upper(), ruta, **kwargs)
     finally:
         app.dependency_overrides.clear()
-    assert resp.status_code == 409
-    assert resp.json()["code"] == "CAMBIO_ROL_NO_PERMITIDO"
+
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "USUARIO_NO_ENCONTRADO"
+    assert not db_mock.commit.called
+    assert not db_mock.delete.called
+    assert ajeno.nombres != "Intruso"
+
+
+def test_p2_cu03_b1_consultas_limitadas_a_empleados_de_la_empresa():
+    """El listado filtra por rol de empleado y empresa no nula en SQL, no solo en Python."""
+    from modules.autenticacion_seguridad.cu20_usuarios_roles.servicio import ServicioGestionUsuarios
+
+    db_mock = MagicMock()
+    db_mock.scalar.return_value = 0
+    db_mock.scalars.return_value.unique.return_value.all.return_value = []
+    ServicioGestionUsuarios().listar_usuarios_admin(db_mock)
+
+    sql = str(db_mock.scalars.call_args.args[0].compile(compile_kwargs={"literal_binds": True}))
+    assert "usuarios.id_tenant IS NOT NULL" in sql
+    assert "'administrador', 'encargado_sucursal', 'cajero'" in sql
+    sql_total = str(db_mock.scalar.call_args.args[0].compile(compile_kwargs={"literal_binds": True}))
+    assert "usuarios.id_tenant IS NOT NULL" in sql_total
+
+
+def test_p2_cu03_b2_cambiar_a_cliente_rechazado_422(client):
+    admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
+    db_mock = MagicMock()
+    db_mock.scalars.return_value.unique.return_value.first.return_value = crear_usuario_mock(
+        id_usuario=5, rol="cajero", id_sucursal=1
+    )
+    app.dependency_overrides[get_db] = lambda: db_mock
+    app.dependency_overrides[get_current_user] = lambda: admin_sesion
+    try:
+        resp = client.put("/api/v1/admin/usuarios/5", json={"rol": "cliente"})
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "ROL_NO_PERMITIDO"
+
+
+# ------------------------------------------------------------------------------
+# P2-CU03 B3: varias sucursales autorizadas y una principal
+# ------------------------------------------------------------------------------
+
+def _payload_cajero(**extra):
+    datos = {
+        "email": "cajera.multi@fashionstore.com",
+        "password": "PasswordSeguro2026!",
+        "nombres": "Lucia",
+        "apellidos": "Roca",
+        "rol": "cajero",
+    }
+    datos.update(extra)
+    return datos
+
+
+def test_p2_cu03_b3_esquema_id_sucursal_equivale_a_lista_de_una():
+    datos = UsuarioCrearIn(**_payload_cajero(id_sucursal=4))
+    assert datos.sucursales_autorizadas == [4]
+    assert datos.id_sucursal_principal == 4
+
+    varias = UsuarioCrearIn(**_payload_cajero(sucursales_autorizadas=[2, 5, 2], id_sucursal_principal=5))
+    assert varias.sucursales_autorizadas == [2, 5]
+    assert varias.id_sucursal == 5
+
+    admin = UsuarioCrearIn(**{**_payload_cajero(sucursales_autorizadas=[2]), "rol": "administrador"})
+    assert admin.sucursales_autorizadas == [] and admin.id_sucursal is None
+
+
+@pytest.mark.parametrize("extra", [
+    {"sucursales_autorizadas": [2, 5]},                              # varias sin principal
+    {"sucursales_autorizadas": [2, 5], "id_sucursal_principal": 9},  # principal fuera de la lista
+])
+def test_p2_cu03_b3_principal_invalida_422(client, extra):
+    admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
+    db_mock = MagicMock()
+    db_mock.scalars.return_value.first.return_value = None
+    sucursal = MagicMock(spec=SucursalORM)
+    sucursal.activa = True
+    db_mock.scalar.return_value = sucursal
+    app.dependency_overrides[get_db] = lambda: db_mock
+    app.dependency_overrides[get_current_user] = lambda: admin_sesion
+    try:
+        resp = client.post("/api/v1/admin/usuarios", json=_payload_cajero(**extra))
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 422
+    assert resp.json()["code"] == "SUCURSAL_PRINCIPAL_INVALIDA"
+    assert not db_mock.add.called
+
+
+def test_p2_cu03_b3_alta_con_varias_sucursales(client, monkeypatch):
+    from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
+
+    reemplazos = []
+    monkeypatch.setattr(
+        SucursalesEmpleadoServicio, "reemplazar",
+        staticmethod(lambda db, id_empleado, ids, principal: reemplazos.append((list(ids), principal))),
+    )
+    admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
+    db_mock = MagicMock()
+    db_mock.scalars.return_value.first.return_value = None
+    sucursal = MagicMock(spec=SucursalORM)
+    sucursal.activa = True
+    db_mock.scalar.return_value = sucursal
+    app.dependency_overrides[get_db] = lambda: db_mock
+    app.dependency_overrides[get_current_user] = lambda: admin_sesion
+    try:
+        resp = client.post(
+            "/api/v1/admin/usuarios",
+            json=_payload_cajero(sucursales_autorizadas=[2, 5], id_sucursal_principal=5),
+        )
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 201
+    assert resp.json()["id_sucursal"] == 5
+    assert reemplazos == [([2, 5], 5)]
+
+
+# ------------------------------------------------------------------------------
+# P2-CU03 B8 (reactivar respeta el límite) y B9 (bitácora sin contraseñas)
+# ------------------------------------------------------------------------------
+
+def test_p2_cu03_b8_reactivar_empleado_valida_limite(client, monkeypatch):
+    from modules.plataforma.cu12_validar_suscripcion.servicio import SuscripcionServicio
+
+    llamadas = []
+    monkeypatch.setattr(SuscripcionServicio, "validar", staticmethod(lambda db, **kw: llamadas.append(kw)))
+    admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
+    db_mock = MagicMock()
+    db_mock.scalars.return_value.unique.return_value.first.return_value = crear_usuario_mock(
+        id_usuario=3, rol="cajero", id_sucursal=1, activo=False
+    )
+    app.dependency_overrides[get_db] = lambda: db_mock
+    app.dependency_overrides[get_current_user] = lambda: admin_sesion
+    try:
+        resp = client.patch("/api/v1/admin/usuarios/3/estado", json={"activo": True})
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 200
+    assert llamadas == [{"recurso": "empleados"}]
+
+
+def test_p2_cu03_b9_bitacora_sin_contrasena(client, monkeypatch):
+    from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+
+    eventos = []
+    monkeypatch.setattr(
+        ServicioBitacoraAuditoria, "registrar_evento_seguro", classmethod(lambda cls, **kw: eventos.append(kw))
+    )
+    admin_sesion = crear_usuario_mock(id_usuario=1, rol="administrador")
+    db_mock = MagicMock()
+    db_mock.scalars.return_value.unique.return_value.first.return_value = crear_usuario_mock(
+        id_usuario=3, rol="cajero", id_sucursal=1
+    )
+    app.dependency_overrides[get_db] = lambda: db_mock
+    app.dependency_overrides[get_current_user] = lambda: admin_sesion
+    try:
+        resp = client.post("/api/v1/admin/usuarios/3/reset-password", json={"nuevo_password": "NuevaClave2026!"})
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 200
+    assert [e["accion"] for e in eventos] == ["USUARIO_PASSWORD_RESET"]
+    assert eventos[0]["id_usuario"] == 1
+    assert "NuevaClave2026!" not in str(eventos[0])
 
 
 def test_ac9_actualizar_usuario_email_duplicado_409(client):

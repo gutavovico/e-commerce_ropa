@@ -9,6 +9,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from modules.autenticacion_seguridad.modelos import ClienteORM, UsuarioORM
+from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
 from modules.catalogo.modelos import ColorORM, ProductoORM, TallaORM, VarianteProductoORM
 from modules.comercial.cu28_ventas_reservas.errores import (
     RangoFechasInvalidoError,
@@ -52,6 +53,9 @@ class ServicioConsultarVentasReservas:
                 raise SucursalConsultaInvalidaError(
                     "El encargado no tiene una sucursal asignada en su perfil."
                 )
+            # RN07 (P2-CU03): una de sus sucursales autorizadas; si no, la principal
+            if id_sucursal_solicitado and SucursalesEmpleadoServicio.autoriza(usuario, id_sucursal_solicitado):
+                return id_sucursal_solicitado
             return usuario.id_sucursal
         raise SucursalConsultaInvalidaError(
             "No cuenta con privilegios para consultar transacciones de la red."
@@ -352,7 +356,7 @@ class ServicioConsultarVentasReservas:
             raise VentaNoEncontradaError(id_venta)
 
         rol = str(usuario.rol or "").lower().strip()
-        if rol == "encargado_sucursal" and venta.id_sucursal != usuario.id_sucursal:
+        if rol == "encargado_sucursal" and not SucursalesEmpleadoServicio.autoriza(usuario, venta.id_sucursal):
             raise SucursalConsultaInvalidaError(
                 "No cuenta con autorizacion para consultar una venta de otra sucursal."
             )
@@ -456,7 +460,7 @@ class ServicioConsultarVentasReservas:
             raise ReservaNoEncontradaError(id_reserva)
 
         rol = str(usuario.rol or "").lower().strip()
-        if rol == "encargado_sucursal" and reserva.id_sucursal != usuario.id_sucursal:
+        if rol == "encargado_sucursal" and not SucursalesEmpleadoServicio.autoriza(usuario, reserva.id_sucursal):
             raise SucursalConsultaInvalidaError(
                 "No cuenta con autorizacion para consultar una reserva de otra sucursal."
             )

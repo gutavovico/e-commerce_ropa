@@ -25,6 +25,7 @@ from core.errors import (
     UnprocessableEntityError,
 )
 from modules.autenticacion_seguridad.modelos import UsuarioORM
+from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
 from modules.compras_pagos.cu11_gestionar_carrito.repositorio import CarritoRepositorio
 from modules.compras_pagos.cu11_gestionar_carrito.servicio import (
     CarritoServicio,
@@ -120,7 +121,8 @@ class PuntoVentaServicio:
 
     @staticmethod
     def resolver_sucursal(db: Session, usuario: UsuarioORM, solicitada: Optional[int]) -> int:
-        """Cajero y encargado: su sucursal, fija. Administrador: la que elija (D9)."""
+        """Administrador: la que elija (D9). Cajero y encargado: una de sus sucursales autorizadas
+        (RN07, P2-CU03); sin indicarla, la principal."""
         if PuntoVentaServicio._es_admin(usuario):
             if not solicitada:
                 raise UnprocessableEntityError(
@@ -128,16 +130,17 @@ class PuntoVentaServicio:
                 )
             id_sucursal = solicitada
         else:
-            if usuario.id_sucursal is None:
+            autorizadas = SucursalesEmpleadoServicio.autorizadas(usuario)
+            if not autorizadas:
                 raise ConflictError(
                     "Tu usuario no tiene boutique asignada. Pide a un administrador que la configure.",
                     code="SUCURSAL_NO_ASIGNADA",
                 )
-            if solicitada and solicitada != usuario.id_sucursal:
+            if solicitada and solicitada not in autorizadas:
                 raise AuthorizationError(
-                    "Solo puedes operar la caja de tu propia boutique.", code="SUCURSAL_AJENA"
+                    "Solo puedes operar la caja de tus boutiques autorizadas.", code="SUCURSAL_AJENA"
                 )
-            id_sucursal = usuario.id_sucursal
+            id_sucursal = solicitada or usuario.id_sucursal or min(autorizadas)
 
         if not CarritoRepositorio.obtener_sucursal_activa(db, id_sucursal):
             raise UnprocessableEntityError("La boutique no existe o está inactiva.", code="SUCURSAL_INVALIDA")
@@ -145,9 +148,9 @@ class PuntoVentaServicio:
 
     @staticmethod
     def _verificar_alcance(usuario: UsuarioORM, venta: VentaORM) -> None:
-        if not PuntoVentaServicio._es_admin(usuario) and venta.id_sucursal != usuario.id_sucursal:
+        if not SucursalesEmpleadoServicio.autoriza(usuario, venta.id_sucursal):
             raise AuthorizationError(
-                "Solo puedes operar las ventas de tu propia boutique.", code="SUCURSAL_AJENA"
+                "Solo puedes operar las ventas de tus boutiques autorizadas.", code="SUCURSAL_AJENA"
             )
 
     # ==================================================================

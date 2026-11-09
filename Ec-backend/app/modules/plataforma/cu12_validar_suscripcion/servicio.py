@@ -9,10 +9,13 @@ Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.4 (F14, 
 - Recurso con límite (sucursales activas, empleados) → 409 LIMITE_PLAN_ALCANZADO con límite y uso (RN15).
   Un límite nulo significa «sin límite» (F14).
 - El super administrador (modo plataforma) no se valida (CU12 A4).
+- P2-CU04 B8: al validar un recurso con límite se toma un bloqueo por empresa y recurso que dura
+  hasta el `commit` de la operación; dos altas simultáneas con un solo cupo no pasan las dos.
+- `uso()` (P2-CU04 B7, lo reutiliza P2-CU09): uso y límite de un recurso, sin validar nada.
 """
 
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, TypedDict
 
 from core.errors import AuthorizationError, ConflictError
 from core.tenant import CLAVE_PLATAFORMA, contexto, tenant_actual
@@ -25,6 +28,12 @@ RECURSOS = {
     "sucursales": ("sucursales activas", "max_sucursales_activas", SuscripcionRepositorio.sucursales_activas),
     "empleados": ("empleados", "max_empleados", SuscripcionRepositorio.empleados_activos),
 }
+
+
+class UsoRecurso(TypedDict):
+    uso: int
+    limite: Optional[int]
+    plan: Optional[str]
 
 
 class SuscripcionServicio:
@@ -74,6 +83,7 @@ class SuscripcionServicio:
             descripcion, atributo, contar = RECURSOS[recurso]
             limite = getattr(plan, atributo)
             if limite is not None:
+                SuscripcionRepositorio.bloquear_recurso(db, empresa, recurso)
                 uso = contar(db, empresa)
                 if uso >= limite:
                     raise ConflictError(
@@ -81,3 +91,24 @@ class SuscripcionServicio:
                         "Cambie de plan o libere alguno.",
                         code="LIMITE_PLAN_ALCANZADO",
                     )
+
+    @staticmethod
+    def uso(db: Any, recurso: str) -> Optional[UsoRecurso]:
+        """Uso actual y límite del plan vigente (`limite=None`: sin límite; `plan=None`: sin
+        suscripción vigente). `None` con una sesión simulada o sin empresa en el contexto."""
+        if recurso not in RECURSOS:
+            raise ValueError(f"Recurso con límite desconocido: {recurso}")
+        if contexto(db) is None:
+            return None
+        empresa = tenant_actual(db)
+        if empresa is None:
+            return None
+        _, atributo, contar = RECURSOS[recurso]
+        hoy = datetime.now(timezone.utc).date()
+        suscripcion = SuscripcionRepositorio.suscripcion_vigente(db, empresa, hoy)
+        plan = SuscripcionRepositorio.plan(db, suscripcion.id_plan) if suscripcion else None
+        return UsoRecurso(
+            uso=contar(db, empresa),
+            limite=getattr(plan, atributo) if plan else None,
+            plan=plan.nombre if plan else None,
+        )

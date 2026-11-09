@@ -1,4 +1,8 @@
-"""Esquemas Pydantic v2 para el caso de uso CU21: Gestionar Sucursales y Ciudades."""
+"""Esquemas Pydantic v2 para el caso de uso CU21: Gestionar Sucursales y Ciudades.
+
+P2-CU04 B6: las ciudades son un catálogo global de solo lectura para el administrador; su
+gestión es del super administrador (P2-CU08).
+"""
 
 from datetime import datetime, time
 from typing import List, Optional
@@ -9,31 +13,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 class CiudadBase(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=100, description="Nombre de la ciudad")
     pais: str = Field(default="Bolivia", min_length=2, max_length=100, description="Pais")
-
-
-class CiudadCrearIn(CiudadBase):
-    @field_validator("nombre")
-    @classmethod
-    def normalizar_nombre(cls, v: str) -> str:
-        v_limpio = v.strip()
-        if len(v_limpio) < 2:
-            raise ValueError("El nombre de la ciudad debe contener al menos 2 caracteres.")
-        return v_limpio
-
-
-class CiudadActualizarIn(BaseModel):
-    nombre: Optional[str] = Field(None, min_length=2, max_length=100)
-    pais: Optional[str] = Field(None, min_length=2, max_length=100)
-
-    @field_validator("nombre")
-    @classmethod
-    def normalizar_nombre_opcional(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
-            v_limpio = v.strip()
-            if len(v_limpio) < 2:
-                raise ValueError("El nombre de la ciudad debe contener al menos 2 caracteres.")
-            return v_limpio
-        return v
 
 
 class CiudadOut(CiudadBase):
@@ -105,3 +84,20 @@ class SucursalAdminOut(SucursalPublicaOut):
     total_empleados: int = 0
     total_prendas_stock: int = 0
     reservas_activas_conteo: int = 0
+
+
+class UsoPlanSucursalesOut(BaseModel):
+    """P2-CU04 B7: sucursales activas frente al límite del plan (`limite=None`: sin límite)."""
+
+    uso: int
+    limite: Optional[int] = None
+    plan: Optional[str] = None
+
+
+class MiSucursalOut(BaseModel):
+    """P2-CU03 B5: una sucursal en la que puede operar el empleado de la sesión."""
+
+    id_sucursal: int
+    nombre: str
+    ciudad: str
+    es_principal: bool = False

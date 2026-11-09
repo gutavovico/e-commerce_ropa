@@ -80,16 +80,27 @@ class UsuarioConDependenciasError(ConflictError):
         super().__init__(message=message, code=code)
 
 
-class CambioRolNoPermitidoError(ConflictError):
-    """P2-CU13 (RN04, RN05): las cuentas de cliente (globales) y de empleado (de una empresa) son
-    distintas; un usuario no pasa de una a otra (HTTP 409)."""
+class RolNoPermitidoError(UnprocessableEntityError):
+    """P2-CU03 B2 (A4): el administrador solo asigna roles de empleado; los clientes se registran
+    por su cuenta (CU01) y el super administrador no pertenece a ninguna empresa (HTTP 422)."""
 
     def __init__(
         self,
         message: str = (
-            "Un cliente no puede convertirse en empleado ni un empleado en cliente: "
-            "cree una cuenta nueva con el rol deseado."
+            "Solo se pueden asignar los roles administrador, encargado de sucursal y cajero. "
+            "Los clientes se registran por su cuenta."
         ),
-        code: str = "CAMBIO_ROL_NO_PERMITIDO",
+        code: str = "ROL_NO_PERMITIDO",
+    ):
+        super().__init__(message=message, code=code)
+
+
+class SucursalPrincipalInvalidaError(UnprocessableEntityError):
+    """P2-CU03 B3: la sucursal principal debe estar entre las autorizadas (HTTP 422)."""
+
+    def __init__(
+        self,
+        message: str = "Indique cuál de las sucursales autorizadas es la principal.",
+        code: str = "SUCURSAL_PRINCIPAL_INVALIDA",
     ):
         super().__init__(message=message, code=code)

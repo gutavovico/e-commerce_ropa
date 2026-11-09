@@ -1,6 +1,6 @@
 """Servicio de P2-CU02 · Acceso por empresa.
 
-Spec: `.specs/changes/P2-CU02-CU01-acceso-por-empresa/spec.md` §A.2 (decisiones A4, A8, A12 y A15).
+Spec: `.specs/finalized/P2-CU02-CU01-acceso-por-empresa/spec.md` §A.2 (decisiones A4, A8, A12 y A15).
 """
 
 from typing import Any, List

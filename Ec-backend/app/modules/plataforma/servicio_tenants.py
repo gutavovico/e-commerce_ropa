@@ -6,7 +6,7 @@ la regla de arquitectura exige pasar por el servicio del otro paquete, nunca por
 
 from typing import Any, Optional
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from core.errors import AuthorizationError, DomainError
@@ -19,7 +19,7 @@ from core.tenant import (
     exigir_activa,
     tenant_actual,
 )
-from modules.plataforma.modelos import ClienteTenantORM, EmpleadoSucursalORM
+from modules.plataforma.modelos import ClienteTenantORM
 
 #: Roles que no pertenecen a ninguna empresa (RN04, F1).
 ROLES_SIN_EMPRESA = ("cliente", "super_administrador")
@@ -173,33 +173,6 @@ class TenantServicio:
             "Para comprar o reservar en esta tienda primero debes registrarte en ella.",
             code="CLIENTE_NO_REGISTRADO",
         )
-
-    @staticmethod
-    def sincronizar_sucursal_principal(db: Any, id_empleado: int, id_sucursal: Optional[int]) -> None:
-        """F10: `usuarios.id_sucursal` sigue siendo la sucursal principal; `empleado_sucursal` la refleja.
-
-        Se llama después de `asegurar_ficha_empleado` (la FK compuesta exige la fila de `empleados`).
-        """
-        if contexto(db) is None:
-            return
-        db.execute(
-            update(EmpleadoSucursalORM)
-            .where(EmpleadoSucursalORM.id_empleado == id_empleado, EmpleadoSucursalORM.es_principal.is_(True))
-            .values(es_principal=False)
-        )
-        if id_sucursal is None:
-            return
-        existente = db.execute(
-            select(EmpleadoSucursalORM).where(
-                EmpleadoSucursalORM.id_empleado == id_empleado,
-                EmpleadoSucursalORM.id_sucursal == id_sucursal,
-            )
-        ).scalar_one_or_none()
-        if existente is not None:
-            existente.es_principal = True
-        else:
-            db.add(EmpleadoSucursalORM(id_empleado=id_empleado, id_sucursal=id_sucursal, es_principal=True))
-        db.flush()
 
     @staticmethod
     def exigir_empresa_activa(db: Any, id_tenant: Optional[int]) -> None:

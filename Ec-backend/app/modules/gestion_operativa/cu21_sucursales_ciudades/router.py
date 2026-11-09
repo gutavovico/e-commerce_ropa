@@ -2,26 +2,34 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db
 from core.deps import require_roles
+from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.gestion_operativa.cu21_sucursales_ciudades.esquemas import (
-    CiudadActualizarIn,
-    CiudadCrearIn,
     CiudadOut,
+    MiSucursalOut,
     SucursalActualizarIn,
     SucursalAdminOut,
     SucursalCrearIn,
     SucursalEstadoIn,
     SucursalPublicaOut,
+    UsoPlanSucursalesOut,
 )
 from modules.gestion_operativa.cu21_sucursales_ciudades.servicio import (
     ServicioGestionSucursal,
 )
 
 router = APIRouter()
+
+#: P2-CU04 B9: el administrador que opera y su IP, para la bitácora.
+_admin = require_roles(["administrador"])
+
+
+def _ip(request: Request) -> str | None:
+    return request.client.host if request.client else None
 
 
 # -----------------------------------------------------------------------------
@@ -46,7 +54,7 @@ def listar_sucursales_publicas(
 
 
 # -----------------------------------------------------------------------------
-# ENDPOINTS ADMINISTRATIVOS: CIUDADES
+# ENDPOINTS ADMINISTRATIVOS: CIUDADES (P2-CU04 B6: solo lectura; las gestiona P2-CU08)
 # -----------------------------------------------------------------------------
 
 
@@ -64,58 +72,6 @@ def listar_ciudades(
     """Retorna todas las ciudades registradas con estadisticas de sucursales."""
     servicio = ServicioGestionSucursal(db)
     return servicio.listar_ciudades()
-
-
-@router.post(
-    "/admin/ciudades",
-    response_model=CiudadOut,
-    status_code=status.HTTP_201_CREATED,
-    tags=["Admin - Ubicaciones"],
-    summary="Registrar nueva ciudad (Admin)",
-    dependencies=[Depends(require_roles(["administrador"]))],
-)
-def crear_ciudad(
-    datos: CiudadCrearIn,
-    db: Session = Depends(get_db),
-) -> CiudadOut:
-    """Crea una nueva ciudad en el catalogo de operaciones territoriales."""
-    servicio = ServicioGestionSucursal(db)
-    return servicio.crear_ciudad(datos)
-
-
-@router.put(
-    "/admin/ciudades/{id_ciudad}",
-    response_model=CiudadOut,
-    status_code=status.HTTP_200_OK,
-    tags=["Admin - Ubicaciones"],
-    summary="Actualizar ciudad (Admin)",
-    dependencies=[Depends(require_roles(["administrador"]))],
-)
-def actualizar_ciudad(
-    id_ciudad: int,
-    datos: CiudadActualizarIn,
-    db: Session = Depends(get_db),
-) -> CiudadOut:
-    """Actualiza los datos de una ciudad existente."""
-    servicio = ServicioGestionSucursal(db)
-    return servicio.actualizar_ciudad(id_ciudad, datos)
-
-
-@router.delete(
-    "/admin/ciudades/{id_ciudad}",
-    status_code=status.HTTP_200_OK,
-    tags=["Admin - Ubicaciones"],
-    summary="Eliminar ciudad (Admin)",
-    dependencies=[Depends(require_roles(["administrador"]))],
-)
-def eliminar_ciudad(
-    id_ciudad: int,
-    db: Session = Depends(get_db),
-) -> dict:
-    """Elimina una ciudad si no tiene dependencias activas (sucursales o clientes)."""
-    servicio = ServicioGestionSucursal(db)
-    servicio.eliminar_ciudad(id_ciudad)
-    return {"mensaje": f"Ciudad con ID {id_ciudad} eliminada exitosamente."}
 
 
 # -----------------------------------------------------------------------------
@@ -143,6 +99,34 @@ def listar_sucursales_admin(
 
 
 @router.get(
+    "/admin/sucursales/uso-plan",
+    response_model=UsoPlanSucursalesOut,
+    status_code=status.HTTP_200_OK,
+    tags=["Admin - Sucursales"],
+    summary="Sucursales activas frente al límite del plan (Admin)",
+    dependencies=[Depends(_admin)],
+)
+def uso_plan_sucursales(db: Session = Depends(get_db)) -> UsoPlanSucursalesOut:
+    """P2-CU04 B7. Declarada antes de `/{id_sucursal}` para que no la capture."""
+    return ServicioGestionSucursal(db).uso_plan()
+
+
+@router.get(
+    "/mis-sucursales",
+    response_model=List[MiSucursalOut],
+    status_code=status.HTTP_200_OK,
+    tags=["Sucursales"],
+    summary="Sucursales en las que opera el empleado de la sesión",
+)
+def mis_sucursales(
+    db: Session = Depends(get_db),
+    usuario: UsuarioORM = Depends(require_roles(["administrador", "encargado_sucursal", "cajero"])),
+) -> List[MiSucursalOut]:
+    """P2-CU03 B5: la caja ofrece estas sucursales al empleado."""
+    return ServicioGestionSucursal(db).mis_sucursales(usuario)
+
+
+@router.get(
     "/admin/sucursales/{id_sucursal}",
     response_model=SucursalAdminOut,
     status_code=status.HTTP_200_OK,
@@ -165,14 +149,15 @@ def obtener_sucursal(
     status_code=status.HTTP_201_CREATED,
     tags=["Admin - Sucursales"],
     summary="Registrar nueva sucursal (Admin)",
-    dependencies=[Depends(require_roles(["administrador"]))],
 )
 def crear_sucursal(
     datos: SucursalCrearIn,
+    request: Request,
     db: Session = Depends(get_db),
+    admin: UsuarioORM = Depends(_admin),
 ) -> SucursalAdminOut:
     """Registra una nueva sucursal verificando ciudad, unicidad y franja horaria."""
-    servicio = ServicioGestionSucursal(db)
+    servicio = ServicioGestionSucursal(db, actor=admin, ip=_ip(request))
     return servicio.crear_sucursal(datos)
 
 
@@ -182,15 +167,16 @@ def crear_sucursal(
     status_code=status.HTTP_200_OK,
     tags=["Admin - Sucursales"],
     summary="Actualizar sucursal (Admin)",
-    dependencies=[Depends(require_roles(["administrador"]))],
 )
 def actualizar_sucursal(
     id_sucursal: int,
     datos: SucursalActualizarIn,
+    request: Request,
     db: Session = Depends(get_db),
+    admin: UsuarioORM = Depends(_admin),
 ) -> SucursalAdminOut:
     """Actualiza datos, ubicacion o franja horaria de la sucursal."""
-    servicio = ServicioGestionSucursal(db)
+    servicio = ServicioGestionSucursal(db, actor=admin, ip=_ip(request))
     return servicio.actualizar_sucursal(id_sucursal, datos)
 
 
@@ -200,15 +186,16 @@ def actualizar_sucursal(
     status_code=status.HTTP_200_OK,
     tags=["Admin - Sucursales"],
     summary="Cambiar estado activo/inactivo (Admin)",
-    dependencies=[Depends(require_roles(["administrador"]))],
 )
 def cambiar_estado_sucursal(
     id_sucursal: int,
     datos: SucursalEstadoIn,
+    request: Request,
     db: Session = Depends(get_db),
+    admin: UsuarioORM = Depends(_admin),
 ) -> SucursalAdminOut:
     """Activa o desactiva la sucursal validando que no tenga reservas o stock pendiente."""
-    servicio = ServicioGestionSucursal(db)
+    servicio = ServicioGestionSucursal(db, actor=admin, ip=_ip(request))
     return servicio.cambiar_estado_sucursal(id_sucursal, datos.activa)
 
 
@@ -217,13 +204,14 @@ def cambiar_estado_sucursal(
     status_code=status.HTTP_200_OK,
     tags=["Admin - Sucursales"],
     summary="Eliminar sucursal (Admin)",
-    dependencies=[Depends(require_roles(["administrador"]))],
 )
 def eliminar_sucursal(
     id_sucursal: int,
+    request: Request,
     db: Session = Depends(get_db),
+    admin: UsuarioORM = Depends(_admin),
 ) -> dict:
     """Eliminacion fisica permitida unicamente si nunca registro operaciones historicas."""
-    servicio = ServicioGestionSucursal(db)
+    servicio = ServicioGestionSucursal(db, actor=admin, ip=_ip(request))
     servicio.eliminar_sucursal(id_sucursal)
     return {"mensaje": f"Sucursal con ID {id_sucursal} eliminada exitosamente."}

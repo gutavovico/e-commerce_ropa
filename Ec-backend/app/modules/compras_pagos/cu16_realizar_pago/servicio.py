@@ -32,6 +32,7 @@ from integrations.stripe_service import (
     StripeService,
 )
 from modules.autenticacion_seguridad.modelos import UsuarioORM
+from modules.plataforma.servicio_sucursales_empleado import SucursalesEmpleadoServicio
 from modules.catalogo.modelos import VarianteProductoORM, VentaDetalleORM, VentaORM
 from modules.compras_pagos.cu11_gestionar_carrito.repositorio import CarritoRepositorio
 from modules.compras_pagos.cu11_gestionar_carrito.servicio import (
@@ -700,12 +701,10 @@ class PagoServicio:
     @staticmethod
     def _verificar_alcance_caja(usuario: UsuarioORM, venta: VentaORM) -> None:
         """El `administrador` confirma cualquier boutique; `encargado_sucursal`/`cajero` solo
-        la suya, y únicamente si la venta se recoge en ella."""
-        if str(usuario.rol) == "administrador":
-            return
-        if venta.id_sucursal_retiro != usuario.id_sucursal:
+        las autorizadas (RN07, P2-CU03), y únicamente si la venta se recoge en una de ellas."""
+        if not SucursalesEmpleadoServicio.autoriza(usuario, venta.id_sucursal_retiro):
             raise AuthorizationError(
-                "Solo puedes confirmar o cancelar pagos en efectivo de tu propia sucursal.",
+                "Solo puedes confirmar o cancelar pagos en efectivo de tus sucursales autorizadas.",
                 code="SUCURSAL_AJENA",
             )
 

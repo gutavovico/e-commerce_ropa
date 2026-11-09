@@ -1,6 +1,6 @@
 """P2-CU02 · Acceso por empresa: correo único global, búsqueda de cuentas y empresas disponibles.
 
-Spec: `.specs/changes/P2-CU02-CU01-acceso-por-empresa/spec.md` §A.1 (decisiones A2, A11, A12 y A13).
+Spec: `.specs/finalized/P2-CU02-CU01-acceso-por-empresa/spec.md` §A.1 (decisiones A2, A11, A12 y A13).
 
 - RN05: el correo es único en toda la plataforma (el login ya no lleva código de empresa).
 - `cuenta_por_email`: el login, la recuperación de acceso y la comprobación de correos repetidos
