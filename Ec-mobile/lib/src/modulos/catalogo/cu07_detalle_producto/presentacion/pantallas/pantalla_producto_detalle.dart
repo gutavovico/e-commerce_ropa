@@ -6,6 +6,7 @@ import '../../../cu10_vestidor_virtual/dominio/plataforma_vestidor.dart';
 import '../../../cu10_vestidor_virtual/dominio/prenda_vestidor.dart';
 import '../../../cu10_vestidor_virtual/presentacion/pantallas/pantalla_vestidor_virtual.dart';
 import '../../../../../core/empresa_actual.dart';
+import 'package:ec_mobile/src/core/moneda.dart';
 
 /// Pantalla Completa de Detalle de Prenda de Alta Costura (CU07, CU08, CU09, CU12, CU10)
 ///
@@ -628,12 +629,15 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
         ),
         const SizedBox(height: 12),
 
-        // Fila de precios
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        // Fila de precios: Wrap para que un importe largo («Bs 1.250,00») baje de línea en lugar de
+        // desbordar o truncarse (fix de P2-CU11; RenderFlex, séptima aparición).
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
           children: [
             Text(
-              '${precio.toStringAsFixed(0)} €',
+              formatoImporte(precio),
               style: const TextStyle(
                 fontFamily: 'Outfit',
                 fontSize: 22,
@@ -643,9 +647,8 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
               ),
             ),
             if (prod.tieneDescuento && prod.precioBase > precio) ...[
-              const SizedBox(width: 8),
               Text(
-                '${prod.precioBase.toStringAsFixed(0)} €',
+                formatoImporte(prod.precioBase),
                 style: const TextStyle(
                   fontFamily: 'Outfit',
                   fontSize: 14,
@@ -653,7 +656,6 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
                   color: Color(0xFF888888),
                 ),
               ),
-              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
@@ -661,7 +663,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
                   borderRadius: BorderRadius.circular(2),
                 ),
                 child: Text(
-                  'AHORRO ${(prod.precioBase - precio).toStringAsFixed(0)} €',
+                  'AHORRO ${formatoImporte(prod.precioBase - precio)}',
                   style: const TextStyle(
                     fontFamily: 'Outfit',
                     fontSize: 9,
@@ -1334,7 +1336,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
             ),
             const SizedBox(width: 10),
 
-            // Botón Principal de Compra: "AÑADIR A LA BOLSA · 890 €"
+            // Botón Principal de Compra: "AÑADIR A LA BOLSA · Bs 890,00"
             Expanded(
               child: SizedBox(
                 height: 44,
@@ -1342,7 +1344,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
                   onPressed: _anadirABolsa,
                   icon: const Icon(Icons.shopping_bag_outlined, size: 16),
                   label: Text(
-                    'AÑADIR A LA BOLSA · ${precio.toStringAsFixed(0)} €',
+                    'AÑADIR A LA BOLSA · ${formatoImporte(precio)}',
                     style: const TextStyle(
                       fontFamily: 'Outfit',
                       fontSize: 11.5,
@@ -1499,7 +1501,7 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Talla: ${estado.tallaSeleccionada?.codigo ?? "38"} · Precio: ${estado.precioActual.toStringAsFixed(0)} € · Cortesía incluida',
+                                  'Talla: ${estado.tallaSeleccionada?.codigo ?? "38"} · Precio: ${formatoImporte(estado.precioActual)} · Cortesía incluida',
                                   style: const TextStyle(
                                     fontFamily: 'Outfit',
                                     fontSize: 9.5,

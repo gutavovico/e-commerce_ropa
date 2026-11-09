@@ -46,7 +46,7 @@ const PREVISUALIZACION = {
   subtotal: '25.00',
   descuento: '0.00',
   total: '25.00',
-  iva_incluido: '4.34',
+  iva_incluido: '2.88',
   cupon_aplicado: null,
   lineas: [LINEA],
   lineas_reserva_excluidas: [],
@@ -56,7 +56,7 @@ const VENTA_PENDIENTE = {
   subtotal: '25.00',
   descuento: '0.00',
   total: '25.00',
-  iva_incluido: '4.34',
+  iva_incluido: '2.88',
   cupon_aplicado: null,
   id_venta: 900,
   numero_comprobante: 'POS-2026-000900',
@@ -239,7 +239,7 @@ describe('PuntoVentaComponent (CU31-CU32)', () => {
       prev.flush({ ...PREVISUALIZACION, total: '23.75', descuento: '1.25' });
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('#pos-total').textContent).toContain('23.75 €');
+      expect(fixture.nativeElement.querySelector('#pos-total').textContent).toContain('Bs 23,75');
       expect(texto()).toContain('Camiseta básica amarilla');
     });
 
@@ -360,7 +360,7 @@ describe('PuntoVentaComponent (CU31-CU32)', () => {
       const ticket = fixture.nativeElement.querySelector('#ticket-comprobante').textContent;
       expect(ticket).toContain('POS-2026-000900');
       expect(ticket).toContain('Cambio');
-      expect(ticket).toContain('25.00 €');
+      expect(ticket).toContain('Bs 25,00');
     });
 
     it('registra el rechazo del datáfono: envía aprobado=false y la venta sigue pendiente', () => {

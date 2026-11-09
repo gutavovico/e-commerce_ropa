@@ -4,6 +4,7 @@ import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacio
 import '../../datos/modelos/recomendacion_item_dto.dart';
 import '../bloc/inicio_bloc.dart';
 import '../../../../../core/empresa_actual.dart';
+import 'package:ec_mobile/src/core/moneda.dart';
 
 class PantallaInicio extends StatefulWidget {
   final InicioBloc? bloc;
@@ -669,7 +670,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${item.precioBase.toStringAsFixed(0)} €',
+                        formatoImporte(item.precioBase),
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,

@@ -8,6 +8,7 @@ import 'package:ec_mobile/src/modulos/comercial/cu31_reportes_voz/presentacion/p
 import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/bloc/mis_reservas_bloc.dart';
 import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/pantallas/pantalla_mis_reservas.dart';
 import '../../../../../core/empresa_actual.dart';
+import 'package:ec_mobile/src/core/moneda.dart';
 
 class PantallaPerfil extends StatefulWidget {
   final String token;
@@ -293,7 +294,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                           ),
                         ),
                         Text(
-                          '${item.subtotalLinea} €',
+                          formatoImporte(item.subtotalLinea),
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -309,7 +310,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      '${pedido.total} €',
+                      formatoImporte(pedido.total),
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -868,7 +869,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                 const SizedBox(width: 12),
 
                 // Mis Reservas (CU13/CU14) — antes "Bolsa", con el literal fijo "3 Artículos ·
-                // 1.250 €" que no reflejaba la bolsa real. Ver CHANGELOG.
+                // 1.250" que no reflejaba la bolsa real. Ver CHANGELOG.
                 Expanded(
                   child: GestureDetector(
                     onTap: _abrirMisReservas,
@@ -1053,7 +1054,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                                       ),
                                     ),
                                     Text(
-                                      '${pedido.total} €',
+                                      formatoImporte(pedido.total),
                                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                                     ),
                                   ],

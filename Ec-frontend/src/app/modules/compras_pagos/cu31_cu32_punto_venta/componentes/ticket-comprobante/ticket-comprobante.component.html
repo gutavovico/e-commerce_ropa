@@ -67,8 +67,8 @@
       <div class="pos-ticket__linea">
         <p>{{ linea.nombre_producto }} · {{ linea.talla_codigo }} / {{ linea.color_nombre }}</p>
         <p class="pos-ticket__fila">
-          <span>{{ linea.cantidad }} × {{ linea.precio_unitario }} €</span>
-          <span>{{ linea.subtotal_linea }} €</span>
+          <span>{{ linea.cantidad }} × {{ linea.precio_unitario | importe }}</span>
+          <span>{{ linea.subtotal_linea | importe }}</span>
         </p>
         @if (linea.motivo_descuento) {
           <p class="pos-ticket__nota">{{ linea.motivo_descuento }}</p>
@@ -76,21 +76,21 @@
       </div>
     }
     <hr />
-    <p class="pos-ticket__fila"><span>Subtotal</span><span>{{ venta().subtotal }} €</span></p>
-    <p class="pos-ticket__fila"><span>Descuento</span><span>-{{ venta().descuento }} €</span></p>
+    <p class="pos-ticket__fila"><span>Subtotal</span><span>{{ venta().subtotal | importe }}</span></p>
+    <p class="pos-ticket__fila"><span>Descuento</span><span>-{{ venta().descuento | importe }}</span></p>
     @if (venta().cupon_aplicado) {
       <p class="pos-ticket__nota">Cupón {{ venta().cupon_aplicado }}</p>
     }
-    <p class="pos-ticket__fila pos-ticket__total"><span>TOTAL</span><span>{{ venta().total }} €</span></p>
-    <p class="pos-ticket__nota">IVA (21 %) incluido: {{ venta().iva_incluido }} €</p>
+    <p class="pos-ticket__fila pos-ticket__total"><span>TOTAL</span><span>{{ venta().total | importe }}</span></p>
+    <p class="pos-ticket__nota">IVA (13 %) incluido: {{ venta().iva_incluido | importe }}</p>
     @if (pagoConfirmado(); as pago) {
       <hr />
       <p class="pos-ticket__fila"><span>Pago</span><span>{{ etiquetaMetodo(pago.metodo_pago) }}</span></p>
       @if (pago.monto_recibido) {
-        <p class="pos-ticket__fila"><span>Recibido</span><span>{{ pago.monto_recibido }} €</span></p>
+        <p class="pos-ticket__fila"><span>Recibido</span><span>{{ pago.monto_recibido | importe }}</span></p>
       }
       @if (pago.cambio) {
-        <p class="pos-ticket__fila"><span>Cambio</span><span>{{ pago.cambio }} €</span></p>
+        <p class="pos-ticket__fila"><span>Cambio</span><span>{{ pago.cambio | importe }}</span></p>
       }
       @if (pago.referencia) {
         <p class="pos-ticket__fila"><span>Referencia</span><span>{{ pago.referencia }}</span></p>

@@ -9,20 +9,25 @@ class EmpresaTienda {
   final String codigo;
   final String nombre;
 
-  const EmpresaTienda({required this.codigo, required this.nombre});
+  /// Fix de P2-CU11 (M6): moneda de la tienda (`BOB` o `USD`).
+  final String moneda;
+
+  const EmpresaTienda({required this.codigo, required this.nombre, this.moneda = 'BOB'});
 
   factory EmpresaTienda.fromJson(Map<String, dynamic> json) => EmpresaTienda(
         codigo: json['codigo'] as String? ?? '',
         nombre: json['nombre'] as String? ?? '',
+        moneda: json['moneda'] as String? ?? 'BOB',
       );
 
-  Map<String, dynamic> toJson() => {'codigo': codigo, 'nombre': nombre};
+  Map<String, dynamic> toJson() => {'codigo': codigo, 'nombre': nombre, 'moneda': moneda};
 
   @override
-  bool operator ==(Object other) => other is EmpresaTienda && other.codigo == codigo && other.nombre == nombre;
+  bool operator ==(Object other) =>
+      other is EmpresaTienda && other.codigo == codigo && other.nombre == nombre && other.moneda == moneda;
 
   @override
-  int get hashCode => Object.hash(codigo, nombre);
+  int get hashCode => Object.hash(codigo, nombre, moneda);
 }
 
 /// P2-CU02 · Tienda en la que navega la sesión del móvil.

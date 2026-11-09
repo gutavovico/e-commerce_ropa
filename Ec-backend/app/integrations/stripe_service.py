@@ -90,6 +90,7 @@ class PasarelaPagos:
         descripcion: str = "",
         metadatos: Optional[dict[str, Any]] = None,
         idempotency_key: Optional[str] = None,
+        moneda: str = "BOB",
     ) -> IntentoPago:
         raise NotImplementedError
 
@@ -141,10 +142,11 @@ class StripeService(PasarelaPagos):
         descripcion: str = "",
         metadatos: Optional[dict[str, Any]] = None,
         idempotency_key: Optional[str] = None,
+        moneda: str = "BOB",
     ) -> IntentoPago:
         if self.usa_stripe_real:
-            return self._crear_intento_stripe(monto, descripcion, metadatos, idempotency_key)
-        return self._crear_intento_simulado(monto, metodo_pago, descripcion)
+            return self._crear_intento_stripe(monto, descripcion, metadatos, idempotency_key, moneda)
+        return self._crear_intento_simulado(monto, metodo_pago, descripcion, moneda)
 
     def recuperar_client_secret(self, referencia: str) -> Optional[str]:
         """Recupera el `client_secret` de un intento ya abierto, para un reenvío idempotente."""
@@ -179,7 +181,9 @@ class StripeService(PasarelaPagos):
         descripcion: str,
         metadatos: Optional[dict[str, Any]],
         idempotency_key: Optional[str],
+        moneda: str = "BOB",
     ) -> IntentoPago:
+        """Cobra en la moneda de la empresa (fix de P2-CU11, M7). BOB y USD llevan dos decimales."""
         import stripe
 
         stripe.api_key = self.api_key
@@ -187,7 +191,7 @@ class StripeService(PasarelaPagos):
         try:
             intento = stripe.PaymentIntent.create(
                 amount=self.a_centimos(monto),
-                currency="eur",
+                currency=moneda.lower(),
                 description=descripcion or "FashionStore Atelier",
                 metadata=metadatos or {},
                 automatic_payment_methods={"enabled": True},
@@ -264,7 +268,7 @@ class StripeService(PasarelaPagos):
     # ------------------------------------------------------------------
 
     def _crear_intento_simulado(
-        self, monto: Decimal, metodo_pago: str, descripcion: str
+        self, monto: Decimal, metodo_pago: str, descripcion: str, moneda: str = "BOB"
     ) -> IntentoPago:
         referencia = f"pi_sbx_{random.randint(10**9, 10**10 - 1)}"
         return IntentoPago(
@@ -275,7 +279,7 @@ class StripeService(PasarelaPagos):
                 "id": referencia,
                 "status": "requires_payment_method",
                 "amount": self.a_centimos(monto),
-                "currency": "eur",
+                "currency": moneda.lower(),
                 "description": descripcion,
                 "metodo_pago": metodo_pago,
             },

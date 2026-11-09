@@ -239,7 +239,7 @@ def test_login_de_empleado_solo_con_correo_y_contrasena(mundo):
     )
     assert respuesta.status_code == 200, respuesta.text
     cuerpo = respuesta.json()
-    assert cuerpo["tenant"] == {"codigo": "pruebas-b", "nombre": "Empresa B"}
+    assert cuerpo["tenant"] == {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "BOB"}
     assert cuerpo["empresas"] == []
     from core.security import decode_access_token
     assert decode_access_token(cuerpo["access_token"])["id_tenant"] == mundo["id_b"]
@@ -362,8 +362,8 @@ def test_directorio_y_portal(mundo):
     cliente = mundo["cliente"]
     directorio = cliente.get("/api/v1/tenants")
     assert directorio.status_code == 200
-    assert {"codigo": "pruebas-b", "nombre": "Empresa B"} in directorio.json()
-    assert cliente.get("/api/v1/tenants/pruebas-b").json() == {"codigo": "pruebas-b", "nombre": "Empresa B"}
+    assert {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "BOB"} in directorio.json()
+    assert cliente.get("/api/v1/tenants/pruebas-b").json() == {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "BOB"}
     assert cliente.get("/api/v1/tenants/no-existe").status_code == 404
 
 
@@ -384,7 +384,7 @@ def test_flujo_del_cliente_entre_dos_tiendas(mundo):
     login = cliente.post("/api/v1/autenticacion/login", json={"email": datos["email"], "password": CLAVE_PRUEBA})
     assert login.status_code == 200, login.text
     assert login.json()["tenant"] is None
-    assert login.json()["empresas"] == [{"codigo": "fashionstore", "nombre": "FASHION STORE"}]
+    assert login.json()["empresas"] == [{"codigo": "fashionstore", "nombre": "FASHION STORE", "moneda": "BOB"}]
     auth = {"Authorization": "Bearer " + login.json()["access_token"]}
 
     # En la tienda B todavía no puede comprar
@@ -395,7 +395,7 @@ def test_flujo_del_cliente_entre_dos_tiendas(mundo):
     # «Registrarme en esta tienda» (idempotente)
     alta = cliente.post("/api/v1/mis-empresas", headers={**auth, CABECERA_TENANT: "pruebas-b"})
     assert alta.status_code == 201, alta.text
-    assert alta.json() == {"empresa": {"codigo": "pruebas-b", "nombre": "Empresa B"}, "registrado_ahora": True}
+    assert alta.json() == {"empresa": {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "BOB"}, "registrado_ahora": True}
     otra_vez = cliente.post("/api/v1/mis-empresas", headers={**auth, CABECERA_TENANT: "pruebas-b"})
     assert otra_vez.status_code == 200
     assert otra_vez.json()["registrado_ahora"] is False
@@ -561,6 +561,7 @@ def test_p2_cu11_cada_empresa_configura_lo_suyo(mundo):
     assert lectura.json()["horas_vencimiento_reserva"] == 24
 
     cambio = cliente.put("/api/v1/admin/configuracion", headers=admin_b, json={
+        "moneda": "BOB", "zona_horaria": "America/La_Paz",
         "horas_vencimiento_reserva": 48, "dias_cambio_prenda": 30,
         "operacion_offline_habilitada": False, "dias_antiguedad_offline": 7})
     assert cambio.status_code == 200, cambio.text
@@ -581,3 +582,58 @@ def test_p2_cu11_la_base_rechaza_valores_invalidos(mundo):
     error = _falla(c, "UPDATE fashionstore.configuracion_tenant SET horas_vencimiento_reserva = 0")
     _contexto(c)
     assert error and "chk_config_horas_reserva" in error
+
+
+# --------------------------------------------------------------------------------- Fix P2-CU11 (0016)
+
+CONFIG_BASE = {"zona_horaria": "America/La_Paz", "horas_vencimiento_reserva": 24, "dias_cambio_prenda": 15,
+               "operacion_offline_habilitada": True, "dias_antiguedad_offline": 7}
+
+
+def test_fix_cu11_la_sesion_trabaja_en_hora_de_bolivia(mundo):
+    from core.tiempo import hoy
+
+    sesion = _sesion_b(mundo)
+    zona, fecha = sesion.execute(text("SELECT current_setting('TimeZone'), current_date")).one()
+    assert zona == "America/La_Paz"
+    assert fecha == hoy()
+
+
+def test_fix_cu11_0016_monedas_y_zona(mundo):
+    c = mundo["conexion"]
+    _contexto(c, tenant=1)
+    assert c.execute(text("SELECT moneda, zona_horaria FROM fashionstore.configuracion_tenant")).one() == (
+        "BOB", "America/La_Paz")
+    assert "chk_config_moneda" in (_falla(c, "UPDATE fashionstore.configuracion_tenant SET moneda = 'EUR'") or "")
+    assert "chk_config_zona" in (
+        _falla(c, "UPDATE fashionstore.configuracion_tenant SET zona_horaria = 'Europe/Madrid'") or "")
+    _contexto(c)
+    monedas = {f[0]: f[1] for f in c.execute(text("SELECT codigo, moneda FROM fashionstore.empresas_disponibles()"))}
+    assert monedas["fashionstore"] == "BOB"
+
+
+def test_fix_cu11_moneda_bloqueada_con_ventas_y_libre_sin_ellas(mundo):
+    cliente = mundo["cliente"]
+
+    # FASHION STORE tiene ventas: no puede cambiar de moneda (M3)
+    c = mundo["conexion"]
+    _contexto(c, plataforma=True)
+    admin_fs = c.execute(text("SELECT id_usuario FROM fashionstore.usuarios WHERE id_tenant = 1 "
+                              "AND rol = 'administrador' AND activo ORDER BY id_usuario LIMIT 1")).scalar()
+    ventas_fs = c.execute(text("SELECT count(*) FROM fashionstore.ventas WHERE id_tenant = 1")).scalar()
+    _contexto(c)
+    assert admin_fs and ventas_fs, "La rama de pruebas debería tener un administrador y ventas de FASHION STORE"
+    fs = _token(admin_fs, "administrador", 1)
+    assert cliente.get("/api/v1/admin/configuracion", headers=fs).json()["moneda_bloqueada"] is True
+    bloqueo = cliente.put("/api/v1/admin/configuracion", headers=fs, json={**CONFIG_BASE, "moneda": "USD"})
+    assert bloqueo.status_code == 409, bloqueo.text
+    assert bloqueo.json()["code"] == "MONEDA_CON_OPERACIONES"
+
+    # La empresa B no tiene ventas: pasa a USD y el directorio y el login lo reflejan (M6)
+    admin_b = _token(mundo["admin_b"], "administrador", mundo["id_b"])
+    cambio = cliente.put("/api/v1/admin/configuracion", headers=admin_b, json={**CONFIG_BASE, "moneda": "USD"})
+    assert cambio.status_code == 200, cambio.text
+    assert {"codigo": "pruebas-b", "nombre": "Empresa B", "moneda": "USD"} in cliente.get("/api/v1/tenants").json()
+    login = cliente.post("/api/v1/autenticacion/login", json={"email": "admin@empresa-b.com", "password": CLAVE_PRUEBA})
+    assert login.status_code == 200, login.text
+    assert login.json()["tenant"]["moneda"] == "USD"

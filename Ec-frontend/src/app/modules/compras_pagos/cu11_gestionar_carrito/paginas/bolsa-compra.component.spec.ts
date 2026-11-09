@@ -41,8 +41,8 @@ const RESUMEN_CON_PRENDAS: CarritoResumen = {
   subtotal: '890.00',
   descuento: '133.50',
   total: '756.50',
-  iva_incluido: '131.30',
-  moneda: 'EUR',
+  iva_incluido: '87.03',
+  moneda: 'BOB',
 };
 
 const RESUMEN_VACIO: CarritoResumen = {
@@ -52,7 +52,7 @@ const RESUMEN_VACIO: CarritoResumen = {
   descuento: '0.00',
   total: '0.00',
   iva_incluido: '0.00',
-  moneda: 'EUR',
+  moneda: 'BOB',
 };
 
 describe('BolsaCompraComponent (CU11 + CU15)', () => {
@@ -181,10 +181,10 @@ describe('BolsaCompraComponent (CU11 + CU15)', () => {
     await montar();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('890.00');   // subtotal a precio de lista
-    expect(compiled.textContent).toContain('133.50');   // descuento
-    expect(compiled.textContent).toContain('756.50');   // total
-    expect(compiled.textContent).toContain('131.30');   // IVA contenido
+    expect(compiled.textContent).toContain('Bs 890,00');   // subtotal a precio de lista
+    expect(compiled.textContent).toContain('Bs 133,50');   // descuento
+    expect(compiled.textContent).toContain('Bs 756,50');   // total
+    expect(compiled.textContent).toContain('Bs 87,03');   // IVA contenido (13 %)
   });
 
   it('recalcula el total al instante cuando cambia la bolsa', async () => {
@@ -192,7 +192,7 @@ describe('BolsaCompraComponent (CU11 + CU15)', () => {
     resumen.set(RESUMEN_CON_PRENDAS);
     await montar();
 
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('756.50');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Bs 756,50');
 
     // Simula la respuesta del backend tras subir la cantidad a 2.
     items.set([crearItem({ cantidad: 2, subtotal_linea: '1513.00' })]);
@@ -206,7 +206,7 @@ describe('BolsaCompraComponent (CU11 + CU15)', () => {
     fixture.detectChanges();
 
     const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(texto).toContain('1513.00');
+    expect(texto).toContain('Bs 1.513,00');
     expect(texto).toContain('2 prendas');
   });
 

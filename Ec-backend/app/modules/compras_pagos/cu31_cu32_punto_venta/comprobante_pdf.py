@@ -12,6 +12,7 @@ from typing import List, Tuple
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
+from core.moneda import formatear_importe
 from modules.compras_pagos.cu31_cu32_punto_venta.esquemas import VentaPosOut
 
 ANCHO = 80 * mm
@@ -27,16 +28,17 @@ METODOS = {
 }
 
 
-def _importe(valor: Decimal) -> str:
-    return f"{Decimal(valor):,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".")
-
-
 def _recortar(texto: str, maximo: int) -> str:
     return texto if len(texto) <= maximo else texto[: maximo - 1] + "…"
 
 
-def _renglones(venta: VentaPosOut) -> List[Tuple[str, str, str]]:
-    """(estilo, izquierda, derecha). Estilos: titulo, centro, texto, negrita, linea, espacio."""
+def _renglones(venta: VentaPosOut, moneda: str) -> List[Tuple[str, str, str]]:
+    """(estilo, izquierda, derecha). Estilos: titulo, centro, texto, negrita, linea, espacio.
+    Importes en la moneda de la empresa (fix de P2-CU11, M8)."""
+
+    def _importe(valor: Decimal) -> str:
+        return formatear_importe(valor, moneda)
+
     filas: List[Tuple[str, str, str]] = [
         ("titulo", "FASHION STORE", ""),
         ("centro", venta.nombre_sucursal, ""),
@@ -75,7 +77,7 @@ def _renglones(venta: VentaPosOut) -> List[Tuple[str, str, str]]:
         filas.append(("texto", "Cupón", venta.cupon_aplicado))
     filas += [
         ("negrita", "TOTAL", _importe(venta.total)),
-        ("texto", "IVA (21 %) incluido", _importe(venta.iva_incluido)),
+        ("texto", "IVA (13 %) incluido", _importe(venta.iva_incluido)),
     ]
 
     confirmados = [p for p in venta.pagos if p.estado == "confirmado"]
@@ -92,8 +94,8 @@ def _renglones(venta: VentaPosOut) -> List[Tuple[str, str, str]]:
     return filas
 
 
-def generar_comprobante_pdf(venta: VentaPosOut) -> bytes:
-    filas = _renglones(venta)
+def generar_comprobante_pdf(venta: VentaPosOut, moneda: str = "BOB") -> bytes:
+    filas = _renglones(venta, moneda)
     alto = 2 * MARGEN + len(filas) * INTERLINEA + 6 * mm
     buffer = io.BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=(ANCHO, alto))

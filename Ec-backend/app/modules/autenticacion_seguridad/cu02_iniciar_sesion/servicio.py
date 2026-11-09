@@ -148,7 +148,7 @@ class ServicioAutenticarLogin:
             rol=str(usuario.rol),
             tenant=self._tenant_out(db, id_tenant),
             empresas=[
-                TenantSesionOut(codigo=t.codigo, nombre=t.nombre)
+                TenantSesionOut(codigo=t.codigo, nombre=t.nombre, moneda=t.moneda)
                 for t in TenantServicio.empresas_del_cliente(db, usuario)
             ],
         )
@@ -165,4 +165,4 @@ class ServicioAutenticarLogin:
     @staticmethod
     def _tenant_out(db: Session, id_tenant: Optional[int]) -> Optional[TenantSesionOut]:
         tenant = TenantServicio.datos_publicos(db, id_tenant)
-        return TenantSesionOut(codigo=tenant.codigo, nombre=tenant.nombre) if tenant else None
+        return TenantSesionOut(codigo=tenant.codigo, nombre=tenant.nombre, moneda=tenant.moneda) if tenant else None

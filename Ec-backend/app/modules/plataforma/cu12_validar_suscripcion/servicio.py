@@ -14,12 +14,12 @@ Spec: `.specs/finalized/P2-CU13-CU12-fundacion-multitenant/spec.md` §A.4 (F14, 
 - `uso()` (P2-CU04 B7, lo reutiliza P2-CU09): uso y límite de un recurso, sin validar nada.
 """
 
-from datetime import datetime, timezone
 from typing import Any, Optional, TypedDict
 
 from core.errors import AuthorizationError, ConflictError
 from core.tenant import CLAVE_PLATAFORMA, contexto, tenant_actual
 from modules.plataforma.cu12_validar_suscripcion.repositorio import SuscripcionRepositorio
+from core.tiempo import hoy as hoy_empresa
 
 FUNCIONALIDADES = (
     "productos", "ventas", "reservas", "operacion_offline", "reportes_convencionales", "reportes_ia",
@@ -62,7 +62,7 @@ class SuscripcionServicio:
                 "La operación requiere una empresa identificada.", code="TENANT_REQUERIDO"
             )
 
-        hoy = datetime.now(timezone.utc).date()
+        hoy = hoy_empresa()  # Bolivia (fix P2-CU11, M5)
         suscripcion = SuscripcionRepositorio.suscripcion_vigente(db, empresa, hoy)
         if suscripcion is None:
             raise AuthorizationError(
@@ -104,7 +104,7 @@ class SuscripcionServicio:
         if empresa is None:
             return None
         _, atributo, contar = RECURSOS[recurso]
-        hoy = datetime.now(timezone.utc).date()
+        hoy = hoy_empresa()  # Bolivia (fix P2-CU11, M5)
         suscripcion = SuscripcionRepositorio.suscripcion_vigente(db, empresa, hoy)
         plan = SuscripcionRepositorio.plan(db, suscripcion.id_plan) if suscripcion else None
         return UsoRecurso(

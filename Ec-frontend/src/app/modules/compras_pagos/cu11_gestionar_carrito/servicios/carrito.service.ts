@@ -23,7 +23,7 @@ const CARRITO_VACIO: Carrito = {
     descuento: '0.00',
     total: '0.00',
     iva_incluido: '0.00',
-    moneda: 'EUR',
+    moneda: 'BOB',
   },
   expira_en: null,
   sucursales_expedicion: [],

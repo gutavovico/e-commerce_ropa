@@ -5,6 +5,8 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from core.errors import NotFoundError
+from core.moneda import formatear_importe
+from modules.plataforma.cu11_parametros_empresa.servicio import ParametrosEmpresaServicio
 from modules.catalogo.cu07_detalle_producto.esquemas import (
     ColorResumenOut,
     ComposicionNobleOut,
@@ -48,7 +50,8 @@ class ProductoDetalleServicio:
 
         # Financiación en 3 cuotas Atelier Pay
         cuota_3x = (precio_final / Decimal("3")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        cuotas_info = f"o 3 pagos de {cuota_3x} € sin intereses con Atelier Pay"
+        moneda = ParametrosEmpresaServicio.moneda(db)
+        cuotas_info = f"o 3 pagos de {formatear_importe(cuota_3x, moneda)} sin intereses con Atelier Pay"
 
         # 2. Metadatos Editoriales y Badges adaptados a la prenda real
         nombre_lower = producto.nombre.lower()

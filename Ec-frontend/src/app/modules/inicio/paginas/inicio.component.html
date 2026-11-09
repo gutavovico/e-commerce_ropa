@@ -187,7 +187,7 @@
                 <!-- Subtítulo Textil y Precio -->
                 <div class="flex items-center justify-between text-[11px] tracking-[0.15em] uppercase">
                   <span class="font-semibold text-[#8C6D46]">{{ item.subtitulo_atelier || item.categoria }}</span>
-                  <span class="text-base font-serif font-bold text-[#111111]">{{ item.precio_base }} €</span>
+                  <span class="text-base font-serif font-bold text-[#111111]">{{ item.precio_base | importe }}</span>
                 </div>
 
                 <!-- Nombre -->

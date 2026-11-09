@@ -69,7 +69,7 @@ class VentaCreadaOut(BaseModel):
     iva_incluido: Decimal = Field(
         ..., description="IVA contenido en el total (21%). Informativo: no se persiste"
     )
-    moneda: str = "EUR"
+    moneda: str = "BOB"  # la de la empresa (fix de P2-CU11, M6)
 
     cupon_aplicado: Optional[str] = None
     nombre_promocion: Optional[str] = None

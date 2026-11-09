@@ -153,7 +153,7 @@
                 Total Liquidado:
               }
             </span>
-            <span class="text-neutral-900">{{ pago.monto }} €</span>
+            <span class="text-neutral-900">{{ pago.monto | importe }}</span>
           </div>
         </div>
 
@@ -474,7 +474,7 @@
                   </li>
                   <li class="flex gap-2">
                     <span class="font-bold text-neutral-900">3</span>
-                    <span>Autoriza el importe exacto de {{ r.total }} €.</span>
+                    <span>Autoriza el importe exacto de {{ r.total | importe }}.</span>
                   </li>
                 </ol>
               </div>
@@ -645,7 +645,7 @@
                 Resumen de la Orden
               </h3>
               <span class="text-base font-serif font-bold text-neutral-900">
-                {{ r.total }} €
+                {{ r.total | importe }}
               </span>
             </div>
 
@@ -668,7 +668,7 @@
                     <p class="text-[10px] text-neutral-400">Cantidad: {{ item.cantidad }}</p>
                   </div>
                   <div class="text-xs font-mono font-medium text-neutral-900 text-right">
-                    {{ item.subtotal_linea }} €
+                    {{ item.subtotal_linea | importe }}
                   </div>
                 </div>
               } @empty {
@@ -682,13 +682,13 @@
             <div class="border-t border-neutral-200 pt-4 space-y-2 text-xs">
               <div class="flex justify-between text-neutral-600">
                 <span>Subtotal artículos ({{ r.total_prendas }} prendas)</span>
-                <span class="font-mono text-neutral-900">{{ r.subtotal }} €</span>
+                <span class="font-mono text-neutral-900">{{ r.subtotal | importe }}</span>
               </div>
 
               @if (hayDescuento()) {
                 <div class="flex justify-between text-[#8B6533] font-medium">
                   <span>Beneficio Selección Atelier</span>
-                  <span class="font-mono">-{{ r.descuento }} €</span>
+                  <span class="font-mono">-{{ r.descuento | importe }}</span>
                 </div>
               }
 
@@ -703,8 +703,8 @@
               </div>
 
               <div class="flex justify-between text-neutral-400 text-[11px] pt-1">
-                <span>Impuestos estimados (IVA 21% incluido)</span>
-                <span class="font-mono">{{ r.iva_incluido }} €</span>
+                <span>Impuestos estimados (IVA 13 % incluido)</span>
+                <span class="font-mono">{{ r.iva_incluido | importe }}</span>
               </div>
             </div>
 
@@ -713,7 +713,7 @@
               <div class="flex justify-between items-baseline">
                 <span class="text-xs font-bold uppercase tracking-wider text-neutral-900">Total a Liquidar</span>
                 <span class="text-xl font-serif font-bold text-neutral-900">
-                  {{ r.total }} €
+                  {{ r.total | importe }}
                 </span>
               </div>
               <p class="text-[10px] text-neutral-500">
@@ -757,7 +757,7 @@
                   <svg class="w-4 h-4 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
-                  <span>Confirmar y Pagar {{ r.total }} €</span>
+                  <span>Confirmar y Pagar {{ r.total | importe }}</span>
                 }
               </button>
 

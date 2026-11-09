@@ -1,6 +1,5 @@
 """Repositorio de acceso a datos para CU07: Detalle de Producto y CU08: Variantes."""
 
-from datetime import date
 from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -11,6 +10,7 @@ from modules.catalogo.modelos import (
     PromocionProductoORM,
     VarianteProductoORM,
 )
+from core.tiempo import hoy as hoy_empresa
 
 
 class ProductoDetalleRepositorio:
@@ -35,7 +35,7 @@ class ProductoDetalleRepositorio:
     @staticmethod
     def obtener_promocion_activa(db: Session, id_producto: int) -> Optional[PromocionORM]:
         """Consulta si el producto cuenta con una promoción vigente en fecha actual."""
-        hoy = date.today()
+        hoy = hoy_empresa()  # Bolivia (fix P2-CU11, M5)
         stmt = (
             select(PromocionORM)
             .join(PromocionProductoORM, PromocionProductoORM.id_promocion == PromocionORM.id_promocion)

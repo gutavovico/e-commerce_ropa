@@ -79,7 +79,7 @@
             <div class="flex items-center gap-2 text-xs text-stone-600">
               <span>Talla: <strong>{{ varianteSeleccionada.talla_codigo }} ES</strong></span>
               <span>·</span>
-              <span>Precio: <strong>{{ varianteSeleccionada.precio_final_variante }} €</strong></span>
+              <span>Precio: <strong>{{ varianteSeleccionada.precio_final_variante | importe }}</strong></span>
               <span class="bg-amber-100/70 text-amber-900 text-[10px] px-1.5 py-0.5 rounded font-medium">
                 Cortesía incluida
               </span>

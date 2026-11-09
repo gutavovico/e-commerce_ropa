@@ -14,11 +14,12 @@ import { Router, RouterLink } from '@angular/router';
 import { InicioService } from '../servicios/inicio.service';
 import { ProductoRecomendadoItem } from '../modelos/inicio.modelos';
 import { PerfilService } from '../../autenticacion_seguridad/cu04_gestionar_perfil/servicios/perfil.service';
+import { ImportePipe } from '../../../core/tenant/moneda';
 
 @Component({
   selector: 'app-inicio',
   standalone: true,
-  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
+  imports: [ImportePipe, MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
   templateUrl: './inicio.component.html',
   styleUrls: ['./inicio.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

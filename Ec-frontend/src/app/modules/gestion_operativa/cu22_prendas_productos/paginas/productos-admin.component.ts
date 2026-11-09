@@ -27,6 +27,7 @@ import {
   VarianteAdmin,
   VarianteEdicionItem,
 } from '../modelos/producto.dto';
+import { ImportePipe, SimboloMonedaPipe } from '../../../../core/tenant/moneda';
 
 function slugifyTexto(texto: string, maxLen = 16): string {
   if (!texto) return '';
@@ -42,7 +43,7 @@ function slugifyTexto(texto: string, maxLen = 16): string {
 @Component({
   selector: 'app-productos-admin',
   standalone: true,
-  imports: [MarcaTiendaComponent, CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [ImportePipe, SimboloMonedaPipe, MarcaTiendaComponent, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './productos-admin.component.html',
   styleUrls: ['./productos-admin.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

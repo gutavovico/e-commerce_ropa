@@ -145,10 +145,15 @@ class TenantServicio:
 
     @staticmethod
     def datos_publicos(db: Any, id_tenant: Optional[int]) -> Optional[TenantInfo]:
-        """Código y nombre de la empresa para la respuesta del login (solo con sesión real)."""
+        """Código, nombre y moneda de la empresa para la respuesta del login (solo con sesión real).
+
+        La moneda la trae `empresas_disponibles` (fix de P2-CU11, M6); una empresa no disponible
+        se devuelve con la moneda por defecto.
+        """
         if id_tenant is None or contexto(db) is None:
             return None
-        return buscar_tenant_por_id(db, id_tenant)
+        disponible = next((t for t in empresas_disponibles(db) if t.id_tenant == id_tenant), None)
+        return disponible or buscar_tenant_por_id(db, id_tenant)
 
     @staticmethod
     def exigir_cliente_en_tenant(db: Any, usuario: Any) -> None:

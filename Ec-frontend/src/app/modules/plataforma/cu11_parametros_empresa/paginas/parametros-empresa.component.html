@@ -45,20 +45,44 @@
     } @else if (servicio.parametros(); as p) {
       <form [formGroup]="form" (ngSubmit)="guardar()" class="mt-6 space-y-6 text-sm">
 
-        <!-- Datos fijados en el alta de la empresa (C2) -->
+        <!-- Moneda y zona horaria (fix de P2-CU11, M10) -->
         <section class="bg-white border border-slate-200 rounded-2xl p-5">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Datos de la empresa</h2>
-          <dl class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <dt class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Moneda</dt>
-              <dd id="config-moneda" class="font-semibold text-slate-900">{{ p.moneda }}</dd>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">Moneda y zona horaria</h2>
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="min-w-0">
+              <label for="config-moneda" class="block font-semibold text-slate-800">Moneda</label>
+              <select
+                id="config-moneda"
+                formControlName="moneda"
+                class="mt-2 w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#AD8C63] disabled:opacity-60"
+              >
+                @for (m of monedas; track m.valor) {
+                  <option [value]="m.valor">{{ m.nombre }}</option>
+                }
+              </select>
+              @if (p.moneda_bloqueada) {
+                <p id="config-moneda-bloqueada" class="mt-1 text-[11px] text-slate-500">
+                  La empresa ya tiene ventas registradas: su moneda no puede cambiar.
+                </p>
+              } @else {
+                <p class="mt-1 text-[11px] text-slate-500">
+                  Los precios no se convierten: solo cambia la moneda en la que se muestran y se cobran.
+                </p>
+              }
             </div>
-            <div>
-              <dt class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Zona horaria</dt>
-              <dd id="config-zona" class="font-semibold text-slate-900 break-words">{{ p.zona_horaria }}</dd>
+            <div class="min-w-0">
+              <label for="config-zona" class="block font-semibold text-slate-800">Zona horaria</label>
+              <select
+                id="config-zona"
+                formControlName="zona_horaria"
+                class="mt-2 w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#AD8C63]"
+              >
+                @for (z of zonas; track z.valor) {
+                  <option [value]="z.valor">{{ z.nombre }}</option>
+                }
+              </select>
             </div>
-          </dl>
-          <p class="mt-3 text-[11px] text-slate-400">Se fijan al dar de alta la empresa y no se cambian desde aquí.</p>
+          </div>
         </section>
 
         <!-- Reservas y cambios -->

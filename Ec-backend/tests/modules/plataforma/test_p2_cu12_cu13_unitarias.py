@@ -68,7 +68,7 @@ def test_fijar_contexto_dentro_de_una_transaccion_lo_aplica_de_inmediato():
     db = SesionFalsa(en_transaccion=True)
     fijar_contexto(db, 7, id_usuario=14)
     assert db.info[CLAVE_TENANT] == 7
-    assert db.ejecutadas and db.ejecutadas[-1][1] == {"t": "7", "u": "14", "p": ""}
+    assert db.ejecutadas and db.ejecutadas[-1][1] == {"t": "7", "u": "14", "p": "", "z": "America/La_Paz"}
 
 
 def test_sin_cabecera_la_sesion_queda_sin_empresa(tenants):

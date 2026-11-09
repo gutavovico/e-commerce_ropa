@@ -6,6 +6,8 @@ Spec: `.specs/finalized/P2-CU11-parametros-empresa/spec.md` §2.
   operación sin conexión (CU14, CU19) los leen con `ParametrosEmpresaServicio.vigentes(db)`.
 - C7: la operación que use un parámetro guarda el valor que la rige al crearse; cambiar la
   configuración no recalcula nada ya registrado (CU11 A3).
+- Fix (`.specs/finalized/P2-CU11-fix-moneda-zona-bolivia/`): moneda (BOB o USD) y zona horaria (solo
+  Bolivia) son editables; la moneda no cambia si la empresa ya tiene ventas o pagos (M3).
 """
 
 from dataclasses import dataclass
@@ -14,7 +16,8 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
-from core.errors import AuthorizationError
+from core.errors import AuthorizationError, ConflictError
+from core.moneda import MONEDA_POR_DEFECTO
 from core.tenant import tenant_actual
 from modules.plataforma.cu11_parametros_empresa.esquemas import ParametrosEmpresaIn, ParametrosEmpresaOut
 from modules.plataforma.cu11_parametros_empresa.repositorio import ParametrosEmpresaRepositorio
@@ -22,8 +25,10 @@ from modules.plataforma.cu12_validar_suscripcion.servicio import SuscripcionServ
 from modules.plataforma.modelos import ConfiguracionTenantORM
 from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
 
-#: Los parámetros que el administrador puede cambiar (C2).
+#: Los parámetros que el administrador puede cambiar.
 EDITABLES = (
+    "moneda",
+    "zona_horaria",
     "horas_vencimiento_reserva",
     "dias_cambio_prenda",
     "operacion_offline_habilitada",
@@ -74,8 +79,22 @@ class ParametrosEmpresaServicio:
         )
 
     @staticmethod
+    def _salida(db: Session, fila: ConfiguracionTenantORM) -> ParametrosEmpresaOut:
+        salida = ParametrosEmpresaOut.model_validate(fila)
+        salida.moneda_bloqueada = ParametrosEmpresaRepositorio.tiene_operaciones(db)
+        return salida
+
+    @staticmethod
+    def moneda(db: Session) -> str:
+        """Moneda de la empresa de la sesión (fix de P2-CU11, M6). Con una sesión simulada o sin
+        empresa, la moneda por defecto."""
+        if tenant_actual(db) is None:
+            return MONEDA_POR_DEFECTO
+        return ParametrosEmpresaServicio.vigentes(db).moneda
+
+    @staticmethod
     def obtener(db: Session) -> ParametrosEmpresaOut:
-        salida = ParametrosEmpresaOut.model_validate(ParametrosEmpresaServicio._fila(db))
+        salida = ParametrosEmpresaServicio._salida(db, ParametrosEmpresaServicio._fila(db))
         db.commit()  # confirma la fila creada por C4, si la hubo
         return salida
 
@@ -85,6 +104,12 @@ class ParametrosEmpresaServicio:
     ) -> ParametrosEmpresaOut:
         SuscripcionServicio.validar(db)  # C8
         fila = ParametrosEmpresaServicio._fila(db, bloquear=True)
+
+        if datos.moneda != fila.moneda and ParametrosEmpresaRepositorio.tiene_operaciones(db):
+            raise ConflictError(
+                "La empresa ya tiene ventas o pagos registrados: su moneda no puede cambiar.",
+                code="MONEDA_CON_OPERACIONES",
+            )
 
         anterior: dict = {}
         nuevo: dict = {}
@@ -112,4 +137,4 @@ class ParametrosEmpresaServicio:
                 payload_nuevo=nuevo,
                 db=db,
             )
-        return ParametrosEmpresaOut.model_validate(fila)
+        return ParametrosEmpresaServicio._salida(db, fila)

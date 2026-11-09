@@ -18,6 +18,8 @@ import { EscenarioPrueba, MetodoPago } from '../modelos/pago.model';
 import { PagoService } from '../servicios/pago.service';
 import { StripeConfigService } from '../servicios/stripe-config.service';
 import { StripeLoaderService } from '../servicios/stripe-loader.service';
+import { ImportePipe } from '../../../../core/tenant/moneda';
+import { formatearImporte } from '../../../../core/tenant/moneda';
 
 /** Duración informativa del código Bizum/QR mostrado en pantalla (§0.6 de la especificación). */
 const SEGUNDOS_CODIGO_QR = 5 * 60;
@@ -28,7 +30,7 @@ const CLAVE_SESION_ID_PAGO = 'fs_pago_id_pago_en_curso';
 @Component({
   selector: 'app-checkout-pago',
   standalone: true,
-  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
+  imports: [ImportePipe, MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
   templateUrl: './checkout-pago.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -78,10 +80,9 @@ export class CheckoutPagoComponent implements OnInit, OnDestroy {
   /** Cálculo de cuota en 3 plazos con Atelier Pay */
   protected readonly cuota3Plazos = computed(() => {
     const r = this.resumen();
-    if (!r) return '0,00 €';
+    if (!r) return formatearImporte(0);
     const totalNum = Number(r.total) || 0;
-    const cuota = totalNum / 3;
-    return `${cuota.toFixed(2).replace('.', ',')} €`;
+    return formatearImporte(totalNum / 3, r.moneda);
   });
 
   /** Boutiques reales de expedición de la orden, sin repetir (nunca literales inventados). */

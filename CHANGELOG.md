@@ -34,6 +34,15 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 - **Pruebas:** `pytest` 695 (2 de integración contra la rama de pruebas) y `ng test` 651, en verde; `ng build` correcto.
 - **Pendiente para CU15:** el formulario de reserva web fija la cita en «mañana a las 11:30» sin usar la franja elegida y, sin sucursal elegida, usa el id `1`.
 
+### Moneda y Zona Horaria de Bolivia — fix de P2-CU11
+- **Base de datos (migración `0016`):** moneda `BOB` o `USD` y zona `America/La_Paz` (CHECK); todas las empresas pasan a BOB sin convertir importes (decisión del usuario: 120 € pasan a Bs 120); `empresas_disponibles()` devuelve la moneda. Aplicada a mano en producción antes del push.
+- **Backend:** «hoy» con la hora de Bolivia en todo el backend (`core/tiempo.py` y `TimeZone` de cada transacción de PostgreSQL); moneda y zona editables en Configuración, con la moneda bloqueada si la empresa tiene ventas (409 `MONEDA_CON_OPERACIONES`); moneda en directorio, portal, login, carrito, checkout y pago; Stripe cobra en la moneda de la empresa; `formatear_importe` (`Bs 1.234,50`, `US$ 1.234,50`) en el comprobante y los textos; IVA del 13 %; `tzdata` en las dependencias.
+- **Web:** pipe `importe` y moneda de la tienda (portal o empresa del empleado); 74 importes sin «€»; selectores de moneda y zona en Configuración.
+- **Móvil:** `EmpresaTienda.moneda` y `formatoImporte`; 31 importes sin «€»; IVA 13 %.
+- **Pruebas:** `pytest` 715, `ng test` 656 y `flutter test` 280, en verde.
+- **Efecto para los usuarios:** precios, ventas y pagos de FASHION STORE se leen en Bs con el mismo número. Las apps móviles anteriores siguen mostrando «€» hasta instalar el APK nuevo.
+- Defectos 66–68 de la bitácora.
+
 ## [Unreleased] - 2026-11-08
 
 ### Implementación y Cierre — CU31 (Registrar venta presencial) y CU32 (Procesar venta y emitir comprobante)
@@ -538,6 +547,15 @@ ejercitar nunca `fromJson`, de modo que ningún desajuste de nombres de campo er
 65. **Web · La Pestaña «Ciudades» de `/admin/sucursales` no se Podía Abrir**:
     - *Causa:* el binding `[class.border-[#ECE4D8]="..."` de la tabla de ciudades estaba sin cerrar; al pintar la pestaña, el navegador lanzaba `InvalidCharacterError`. Ninguna prueba abría esa pestaña.
     - *Solución:* binding corregido al dejar la pestaña de solo lectura, y prueba nueva que la abre y comprueba su contenido.
+66. **El Servidor Calculaba «Hoy» en UTC, Cuatro Horas por Delante de Bolivia**:
+    - *Causa:* catálogo, detalle, colecciones y carrito usaban `date.today()`; la caja, la medianoche UTC para «ventas del día»; la suscripción, `datetime.now(timezone.utc).date()`; PostgreSQL, su zona por defecto (UTC) en `current_date` y `date_trunc`; los reportes, `datetime.now()` sin zona. Render corre en UTC. Entre las 20:00 y las 24:00 de Bolivia se aplicaban las promociones del día siguiente, la lista del día de la caja se vaciaba, las suscripciones vencían 4 h antes y los indicadores llevaban esas ventas al día siguiente. `configuracion_tenant.zona_horaria` existía, pero ningún código la leía.
+    - *Solución:* `core/tiempo.py` (`ahora`, `ahora_local`, `hoy`, `inicio_del_dia` en `America/La_Paz`) en todos esos sitios y `set_config('TimeZone', 'America/La_Paz', true)` en el listener `after_begin`. Pruebas con un reloj fijo a las 22:30 de Bolivia y de integración (`current_setting('TimeZone')` y `current_date` contra la rama de pruebas).
+67. **Móvil · RenderFlex Overflowed en las Filas de Precio (Séptima Aparición)**:
+    - *Causa:* «Bs 890,00» es más largo que «890 €»: la fila de precios de la ficha de producto (precio, precio tachado y ahorro) y la de las piezas de colecciones (precio y «+ CESTA») desbordaban en pantallas estrechas.
+    - *Solución:* `Wrap` en la ficha (un precio no se trunca) y `Flexible` con elipsis en las piezas, sin reducir fuentes.
+68. **Web · Precios Inventados en la Landing**:
+    - *Causa:* las tarjetas ilustrativas del asistente en la landing mostraban «875 €» y «550 €» escritos a mano, sin relación con el catálogo.
+    - *Solución:* se quitaron las dos líneas de precio y se conservó la ilustración (regla «cero datos inventados»).
 
 ## [1.8.0] - 2026-09-21
 

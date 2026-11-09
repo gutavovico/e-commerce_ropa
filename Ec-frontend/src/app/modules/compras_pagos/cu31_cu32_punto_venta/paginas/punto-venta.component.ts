@@ -31,6 +31,8 @@ import {
 } from '../modelos/punto-venta.dto';
 import { PuntoVentaService } from '../servicios/punto-venta.service';
 import { TicketComprobanteComponent } from '../componentes/ticket-comprobante/ticket-comprobante.component';
+import { ImportePipe, SimboloMonedaPipe } from '../../../../core/tenant/moneda';
+import { MonedaService, formatearImporte } from '../../../../core/tenant/moneda';
 
 type Pestana = 'nueva' | 'pendientes' | 'web';
 
@@ -48,13 +50,14 @@ interface LineaCaja {
 @Component({
   selector: 'app-punto-venta',
   standalone: true,
-  imports: [MarcaTiendaComponent, FormsModule, RouterLink, DatePipe, TicketComprobanteComponent],
+  imports: [ImportePipe, SimboloMonedaPipe, MarcaTiendaComponent, FormsModule, RouterLink, DatePipe, TicketComprobanteComponent],
   templateUrl: './punto-venta.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PuntoVentaComponent implements OnInit {
   private readonly servicio = inject(PuntoVentaService);
   private readonly loginService = inject(LoginService);
+  private readonly monedas = inject(MonedaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
 
@@ -463,7 +466,9 @@ export class PuntoVentaComponent implements OnInit {
 
   /** Describe el cupón tal como lo define la promoción (no es un importe calculado). */
   etiquetaCupon(cupon: CuponPos): string {
-    return cupon.tipo_descuento === 'monto_fijo' ? `${cupon.valor_descuento} €` : `${cupon.valor_descuento} %`;
+    return cupon.tipo_descuento === 'monto_fijo'
+      ? formatearImporte(cupon.valor_descuento, this.monedas.actual())
+      : `${cupon.valor_descuento} %`;
   }
 
   private cuerpoVenta(): VentaPosIn {

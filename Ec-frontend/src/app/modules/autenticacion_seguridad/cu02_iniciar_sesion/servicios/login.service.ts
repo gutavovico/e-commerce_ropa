@@ -113,6 +113,22 @@ export class LoginService {
   }
 
   /**
+   * Fix de P2-CU11: tras cambiar la moneda en Configuración, la sesión del empleado la refleja sin
+   * volver a iniciar sesión. Se guarda en el mismo storage que la sesión actual.
+   */
+  actualizarMonedaEmpresa(moneda: 'BOB' | 'USD'): void {
+    const sesion = this.usuarioActual();
+    if (!sesion?.tenant) return;
+    let recordar = true;
+    try {
+      recordar = typeof window === 'undefined' || localStorage.getItem(this.USER_KEY) !== null;
+    } catch {
+      recordar = true;
+    }
+    this.establecerSesion({ ...sesion, tenant: { ...sesion.tenant, moneda } }, recordar);
+  }
+
+  /**
    * Determina si una cadena de token JWT se encuentra expirada según su claim 'exp'.
    */
   esTokenExpirado(token?: string | null): boolean {

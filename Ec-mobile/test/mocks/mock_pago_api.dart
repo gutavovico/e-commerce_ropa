@@ -15,8 +15,8 @@ const Map<String, dynamic> respuestaResumenPagoBackend = {
   'subtotal': '2100.00',
   'descuento': '160.00',
   'total': '1940.00',
-  'iva_incluido': '336.69',
-  'moneda': 'EUR',
+  'iva_incluido': '223.19',
+  'moneda': 'BOB',
   'total_prendas': 3,
   'items': [
     {
@@ -61,7 +61,7 @@ const Map<String, dynamic> respuestaPagoConfirmadoBackend = {
   'metodo_pago': 'tarjeta_credito',
   'referencia_pasarela': 'pi_test_123456789',
   'monto': '1940.00',
-  'moneda': 'EUR',
+  'moneda': 'BOB',
   'marca_tarjeta': 'VISA',
   'ultimos_digitos': '1111',
   'confirmado_en': '2026-09-22T10:05:00Z',
@@ -78,7 +78,7 @@ const Map<String, dynamic> respuestaPagoEfectivoBackend = {
   'metodo_pago': 'efectivo',
   'referencia_pasarela': null,
   'monto': '1940.00',
-  'moneda': 'EUR',
+  'moneda': 'BOB',
   'marca_tarjeta': null,
   'ultimos_digitos': null,
   'confirmado_en': '2026-09-22T10:05:00Z',

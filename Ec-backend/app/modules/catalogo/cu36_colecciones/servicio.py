@@ -2,11 +2,10 @@
 
 Implementa la lógica de negocio para:
 - Resolución de temporada comercial activa y colecciones vigentes.
-- Cálculo de precio de entrada ('Desde X €'), total de prendas activas y piezas clave.
+- Cálculo de precio de entrada ('Desde X', en la moneda de la empresa), total de prendas activas y piezas clave.
 - Listado de prendas exclusivas por colección específica.
 """
 
-from datetime import date
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -30,6 +29,7 @@ from modules.catalogo.cu36_colecciones.esquemas import (
     ProductoColeccionItemOut,
     VarianteColeccionOut,
 )
+from core.tiempo import hoy as hoy_empresa
 
 
 class ColeccionNoEncontradaError(Exception):
@@ -176,7 +176,7 @@ class ColeccionesService:
     @classmethod
     def obtener_temporada_activa(cls, db: Session) -> Optional[TemporadaORM]:
         """Resuelve la temporada comercial activa por rango de fecha o flag activa."""
-        hoy = date.today()
+        hoy = hoy_empresa()  # Bolivia (fix P2-CU11, M5)
 
         # 1. Intentar por fecha vigente dentro de temporadas activas
         stmt = (
@@ -302,7 +302,7 @@ class ColeccionesService:
             prendas_activas = sorted([p for p in col.productos if p.activo], key=lambda p: p.id_producto)
             total_prendas = len(prendas_activas)
 
-            # Cálculo de precio de entrada 'Desde X €'
+            # Cálculo de precio de entrada 'Desde X'
             if prendas_activas:
                 precio_desde = min(p.precio_base for p in prendas_activas)
                 portada = next((p.imagen_url for p in prendas_activas if p.imagen_url), None)

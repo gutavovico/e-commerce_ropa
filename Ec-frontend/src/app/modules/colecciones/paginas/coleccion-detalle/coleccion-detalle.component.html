@@ -90,7 +90,7 @@
               <div class="card-details">
                 <div class="top-meta-row">
                   <span class="atelier-subtext">{{ item.subtitulo_atelier || item.categoria }}</span>
-                  <span class="price-tag">{{ item.precio_base }} €</span>
+                  <span class="price-tag">{{ item.precio_base | importe }}</span>
                 </div>
 
                 <h2 class="product-title">

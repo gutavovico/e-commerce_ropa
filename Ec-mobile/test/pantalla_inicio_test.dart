@@ -177,9 +177,9 @@ void main() {
     expect(find.text('Recomendado para ti'), findsOneWidget);
     expect(find.text('Ver catálogo'), findsOneWidget);
     expect(find.text('Vestido plisado en seda natural'), findsOneWidget);
-    expect(find.text('890 €'), findsOneWidget);
+    expect(find.text('Bs 890,00'), findsOneWidget);
     expect(find.text('Blazer estructurado en lana virgen'), findsOneWidget);
-    expect(find.text('740 €'), findsOneWidget);
+    expect(find.text('Bs 740,00'), findsOneWidget);
     expect(find.text('+ BOLSA'), findsNWidgets(2));
   });
 

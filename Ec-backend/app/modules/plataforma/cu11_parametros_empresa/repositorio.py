@@ -23,3 +23,10 @@ class ParametrosEmpresaRepositorio:
             "INSERT INTO fashionstore.configuracion_tenant DEFAULT VALUES ON CONFLICT (id_tenant) DO NOTHING"
         ))
         db.flush()
+
+    @staticmethod
+    def tiene_operaciones(db: Session) -> bool:
+        """M3: alguna venta o pago de la empresa de la sesión (la RLS limita a la suya)."""
+        return bool(db.execute(text(
+            "SELECT EXISTS (SELECT 1 FROM fashionstore.ventas) OR EXISTS (SELECT 1 FROM fashionstore.pagos)"
+        )).scalar())

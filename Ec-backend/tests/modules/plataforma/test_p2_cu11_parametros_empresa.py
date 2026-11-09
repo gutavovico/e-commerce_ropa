@@ -21,6 +21,8 @@ from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
 
 URL = "/api/v1/admin/configuracion"
 VALIDOS = {
+    "moneda": "BOB",
+    "zona_horaria": "America/La_Paz",
     "horas_vencimiento_reserva": 24,
     "dias_cambio_prenda": 15,
     "operacion_offline_habilitada": True,
@@ -30,7 +32,7 @@ VALIDOS = {
 
 def fila_por_defecto() -> ConfiguracionTenantORM:
     return ConfiguracionTenantORM(
-        id_tenant=1, moneda="EUR", zona_horaria="Europe/Madrid", horas_vencimiento_reserva=24,
+        id_tenant=1, moneda="BOB", zona_horaria="America/La_Paz", horas_vencimiento_reserva=24,
         dias_cambio_prenda=15, operacion_offline_habilitada=True, dias_antiguedad_offline=7,
         actualizado_en=datetime(2026, 11, 8, tzinfo=timezone.utc),
     )
@@ -46,7 +48,7 @@ def usuario(rol: str) -> UsuarioORM:
 @pytest.fixture
 def entorno(monkeypatch):
     """Empresa 1 en el contexto, una fila en «la base» y la bitácora capturada."""
-    estado = {"fila": fila_por_defecto(), "creadas": 0, "eventos": []}
+    estado = {"fila": fila_por_defecto(), "creadas": 0, "eventos": [], "operaciones": False}
     monkeypatch.setattr(srv, "tenant_actual", lambda db: 1)
     monkeypatch.setattr(srv.SuscripcionServicio, "validar", staticmethod(lambda db, **kw: None))
 
@@ -59,6 +61,9 @@ def entorno(monkeypatch):
 
     monkeypatch.setattr(ParametrosEmpresaRepositorio, "leer", staticmethod(leer))
     monkeypatch.setattr(ParametrosEmpresaRepositorio, "crear_si_falta", staticmethod(crear_si_falta))
+    monkeypatch.setattr(
+        ParametrosEmpresaRepositorio, "tiene_operaciones", staticmethod(lambda db: estado["operaciones"])
+    )
     monkeypatch.setattr(
         ServicioBitacoraAuditoria, "registrar_evento_seguro",
         classmethod(lambda cls, **kw: estado["eventos"].append(kw)),
@@ -78,9 +83,9 @@ def test_lee_los_parametros(entorno, cliente):
     respuesta = cliente.get(URL)
     assert respuesta.status_code == 200
     assert respuesta.json() == {
-        "moneda": "EUR", "zona_horaria": "Europe/Madrid", "horas_vencimiento_reserva": 24,
+        "moneda": "BOB", "zona_horaria": "America/La_Paz", "horas_vencimiento_reserva": 24,
         "dias_cambio_prenda": 15, "operacion_offline_habilitada": True, "dias_antiguedad_offline": 7,
-        "actualizado_en": "2026-11-08T00:00:00Z",
+        "actualizado_en": "2026-11-08T00:00:00Z", "moneda_bloqueada": False,
     }
 
 
@@ -125,11 +130,32 @@ def test_c3_fuera_de_rango_no_se_guarda(entorno, cliente, campo, valor):
     assert entorno["eventos"] == []
 
 
-def test_c2_moneda_y_zona_no_se_cambian(entorno, cliente):
-    respuesta = cliente.put(URL, json={**VALIDOS, "moneda": "USD", "zona_horaria": "America/La_Paz"})
+def test_fix_m1_moneda_editable_sin_operaciones(entorno, cliente):
+    respuesta = cliente.put(URL, json={**VALIDOS, "moneda": "USD"})
     assert respuesta.status_code == 200
-    assert respuesta.json()["moneda"] == "EUR"
-    assert respuesta.json()["zona_horaria"] == "Europe/Madrid"
+    assert respuesta.json()["moneda"] == "USD"
+    assert entorno["eventos"][0]["payload_nuevo"] == {"moneda": "USD"}
+
+
+@pytest.mark.parametrize("campo, valor", [
+    ("moneda", "EUR"), ("moneda", "bob"), ("zona_horaria", "Europe/Madrid"), ("zona_horaria", "America/Lima"),
+])
+def test_fix_m1_m4_valores_no_admitidos(entorno, cliente, campo, valor):
+    assert cliente.put(URL, json={**VALIDOS, campo: valor}).status_code == 422
+    assert entorno["fila"].moneda == "BOB"
+
+
+def test_fix_m3_con_ventas_la_moneda_no_cambia(entorno, cliente):
+    entorno["operaciones"] = True
+    assert cliente.get(URL).json()["moneda_bloqueada"] is True
+
+    respuesta = cliente.put(URL, json={**VALIDOS, "moneda": "USD"})
+    assert respuesta.status_code == 409
+    assert respuesta.json()["code"] == "MONEDA_CON_OPERACIONES"
+    assert entorno["fila"].moneda == "BOB"
+
+    # El resto de parámetros sí se puede cambiar
+    assert cliente.put(URL, json={**VALIDOS, "dias_cambio_prenda": 30}).status_code == 200
 
 
 @pytest.mark.parametrize("rol", ["encargado_sucursal", "cajero", "cliente"])

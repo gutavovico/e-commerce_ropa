@@ -388,7 +388,7 @@
                   <!-- Precio y Acción de Factura -->
                   <div class="sm:border-l sm:border-neutral-100 sm:pl-5 flex sm:flex-col justify-between items-end shrink-0">
                     <p class="text-lg font-bold text-neutral-950">
-                      {{ pedido.total }} €
+                      {{ pedido.total | importe }}
                     </p>
 
                     <button
@@ -765,7 +765,7 @@
                 </p>
               </div>
               <p class="font-semibold text-neutral-950 shrink-0 ml-4">
-                {{ item.subtotal_linea }} €
+                {{ item.subtotal_linea | importe }}
               </p>
             </div>
           }
@@ -775,15 +775,15 @@
         <div class="space-y-1.5 text-xs border-t border-neutral-200 pt-4 mb-6">
           <div class="flex justify-between text-neutral-500">
             <span>Subtotal</span>
-            <span>{{ comp.subtotal }} €</span>
+            <span>{{ comp.subtotal | importe }}</span>
           </div>
           <div class="flex justify-between text-neutral-500">
             <span>Descuento</span>
-            <span>-{{ comp.descuento }} €</span>
+            <span>-{{ comp.descuento | importe }}</span>
           </div>
           <div class="flex justify-between text-sm font-bold text-neutral-950 pt-1">
             <span>Total</span>
-            <span>{{ comp.total }} €</span>
+            <span>{{ comp.total | importe }}</span>
           </div>
         </div>
 

@@ -13,6 +13,7 @@ from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from core.tiempo import ahora_local
 
 
 class CanvasNumerado(canvas.Canvas):
@@ -142,7 +143,7 @@ class GeneradorPDF:
         elementos.append(Paragraph(titulo.upper(), estilo_titulo))
         elementos.append(Paragraph(f"Reporte Ejecutivo: {subtitulo}", estilo_subtitulo))
 
-        detalles_meta = [f"Fecha de Emision: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"]
+        detalles_meta = [f"Fecha de Emision: {ahora_local().strftime('%Y-%m-%d %H:%M:%S')}"]
         if metadatos:
             for k, v in metadatos.items():
                 detalles_meta.append(f"{k}: {v}")

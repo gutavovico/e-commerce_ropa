@@ -34,6 +34,8 @@ class TenantSesionOut(BaseModel):
 
     codigo: str
     nombre: str
+    #: Fix de P2-CU11 (M6): moneda de la empresa.
+    moneda: str = "BOB"
 
 
 class LoginOut(BaseModel):

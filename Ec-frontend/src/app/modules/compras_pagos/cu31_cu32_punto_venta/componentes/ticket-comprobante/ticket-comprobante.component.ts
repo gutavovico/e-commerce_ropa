@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ETIQUETA_METODO, VentaPos } from '../../modelos/punto-venta.dto';
+import { ImportePipe } from '../../../../../core/tenant/moneda';
 
 /**
  * Comprobante de 80 mm (CU32). Imprimible con `window.print()`: los estilos `@media print` ocultan
@@ -18,7 +19,7 @@ import { ETIQUETA_METODO, VentaPos } from '../../modelos/punto-venta.dto';
 @Component({
   selector: 'app-ticket-comprobante',
   standalone: true,
-  imports: [MarcaTiendaComponent, DatePipe],
+  imports: [ImportePipe, MarcaTiendaComponent, DatePipe],
   templateUrl: './ticket-comprobante.component.html',
   styleUrls: ['./ticket-comprobante.component.scss'],
   encapsulation: ViewEncapsulation.None,

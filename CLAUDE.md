@@ -135,9 +135,9 @@ sola cuando no hay `DATABASE_URL` en `Ec-backend/.env`.
 **La cadena de Alembic es lineal desde el defecto 45 del `CHANGELOG.md`:**
 `0001 → … → 0008 → 0009 → 0009a → 0010 → 0010a → 0011`. `0009a` (CU28) y `0010a` (CU29) son
 marcadores vacíos; los IDs llevan sufijo porque `0009` y `0010` ya pertenecían a migraciones con DDL
-real. Desde la fundación multitenant la cadena sigue `0011 → 0012 → 0013 → 0014 → 0015` y producción
-está en `0015`. **Nueva migración:** `down_revision = "0015"` e ID nuevo y único (`0016`); comprueba
-`alembic heads` antes de enviarla.
+real. Desde la fundación multitenant la cadena sigue `0011 → 0012 → 0013 → 0014 → 0015 → 0016` y
+producción está en `0016`. **Nueva migración:** `down_revision = "0016"` e ID nuevo y único (`0017`);
+avisa al resto del equipo del número antes de crearla y comprueba `alembic heads` antes de enviarla.
 
 **Las migraciones se aplican a mano, antes del push** (defecto 55): Render no ejecutó el
 `preDeployCommand` de `render.yaml`, y desplegar código que espera un esquema nuevo sobre una base sin
@@ -285,8 +285,14 @@ Cuidado con dónde vive un modelo antes de declararlo: `VentaORM` y `VentaDetall
 - El servidor recalcula siempre subtotal, descuento y total; los importes que envíe el cliente se
   ignoran.
 - Semántica fija: `subtotal` agrega precios de lista, `descuento` el ahorro, y siempre
-  `total = subtotal − descuento`. El IVA (21 %) va incluido en el precio y solo se desglosa para
-  mostrarlo; no se persiste.
+  `total = subtotal − descuento`. El IVA de Bolivia (13 %, `core/moneda.py`) va incluido en el precio y
+  solo se desglosa para mostrarlo; no se persiste.
+- **Moneda y hora de Bolivia (fix de P2-CU11).** Cada empresa cobra en BOB o USD
+  (`configuracion_tenant.moneda`; no cambia si ya tiene ventas). Los importes se muestran con
+  `formatear_importe` (backend), el pipe `importe` (web) o `formatoImporte` (móvil); nunca con «€» ni
+  con un símbolo escrito a mano, y Stripe cobra en esa moneda. «Hoy» y el inicio del día se calculan
+  con `core/tiempo.py` (`America/La_Paz`), nunca con `date.today()` ni `datetime.now()`; PostgreSQL usa
+  la misma zona en cada transacción.
 - Toda variación de stock se escribe en `movimientos_inventario` dentro de la misma transacción,
   con `id_usuario_responsable`.
 - La lectura de inventario previa a una escritura usa `SELECT … FOR UPDATE`. La clave única real de
@@ -352,8 +358,9 @@ lib/src/{core,navegacion}/
   **Todo datasource nuevo usa `ClienteHttpApi()` como cliente por defecto**, nunca `http.Client()`: es
   el que añade `X-Tenant`; sin él el backend no devuelve datos de ninguna empresa. La marca visible es
   `EmpresaActual.instancia.marca`.
-- `RenderFlex overflowed` ha reaparecido seis veces. Usa `Expanded`/`Flexible` con
-  `overflow: TextOverflow.ellipsis` en lugar de reducir tamaños de fuente.
+- `RenderFlex overflowed` ha reaparecido siete veces. Usa `Expanded`/`Flexible` con
+  `overflow: TextOverflow.ellipsis` en lugar de reducir tamaños de fuente; para un precio, que no debe
+  truncarse, un `Wrap`.
 
 ---
 

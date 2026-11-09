@@ -105,7 +105,7 @@
                 <div class="card-details">
                   <div class="top-meta-row">
                     <span class="atelier-subtext">{{ item.subtitulo_atelier || 'SEDA LYON · ALTA COSTURA' }}</span>
-                    <span class="price-tag">{{ item.precio_base }} €</span>
+                    <span class="price-tag">{{ item.precio_base | importe }}</span>
                   </div>
 
                   <h3 class="product-title">
@@ -187,7 +187,7 @@
               <div class="card-details">
                 <div class="top-meta-row">
                   <span class="atelier-subtext">{{ col.temporada_nombre }}</span>
-                  <span class="price-tag">Desde {{ col.precio_desde }} €</span>
+                  <span class="price-tag">Desde {{ col.precio_desde | importe }}</span>
                 </div>
 
                 <h3 class="collection-title">

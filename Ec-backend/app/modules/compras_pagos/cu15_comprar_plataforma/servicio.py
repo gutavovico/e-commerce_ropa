@@ -23,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from core.errors import ConflictError, DomainError, NotFoundError
+from modules.plataforma.cu11_parametros_empresa.servicio import ParametrosEmpresaServicio
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.catalogo.modelos import PromocionORM, VentaDetalleORM, VentaORM
 from modules.compras_pagos.cu11_gestionar_carrito.repositorio import CarritoRepositorio
@@ -152,6 +153,7 @@ class CheckoutServicio:
             descuento=venta.descuento,
             total=venta.total,
             iva_incluido=calcular_iva_incluido(venta.total),
+            moneda=ParametrosEmpresaServicio.moneda(db),
             cupon_aplicado=payload.codigo_cupon if promocion else None,
             nombre_promocion=promocion.nombre if promocion else None,
             items=items_salida,

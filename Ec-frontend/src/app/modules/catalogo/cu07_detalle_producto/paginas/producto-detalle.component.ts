@@ -24,11 +24,12 @@ import { ModalReservaBoutiqueComponent } from '../componentes/modal-reserva-bout
 import { ModalVestidorArComponent } from '../../cu10_vestidor_virtual/componentes/modal-vestidor-ar/modal-vestidor-ar.component';
 import { CatalogoService } from '../../servicios/catalogo.service';
 import { CarritoService } from '../../../compras_pagos/cu11_gestionar_carrito/servicios/carrito.service';
+import { ImportePipe } from '../../../../core/tenant/moneda';
 
 @Component({
   selector: 'app-producto-detalle',
   standalone: true,
-  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink, ModalReservaBoutiqueComponent, ModalVestidorArComponent],
+  imports: [ImportePipe, MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink, ModalReservaBoutiqueComponent, ModalVestidorArComponent],
   templateUrl: './producto-detalle.component.html',
   styleUrls: ['./producto-detalle.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

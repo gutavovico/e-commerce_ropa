@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from core.tiempo import ahora_local
 
 
 class GeneradorExcel:
@@ -90,7 +91,7 @@ class GeneradorExcel:
         ws.row_dimensions[2].height = 20
 
         # Metadatos en Fila 3
-        texto_meta = f"Emision: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        texto_meta = f"Emision: {ahora_local().strftime('%Y-%m-%d %H:%M:%S')}"
         if metadatos:
             detalles = [f"{k}: {v}" for k, v in metadatos.items()]
             texto_meta += " | " + " | ".join(detalles)

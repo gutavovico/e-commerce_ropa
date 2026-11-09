@@ -32,6 +32,7 @@ from modules.comercial.cu31_reportes_voz.parser_voz import ParserComandosVoz
 from modules.gestion_operativa.modelos import SucursalORM
 from modules.seguridad.cu30_bitacora.modelos import Bitacora
 from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
+from core.tiempo import ahora_local
 
 
 class ServicioReportesVoz:
@@ -226,7 +227,7 @@ class ServicioReportesVoz:
                 total_registros = 0
             resumen_fin = {"total_eventos_auditoria": total_registros}
 
-        fecha_str = datetime.now().strftime("%Y%m%d")
+        fecha_str = ahora_local().strftime("%Y%m%d")
         ext = "xlsx" if filtros.formato == FormatoReporteEnum.EXCEL else filtros.formato.value
         nombre_sugerido = f"reporte_{filtros.modulo.value}_{fecha_str}.{ext}"
 
@@ -409,7 +410,7 @@ class ServicioReportesVoz:
         cls.validar_permisos(usuario_actual, filtros.modulo, filtros.id_sucursal)
 
         titulo, subtitulo, columnas, filas, totales, metadatos = cls.extraer_datos_modulo(db, filtros)
-        fecha_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        fecha_str = ahora_local().strftime("%Y%m%d_%H%M%S")
 
         # 1. Despachar a generador binario
         if filtros.formato == FormatoReporteEnum.EXCEL:

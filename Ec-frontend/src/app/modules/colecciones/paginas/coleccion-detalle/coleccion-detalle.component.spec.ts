@@ -116,9 +116,9 @@ describe('ColeccionDetalleComponent', () => {
   it('debe renderizar el listado de prendas con sus precios y botones VER', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Vestido plisado en seda natural');
-    expect(el.textContent).toContain('890 €');
+    expect(el.textContent).toContain('Bs 890,00');
     expect(el.textContent).toContain('Blazer estructurado en lana virgen');
-    expect(el.textContent).toContain('740 €');
+    expect(el.textContent).toContain('Bs 740,00');
     expect(el.textContent).toContain('VER');
   });
 

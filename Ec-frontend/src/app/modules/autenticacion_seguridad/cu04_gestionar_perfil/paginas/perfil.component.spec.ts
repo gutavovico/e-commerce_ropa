@@ -214,7 +214,7 @@ describe('PerfilComponent (CU04 + CU17)', () => {
     expect(compiled.textContent).toContain('1 PEDIDO COMPLETADO');
     expect(compiled.textContent).toContain('Abrigo de Lana Merino');
     expect(compiled.textContent).toContain('FS-2026-000042');
-    expect(compiled.textContent).toContain('890.00 €');
+    expect(compiled.textContent).toContain('Bs 890,00');
 
     fixture.componentInstance.descargarFactura(mockPedido);
     fixture.detectChanges();

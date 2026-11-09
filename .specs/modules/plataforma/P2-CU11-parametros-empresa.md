@@ -6,7 +6,9 @@
 **Frontend:** `src/app/modules/plataforma/cu11_parametros_empresa/` · ruta `/admin/configuracion` · tarjeta en el panel
 **Mobile:** sin cambios
 **Depende de:** `P2-CU13-CU12-fundacion-multitenant.md`
-**Estado:** Aprobado (2026-11-09)
+**Estado:** Aprobado (2026-11-09). C2 superada por el fix de moneda y zona horaria
+(`.specs/finalized/P2-CU11-fix-moneda-zona-bolivia/`, migración `0016`): moneda BOB/USD y zona de
+Bolivia editables.
 **Historial del cambio:** `.specs/finalized/P2-CU11-parametros-empresa/`
 
 ---
@@ -16,7 +18,7 @@
 | ID | Decisión |
 | :--- | :--- |
 | C1 | CU11 configura; cada caso de uso aplica su parámetro: `horas_vencimiento_reserva` en CU15, `dias_cambio_prenda` en CU18, `operacion_offline_habilitada` y `dias_antiguedad_offline` en CU14 y CU19. |
-| C2 | Moneda y zona horaria se muestran y no se cambian aquí (las fija el alta de empresa, CU05). |
+| C2 | ~~Moneda y zona horaria solo se consultan.~~ **Superada (fix):** moneda `BOB` o `USD`, bloqueada si la empresa tiene ventas o pagos (409 `MONEDA_CON_OPERACIONES`); zona horaria solo `America/La_Paz`. |
 | C3 | Rangos: reserva 1–168 h; cambio de prenda 0–90 días (0 = sin cambios); antigüedad sin conexión 1–30 días. La base conserva sus CHECK de mínimos. |
 | C4 | Si la empresa no tiene fila, se crea con los valores por defecto de la base al primer uso. |
 | C5 | Bitácora `CONFIGURACION_MODIFICADA` con el valor anterior y el nuevo de lo que cambió; sin cambios, no se escribe. |
@@ -28,14 +30,14 @@
 | Método y ruta | Auth | Comportamiento |
 | :--- | :--- | :--- |
 | `GET /api/v1/admin/configuracion` | Administrador | `{moneda, zona_horaria, horas_vencimiento_reserva, dias_cambio_prenda, operacion_offline_habilitada, dias_antiguedad_offline, actualizado_en}`. |
-| `PUT /api/v1/admin/configuracion` | Administrador | Recibe los cuatro editables; responde como el `GET`. 422 fuera de rango; 403 `SUSCRIPCION_NO_VIGENTE`. `moneda` y `zona_horaria` se ignoran. |
+| `PUT /api/v1/admin/configuracion` | Administrador | Recibe `moneda`, `zona_horaria` y los cuatro numéricos y el interruptor; responde como el `GET` más `moneda_bloqueada`. 422 fuera de rango o con una moneda o zona no admitidas; 409 `MONEDA_CON_OPERACIONES`; 403 `SUSCRIPCION_NO_VIGENTE`. |
 
 **Lectura para otros paquetes:** `ParametrosEmpresaServicio.vigentes(db) → ParametrosEmpresa` (dataclass inmutable, empresa de la sesión).
 
 ## 3. Web
 
 - `/admin/configuracion` (`roleGuard(['administrador', 'admin'])`), con tarjeta «Configuración» en el panel.
-- Moneda y zona horaria de solo lectura. Los tres valores numéricos llevan su rango y su valor por defecto.
+- Selector de moneda (Boliviano / Dólar), deshabilitado con aviso si la empresa tiene ventas; selector de zona con la única opción «Bolivia». Los tres valores numéricos llevan su rango y su valor por defecto.
 - Al desactivar la operación sin conexión se muestra el aviso de A2 y hay que confirmar. Con la opción apagada, la antigüedad máxima queda deshabilitada, pero se envía.
 - El formulario se reemplaza con la respuesta del servidor; mensaje «Rige para las operaciones nuevas».
 

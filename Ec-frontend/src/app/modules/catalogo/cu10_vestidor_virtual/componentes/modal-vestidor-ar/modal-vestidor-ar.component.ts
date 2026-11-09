@@ -19,6 +19,7 @@ import { ProductoDetalle, VarianteDetalle } from '../../../cu07_detalle_producto
 import { TipoMotorVestidor, TokenVestidorDecartOut } from '../../modelos/vestidor.dto';
 import { VestidorService } from '../../servicios/vestidor.service';
 import { construirPromptVton } from '../../servicios/prompt-vton';
+import { ImportePipe } from '../../../../../core/tenant/moneda';
 
 /** Lado mínimo recomendado por Decart para la imagen de referencia de la prenda. */
 const LADO_MINIMO_REFERENCIA_PX = 512;
@@ -53,7 +54,7 @@ export function describirErrorCamara(nombre: string): string {
 @Component({
   selector: 'app-modal-vestidor-ar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [ImportePipe, CommonModule],
   templateUrl: './modal-vestidor-ar.component.html',
   styleUrls: ['./modal-vestidor-ar.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -3,6 +3,7 @@ import '../../datos/modelos/producto_item_dto.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/presentacion/pantallas/pantalla_producto_detalle.dart';
 import '../bloc/catalogo_bloc.dart';
 import '../../../../../core/empresa_actual.dart';
+import 'package:ec_mobile/src/core/moneda.dart';
 
 /// Paleta de 16 colores textiles de confección para el catálogo de FashionStore.
 class SwatchColorTextil {
@@ -169,11 +170,11 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${tempMin.toStringAsFixed(0)} €',
+                        formatoImporte(tempMin),
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       Text(
-                        '${tempMax.toStringAsFixed(0)} €',
+                        formatoImporte(tempMax),
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ],
@@ -1095,7 +1096,7 @@ class _PantallaBuscarProductosState extends State<PantallaBuscarProductos> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '${item.precioBase.toStringAsFixed(0)} €',
+              formatoImporte(item.precioBase),
               style: const TextStyle(
                 fontFamily: 'Outfit',
                 fontSize: 14,

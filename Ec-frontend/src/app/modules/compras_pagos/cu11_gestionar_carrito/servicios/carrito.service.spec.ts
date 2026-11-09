@@ -48,8 +48,8 @@ const RESPUESTA_CARRITO: Carrito = {
     subtotal: '890.00',
     descuento: '133.50',
     total: '756.50',
-    iva_incluido: '131.30',
-    moneda: 'EUR',
+    iva_incluido: '87.03',
+    moneda: 'BOB',
   },
   expira_en: '2026-09-22T10:25:00Z',
   sucursales_expedicion: [
@@ -91,7 +91,7 @@ describe('CarritoService (CU11 + CU15)', () => {
     expect(servicio.subtotal()).toBe('890.00');
     expect(servicio.descuento()).toBe('133.50');
     expect(servicio.total()).toBe('756.50');
-    expect(servicio.ivaIncluido()).toBe('131.30');
+    expect(servicio.ivaIncluido()).toBe('87.03');
     expect(servicio.totalPrendas()).toBe(1);
     expect(servicio.hayDescuento()).toBe(true);
     expect(servicio.cargando()).toBe(false);

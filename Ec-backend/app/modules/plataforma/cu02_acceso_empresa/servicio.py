@@ -15,7 +15,7 @@ from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
 
 
 def _out(tenant: Any) -> EmpresaOut:
-    return EmpresaOut(codigo=tenant.codigo, nombre=tenant.nombre)
+    return EmpresaOut(codigo=tenant.codigo, nombre=tenant.nombre, moneda=tenant.moneda)
 
 
 class AccesoEmpresaServicio:

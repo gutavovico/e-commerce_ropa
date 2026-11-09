@@ -28,6 +28,7 @@ from sqlalchemy import event, text
 from sqlalchemy.orm import Session
 
 from core.errors import AuthorizationError, NotFoundError
+from core.tiempo import ZONA_EMPRESA
 
 logger = logging.getLogger("fashionstore.tenant")
 
@@ -41,10 +42,13 @@ CLAVE_PLATAFORMA = "modo_plataforma"
 CLAVE_TENANT_CABECERA = "id_tenant_cabecera"
 CLAVE_TENANT_INFO = "tenant"
 
+#: Fix de P2-CU11 (M5): la zona de la transacción es la de Bolivia, para que `current_date`,
+#: `date_trunc` y los `::date` de PostgreSQL coincidan con `core.tiempo.hoy()`.
 _SQL_CONTEXTO = text(
     "SELECT set_config('app.id_tenant', :t, true), "
     "set_config('app.id_usuario', :u, true), "
-    "set_config('app.modo_plataforma', :p, true)"
+    "set_config('app.modo_plataforma', :p, true), "
+    "set_config('TimeZone', :z, true)"
 )
 
 
@@ -54,6 +58,8 @@ class TenantInfo:
     codigo: str
     nombre: str
     estado: str
+    #: Fix de P2-CU11 (M6): moneda de la empresa (solo la traen `empresas_disponibles`).
+    moneda: str = "BOB"
 
     @property
     def activa(self) -> bool:
@@ -83,6 +89,7 @@ def _parametros(info: dict) -> dict:
         "t": str(tenant) if tenant is not None else "",
         "u": str(usuario) if usuario is not None else "",
         "p": "on" if info.get(CLAVE_PLATAFORMA) else "",
+        "z": ZONA_EMPRESA,
     }
 
 
@@ -253,6 +260,6 @@ def empresas_disponibles(db: Any) -> list[TenantInfo]:
     if _info(db) is None:
         return []
     filas = db.execute(
-        text("SELECT id_tenant, codigo, nombre FROM fashionstore.empresas_disponibles()")
+        text("SELECT id_tenant, codigo, nombre, moneda FROM fashionstore.empresas_disponibles()")
     ).all()
-    return [TenantInfo(int(f[0]), f[1], f[2], "activa") for f in filas]
+    return [TenantInfo(int(f[0]), f[1], f[2], "activa", f[3]) for f in filas]

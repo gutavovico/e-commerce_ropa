@@ -6,17 +6,21 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ParametrosEmpresaComponent, AVISO_DESACTIVAR_OFFLINE } from './parametros-empresa.component';
 import { LoginService } from '../../../autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 import { signal } from '@angular/core';
+import { vi } from 'vitest';
 
-/** Payload literal de GET /api/v1/admin/configuracion (P2-CU11). */
+/** Payload literal de GET /api/v1/admin/configuracion (P2-CU11 con su fix de moneda y zona). */
 const RESPUESTA = {
-  moneda: 'EUR',
-  zona_horaria: 'Europe/Madrid',
+  moneda: 'BOB' as const,
+  zona_horaria: 'America/La_Paz',
   horas_vencimiento_reserva: 24,
   dias_cambio_prenda: 15,
   operacion_offline_habilitada: true,
   dias_antiguedad_offline: 7,
   actualizado_en: '2026-11-08T00:00:00Z',
+  moneda_bloqueada: false,
 };
+
+const login = { usuarioActual: signal(null), actualizarMonedaEmpresa: vi.fn() };
 
 describe('ParametrosEmpresaComponent (P2-CU11)', () => {
   let fixture: ComponentFixture<ParametrosEmpresaComponent>;
@@ -33,13 +37,14 @@ describe('ParametrosEmpresaComponent (P2-CU11)', () => {
   };
 
   beforeEach(async () => {
+    login.actualizarMonedaEmpresa.mockClear();
     await TestBed.configureTestingModule({
       imports: [ParametrosEmpresaComponent],
       providers: [
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: LoginService, useValue: { usuarioActual: signal(null) } },
+        { provide: LoginService, useValue: login },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(ParametrosEmpresaComponent);
@@ -52,23 +57,28 @@ describe('ParametrosEmpresaComponent (P2-CU11)', () => {
 
   afterEach(() => http.verify());
 
-  it('muestra los parámetros; moneda y zona horaria son de solo lectura', () => {
-    expect(raiz().querySelector('#config-moneda')?.textContent).toContain('EUR');
-    expect(raiz().querySelector('#config-zona')?.textContent).toContain('Europe/Madrid');
-    expect(raiz().querySelector('input#config-moneda')).toBeNull();
+  it('muestra los parámetros; moneda BOB o USD y zona horaria solo de Bolivia', () => {
+    const moneda = raiz().querySelector('#config-moneda') as HTMLSelectElement;
+    expect(moneda.value).toBe('BOB');
+    expect(Array.from(moneda.options).map((o) => o.value)).toEqual(['BOB', 'USD']);
+    expect(moneda.disabled).toBe(false);
+    const zona = raiz().querySelector('#config-zona') as HTMLSelectElement;
+    expect(Array.from(zona.options).map((o) => o.value)).toEqual(['America/La_Paz']);
     expect((raiz().querySelector('#config-horas') as HTMLInputElement).value).toBe('24');
     expect((raiz().querySelector('#config-dias-cambio') as HTMLInputElement).value).toBe('15');
     expect((raiz().querySelector('#config-offline') as HTMLInputElement).checked).toBe(true);
     expect(texto()).toContain('Volver al Panel Principal');
   });
 
-  it('guarda los cuatro editables y refleja la respuesta del servidor', () => {
+  it('guarda los editables y refleja la respuesta del servidor', () => {
     escribir('config-horas', 48);
     (raiz().querySelector('#btn-guardar-config') as HTMLButtonElement).click();
 
     const req = http.expectOne('/api/v1/admin/configuracion');
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({
+      moneda: 'BOB',
+      zona_horaria: 'America/La_Paz',
       horas_vencimiento_reserva: 48,
       dias_cambio_prenda: 15,
       operacion_offline_habilitada: true,
@@ -128,5 +138,38 @@ describe('ParametrosEmpresaComponent (P2-CU11)', () => {
     );
     fixture.detectChanges();
     expect(raiz().querySelector('#config-error')?.textContent).toContain('no está vigente');
+  });
+
+  it('cambiar a dólar envía USD y actualiza la moneda de la sesión del panel', () => {
+    const moneda = raiz().querySelector('#config-moneda') as HTMLSelectElement;
+    moneda.value = 'USD';
+    moneda.dispatchEvent(new Event('change'));
+    (raiz().querySelector('#btn-guardar-config') as HTMLButtonElement).click();
+
+    const req = http.expectOne('/api/v1/admin/configuracion');
+    expect(req.request.body.moneda).toBe('USD');
+    req.flush({ ...RESPUESTA, moneda: 'USD' });
+    expect(login.actualizarMonedaEmpresa).toHaveBeenCalledWith('USD');
+  });
+
+  it('con ventas registradas la moneda queda bloqueada y se sigue enviando la actual (M3)', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [ParametrosEmpresaComponent],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting(), { provide: LoginService, useValue: login }],
+    }).compileComponents();
+    fixture = TestBed.createComponent(ParametrosEmpresaComponent);
+    http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    http.expectOne('/api/v1/admin/configuracion').flush({ ...RESPUESTA, moneda_bloqueada: true });
+    fixture.detectChanges();
+
+    expect((raiz().querySelector('#config-moneda') as HTMLSelectElement).disabled).toBe(true);
+    expect(raiz().querySelector('#config-moneda-bloqueada')?.textContent).toContain('ya tiene ventas registradas');
+
+    (raiz().querySelector('#btn-guardar-config') as HTMLButtonElement).click();
+    const req = http.expectOne('/api/v1/admin/configuracion');
+    expect(req.request.body.moneda).toBe('BOB');
+    req.flush({ ...RESPUESTA, moneda_bloqueada: true });
   });
 });

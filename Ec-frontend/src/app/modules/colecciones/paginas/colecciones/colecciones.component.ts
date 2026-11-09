@@ -11,11 +11,12 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ColeccionesService } from '../../servicios/colecciones.service';
 import { ColeccionResumen, ProductoColeccionItem } from '../../modelos/colecciones.modelos';
+import { ImportePipe } from '../../../../core/tenant/moneda';
 
 @Component({
   selector: 'app-colecciones',
   standalone: true,
-  imports: [MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
+  imports: [ImportePipe, MarcaTiendaComponent, RutaPortalPipe, CommonModule, RouterLink],
   templateUrl: './colecciones.component.html',
   styleUrls: ['./colecciones.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

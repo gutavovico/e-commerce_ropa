@@ -57,12 +57,14 @@ class PasarelaFalsa(PasarelaPagos):
         self.llamadas_verificar = 0
         self.ultimo_monto = None
         self.ultima_idempotency_key = None
+        self.ultima_moneda = None
 
     def crear_intento(
-        self, monto, metodo_pago, descripcion="", metadatos=None, idempotency_key=None
+        self, monto, metodo_pago, descripcion="", metadatos=None, idempotency_key=None, moneda="BOB"
     ) -> IntentoPago:
         self.llamadas_crear += 1
         self.ultimo_monto = monto
+        self.ultima_moneda = moneda
         self.ultima_idempotency_key = idempotency_key
         if self.error_tecnico and self.error_en == "crear":
             raise ErrorPasarela("La pasarela no responde.")
@@ -322,6 +324,7 @@ def test_iniciar_pago_abre_intento_y_devuelve_client_secret(
     assert datos["client_secret"] == "pi_test_123456789_secret_test"
     assert datos["ya_confirmado"] is False
     assert pasarela.llamadas_crear == 1
+    assert pasarela.ultima_moneda == "BOB"  # la de la empresa (fix de P2-CU11, M7)
 
     pagos = agregados(db_con_ids, PagoORM)
     assert len(pagos) == 1

@@ -50,7 +50,7 @@ class ResumenPagoOut(BaseModel):
     iva_incluido: Decimal = Field(
         ..., description="IVA contenido en el total (21%). Informativo: no se persiste"
     )
-    moneda: str = "EUR"
+    moneda: str = "BOB"  # la de la empresa (fix de P2-CU11, M6)
     total_prendas: int
 
     items: List[PagoItemOut] = Field(default_factory=list)
@@ -166,7 +166,7 @@ class PagoConfirmadoOut(BaseModel):
 
     referencia_pasarela: Optional[str] = None
     monto: Decimal
-    moneda: str = "EUR"
+    moneda: str = "BOB"  # la de la empresa (fix de P2-CU11, M6)
 
     marca_tarjeta: Optional[str] = None
     ultimos_digitos: Optional[str] = None
