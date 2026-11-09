@@ -611,7 +611,7 @@ Las reglas de negocio son las condiciones que el sistema debe cumplir siempre, s
 | **DESCRIPCIÓN** | Permite al administrador crear, consultar, modificar y desactivar los usuarios de su empresa (administradores, encargados de sucursal y cajeros), asignarles un rol y definir las sucursales en las que pueden operar. |
 | **ACTORES** | Administrador |
 | **PRECONDICIONES** | El administrador inició sesión. La suscripción de su empresa está vigente. |
-| **FLUJO NORMAL** | 1\. El administrador entra a "Usuarios" y el sistema muestra los usuarios de su empresa. 2\. El administrador elige crear un usuario o seleccionar uno existente para editarlo. 3\. Ingresa nombre, correo, contraseña inicial y rol (administrador, encargado de sucursal o cajero). 4\. Asigna las sucursales autorizadas y marca la principal. 5\. El sistema valida el correo único en la empresa, el rol permitido, que las sucursales sean de la empresa y el límite del plan (CU12). 6\. El sistema guarda los cambios y los registra en la bitácora. |
+| **FLUJO NORMAL** | 1\. El administrador entra a "Usuarios" y el sistema muestra los usuarios de su empresa. 2\. El administrador elige crear un usuario o seleccionar uno existente para editarlo. 3\. Ingresa nombre, correo, contraseña inicial y rol (administrador, encargado de sucursal o cajero). 4\. Asigna las sucursales autorizadas y marca la principal. 5\. El sistema valida que el correo no exista en la plataforma (RN05), el rol permitido, que las sucursales sean de la empresa y el límite del plan (CU12). 6\. El sistema guarda los cambios y los registra en la bitácora. |
 | **FLUJO ALTERNATIVO** | A1. Correo ya usado en la plataforma (por cualquier cuenta, de esta u otra empresa): el sistema lo informa y no guarda. A2. Límite de empleados del plan alcanzado (lo define el super administrador en el plan, CU06): el sistema rechaza el alta y sugiere cambiar de plan (CU10). A3. Desactivar un usuario: pierde el acceso, pero su historial se conserva. A4. Rol de super administrador o de cliente, o una sucursal de otra empresa: el sistema lo rechaza; los clientes se registran por su cuenta (CU01). A5. Empleado sin ninguna sucursal: el sistema exige al menos una. |
 | **POST-CONDICIONES** | El usuario queda creado, modificado o desactivado con su rol y sus sucursales. El cambio queda en la bitácora. |
 | **PROTOTIPO** | ![][image5] |
@@ -2736,7 +2736,7 @@ Cada caso de prueba se deriva de la ficha del caso de uso correspondiente (secci
 | Campo | Descripción |
 | ----- | ----- |
 | Caso de uso | CU03 — Gestionar usuarios y roles |
-| Descripción | Verificar la administración de cuentas empresariales, la unicidad del correo por empresa y la aplicación efectiva de los permisos. |
+| Descripción | Verificar la administración de cuentas empresariales, la unicidad del correo en toda la plataforma y la aplicación efectiva de los permisos. |
 | Precondiciones | Administrador de modasol autenticado; empresa urbanstyle con usuarios propios; sucursales de modasol disponibles. |
 
 | Paso | Acción | Resultado esperado | Estado |
@@ -2744,7 +2744,7 @@ Cada caso de prueba se deriva de la ficha del caso de uso correspondiente (secci
 | 1 | Acceder a la gestión de usuarios. | Se muestran únicamente las cuentas de la empresa. | Satisfactorio |
 | 2 | Crear un cajero con sucursal principal y sucursales autorizadas. | La cuenta se registra dentro de la empresa con su rol y sus sucursales. | Satisfactorio |
 | 3 | Crear otro usuario con un correo ya usado en la plataforma. | Se rechaza el correo repetido. | Satisfactorio |
-| 4 | Crear un usuario con ese mismo correo en la otra empresa. | Se acepta, porque el correo solo es único dentro de cada empresa. | Satisfactorio |
+| 4 | Crear un usuario con ese mismo correo en la otra empresa. | Se rechaza, porque el correo es único en toda la plataforma (RN05). | Satisfactorio |
 | 5 | Modificar el rol del usuario y comprobar sus permisos efectivos. | El backend permite únicamente las acciones autorizadas para el rol vigente. | Satisfactorio |
 | 6 | Solicitar directamente a la API una operación restringida con la cuenta del cajero. | La solicitud se rechaza aunque no se utilice la interfaz habitual. | Satisfactorio |
 | 7 | Intentar modificar un usuario de otra empresa o asignar el rol de super administrador. | Se deniega la operación sin alterar información ni ampliar privilegios. | Satisfactorio |

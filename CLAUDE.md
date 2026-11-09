@@ -135,8 +135,8 @@ sola cuando no hay `DATABASE_URL` en `Ec-backend/.env`.
 **La cadena de Alembic es lineal desde el defecto 45 del `CHANGELOG.md`:**
 `0001 → … → 0008 → 0009 → 0009a → 0010 → 0010a → 0011`. `0009a` (CU28) y `0010a` (CU29) son
 marcadores vacíos; los IDs llevan sufijo porque `0009` y `0010` ya pertenecían a migraciones con DDL
-real. Desde la fundación multitenant la cadena sigue `0011 → 0012 → 0013 → 0014` y producción está
-en `0014`. **Nueva migración:** `down_revision = "0014"` e ID nuevo y único (`0015`); comprueba
+real. Desde la fundación multitenant la cadena sigue `0011 → 0012 → 0013 → 0014 → 0015` y producción
+está en `0015`. **Nueva migración:** `down_revision = "0015"` e ID nuevo y único (`0016`); comprueba
 `alembic heads` antes de enviarla.
 
 **Las migraciones se aplican a mano, antes del push** (defecto 55): Render no ejecutó el
@@ -163,10 +163,22 @@ Spec permanente: `.specs/modules/plataforma/P2-CU13-CU12-fundacion-multitenant.m
   Globales (sin `id_tenant`): `ciudades`, `tallas`, `colores`, `clientes`, `codigos_recuperacion`,
   `tenants`, `planes`, `funcionalidades`. `usuarios` la lleva solo para empleados (clientes y super
   administrador sin empresa; CHECK `chk_usuarios_tenant_segun_rol`).
-- **Contexto por transacción.** `get_db` fija la empresa (cabecera `X-Tenant` o
-  `TENANT_POR_DEFECTO` en la transición) y `get_current_user` la sustituye por la del token, que
-  manda. Un listener `after_begin` (`core/tenant.py`) aplica `set_config(..., true)` al empezar **cada**
-  transacción. Nunca uses `SET` de sesión: Neon usa PgBouncer en modo transacción.
+- **Contexto por transacción.** `get_db` fija la empresa de la cabecera `X-Tenant`; **sin cabecera la
+  sesión queda sin empresa** (no hay empresa por defecto desde P2-CU02). `get_current_user` aplica el
+  token: la empresa de un **empleado** manda (otra cabecera → 403 `TENANT_NO_COINCIDE`); el **cliente**
+  navega en la de la cabecera (su token no lleva empresa). Un listener `after_begin` (`core/tenant.py`)
+  aplica `set_config(..., true)` al empezar **cada** transacción. Nunca uses `SET` de sesión: Neon usa
+  PgBouncer en modo transacción.
+- **Acceso (P2-CU02).** Login solo con correo y contraseña; el **correo es único en toda la plataforma**
+  (`uq_usuarios_email`). Antes de conocer la empresa, la RLS de `usuarios` oculta a los empleados de
+  otras empresas: para buscar una cuenta por correo usa `core.tenant.entrar_en_cuenta` /
+  `localizar_cuenta` (función `cuenta_por_email`) o `autenticacion_seguridad.cuentas.correo_ocupado`,
+  nunca un `SELECT` directo sobre `usuarios`. Las empresas visibles al público salen de
+  `empresas_disponibles()` (activas y con suscripción vigente). Los códigos de empresa no pueden
+  coincidir con rutas de la web (`chk_tenants_codigo_reservado`).
+- **Bitácora sin empresa.** `registrar_evento_seguro` inserta sin `RETURNING` y en un punto de
+  guardado: una fila con `id_tenant` nulo no es legible y un `RETURNING` sobre ella rompe la
+  transacción (defecto 57). No vuelvas a insertar en `bitacora` con el ORM.
 - **Row Level Security** en 31 tablas. Sin contexto no se ve ni se escribe nada. La app se conecta con
   `fashionstore_app` (NOBYPASSRLS); `neondb_owner` se salta la RLS y solo lo usan migraciones y scripts.
   El modo plataforma (`app.modo_plataforma = 'on'`) solo para el super administrador y la
@@ -177,8 +189,19 @@ Spec permanente: `.specs/modules/plataforma/P2-CU13-CU12-fundacion-multitenant.m
 - **Claves únicas por empresa** (SKU, comprobante, cupón, categoría, temporada…), no globales.
 - **Clientes:** cuenta global, registrada por empresa en `cliente_tenant`. Carrito, reserva y venta
   apuntan a `cliente_tenant`; un cliente no registrado recibe 403 `CLIENTE_NO_REGISTRADO`.
+- **La RLS de `usuarios` deja leer las cuentas sin empresa** (clientes y super administrador) a
+  cualquier sesión. Listar o modificar usuarios exige filtrar en SQL por rol de empleado y `id_tenant`,
+  como `_alcance` en `cu20_usuarios_roles`; si no, una empresa ve y toca cuentas ajenas (defecto 63).
+- **Sucursales del empleado (RN07, P2-CU03):** encargado y cajero operan en sus sucursales autorizadas
+  (`empleado_sucursal`); `usuarios.id_sucursal` es solo la principal. Comprueba el acceso con
+  `SucursalesEmpleadoServicio.autoriza(usuario, id_sucursal)` (el administrador opera en todas), nunca
+  comparando con `usuario.id_sucursal`.
 - **Planes (P2-CU12):** `SuscripcionServicio.validar` y `requiere_funcionalidad(...)` antes de cada
-  operación restringida; los límites se leen de `planes`, nunca de constantes.
+  operación restringida; los límites se leen de `planes`, nunca de constantes. Al validar un recurso con
+  límite se toma un `pg_advisory_xact_lock` por empresa y recurso: valida **antes** de insertar y
+  confirma después, en la misma transacción. Para mostrar el uso, `SuscripcionServicio.uso(db, recurso)`.
+- **Ciudades, tallas y colores son catálogos globales:** el administrador de una empresa solo los
+  consulta; los gestiona el super administrador (P2-CU08).
 - **Las pruebas simuladas no ven la RLS.** Lo que toque aislamiento se prueba en
   `tests/integracion/test_multitenant.py`, contra la rama de pruebas con `DATABASE_URL_PRUEBAS_APP`.
 - **Toda variable nueva del `.env` se declara en `core/config.py`**: `pydantic-settings` rechaza las
@@ -201,10 +224,13 @@ mientras CU12 devolvía 422 en cada intento desde el móvil.
 Existen **exactamente cuatro pantallas raíz**: Inicio, Buscar, Catálogo y Perfil. Solo ellas
 muestran la navegación principal y tienen prohibido el botón de retroceso.
 
-- **Web:** las raíces cuelgan de `MainLayoutComponent`; todo lo demás (`/bolsa`, `/colecciones`,
-  `/productos/:id`) se declara al nivel raíz de `app.routes.ts`, con su propio `← Volver` vía
-  `Location.back()`. `app.routes.spec.ts` guarda el orden de rutas: la landing (`path: ''` con
-  `pathMatch: 'full'`) debe ir **antes** del bloque del layout, y el comodín `**` al final.
+- **Web:** el cliente navega dentro del portal de su tienda, `/{codigo}/...` (P2-CU02). Las raíces
+  cuelgan de `MainLayoutComponent`, hijo de la ruta `:codigo`; las hojas (`bolsa`, `colecciones`,
+  `productos/:id`…) son hijas de `:codigo` fuera del layout, con su propio `← Volver` vía
+  `Location.back()`. `app.routes.spec.ts` guarda el orden: el directorio (`path: ''`, `pathMatch:
+  'full'`) primero; todas las rutas fijas (`login`, `admin/...`, redirecciones antiguas) **antes** de
+  `:codigo`, que captura cualquier primer segmento; dentro del portal, la landing antes del layout; y el
+  comodín `**` al final.
 - **Mobile:** el `BottomNavigationBar` de 4 ítems pertenece en exclusiva a `PantallaPrincipalHub`.
   Las hojas se abren con `Navigator.push`, llevan `leading: BackButton()` y no declaran barra de
   navegación. Un `bottomNavigationBar` con una **barra de acción** (total + botón principal) sí es
@@ -293,6 +319,14 @@ src/app/core/{guards,interceptors,layouts}/
 - `authInterceptor` adjunta el JWT y gestiona el 401. Las claves de sesión (`fashionstore_token`,
   `fashionstore_user`) pertenecen en exclusiva a `LoginService`: usa `establecerSesion()` en lugar
   de escribir en `localStorage` desde otro sitio.
+- **Portal de tienda (P2-CU02).** `TenantService.tenantActual` lo fija `tenantGuard` al entrar en
+  `/{codigo}` y se limpia al salir; `authInterceptor` envía `X-Tenant` solo dentro del portal (el panel
+  `/admin` va con el token del empleado). **Un enlace del cliente nunca se escribe absoluto:** usa
+  `[routerLink]="'/bolsa' | rutaPortal"` en plantillas y `this.portal.ruta(['/productos', id])` en
+  navegaciones. La marca se muestra con `<app-marca-tienda />`, no con «FASHION STORE» escrito.
+- **No inyectes `TenantService` ni nada que dependa del `Router` en un proveedor que el `Router`
+  necesite (`TitleStrategy`, etc.):** la dependencia circular deja la web en blanco (NG0200, defecto 58).
+  Usa el `Injector` de forma diferida. `app.config.spec.ts` arranca con la configuración real.
 - **El cajero no comparte el panel corporativo** (decisión del usuario, CU31-CU32): su único espacio es
   `/admin/pos`. El login lo envía allí y `cajeroACajaGuard` lo devuelve desde `/admin` y desde las rutas
   del panel sin guard de rol. Una ruta nueva del panel debe llevar `roleGuard` o `cajeroACajaGuard`.
@@ -310,7 +344,12 @@ lib/src/{core,navegacion}/
   produce 401 con el usuario autenticado.
 - `SesionManager` es un singleton con stream broadcast: los datasources notifican el 401 y
   `main.dart` redirige al login mediante `navigatorKey` global, por encima del `Navigator`.
-- `RenderFlex overflowed` ha reaparecido cinco veces. Usa `Expanded`/`Flexible` con
+- **Tienda elegida (P2-CU02).** El cliente la elige en `PantallaSeleccionEmpresa` (entre el login y el
+  hub) y la cambia desde Perfil; el empleado usa la de su cuenta. Vive en `EmpresaActual` (`core/`).
+  **Todo datasource nuevo usa `ClienteHttpApi()` como cliente por defecto**, nunca `http.Client()`: es
+  el que añade `X-Tenant`; sin él el backend no devuelve datos de ninguna empresa. La marca visible es
+  `EmpresaActual.instancia.marca`.
+- `RenderFlex overflowed` ha reaparecido seis veces. Usa `Expanded`/`Flexible` con
   `overflow: TextOverflow.ellipsis` en lugar de reducir tamaños de fuente.
 
 ---
@@ -320,8 +359,10 @@ lib/src/{core,navegacion}/
 - **Backend:** Render (`render.yaml`, `rootDir: Ec-backend`). Espera arranques en frío; la conexión
   usa `pool_pre_ping`. `DATABASE_URL` usa el rol `fashionstore_app`; `DATABASE_URL_MIGRACIONES`, el
   dueño. Render **no** aplica las migraciones: hazlo a mano antes del push (ver la cadena de Alembic).
-- **Web:** Vercel. `vercel.json` reescribe `/api/:path*` al backend de Render y todo lo demás a
-  `index.html` — de ahí que la ruta comodín de Angular sea imprescindible.
+- **Web:** Vercel (`https://fashionstorefront.vercel.app`). `vercel.json` reescribe `/api/:path*` al
+  backend de Render y todo lo demás a `index.html` — de ahí que la ruta comodín de Angular sea
+  imprescindible. **No actives `cleanUrls`:** rompe esa reescritura y toda ruta distinta de `/` da 404 al
+  abrirla o recargarla (defecto 59).
 - **Base de datos:** Neon PostgreSQL, esquema `fashionstore`. `Ec-backend/.env` no está versionado.
   Ramas: la principal (producción), `pruebas-multitenant` (ensayo de migraciones y pruebas de
   integración) y `respaldo-pre-0012` (copia previa a la fundación multitenant).
