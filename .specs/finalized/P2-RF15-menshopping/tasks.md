@@ -10,7 +10,7 @@
 - [x] **T-SC-03:** Pruebas unitarias e integración (§4); suite completa en verde.
 
 ## Bloque 2 — Ensayo y carga
-- [ ] **T-PR-01:** Ensayo con `--db pruebas --aplicar`; comprobar en la web local con la rama de pruebas (portal `/menshopping`, login de los 5 usuarios, vestidor).
-- [ ] **T-PR-02 (usuario):** commit y push de los PNG (Vercel debe servirlos antes de la carga); después, `--aplicar` en producción.
-- [ ] **T-PR-03 (usuario):** una venta real en la caja de cada sucursal de Menshopping (RF15: «ventas»).
-- [ ] **T-PR-04:** `CHANGELOG.md`, spec permanente y promoción a `finalized/`.
+- [x] **T-PR-01:** Ensayo con `--db pruebas --aplicar`; comprobar en la web local con la rama de pruebas (portal `/menshopping`, login de los 5 usuarios, vestidor).
+- [x] **T-PR-02 (usuario):** commit y push de los PNG (Vercel debe servirlos antes de la carga); después, `--aplicar` en producción.
+- [x] **T-PR-03 (usuario):** una venta real en la caja de cada sucursal de Menshopping (RF15: «ventas»).
+- [x] **T-PR-04:** `CHANGELOG.md`, spec permanente y promoción a `finalized/`.

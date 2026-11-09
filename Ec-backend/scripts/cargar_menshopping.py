@@ -1,6 +1,6 @@
 """Carga de la empresa de prueba Menshopping (RF15).
 
-Spec: `.specs/changes/P2-RF15-menshopping/spec.md` (decisiones R1–R7).
+Spec: `.specs/modules/plataforma/P2-RF15-menshopping.md` (decisiones R1–R7).
 
 - Datos en `scripts/datos/menshopping.json` (R1); contraseñas nunca en el repo: se leen de
   `MENSHOPPING_CLAVE_INICIAL` o se piden sin mostrarlas (R2).
