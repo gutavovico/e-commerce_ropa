@@ -2,9 +2,9 @@
 
 | Gate | Estado | Condición de paso |
 | :--- | :--- | :--- |
-| 0 — Especificación | 🟡 Pendiente | El usuario aprueba §1 y R1–R7. |
-| 0b — Insumos | ⚪ | Los 4 PNG en una carpeta indicada por el usuario. |
-| 1 — Script | ⚪ | `pytest` completo en verde, incluida la carga con rollback contra la rama de pruebas. |
-| 2 — Ensayo | ⚪ | Carga aplicada en `pruebas-multitenant` y revisada en la web local. |
+| 0 — Especificación | 🟢 Aprobada el 2026-11-09 | §1 y R1–R7. |
+| 0b — Insumos | 🟢 Recibidos (2026-11-09) | 4 PNG con transparencia real (58–60 % de fondo transparente; el tablero visible en dos era RGB oculto bajo alfa 0), reducidos de 1792×2400 a 896×1200 (505–731 KB) y copiados a `Ec-frontend/public/ar/`. Sin fotos de catálogo: el catálogo usa el mismo PNG. |
+| 1 — Script | 🟢 Listo (2026-11-09) | 14 pruebas unitarias del script; integración con rollback contra `pruebas-multitenant` (código propio `rf15-prueba` para no chocar con el ensayo): carga completa, aislamiento con FASHION STORE, directorio, login y catálogo. Comprobación del script sin `--aplicar` en la rama de pruebas: 2 sucursales, 4 categorías, 5 usuarios, 4 prendas, 8 variantes, 16 inventarios y 16 movimientos, deshecha. `pytest` 768 en verde; los 2 fallos de `test_esquema_bd` son de los modelos de `0017`–`0019`, que la rama de pruebas aún no tiene. |
+| 2 — Ensayo | 🟢 Aplicado (2026-11-09) | Carga aplicada por el usuario en `pruebas-multitenant` (empresa 367: 2 sucursales, 4 prendas, 8 variantes, 16 inventarios) y revisada en la web local: directorio, login del administrador y su perfil, que llevó al fix «Mi perfil» del empleado (PR #5). Rama rebasada sobre `main` `4855a2a`: 14 pruebas del script, integración RF15 y guardas en verde. El script solo usa columnas presentes en `0016`, así que no depende de que se apliquen `0017`–`0019`. |
 | 3 — Producción | ⚪ | PNG desplegados en Vercel; carga aplicada por el usuario; ventas reales en la caja. |
 | 4 — Cierre | ⚪ | `CHANGELOG.md`, spec permanente y promoción a `finalized/`. |

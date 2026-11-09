@@ -637,3 +637,59 @@ def test_fix_cu11_moneda_bloqueada_con_ventas_y_libre_sin_ellas(mundo):
     login = cliente.post("/api/v1/autenticacion/login", json={"email": "admin@empresa-b.com", "password": CLAVE_PRUEBA})
     assert login.status_code == 200, login.text
     assert login.json()["tenant"]["moneda"] == "USD"
+
+
+# --------------------------------------------------------------------------------- RF15 (Menshopping)
+
+def test_rf15_carga_de_menshopping_aislada_de_fashion_store(mundo):
+    """La carga completa dentro de la transacción de la rama de pruebas (se deshace al final)."""
+    from datetime import date
+
+    from argon2 import PasswordHasher
+
+    from scripts import cargar_menshopping as carga
+
+    c = mundo["conexion"]
+    # Código y correos propios: la prueba no choca con el Menshopping ya cargado en la rama de pruebas
+    datos = carga.cargar_datos()
+    datos["empresa"].update(codigo="rf15-prueba", nombre="RF15 Prueba", correo_contacto="admin@rf15-prueba.com")
+    for usuario in datos["usuarios"]:
+        usuario["email"] = usuario["email"].replace("@menshopping.com", "@rf15-prueba.com")
+    imagenes = carga.Imagenes(
+        vestidor={p["codigo"]: f"/ar/{p['imagen_vestidor']}" for p in datos["prendas"]},
+        catalogo={p["codigo"]: f"/ar/{p['imagen_vestidor']}" for p in datos["prendas"]},
+    )
+    resumen = carga.cargar(c, datos, PasswordHasher().hash(CLAVE_PRUEBA), imagenes, date(2026, 11, 9))
+    t = resumen["id_tenant"]
+    assert {k: v for k, v in resumen.items() if k != "id_tenant"} == {
+        "sucursales": 2, "categorias": 4, "usuarios": 5,
+        "productos": 4, "variantes": 8, "inventario": 16, "movimientos": 16,
+    }
+
+    _contexto(c, tenant=t)
+    stock = dict(c.execute(text(
+        "SELECT s.nombre, sum(i.cantidad_disponible) FROM fashionstore.inventario_sucursal i "
+        "JOIN fashionstore.sucursales s ON s.id_sucursal = i.id_sucursal GROUP BY s.nombre")).all())
+    assert stock == {"Menshopping Santa Cruz": 40, "Menshopping Beni": 16}  # 4 prendas × (5+5) y × (2+2)
+    nombres_ms = {f[0] for f in c.execute(text("SELECT nombre FROM fashionstore.productos"))}
+    assert nombres_ms == {p["nombre"] for p in datos["prendas"]}
+
+    # FASHION STORE no ve nada de Menshopping, y al revés (RLS)
+    _contexto(c, tenant=1)
+    assert c.execute(text("SELECT count(*) FROM fashionstore.productos WHERE nombre = ANY(:n)"),
+                     {"n": list(nombres_ms)}).scalar() == 0
+    assert c.execute(text("SELECT count(*) FROM fashionstore.sucursales WHERE nombre LIKE 'Menshopping%'")).scalar() == 0
+    _contexto(c)
+
+    # El directorio la lista en BOB y su administrador entra con su empresa
+    cliente = mundo["cliente"]
+    assert {"codigo": "rf15-prueba", "nombre": "RF15 Prueba", "moneda": "BOB"} in cliente.get("/api/v1/tenants").json()
+    login = cliente.post("/api/v1/autenticacion/login", json={"email": "admin@rf15-prueba.com", "password": CLAVE_PRUEBA})
+    assert login.status_code == 200, login.text
+    assert login.json()["tenant"] == {"codigo": "rf15-prueba", "nombre": "RF15 Prueba", "moneda": "BOB"}
+    catalogo = cliente.get("/api/v1/productos?pagina=1", headers={CABECERA_TENANT: "rf15-prueba"})
+    assert _total(catalogo) == 4
+
+    # Una segunda carga se detiene sin tocar nada (R5)
+    with pytest.raises(carga.CargaError, match="ya existe"):
+        carga.cargar(c, datos, "x", imagenes, date(2026, 11, 9))
