@@ -1,0 +1,86 @@
+{
+  "_comentario": "Datos de la empresa de prueba Menshopping (RF15). Spec: .specs/changes/P2-RF15-menshopping/spec.md. Sin contraseñas: el script las pide o las lee de MENSHOPPING_CLAVE_INICIAL.",
+  "empresa": {
+    "codigo": "menshopping",
+    "nombre": "Menshopping",
+    "correo_contacto": "admin@menshopping.com",
+    "telefono": null,
+    "plan": "Básico"
+  },
+  "ciudades_nuevas": [
+    { "nombre": "Trinidad", "pais": "Bolivia" }
+  ],
+  "sucursales": [
+    {
+      "clave": "santacruz",
+      "nombre": "Menshopping Santa Cruz",
+      "ciudad": "Santa Cruz de la Sierra",
+      "direccion": "Dirección por confirmar",
+      "telefono": null,
+      "unidades_por_prenda": 10
+    },
+    {
+      "clave": "beni",
+      "nombre": "Menshopping Beni",
+      "ciudad": "Trinidad",
+      "direccion": "Dirección por confirmar",
+      "telefono": null,
+      "unidades_por_prenda": 5
+    }
+  ],
+  "temporada": { "nombre": "Colección 2026-2027", "tipo": "nueva_coleccion" },
+  "tallas": ["M", "L"],
+  "prendas": [
+    {
+      "clave": "camiseta",
+      "categoria": "Camisetas",
+      "nombre": "Camiseta básica negra",
+      "descripcion": "Camiseta de hombre en algodón, cuello redondo y manga corta, corte recto.",
+      "precio": "120.00",
+      "color": "Negro",
+      "sku": "MSH-CAM",
+      "imagen_vestidor": "menshopping_camiseta.png",
+      "imagen_catalogo": "menshopping_camiseta_catalogo.jpg"
+    },
+    {
+      "clave": "pantalon",
+      "categoria": "Pantalones",
+      "nombre": "Pantalón chino azul marino",
+      "descripcion": "Pantalón chino de hombre en sarga de algodón, corte recto y bolsillos laterales.",
+      "precio": "280.00",
+      "color": "Azul Marino",
+      "sku": "MSH-PAN",
+      "imagen_vestidor": "menshopping_pantalon.png",
+      "imagen_catalogo": "menshopping_pantalon_catalogo.jpg"
+    },
+    {
+      "clave": "camisa",
+      "categoria": "Camisas formales",
+      "nombre": "Camisa formal blanca",
+      "descripcion": "Camisa formal de hombre en popelina de algodón, cuello clásico y puño de botón.",
+      "precio": "350.00",
+      "color": "Blanco",
+      "sku": "MSH-CMF",
+      "imagen_vestidor": "menshopping_camisa.png",
+      "imagen_catalogo": "menshopping_camisa_catalogo.jpg"
+    },
+    {
+      "clave": "pantalon_gala",
+      "categoria": "Pantalones de gala",
+      "nombre": "Pantalón de gala negro",
+      "descripcion": "Pantalón de vestir de hombre en lana fría, con raya marcada y pretina con botón.",
+      "precio": "480.00",
+      "color": "Negro",
+      "sku": "MSH-GAL",
+      "imagen_vestidor": "menshopping_pantalon_gala.png",
+      "imagen_catalogo": "menshopping_pantalon_gala_catalogo.jpg"
+    }
+  ],
+  "usuarios": [
+    { "email": "admin@menshopping.com", "nombres": "Administración", "apellidos": "Menshopping", "rol": "administrador", "sucursal": null },
+    { "email": "encargado.santacruz@menshopping.com", "nombres": "Encargado", "apellidos": "Santa Cruz", "rol": "encargado_sucursal", "sucursal": "santacruz" },
+    { "email": "cajero.santacruz@menshopping.com", "nombres": "Cajero", "apellidos": "Santa Cruz", "rol": "cajero", "sucursal": "santacruz" },
+    { "email": "encargado.beni@menshopping.com", "nombres": "Encargado", "apellidos": "Beni", "rol": "encargado_sucursal", "sucursal": "beni" },
+    { "email": "cajero.beni@menshopping.com", "nombres": "Cajero", "apellidos": "Beni", "rol": "cajero", "sucursal": "beni" }
+  ]
+}

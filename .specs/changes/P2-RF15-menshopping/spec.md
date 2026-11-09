@@ -11,7 +11,7 @@
 **Nivel SDD:** **2 (riesgo medio)**: escritura de datos en producción con el dueño de la base. No hay migración ni código de aplicación nuevo.
 **Bloques:** Script y datos → ensayo en la rama de pruebas → carga en producción (la hace el usuario).
 **Responsable:** Gustavo (`reparticion.md`).
-**Estado:** 🟡 Pendiente de aprobación.
+**Estado:** 🟢 Aprobada (2026-11-09). En implementación.
 **Fecha:** 2026-11-09
 
 ---
