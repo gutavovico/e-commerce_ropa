@@ -364,11 +364,34 @@ lib/src/{core,navegacion}/
 
 ---
 
+## CI y PR
+
+- **Nada entra a `main` sin PR.** `.github/workflows/ci.yml` corre en cada PR y en cada push a `main`
+  seis checks, todos obligatorios junto con el de Vercel:
+  - `backend` (`pytest` sin integración);
+  - `migraciones` (una sola cabeza, toda la cadena en un PostgreSQL temporal, `downgrade -1` +
+    `upgrade` y `test_esquema_bd`);
+  - `integracion` (contra `pruebas-multitenant` con el secreto `DATABASE_URL_PRUEBAS_APP`; falla si
+    falta);
+  - `web` (`tsc`, `ng test`, `ng build`) y `movil` (`dart analyze --fatal-infos`, `flutter test`);
+  - `guardas` (`.github/scripts/guardas.sh` y gitleaks).
+- **Las guardas** rechazan hashes y contraseñas escritos en el código o en migraciones, archivos `.env`
+  versionados, «€» o `'EUR'` en web y móvil, `date.today()`/`datetime.now()` fuera de
+  `core/tiempo.py` y `cleanUrls`. Se ejecutan en local con `bash .github/scripts/guardas.sh`.
+- **Revisión:** `.github/CODEOWNERS` asigna cada ruta a su responsable (`reparticion.md`); el PR
+  necesita la aprobación del otro miembro. Migraciones, `core/`, despliegue, CI y reglas del proyecto
+  las aprueba Gustavo.
+- **El CI no toca producción ni aplica migraciones.** La que traiga un PR se aplica a mano en
+  producción antes de fusionarlo (casilla de la plantilla del PR).
+- Un usuario inicial (super administrador, empresa de prueba…) nunca se crea con una contraseña fija en
+  una migración: lo crea un script que la pide sin mostrarla.
+
 ## Despliegue
 
 - **Backend:** Render (`render.yaml`, `rootDir: Ec-backend`). Espera arranques en frío; la conexión
   usa `pool_pre_ping`. `DATABASE_URL` usa el rol `fashionstore_app`; `DATABASE_URL_MIGRACIONES`, el
   dueño. Render **no** aplica las migraciones: hazlo a mano antes del push (ver la cadena de Alembic).
+  El despliegue automático espera a que pasen los checks del CI (*Auto-Deploy: After CI Checks Pass*).
 - **Web:** Vercel (`https://fashionstorefront.vercel.app`). `vercel.json` reescribe `/api/:path*` al
   backend de Render y todo lo demás a `index.html` — de ahí que la ruta comodín de Angular sea
   imprescindible. **No actives `cleanUrls`:** rompe esa reescritura y toda ruta distinta de `/` da 404 al

@@ -1,0 +1,31 @@
+# Responsables de revisión (reparto de `reparticion.md`). Con la protección de main activada,
+# un PR que toque estas rutas necesita la aprobación de su responsable; GitHub no deja aprobar
+# el PR propio, así que en las rutas compartidas aprueba siempre el otro.
+#
+# La última coincidencia gana: primero lo compartido y después lo específico.
+
+# Por defecto: cualquiera de los dos
+*                                                        @gutavovico @TonyVJ78
+
+# Dominio de Tony: plataforma SaaS, reportes con IA y aprendizaje automático
+/Ec-backend/app/modules/plataforma/                      @TonyVJ78
+/Ec-backend/app/modules/comercial/cu21_reportes_ia/      @TonyVJ78
+/Ec-backend/app/modules/comercial/cu23_cu25_aprendizaje_ml/ @TonyVJ78
+/Ec-frontend/src/app/modules/plataforma/superadmin/      @TonyVJ78
+/Ec-frontend/src/app/modules/plataforma/mi_suscripcion/  @TonyVJ78
+
+# Dentro de plataforma, lo de Gustavo
+/Ec-backend/app/modules/plataforma/cu11_parametros_empresa/      @gutavovico
+/Ec-backend/app/modules/plataforma/servicio_sucursales_empleado.py @gutavovico
+/Ec-frontend/src/app/modules/plataforma/cu11_parametros_empresa/ @gutavovico
+
+# Base común: migraciones, núcleo, despliegue, CI y reglas del proyecto
+/Ec-backend/alembic/                                     @gutavovico
+/Ec-backend/app/core/                                    @gutavovico
+/Ec-backend/requirements.txt                             @gutavovico
+/Ec-backend/render.yaml                                  @gutavovico
+/Ec-frontend/vercel.json                                 @gutavovico
+/.github/                                                @gutavovico
+/CLAUDE.md                                               @gutavovico
+/.agents/                                                @gutavovico
+/SI2-Parcial2.md                                         @gutavovico
