@@ -995,6 +995,188 @@
         </div>
       }
 
+      <!-- Tarjeta 14: Mi Suscripcion y Facturacion (P2-CU09 y P2-CU10) - Exclusivo Administrador -->
+      @if (esAdmin()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Suscripcion SaaS
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Plan &amp; Stripe
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Mi suscripcion y uso del plan
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Estado de vigencia, consumo de sucursales y empleados, cambio de plan y renovacion con Stripe.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Vigencia, limites de uso y funcionalidades (CU09)</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Cambio de plan y renovacion con Stripe (CU10)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-mi-suscripcion"
+              routerLink="/admin/suscripcion"
+              (click)="navegar('/admin/suscripcion', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Mi suscripcion y plan</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Tarjeta 15: Generar Reporte con IA en Bolivianos (P2-CU21) - Exclusivo Administrador -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Inteligencia Artificial · Bs.
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                Plan Profesional
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Reportes con IA (Texto y Voz)
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Consultas en lenguaje natural sobre el catalogo permitido en Bolivianos (Bs. / BOB), graficos interactivos y exportacion PDF/Excel.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Texto o dictado por voz en Bolivianos (CU21)</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Graficos y exportacion PDF/Excel registrada (RN48)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-reportes-ia"
+              routerLink="/admin/reportes-ia"
+              (click)="navegar('/admin/reportes-ia', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Generar reporte con IA</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Tarjeta 16: Aprendizaje Automatico ML en Bolivianos (P2-CU23, P2-CU24 y P2-CU25) - Exclusivo Administrador -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Machine Learning · Bs.
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FAF7F2] text-[#AD8C63] border border-[#ECE4D8]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#AD8C63]"></span>
+                CU23 · CU24 · CU25
+              </span>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Modelos ML, Predicciones y Segmentos
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Datasets sinteticos/reales, proyeccion de demanda en Bolivianos (Bs. / BOB) y segmentacion RFM de clientas.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2">
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Datasets, preprocesamiento y modelos (CU23)</span>
+              </div>
+              <div class="flex items-center text-xs text-slate-600 gap-2">
+                <svg class="w-3.5 h-3.5 text-[#AD8C63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Predicciones (CU24) y Segmentos en Bs. (CU25)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-aprendizaje-ml"
+              routerLink="/admin/aprendizaje-ml"
+              (click)="navegar('/admin/aprendizaje-ml', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Abrir Aprendizaje Automatico</span>
+              <svg class="w-3.5 h-3.5 text-[#AD8C63] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      }
+
     </div>
 
     <!-- 4. Resumen Informativo de Seguridad del Sistema -->

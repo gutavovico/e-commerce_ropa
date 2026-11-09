@@ -113,6 +113,23 @@ describe('LoginComponent (CU02 - Iniciar Sesión)', () => {
     expect(router.navigate).not.toHaveBeenCalledWith(['/admin']);
   });
 
+  it('P2-CU05: un super_administrador autenticado entra directo a /admin/plataforma', () => {
+    vi.useFakeTimers();
+    mockLoginService.iniciarSesion.mockReturnValue(
+      of({ ...mockLoginRespuesta, email: 'superadmin@fashionstore.com', rol: 'super_administrador' })
+    );
+
+    component.formulario.setValue({
+      email: 'superadmin@fashionstore.com',
+      password: 'SuperAdmin2026!',
+      recordarDispositivo: false,
+    });
+    component.onSubmit();
+    vi.advanceTimersByTime(600);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/admin/plataforma']);
+  });
+
   it('debe mostrar mensaje de error si falla la autenticación', () => {
     mockLoginService.iniciarSesion.mockReturnValue(
       throwError(() => new Error('Correo electrónico o contraseña incorrectos.'))

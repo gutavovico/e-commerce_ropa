@@ -1,0 +1,609 @@
+<div class="min-h-screen bg-[#F9F6F0] text-black font-sans">
+  <!-- Cabecera Editorial del Asistente de Reportes con IA (P2-CU21) -->
+  <header class="bg-black text-[#F9F6F0] border-b border-black/15">
+    <div class="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="px-2.5 py-1 bg-[#D4AF37] text-black text-xs uppercase tracking-widest font-semibold">
+            Plan Profesional · P2-CU21
+          </span>
+          <span class="text-xs uppercase tracking-widest text-[#D4AF37]">
+            Moneda Nacional: Bolivianos (Bs. / BOB) · T.C. Oficial 1 USD = {{ formConsulta.get('tipo_cambio_bob')?.value || 6.96 }} Bs.
+          </span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-serif tracking-wide mt-2">
+          Asistente Inteligente de Reportes con IA
+        </h1>
+        <p class="text-xs text-white/75 mt-1">
+          Solicita reportes en lenguaje natural por texto o por voz sobre el catálogo autorizado de tu empresa (CU22 · RN45 · RN46).
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a
+          routerLink="/admin/suscripcion"
+          class="px-4 py-2 text-xs uppercase tracking-widest border border-white/30 hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors"
+        >
+          Mi Suscripción (CU09/CU10)
+        </a>
+        <a
+          routerLink="/admin/dashboard"
+          class="px-4 py-2 text-xs uppercase tracking-widest bg-[#D4AF37] text-black font-semibold hover:bg-[#e3be42] transition-colors"
+        >
+          Volver al Dashboard
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <!-- Alertas de retroalimentación -->
+    @if (mensajeExito()) {
+      <div class="border border-emerald-800 bg-emerald-50 text-emerald-950 px-5 py-3 flex items-center justify-between text-sm">
+        <span>{{ mensajeExito() }}</span>
+        <button type="button" (click)="limpiarMensajes()" class="text-xs uppercase tracking-widest underline">
+          Cerrar
+        </button>
+      </div>
+    }
+
+    @if (mensajeError()) {
+      <div class="border border-red-800 bg-red-50 text-red-950 px-5 py-3 flex items-center justify-between text-sm">
+        <span>{{ mensajeError() }}</span>
+        <button type="button" (click)="limpiarMensajes()" class="text-xs uppercase tracking-widest underline">
+          Cerrar
+        </button>
+      </div>
+    }
+
+    <!-- Curso Alterno CU21 A3 / RN44: Plan sin funcionalidad reportes_ia -->
+    @if (planBloqueado()) {
+      <section class="bg-white border-2 border-amber-700 p-6 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div class="space-y-1">
+            <span class="px-2.5 py-0.5 bg-amber-800 text-white text-xs uppercase tracking-widest font-semibold">
+              Funcionalidad exclusiva del Plan Profesional (CU21 A3 · RN44)
+            </span>
+            <h2 class="text-xl font-serif mt-1">
+              Tu suscripción actual no habilita la Generación de Reportes con IA
+            </h2>
+            <p class="text-sm text-black/75">
+              Para consultar reportes inteligentes por texto o voz y exportarlos en PDF/Excel en Bolivianos (Bs.), actualiza tu suscripción al Plan Profesional.
+            </p>
+          </div>
+          <a
+            routerLink="/admin/suscripcion"
+            id="btn-upgrade-plan-profesional"
+            class="px-6 py-3 bg-black text-[#D4AF37] text-xs uppercase tracking-widest font-semibold whitespace-nowrap text-center"
+          >
+            Cambiar a Plan Profesional (CU10)
+          </a>
+        </div>
+      </section>
+    }
+
+    <!-- Panel de Consulta en Lenguaje Natural (Texto o Voz) -->
+    <section class="bg-white border border-black/15 p-6 space-y-5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-black/10 pb-4">
+        <div>
+          <h2 class="text-lg font-serif font-semibold">
+            1. Solicitud en Lenguaje Natural (Texto o Micrófono)
+          </h2>
+          <p class="text-xs text-black/65">
+            El intérprete de IA analiza únicamente tu instrucción y el catálogo permitido (RN45), sin exponer jamás datos privados de tu empresa a servicios externos.
+          </p>
+        </div>
+        @if (contexto(); as ctx) {
+          <div class="text-right text-xs">
+            <span class="uppercase tracking-wider text-black/60">Empresa autenticada: </span>
+            <strong class="font-serif">{{ ctx.nombre_empresa }}</strong>
+            <span class="ml-2 px-2 py-0.5 bg-black text-[#D4AF37] font-mono">
+              {{ ctx.simbolo_moneda }} ({{ ctx.moneda_empresa }})
+            </span>
+          </div>
+        }
+      </div>
+
+      <!-- Ejemplos sugeridos del catálogo activo (CU22) -->
+      @if (contexto()?.ejemplos_destacados?.length) {
+        <div class="space-y-2">
+          <p class="text-xs uppercase tracking-widest text-black/60 font-semibold">
+            Consultas rápidas sugeridas por el catálogo permitido (CU22):
+          </p>
+          <div class="flex flex-wrap gap-2">
+            @for (ej of contexto()!.ejemplos_destacados; track ej) {
+              <button
+                type="button"
+                (click)="usarEjemploPrompt(ej)"
+                class="px-3 py-1.5 bg-[#F9F6F0] border border-black/20 hover:border-black text-xs transition-colors text-left"
+              >
+                «{{ ej }}»
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <form [formGroup]="formConsulta" (ngSubmit)="ejecutarConsultaIa()" class="space-y-4">
+        <div class="flex flex-col md:flex-row gap-3">
+          <div class="flex-1">
+            <label for="inputPromptIa" class="block text-xs uppercase tracking-widest text-black/70 mb-1">
+              Instrucción del Reporte (en Español) *
+            </label>
+            <textarea
+              id="inputPromptIa"
+              rows="2"
+              formControlName="prompt_texto"
+              placeholder="Ej.: Ventas del último mes por sucursal en bolivianos con gráfico de barras..."
+              class="w-full border border-black/30 px-4 py-2.5 text-sm focus:outline-none focus:border-black"
+            ></textarea>
+          </div>
+
+          <div class="flex flex-row md:flex-col justify-end gap-2">
+            <button
+              type="button"
+              id="btn-dictar-voz"
+              (click)="iniciarDictadoVoz()"
+              [disabled]="escuchandoVoz() || generandoReporte()"
+              class="px-4 py-2.5 border border-black text-xs uppercase tracking-widest font-semibold hover:bg-black/5 transition-colors flex items-center justify-center gap-2"
+            >
+              <span>{{ escuchandoVoz() ? 'Escuchando voz...' : 'Dictar por Voz' }}</span>
+            </button>
+
+            <button
+              type="submit"
+              id="btn-generar-reporte-ia"
+              [disabled]="generandoReporte()"
+              class="px-6 py-2.5 bg-black text-[#D4AF37] text-xs uppercase tracking-widest font-semibold hover:bg-black/85 transition-colors"
+            >
+              {{ generandoReporte() ? 'Interpretando y Consultando...' : 'Generar Reporte con IA' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Parámetros opcionales y Tipo de Cambio en Bolivianos (Bs. / BOB) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-2 border-t border-black/10">
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-black/65 mb-1">
+              Reporte del Catálogo
+            </label>
+            <select
+              formControlName="codigo_reporte_forzado"
+              class="w-full border border-black/25 px-2.5 py-2 text-xs bg-white"
+            >
+              <option value="">Detección automática IA</option>
+              @for (rep of contexto()?.catalogo_activo ?? []; track rep.id_reporte_catalogo) {
+                <option [value]="rep.codigo">{{ rep.nombre }}</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-black/65 mb-1">
+              Visualización Preferida
+            </label>
+            <select
+              formControlName="formato_preferido"
+              class="w-full border border-black/25 px-2.5 py-2 text-xs bg-white"
+            >
+              <option value="ambos">Tabla + Gráfico (Ambos)</option>
+              <option value="barras">Gráfico de Barras</option>
+              <option value="linea">Gráfico de Líneas</option>
+              <option value="torta">Gráfico de Torta</option>
+              <option value="tabla">Solo Tabla</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-black/65 mb-1">
+              Sucursal (Empresa)
+            </label>
+            <select
+              formControlName="id_sucursal"
+              class="w-full border border-black/25 px-2.5 py-2 text-xs bg-white"
+            >
+              <option [ngValue]="null">Todas mis sucursales</option>
+              @for (suc of contexto()?.sucursales_activas ?? []; track suc.id_sucursal) {
+                <option [ngValue]="suc.id_sucursal">{{ suc.nombre }}</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-black/65 mb-1">
+              Fecha Inicio
+            </label>
+            <input
+              type="date"
+              formControlName="fecha_inicio"
+              class="w-full border border-black/25 px-2.5 py-1.5 text-xs bg-white"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-black/65 mb-1">
+              Fecha Fin
+            </label>
+            <input
+              type="date"
+              formControlName="fecha_fin"
+              class="w-full border border-black/25 px-2.5 py-1.5 text-xs bg-white"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-black/65 mb-1">
+              T.C. Bolivianos (Bs./USD)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="1"
+              formControlName="tipo_cambio_bob"
+              class="w-full border border-black/25 px-2.5 py-1.5 text-xs font-mono bg-[#F9F6F0]"
+            />
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Catálogo de Reportes Permitidos Disponibles (Vista Rápida CU22 -> CU21) -->
+    @if (contexto()?.catalogo_activo?.length) {
+      <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        @for (rep of contexto()!.catalogo_activo; track rep.id_reporte_catalogo) {
+          <article class="bg-white border border-black/15 p-4 flex flex-col justify-between space-y-3">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-[#D4AF37] bg-black px-2 py-0.5">
+                {{ rep.codigo }}
+              </span>
+              <h3 class="text-sm font-serif font-semibold mt-2">{{ rep.nombre }}</h3>
+              <p class="text-xs text-black/65 mt-1">{{ rep.descripcion }}</p>
+            </div>
+            <div class="pt-2 border-t border-black/10 flex items-center justify-between">
+              <span class="text-xs text-black/60 uppercase">
+                {{ rep.tipos_grafico.join(' · ') }}
+              </span>
+              <button
+                type="button"
+                (click)="seleccionarReporteCatalogo(rep.codigo, rep.ejemplos_consulta[0])"
+                class="text-xs uppercase tracking-wider underline font-semibold"
+              >
+                Usar Plantilla
+              </button>
+            </div>
+          </article>
+        }
+      </section>
+    }
+
+    <!-- Resultado del Reporte Generado (CU21 pasos 5-8 y Cursos Alternos A1, A2, A6, A7) -->
+    @if (resultadoActual(); as res) {
+      <section class="bg-white border-2 border-black p-6 space-y-6" id="seccion-resultado-reporte-ia">
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 border-b border-black/15 pb-4">
+          <div class="space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                class="px-2.5 py-0.5 text-xs uppercase tracking-widest font-semibold"
+                [class.bg-emerald-900]="res.estado === 'completada'"
+                [class.text-white]="res.estado === 'completada'"
+                [class.bg-amber-700]="res.estado === 'ambigua' || res.estado === 'no_soportada'"
+                [class.text-white]="res.estado === 'ambigua' || res.estado === 'no_soportada'"
+                [class.bg-red-800]="res.estado === 'rechazada'"
+                [class.text-white]="res.estado === 'rechazada'"
+              >
+                Estado: {{ res.estado | uppercase }}
+              </span>
+              <span class="text-xs font-mono text-black/65">
+                Solicitud #{{ res.id_solicitud }} · Moneda: {{ res.simbolo_moneda }} ({{ res.moneda }}) · T.C. {{ res.tipo_cambio_bob }} Bs./USD
+              </span>
+            </div>
+
+            <h2 class="text-xl font-serif font-semibold mt-1">
+              {{ res.titulo_reporte || 'Respuesta del Asistente de Reportes con IA' }}
+            </h2>
+            <p class="text-xs text-black/75">
+              {{ res.mensaje_estado }}
+            </p>
+          </div>
+
+          <!-- Botones de Exportación PDF y Excel (RN48) -->
+          @if (res.estado === 'completada') {
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                id="btn-exportar-pdf"
+                (click)="exportarReporte(res.id_solicitud, 'pdf')"
+                [disabled]="exportandoFormato() !== null"
+                class="px-4 py-2 bg-black text-[#F9F6F0] text-xs uppercase tracking-widest font-semibold hover:bg-black/85"
+              >
+                {{ exportandoFormato() === 'pdf' ? 'Generando PDF...' : 'Exportar PDF (Bs.)' }}
+              </button>
+              <button
+                type="button"
+                id="btn-exportar-excel"
+                (click)="exportarReporte(res.id_solicitud, 'excel')"
+                [disabled]="exportandoFormato() !== null"
+                class="px-4 py-2 border border-black text-black text-xs uppercase tracking-widest font-semibold hover:bg-black/5"
+              >
+                {{ exportandoFormato() === 'excel' ? 'Generando Excel...' : 'Exportar Excel .XLSX (Bs.)' }}
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- Cursos Alternos A1 (ambigua) y A2 (no soportada): sugerencias del catálogo -->
+        @if (res.estado !== 'completada') {
+          <div class="bg-amber-50 border border-amber-700 p-4 space-y-3">
+            <p class="text-xs font-semibold uppercase tracking-wider text-amber-950">
+              Orientación del Asistente IA ({{ res.estado === 'ambigua' ? 'CU21 A1 — Solicitud Ambigua' : 'CU21 A2 — Fuera del Catálogo' }}):
+            </p>
+            <p class="text-sm text-amber-950">{{ res.mensaje_estado }}</p>
+            @if (res.ejemplos_sugeridos.length > 0) {
+              <div class="space-y-1">
+                <p class="text-xs text-amber-900">Prueba seleccionando una de estas consultas válidas:</p>
+                <div class="flex flex-wrap gap-2 pt-1">
+                  @for (sug of res.ejemplos_sugeridos; track sug) {
+                    <button
+                      type="button"
+                      (click)="usarEjemploPrompt(sug)"
+                      class="px-3 py-1 bg-white border border-amber-800 text-xs text-amber-950 hover:bg-amber-100"
+                    >
+                      «{{ sug }}»
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- KPIs Resumen en Bolivianos (Bs. / BOB) -->
+          @if (entradasKpi().length > 0) {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              @for (kpi of entradasKpi(); track kpi.etiqueta) {
+                <div class="bg-[#F9F6F0] border border-black/15 p-4">
+                  <p class="text-xs uppercase tracking-wider text-black/60">{{ kpi.etiqueta }}</p>
+                  <p class="text-xl font-serif font-semibold mt-1">
+                    @if (kpi.esMonetarioBob) {
+                      Bs. {{ kpi.valor | number: '1.2-2' }}
+                    } @else if (kpi.esUsd) {
+                      USD {{ kpi.valor | number: '1.2-2' }}
+                    } @else {
+                      {{ kpi.valor }}
+                    }
+                  </p>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Curso Alterno A6: Reporte sin datos -->
+          @if (res.sin_datos) {
+            <div class="bg-[#F9F6F0] border border-black/20 p-6 text-center space-y-2">
+              <p class="text-sm font-semibold">
+                Reporte sin registros para los filtros seleccionados (CU21 A6)
+              </p>
+              <p class="text-xs text-black/65">
+                Prueba ampliando el rango de fechas o seleccionando «Todas mis sucursales».
+              </p>
+            </div>
+          } @else {
+            <!-- Selector interactivo de modo gráfico / tabla -->
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-3">
+              <p class="text-xs uppercase tracking-widest text-black/65 font-semibold">
+                Visualización Interactiva (Montos en Bolivianos Bs. / BOB)
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  (click)="cambiarVistaGrafico('barras')"
+                  [class.bg-black]="vistaGraficoActiva() === 'barras'"
+                  [class.text-white]="vistaGraficoActiva() === 'barras'"
+                  class="px-3 py-1 text-xs uppercase tracking-wider border border-black/25"
+                >
+                  Gráfico de Barras
+                </button>
+                <button
+                  type="button"
+                  (click)="cambiarVistaGrafico('linea')"
+                  [class.bg-black]="vistaGraficoActiva() === 'linea'"
+                  [class.text-white]="vistaGraficoActiva() === 'linea'"
+                  class="px-3 py-1 text-xs uppercase tracking-wider border border-black/25"
+                >
+                  Tendencia / Línea
+                </button>
+                <button
+                  type="button"
+                  (click)="cambiarVistaGrafico('torta')"
+                  [class.bg-black]="vistaGraficoActiva() === 'torta'"
+                  [class.text-white]="vistaGraficoActiva() === 'torta'"
+                  class="px-3 py-1 text-xs uppercase tracking-wider border border-black/25"
+                >
+                  Distribución / Torta
+                </button>
+                <button
+                  type="button"
+                  (click)="cambiarVistaGrafico('tabla')"
+                  [class.bg-black]="vistaGraficoActiva() === 'tabla'"
+                  [class.text-white]="vistaGraficoActiva() === 'tabla'"
+                  class="px-3 py-1 text-xs uppercase tracking-wider border border-black/25"
+                >
+                  Solo Tabla
+                </button>
+              </div>
+            </div>
+
+            <!-- Representación Gráfica (Barras / Línea / Torta) -->
+            @if (vistaGraficoActiva() !== 'tabla' && res.serie_grafico.length > 0) {
+              <div class="bg-[#F9F6F0] border border-black/15 p-5 space-y-4">
+                @if (vistaGraficoActiva() === 'barras') {
+                  <div class="space-y-3">
+                    @for (punto of res.serie_grafico; track punto.etiqueta) {
+                      <div class="space-y-1">
+                        <div class="flex items-center justify-between text-xs">
+                          <span class="font-medium">{{ punto.etiqueta }}</span>
+                          <span class="font-mono font-semibold">
+                            {{ punto.unidad === 'Bs.' ? 'Bs. ' + (punto.valor | number: '1.2-2') : (punto.valor | number: '1.0-2') + ' ' + punto.unidad }}
+                          </span>
+                        </div>
+                        <div class="w-full bg-black/10 h-4 overflow-hidden">
+                          <div
+                            class="bg-black h-4 transition-all duration-300"
+                            [style.width.%]="porcentajeBarra(punto)"
+                          ></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (vistaGraficoActiva() === 'linea') {
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    @for (punto of res.serie_grafico; track punto.etiqueta; let idx = $index) {
+                      <div class="bg-white border border-black/15 p-3 flex flex-col justify-between">
+                        <span class="text-xs text-black/55 font-mono">#{{ idx + 1 }} · {{ punto.etiqueta }}</span>
+                        <span class="text-base font-serif font-semibold mt-2">
+                          {{ punto.unidad === 'Bs.' ? 'Bs. ' + (punto.valor | number: '1.2-2') : punto.valor + ' ' + punto.unidad }}
+                        </span>
+                        <span class="text-xs text-[#D4AF37] bg-black px-2 py-0.5 mt-2 self-start font-mono">
+                          {{ porcentajeParticipacion(punto) }}% del total
+                        </span>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (vistaGraficoActiva() === 'torta') {
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    @for (punto of res.serie_grafico; track punto.etiqueta) {
+                      <div class="bg-white border border-black/15 p-3 flex items-center justify-between">
+                        <div>
+                          <p class="text-xs font-semibold">{{ punto.etiqueta }}</p>
+                          <p class="text-xs text-black/60 font-mono">
+                            {{ punto.unidad === 'Bs.' ? 'Bs. ' + (punto.valor | number: '1.2-2') : punto.valor + ' ' + punto.unidad }}
+                          </p>
+                        </div>
+                        <span class="px-3 py-1 bg-black text-[#D4AF37] text-xs font-mono font-semibold">
+                          {{ porcentajeParticipacion(punto) }}%
+                        </span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Tabla de Datos del Reporte -->
+            <div class="overflow-x-auto border border-black/15">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr class="border-b border-black/15 bg-black text-[#F9F6F0] text-xs uppercase tracking-wider">
+                    @for (col of res.columnas; track col) {
+                      <th class="p-3">{{ col }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-black/10">
+                  @for (fila of res.filas; track $index) {
+                    <tr class="hover:bg-black/5">
+                      @for (celda of fila; track $index) {
+                        <td class="p-3 text-xs font-mono">{{ celda }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+      </section>
+    }
+
+    <!-- Historial de Solicitudes y Exportaciones Registradas (CU21 paso 8 y RN48) -->
+    <section class="bg-white border border-black/15 p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-black/10 pb-3">
+        <div>
+          <h2 class="text-lg font-serif font-semibold">
+            Historial de Solicitudes de Reportes con IA y Exportaciones (RN48)
+          </h2>
+          <p class="text-xs text-black/65">
+            Cada consulta y cada descarga en PDF o Excel queda registrada en la bitácora de la empresa.
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="cargarHistorial()"
+          class="px-4 py-1.5 border border-black/30 text-xs uppercase tracking-widest"
+        >
+          Actualizar Historial
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-black/15 bg-black/5 text-xs uppercase tracking-wider">
+              <th class="p-3">ID / Fecha</th>
+              <th class="p-3">Solicitud en Lenguaje Natural</th>
+              <th class="p-3">Reporte Catálogo</th>
+              <th class="p-3">Estado</th>
+              <th class="p-3">Exportaciones (RN48)</th>
+              <th class="p-3 text-right">Descargar (Bs.)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-black/10">
+            @for (item of historial(); track item.id_solicitud) {
+              <tr>
+                <td class="p-3 text-xs whitespace-nowrap font-mono">
+                  #{{ item.id_solicitud }} · {{ item.creado_en | date: 'short' }}
+                </td>
+                <td class="p-3 text-xs">
+                  «{{ item.comando_voz_texto }}»
+                </td>
+                <td class="p-3 text-xs font-mono">
+                  {{ item.tipo_reporte || '—' }}
+                </td>
+                <td class="p-3 text-xs uppercase font-semibold">
+                  {{ item.estado }}
+                </td>
+                <td class="p-3 text-xs">
+                  @if (item.exportaciones.length > 0) {
+                    <span class="font-mono text-emerald-900">
+                      {{ item.exportaciones.length }} archivo(s) exportado(s)
+                    </span>
+                  } @else {
+                    <span class="text-black/50">Sin exportaciones</span>
+                  }
+                </td>
+                <td class="p-3 text-right space-x-2 whitespace-nowrap">
+                  @if (item.estado === 'completada' && item.tipo_reporte) {
+                    <button
+                      type="button"
+                      (click)="exportarReporte(item.id_solicitud, 'pdf')"
+                      class="text-xs uppercase tracking-wider underline font-semibold"
+                    >
+                      PDF
+                    </button>
+                    <button
+                      type="button"
+                      (click)="exportarReporte(item.id_solicitud, 'excel')"
+                      class="text-xs uppercase tracking-wider underline font-semibold"
+                    >
+                      Excel
+                    </button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="p-6 text-center text-xs text-black/60">
+                  Aún no se han registrado solicitudes de reportes con IA en tu empresa.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
