@@ -27,13 +27,13 @@
 ## Bloque 3 — Producción (solo con confirmación explícita)
 - [x] **T-PR-01 (usuario):** `alembic upgrade head` en la rama principal; `alembic current` = `0015`.
 - [x] **T-PR-02 (usuario):** quitar `TENANT_POR_DEFECTO` del `.env` local y de Render, si existe.
-- [ ] **T-PR-03:** Push de backend y web; verificación de extremo a extremo (directorio, portal, login de cada rol, registro en una tienda, compra).
+- [x] **T-PR-03:** Push de backend y web; verificación de extremo a extremo (directorio, portal, login de cada rol, registro en una tienda, compra).
 
 ## Bloque 4 — Móvil
 - [x] **T-MOV-01:** `EmpresaActual` y cabeceras en los 17 datasources.
 - [x] **T-MOV-02:** DTO del login con `tenant` y `empresas` (payload literal) y `PantallaSeleccionEmpresa`.
 - [x] **T-MOV-03:** Navegación login → selección → hub; «Cambiar de tienda»; registro sin empresa; nombre en la cabecera.
-- [ ] **T-MOV-04:** `dart analyze` y `flutter test` en verde (hecho: 276/276); **prueba en dispositivo contra producción pendiente** (tras T-PR).
+- [x] **T-MOV-04:** `dart analyze` y `flutter test` en verde (276/276); probado por el usuario.
 
 ## Cierre
-- [ ] **T-CI-01:** `CHANGELOG.md`, `CLAUDE.md`, constituciones web y móvil, promoción de la spec.
+- [x] **T-CI-01:** `CHANGELOG.md`, `CLAUDE.md`, constituciones web y móvil, promoción de la spec.

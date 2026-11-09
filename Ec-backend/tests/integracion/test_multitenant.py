@@ -548,3 +548,36 @@ def test_p2_cu04_b6_ciudades_de_solo_lectura(mundo):
     assert mundo["cliente"].get("/api/v1/admin/ciudades", headers=admin).status_code == 200
     alta = mundo["cliente"].post("/api/v1/admin/ciudades", headers=admin, json={"nombre": "Ciudad Intrusa", "pais": "X"})
     assert alta.status_code == 405
+
+
+# --------------------------------------------------------------------------------- P2-CU11
+
+def test_p2_cu11_cada_empresa_configura_lo_suyo(mundo):
+    cliente, admin_b = mundo["cliente"], _token(mundo["admin_b"], "administrador", mundo["id_b"])
+
+    # La empresa B no tenía fila: se crea con los valores por defecto al leerla (C4)
+    lectura = cliente.get("/api/v1/admin/configuracion", headers=admin_b)
+    assert lectura.status_code == 200, lectura.text
+    assert lectura.json()["horas_vencimiento_reserva"] == 24
+
+    cambio = cliente.put("/api/v1/admin/configuracion", headers=admin_b, json={
+        "horas_vencimiento_reserva": 48, "dias_cambio_prenda": 30,
+        "operacion_offline_habilitada": False, "dias_antiguedad_offline": 7})
+    assert cambio.status_code == 200, cambio.text
+    assert cambio.json()["horas_vencimiento_reserva"] == 48
+
+    # FASHION STORE conserva los suyos (RLS)
+    c = mundo["conexion"]
+    _contexto(c, tenant=1)
+    fs = c.execute(text("SELECT horas_vencimiento_reserva, operacion_offline_habilitada "
+                        "FROM fashionstore.configuracion_tenant")).all()
+    _contexto(c)
+    assert fs == [(24, True)]
+
+
+def test_p2_cu11_la_base_rechaza_valores_invalidos(mundo):
+    c = mundo["conexion"]
+    _contexto(c, tenant=1)
+    error = _falla(c, "UPDATE fashionstore.configuracion_tenant SET horas_vencimiento_reserva = 0")
+    _contexto(c)
+    assert error and "chk_config_horas_reserva" in error

@@ -1,0 +1,28 @@
+/**
+ * P2-CU11 · Parámetros de la empresa.
+ * Spec: `.specs/finalized/P2-CU11-parametros-empresa/spec.md` §3.
+ */
+
+/** Respuesta de `GET`/`PUT /api/v1/admin/configuracion`. */
+export interface ParametrosEmpresa {
+  moneda: string;
+  zona_horaria: string;
+  horas_vencimiento_reserva: number;
+  dias_cambio_prenda: number;
+  operacion_offline_habilitada: boolean;
+  dias_antiguedad_offline: number;
+  actualizado_en: string;
+}
+
+/** Los cuatro parámetros editables (C2: moneda y zona horaria no se cambian aquí). */
+export type ParametrosEmpresaPayload = Pick<
+  ParametrosEmpresa,
+  'horas_vencimiento_reserva' | 'dias_cambio_prenda' | 'operacion_offline_habilitada' | 'dias_antiguedad_offline'
+>;
+
+/** C3: los mismos rangos que valida el servidor. */
+export const RANGOS_PARAMETROS = {
+  horas_vencimiento_reserva: { min: 1, max: 168, porDefecto: 24 },
+  dias_cambio_prenda: { min: 0, max: 90, porDefecto: 15 },
+  dias_antiguedad_offline: { min: 1, max: 30, porDefecto: 7 },
+} as const;

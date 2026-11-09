@@ -5,7 +5,7 @@
 **Depende de:** `P2-CU13-CU12-fundacion-multitenant` (en producción, Alembic `0014`).
 **Nivel SDD:** **3 (alto riesgo)**: autenticación, unicidad de correos con datos de producción y retirada del modo de transición (`TENANT_POR_DEFECTO`).
 **Bloques:** Backend → Web → Mobile, cada uno con su gate.
-**Estado:** 🟢 Aprobada el 2026-11-08 (A1–A16). Backend y web aprobados; móvil completo, pendiente de aprobación. Por decisión del usuario, se publica todo junto tras el bloque móvil.
+**Estado:** 🟢 Aprobada, implementada y en producción (2026-11-08). Spec permanente: `.specs/modules/plataforma/P2-CU02-CU01-acceso-por-empresa.md`.
 **Fecha:** 2026-11-08
 
 ---

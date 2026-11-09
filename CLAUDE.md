@@ -202,6 +202,9 @@ Spec permanente: `.specs/modules/plataforma/P2-CU13-CU12-fundacion-multitenant.m
   confirma después, en la misma transacción. Para mostrar el uso, `SuscripcionServicio.uso(db, recurso)`.
 - **Ciudades, tallas y colores son catálogos globales:** el administrador de una empresa solo los
   consulta; los gestiona el super administrador (P2-CU08).
+- **Parámetros de la empresa (P2-CU11):** se leen con `ParametrosEmpresaServicio.vigentes(db)`, nunca
+  con constantes. La operación que use uno guarda el valor que la rige al crearse (una reserva, su
+  `vence_en`): cambiar la configuración no recalcula nada ya registrado (CU11 A3).
 - **Las pruebas simuladas no ven la RLS.** Lo que toque aislamiento se prueba en
   `tests/integracion/test_multitenant.py`, contra la rama de pruebas con `DATABASE_URL_PRUEBAS_APP`.
 - **Toda variable nueva del `.env` se declara en `core/config.py`**: `pydantic-settings` rechaza las

@@ -164,6 +164,16 @@ export const routes: Routes = [
       ).then((m) => m.BitacoraAdminComponent),
   },
   {
+    // P2-CU11: parámetros de la empresa (solo el administrador)
+    path: 'admin/configuracion',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin'])],
+    loadComponent: () =>
+      import(
+        './modules/plataforma/cu11_parametros_empresa/paginas/parametros-empresa.component'
+      ).then((m) => m.ParametrosEmpresaComponent),
+    title: 'Configuración',
+  },
+  {
     path: 'admin/reportes',
     canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
     loadComponent: () =>

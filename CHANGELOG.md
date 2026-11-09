@@ -27,6 +27,13 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 - **Pruebas:** `pytest` 676 (integración contra la rama de pruebas: fuga cerrada, empleado con dos sucursales, uso del plan, bloqueo por empresa) y `ng test` 644, en verde; `ng build` correcto.
 - Defectos 63–65 de la bitácora.
 
+### Parámetros de la Empresa — P2-CU11 (Configurar parámetros de la empresa)
+- **Backend:** `GET` y `PUT /api/v1/admin/configuracion` (solo administrador; guardar exige suscripción vigente) sobre `configuracion_tenant`, que ya existía desde `0012`. Rangos: reserva 1–168 h, cambio de prenda 0–90 días, antigüedad sin conexión 1–30 días. Moneda y zona horaria solo se consultan. La fila que falte se crea con los valores por defecto. Bitácora `CONFIGURACION_MODIFICADA` con lo que cambió. `ParametrosEmpresaServicio.vigentes(db)` para los casos de uso que aplican cada parámetro. Sin migración.
+- **Web:** página `/admin/configuracion` con su tarjeta en el panel y el aviso de CU11 A2 al desactivar la operación sin conexión.
+- **Alcance:** CU11 configura; los parámetros se aplican en CU15 (vencimiento de reservas), CU18 (plazo de cambio), CU14 y CU19 (operación sin conexión). Cada operación guardará el valor que la rige al crearse.
+- **Pruebas:** `pytest` 695 (2 de integración contra la rama de pruebas) y `ng test` 651, en verde; `ng build` correcto.
+- **Pendiente para CU15:** el formulario de reserva web fija la cita en «mañana a las 11:30» sin usar la franja elegida y, sin sucursal elegida, usa el id `1`.
+
 ## [Unreleased] - 2026-11-08
 
 ### Implementación y Cierre — CU31 (Registrar venta presencial) y CU32 (Procesar venta y emitir comprobante)
