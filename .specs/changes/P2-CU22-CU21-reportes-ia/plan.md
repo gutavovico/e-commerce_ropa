@@ -1,7 +1,7 @@
 # Plan Técnico de Implementación: `P2-CU22-CU21-reportes-ia`
 
-## 1. Base de Datos y Migración (`0017_catalogo_reportes_ia.py`)
-- `down_revision = "0016"`.
+## 1. Base de Datos y Migración (`0018_catalogo_reportes_ia.py`)
+- `down_revision = "0017"`.
 - Crea `fashionstore.catalogo_reportes_ia` y siembra de forma idempotente 4 reportes permitidos iniciales (`ventas_por_sucursal`, `top_productos_vendidos`, `inventario_por_sucursal`, `reservas_por_estado_sucursal`).
 - Amplía `fashionstore.solicitudes_reporte_ia` con `estado`, `interpretacion`, `formato_visualizacion`, `mensaje_estado` y `exportaciones` (`ADD COLUMN IF NOT EXISTS`).
 

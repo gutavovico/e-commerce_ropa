@@ -16,7 +16,7 @@ class EmpresaSuscripcionInfoOut(BaseModel):
     estado: str
     moneda: str = "BOB"
     simbolo_moneda: str = "Bs."
-    tipo_cambio_bob: Decimal = Decimal("6.96")
+    tipo_cambio_bob: Decimal = Decimal("1.00")
 
 
 class SuscripcionEmpresaDetalleOut(BaseModel):
@@ -126,7 +126,7 @@ class IntentoPagoSuscripcionOut(BaseModel):
     monto: Decimal
     monto_bob: Decimal = Decimal("0.00")
     moneda: str
-    tipo_cambio_bob: Decimal = Decimal("6.96")
+    tipo_cambio_bob: Decimal = Decimal("1.00")
     id_plan: int
     nombre_plan: str
     meses: int

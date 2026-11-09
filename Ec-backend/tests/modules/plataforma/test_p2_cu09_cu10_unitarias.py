@@ -10,7 +10,8 @@ from fastapi.testclient import TestClient
 
 from core.database import get_db
 from core.errors import ConflictError, NotFoundError, PaymentRequiredError
-from integrations.stripe_service import StripeService
+from core.tiempo import hoy as hoy_bolivia
+from integrations.stripe_service import ResultadoPasarela, StripeService
 from main import app
 from modules.plataforma.cu09_cu10_suscripcion_empresa.esquemas import (
     ConfirmarCambioSuscripcionIn,
@@ -72,7 +73,7 @@ def _suscripcion_falsa(
     dias_desde_inicio: int = 10,
     dias_hasta_vencimiento: int = 20,
 ):
-    hoy = datetime.now(timezone.utc).date()
+    hoy = hoy_bolivia()
     return SimpleNamespace(
         id_suscripcion=id_suscripcion,
         id_tenant=id_tenant,
@@ -118,7 +119,7 @@ def test_ac01_cu09_consultar_mi_suscripcion_vigente():
     with (
         patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
         patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan)),
-        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="EUR"),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
         patch.object(
             MiSuscripcionRepositorio,
             "listar_sucursales_activas",
@@ -175,7 +176,7 @@ def test_ac02_cu09_a1_suscripcion_vencida_permite_consulta_y_reporta_estado():
     with (
         patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
         patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan)),
-        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="EUR"),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
         patch.object(
             MiSuscripcionRepositorio,
             "listar_sucursales_activas",
@@ -228,7 +229,7 @@ def test_ac04_cu10_listar_planes_evalua_compatibilidad_con_uso_actual():
     with (
         patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
         patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_pro)),
-        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="USD"),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
         patch.object(
             MiSuscripcionRepositorio, "listar_sucursales_activas", return_value=sucursales_activas
         ),
@@ -245,8 +246,8 @@ def test_ac04_cu10_listar_planes_evalua_compatibilidad_con_uso_actual():
         planes = MiSuscripcionServicio.listar_planes_disponibles(db, usuario)
 
     assert len(planes) == 3
-    # Verifica conversión a Bolivianos (1 USD = 6.96 BOB -> 79.00 * 6.96 = 549.84 Bs.)
-    assert planes[1].precio_mensual_bob == Decimal("549.84")
+    assert planes[1].precio_mensual == Decimal("79.00")
+    assert planes[1].precio_mensual_bob == Decimal("79.00")
     # Plan Básico permite 1 sucursal y 5 empleados; la empresa tiene 2 sucursales y 6 empleados -> incompatible
     assert planes[0].nombre == "Basico"
     assert planes[0].compatible_con_uso_actual is False
@@ -315,13 +316,14 @@ def test_ac06_cu10_a2_pago_stripe_rechazado_mantiene_suscripcion_intacta():
         patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
         patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_pro)),
         patch.object(MiSuscripcionRepositorio, "obtener_plan", return_value=plan_emp),
+        patch.object(MiSuscripcionRepositorio, "referencia_pago_ya_utilizada", return_value=False),
         patch.object(
             MiSuscripcionRepositorio,
             "listar_sucursales_activas",
             return_value=[{"id_sucursal": 1, "nombre": "Boutique Centro", "direccion": "Av. 1"}],
         ),
         patch.object(MiSuscripcionRepositorio, "contar_empleados_activos", return_value=4),
-        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="EUR"),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
         patch.object(
             MiSuscripcionRepositorio, "actualizar_suscripcion_y_registrar_historial"
         ) as mock_actualizar,
@@ -366,7 +368,7 @@ def test_ac07_cu10_iniciar_y_confirmar_cambio_plan_con_stripe_registra_historial
             return_value=[{"id_sucursal": 1, "nombre": "Boutique Centro", "direccion": "Av. 1"}],
         ),
         patch.object(MiSuscripcionRepositorio, "contar_empleados_activos", return_value=4),
-        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="EUR"),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
     ):
         intento = MiSuscripcionServicio.iniciar_pago(
             db,
@@ -377,6 +379,8 @@ def test_ac07_cu10_iniciar_y_confirmar_cambio_plan_con_stripe_registra_historial
 
     assert intento.referencia.startswith("pi_sbx_")
     assert intento.monto == Decimal("398.00")
+    assert intento.monto_bob == Decimal("398.00")
+    assert intento.moneda == "BOB"
     assert intento.operacion == "cambio_plan"
     assert intento.requiere_cobro is True
 
@@ -386,13 +390,14 @@ def test_ac07_cu10_iniciar_y_confirmar_cambio_plan_con_stripe_registra_historial
         patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
         patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_pro)),
         patch.object(MiSuscripcionRepositorio, "obtener_plan", return_value=plan_emp),
+        patch.object(MiSuscripcionRepositorio, "referencia_pago_ya_utilizada", return_value=False),
         patch.object(
             MiSuscripcionRepositorio,
             "listar_sucursales_activas",
             return_value=[{"id_sucursal": 1, "nombre": "Boutique Centro", "direccion": "Av. 1"}],
         ),
         patch.object(MiSuscripcionRepositorio, "contar_empleados_activos", return_value=4),
-        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="EUR"),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
         patch.object(
             MiSuscripcionRepositorio, "actualizar_suscripcion_y_registrar_historial"
         ) as mock_actualizar,
@@ -420,8 +425,9 @@ def test_ac07_cu10_iniciar_y_confirmar_cambio_plan_con_stripe_registra_historial
     assert kwargs["id_plan"] == 3
     assert kwargs["estado"] == "activa"
     assert kwargs["evento"] == "cambio_plan"
-    assert kwargs["detalle"]["referencia_stripe"] == intento.referencia
-    assert kwargs["detalle"]["monto"] == "398.00"
+    assert kwargs["detalle"]["referencia_pago"] == intento.referencia
+    assert kwargs["detalle"]["monto_cobrado"] == "398.00"
+    assert kwargs["detalle"]["moneda"] == "BOB"
     mock_bitacora.assert_called_once()
 
 
@@ -441,9 +447,10 @@ def test_ac07_cu10_renovacion_mismo_plan_vigente_extiende_fecha_vencimiento():
         patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
         patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_pro)),
         patch.object(MiSuscripcionRepositorio, "obtener_plan", return_value=plan_pro),
+        patch.object(MiSuscripcionRepositorio, "referencia_pago_ya_utilizada", return_value=False),
         patch.object(MiSuscripcionRepositorio, "listar_sucursales_activas", return_value=[]),
         patch.object(MiSuscripcionRepositorio, "contar_empleados_activos", return_value=2),
-        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="EUR"),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
         patch.object(
             MiSuscripcionRepositorio, "actualizar_suscripcion_y_registrar_historial"
         ) as mock_actualizar,
@@ -452,12 +459,18 @@ def test_ac07_cu10_renovacion_mismo_plan_vigente_extiende_fecha_vencimiento():
         ),
         patch.object(MiSuscripcionServicio, "consultar_mi_suscripcion", return_value=resumen_mock),
     ):
+        intento = MiSuscripcionServicio.iniciar_pago(
+            db,
+            IniciarPagoSuscripcionIn(id_plan=2, meses=1),
+            usuario,
+            pasarela=pasarela_simulada,
+        )
         MiSuscripcionServicio.confirmar_cambio_o_renovacion(
             db,
             ConfirmarCambioSuscripcionIn(
                 id_plan=2,
                 meses=1,
-                referencia_pago="pi_sbx_999999",
+                referencia_pago=intento.referencia,
             ),
             usuario,
             pasarela=pasarela_simulada,
@@ -466,6 +479,166 @@ def test_ac07_cu10_renovacion_mismo_plan_vigente_extiende_fecha_vencimiento():
     kwargs = mock_actualizar.call_args.kwargs
     assert kwargs["evento"] == "renovacion"
     assert kwargs["fecha_vencimiento"] == venc_previo + timedelta(days=30)
+
+
+def test_cu10_bloquea_confirmar_plan_distinto_o_mas_meses_con_pago_inferior():
+    """Bloqueante 1 Auditoría: Con un pago del plan Básico por 1 mes no se puede confirmar Profesional ni 12 meses."""
+    db = MagicMock()
+    usuario = _admin_falso(id_tenant=1)
+    tenant = _tenant_falso(1)
+    plan_basico = _plan_falso(id_plan=1, nombre="Basico", precio="29.00", max_suc=2, max_emp=5)
+    plan_pro = _plan_falso(id_plan=2, nombre="Profesional", precio="79.00", max_suc=5, max_emp=15)
+    susc = _suscripcion_falsa(id_plan=1, estado="activa")
+    pasarela_simulada = StripeService(api_key="sk_test_placeholder", latencia_simulada_ms=0)
+
+    with (
+        patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
+        patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_basico)),
+        patch.object(MiSuscripcionRepositorio, "obtener_plan", return_value=plan_basico),
+        patch.object(MiSuscripcionRepositorio, "listar_sucursales_activas", return_value=[]),
+        patch.object(MiSuscripcionRepositorio, "contar_empleados_activos", return_value=1),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
+    ):
+        intento_basico = MiSuscripcionServicio.iniciar_pago(
+            db,
+            IniciarPagoSuscripcionIn(id_plan=1, meses=1),
+            usuario,
+            pasarela=pasarela_simulada,
+        )
+
+    # 1. Intentar confirmar el Plan Profesional (id_plan=2) usando la referencia del Plan Básico (id_plan=1)
+    with (
+        patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
+        patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_basico)),
+        patch.object(MiSuscripcionRepositorio, "obtener_plan", return_value=plan_pro),
+        patch.object(MiSuscripcionRepositorio, "referencia_pago_ya_utilizada", return_value=False),
+        patch.object(MiSuscripcionRepositorio, "listar_sucursales_activas", return_value=[]),
+        patch.object(MiSuscripcionRepositorio, "contar_empleados_activos", return_value=1),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
+    ):
+        with pytest.raises(ConflictError) as exc_plan:
+            MiSuscripcionServicio.confirmar_cambio_o_renovacion(
+                db,
+                ConfirmarCambioSuscripcionIn(
+                    id_plan=2,
+                    meses=1,
+                    referencia_pago=intento_basico.referencia,
+                ),
+                usuario,
+                pasarela=pasarela_simulada,
+            )
+    assert exc_plan.value.code in ("PAGO_IMPORTE_NO_COINCIDE", "PAGO_PLAN_NO_COINCIDE")
+
+    # 2. Intentar confirmar 12 meses usando el pago de 1 mes
+    with (
+        patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
+        patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_basico)),
+        patch.object(MiSuscripcionRepositorio, "obtener_plan", return_value=plan_basico),
+        patch.object(MiSuscripcionRepositorio, "referencia_pago_ya_utilizada", return_value=False),
+        patch.object(MiSuscripcionRepositorio, "listar_sucursales_activas", return_value=[]),
+        patch.object(MiSuscripcionRepositorio, "contar_empleados_activos", return_value=1),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
+    ):
+        with pytest.raises(ConflictError) as exc_meses:
+            MiSuscripcionServicio.confirmar_cambio_o_renovacion(
+                db,
+                ConfirmarCambioSuscripcionIn(
+                    id_plan=1,
+                    meses=12,
+                    referencia_pago=intento_basico.referencia,
+                ),
+                usuario,
+                pasarela=pasarela_simulada,
+            )
+    assert exc_meses.value.code in ("PAGO_IMPORTE_NO_COINCIDE", "PAGO_MESES_NO_COINCIDEN")
+
+
+def test_cu10_bloquea_pago_de_otra_empresa_moneda_distinta_y_reutilizacion():
+    """Bloqueante 1 Auditoría: Rechaza pago de otro tenant, moneda discordante y referencia reutilizada."""
+    db = MagicMock()
+    usuario = _admin_falso(id_tenant=1)
+    tenant = _tenant_falso(1)
+    plan_pro = _plan_falso(id_plan=2, nombre="Profesional", precio="79.00", max_suc=5, max_emp=15)
+    susc = _suscripcion_falsa(id_plan=2, estado="activa")
+
+    # 1. Referencia ya registrada en historial_suscripcion
+    with (
+        patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
+        patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_pro)),
+        patch.object(MiSuscripcionRepositorio, "obtener_plan", return_value=plan_pro),
+        patch.object(MiSuscripcionRepositorio, "referencia_pago_ya_utilizada", return_value=True),
+    ):
+        with pytest.raises(ConflictError) as exc_reuso:
+            MiSuscripcionServicio.confirmar_cambio_o_renovacion(
+                db,
+                ConfirmarCambioSuscripcionIn(id_plan=2, meses=1, referencia_pago="pi_usado_1"),
+                usuario,
+            )
+    assert exc_reuso.value.code == "REFERENCIA_PAGO_YA_UTILIZADA"
+
+    # 2. Moneda distinta en el PaymentIntent (USD cuando la empresa opera en BOB)
+    pasarela_moneda_distinta = MagicMock()
+    pasarela_moneda_distinta.verificar_intento.return_value = ResultadoPasarela(
+        aprobado=True,
+        referencia="pi_moneda_usd",
+        codigo_respuesta="succeeded",
+        mensaje="OK",
+        payload={
+            "id": "pi_moneda_usd",
+            "amount": 7900,
+            "currency": "usd",
+            "metadata": {"id_tenant": "1", "id_plan": "2", "meses": "1"},
+        },
+    )
+    with (
+        patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
+        patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_pro)),
+        patch.object(MiSuscripcionRepositorio, "obtener_plan", return_value=plan_pro),
+        patch.object(MiSuscripcionRepositorio, "referencia_pago_ya_utilizada", return_value=False),
+        patch.object(MiSuscripcionRepositorio, "listar_sucursales_activas", return_value=[]),
+        patch.object(MiSuscripcionRepositorio, "contar_empleados_activos", return_value=1),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
+    ):
+        with pytest.raises(ConflictError) as exc_moneda:
+            MiSuscripcionServicio.confirmar_cambio_o_renovacion(
+                db,
+                ConfirmarCambioSuscripcionIn(id_plan=2, meses=1, referencia_pago="pi_moneda_usd"),
+                usuario,
+                pasarela=pasarela_moneda_distinta,
+            )
+    assert exc_moneda.value.code == "PAGO_MONEDA_NO_COINCIDE"
+
+    # 3. PaymentIntent perteneciente a otra empresa (id_tenant=99)
+    pasarela_otro_tenant = MagicMock()
+    pasarela_otro_tenant.verificar_intento.return_value = ResultadoPasarela(
+        aprobado=True,
+        referencia="pi_otro_tenant",
+        codigo_respuesta="succeeded",
+        mensaje="OK",
+        payload={
+            "id": "pi_otro_tenant",
+            "amount": 7900,
+            "currency": "bob",
+            "metadata": {"id_tenant": "99", "id_plan": "2", "meses": "1"},
+        },
+    )
+    with (
+        patch.object(MiSuscripcionRepositorio, "obtener_tenant", return_value=tenant),
+        patch.object(MiSuscripcionRepositorio, "suscripcion_actual", return_value=(susc, plan_pro)),
+        patch.object(MiSuscripcionRepositorio, "obtener_plan", return_value=plan_pro),
+        patch.object(MiSuscripcionRepositorio, "referencia_pago_ya_utilizada", return_value=False),
+        patch.object(MiSuscripcionRepositorio, "listar_sucursales_activas", return_value=[]),
+        patch.object(MiSuscripcionRepositorio, "contar_empleados_activos", return_value=1),
+        patch.object(MiSuscripcionRepositorio, "obtener_moneda_empresa", return_value="BOB"),
+    ):
+        with pytest.raises(ConflictError) as exc_tenant:
+            MiSuscripcionServicio.confirmar_cambio_o_renovacion(
+                db,
+                ConfirmarCambioSuscripcionIn(id_plan=2, meses=1, referencia_pago="pi_otro_tenant"),
+                usuario,
+                pasarela=pasarela_otro_tenant,
+            )
+    assert exc_tenant.value.code == "PAGO_EMPRESA_NO_COINCIDE"
 
 
 def test_contrato_http_rutas_mi_suscripcion_registradas():

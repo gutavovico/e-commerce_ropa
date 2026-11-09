@@ -4,11 +4,12 @@ Opera mediante expresiones SQLAlchemy Core sobre `fashionstore.ciudades`, `fashi
 y `fashionstore.colores` sin modificar los modelos ORM de `gestion_operativa` ni `catalogo`.
 """
 
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import Boolean, DateTime, Integer, SmallInteger, String, column, delete, func, insert, select, table, update
 from sqlalchemy.orm import Session
+
+from core.tiempo import ahora
 
 _t_ciudades = table(
     "ciudades",
@@ -117,7 +118,7 @@ class CatalogosGlobalesRepositorio:
 
     @staticmethod
     def crear_ciudad(db: Session, *, nombre: str, pais: str) -> dict[str, Any]:
-        now_utc = datetime.now(timezone.utc)
+        now_utc = ahora()
         stmt = (
             insert(_t_ciudades)
             .values(nombre=nombre, pais=pais, activo=True, creado_en=now_utc)

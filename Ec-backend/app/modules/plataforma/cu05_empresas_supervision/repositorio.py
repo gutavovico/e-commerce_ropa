@@ -7,6 +7,8 @@ from typing import Any, Optional
 from sqlalchemy import column, func, or_, select, table, text
 from sqlalchemy.orm import Session
 
+from core.tiempo import ahora
+
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.plataforma.modelos import (
     ConfiguracionTenantORM,
@@ -208,7 +210,7 @@ class EmpresasSupervisionRepositorio:
         admin_telefono: Optional[str],
         id_usuario_operador: Optional[int],
     ) -> tuple[TenantORM, SuscripcionORM, UsuarioORM]:
-        now_utc = datetime.now(timezone.utc)
+        now_utc = ahora()
         tenant = TenantORM(
             codigo=codigo,
             nombre=nombre,
@@ -222,8 +224,8 @@ class EmpresasSupervisionRepositorio:
 
         config = ConfiguracionTenantORM(
             id_tenant=tenant.id_tenant,
-            moneda="EUR",
-            zona_horaria="Europe/Madrid",
+            moneda="BOB",
+            zona_horaria="America/La_Paz",
             horas_vencimiento_reserva=24,
             dias_cambio_prenda=15,
             operacion_offline_habilitada=True,

@@ -34,7 +34,6 @@ from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
 TASAS_CAMBIO_BOB: dict[str, Decimal] = {
     "BOB": Decimal("1.00"),
     "USD": Decimal("6.96"),
-    "EUR": Decimal("7.50"),
 }
 
 

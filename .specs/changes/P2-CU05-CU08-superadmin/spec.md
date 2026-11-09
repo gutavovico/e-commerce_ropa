@@ -5,7 +5,7 @@
 **Depende de:** `P2-CU13-CU12-fundacion-multitenant` (migraciones `0012`–`0014`) y `P2-CU02-CU01-acceso-por-empresa` (migración `0015`).
 **Nivel SDD:** **3 (alto riesgo)**: alta transaccional de empresas e inquilinos, gobierno de planes/suscripciones en modo plataforma (`app.modo_plataforma = 'on'`) y catálogos globales compartidos.
 **Bloques:** Backend → Web (cada uno con su puerta de aprobación). No aplica a Móvil.
-**Estado:** 🟡 Pendiente de aprobación (Gate 0).
+**Estado:** 🟢 Completado (2026-11-09)
 **Fecha:** 2026-11-09
 
 ---

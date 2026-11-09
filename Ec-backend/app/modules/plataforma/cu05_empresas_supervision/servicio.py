@@ -1,6 +1,6 @@
 """Servicio de aplicación y dominio para P2-CU05: Gestionar empresas y supervisar la plataforma."""
 
-from datetime import date, datetime, timezone
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from core.errors import ConflictError, NotFoundError, UnprocessableEntityError
 from core.security import hash_password
 from core.tenant import limpiar_cache_tenants
+from core.tiempo import hoy
+from modules.autenticacion_seguridad.cuentas import correo_ocupado
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.plataforma.cu05_empresas_supervision.esquemas import (
     BitacoraPlataformaItemOut,
@@ -91,11 +93,11 @@ class EmpresasSupervisionServicio:
         estado: Optional[str] = None,
         id_plan: Optional[int] = None,
     ) -> list[EmpresaResumenOut]:
-        hoy = datetime.now(timezone.utc).date()
+        hoy_bolivia = hoy()
         tenants = EmpresasSupervisionRepositorio.listar_tenants(
             db, q=q, estado=estado, id_plan=id_plan
         )
-        return [EmpresasSupervisionServicio._armar_resumen(db, t, hoy) for t in tenants]
+        return [EmpresasSupervisionServicio._armar_resumen(db, t, hoy_bolivia) for t in tenants]
 
     @staticmethod
     def obtener_empresa(db: Session, id_tenant: int) -> EmpresaDetalleOut:
@@ -105,8 +107,8 @@ class EmpresasSupervisionServicio:
                 f"La empresa con identificador {id_tenant} no existe.",
                 code="EMPRESA_NO_ENCONTRADA",
             )
-        hoy = datetime.now(timezone.utc).date()
-        return EmpresasSupervisionServicio._armar_detalle(db, tenant, hoy)
+        hoy_bolivia = hoy()
+        return EmpresasSupervisionServicio._armar_detalle(db, tenant, hoy_bolivia)
 
     @staticmethod
     def registrar_empresa(
@@ -141,7 +143,7 @@ class EmpresasSupervisionServicio:
             )
 
         admin_email = str(datos.admin_inicial.email).strip().lower()
-        if EmpresasSupervisionRepositorio.correo_existe(db, admin_email):
+        if correo_ocupado(db, admin_email):
             raise ConflictError(
                 f"El correo electrónico '{admin_email}' ya está ocupado en la plataforma (RN05).",
                 code="CORREO_OCUPADO",
@@ -186,8 +188,8 @@ class EmpresasSupervisionServicio:
             db=db,
         )
 
-        hoy = datetime.now(timezone.utc).date()
-        return EmpresasSupervisionServicio._armar_detalle(db, tenant, hoy)
+        hoy_bolivia = hoy()
+        return EmpresasSupervisionServicio._armar_detalle(db, tenant, hoy_bolivia)
 
     @staticmethod
     def actualizar_empresa(
@@ -234,8 +236,8 @@ class EmpresasSupervisionServicio:
             },
             db=db,
         )
-        hoy = datetime.now(timezone.utc).date()
-        return EmpresasSupervisionServicio._armar_detalle(db, tenant, hoy)
+        hoy_bolivia = hoy()
+        return EmpresasSupervisionServicio._armar_detalle(db, tenant, hoy_bolivia)
 
     @staticmethod
     def cambiar_estado_empresa(
@@ -283,12 +285,12 @@ class EmpresasSupervisionServicio:
             },
             db=db,
         )
-        hoy = datetime.now(timezone.utc).date()
-        return EmpresasSupervisionServicio._armar_detalle(db, tenant, hoy)
+        hoy_bolivia = hoy()
+        return EmpresasSupervisionServicio._armar_detalle(db, tenant, hoy_bolivia)
 
     @staticmethod
     def obtener_metricas_plataforma(db: Session) -> MetricasPlataformaOut:
-        hoy = datetime.now(timezone.utc).date()
+        hoy_bolivia = hoy()
         tenants = EmpresasSupervisionRepositorio.listar_tenants(db)
 
         empresas_activas = sum(1 for t in tenants if t.estado == "activa")
@@ -312,7 +314,7 @@ class EmpresasSupervisionServicio:
                 susc, plan = par_susc
                 nombre_plan = plan.nombre
                 estado_susc = susc.estado
-                if _es_suscripcion_vigente(susc, hoy):
+                if _es_suscripcion_vigente(susc, hoy_bolivia):
                     suscripciones_vigentes += 1
                 else:
                     suscripciones_no_vigentes += 1

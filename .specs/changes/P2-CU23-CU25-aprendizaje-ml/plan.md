@@ -1,7 +1,7 @@
 # Plan Técnico de Implementación: `P2-CU23-CU25-aprendizaje-ml`
 
-## 1. Migración Alembic (`0018_aprendizaje_automatico_ml.py`)
-- `down_revision = "0017"`
+## 1. Migración Alembic (`0019_aprendizaje_automatico_ml.py`)
+- `down_revision = "0018"`
 - Tablas en el esquema `fashionstore` con aislamiento por empresa (`id_tenant` + RLS):
   1. `fashionstore.datasets_ml`:
      - `id_dataset` (PK), `id_tenant` (FK a `tenants`), `nombre`, `origen` (`sintetico` | `real` | `mixto`), `cantidad_registros`, `variables_seleccionadas` (JSONB), `parametros_generacion` (JSONB), `resumen_preprocesamiento` (JSONB), `muestra_datos` (JSONB), `creado_por` (FK a `usuarios`), `creado_en`.

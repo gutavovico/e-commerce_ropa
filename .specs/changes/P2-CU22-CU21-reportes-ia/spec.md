@@ -6,7 +6,7 @@ Este cambio implementa la **Fase 3** del Parcial 2 asignada a **Tony** según `R
 - **`P2-CU21` — Generar reporte con IA** (Actor: `administrador` de una empresa con Plan Profesional): Permite solicitar un reporte escribiendo o dictando por voz en lenguaje natural. La IA interpreta la petición contra el catálogo activo de `CU22` (sin recibir datos del negocio), el backend valida el plan (`CU12`: funcionalidad `reportes_ia`, `RN44`), ejecuta una consulta controlada exclusivamente sobre el `id_tenant` del administrador (`RN46`), expresa todos los importes financieros en **Bolivianos (`Bs. / BOB`)** manejando el tipo de cambio oficial (`1 USD = 6.96 Bs.`, `1 EUR = 7.50 Bs.`), muestra el resultado en tabla y gráfico (`barras`, `linea` o `torta`) y permite exportarlo a **PDF** y **Excel (`XLSX`)** (`RN48`) además de consultar el historial de solicitudes (`RN47`).
 
 **Frontera estricta de alcance:**
-- **Base de Datos (`Ec-backend/alembic/versions/0017_catalogo_reportes_ia.py`)**: Tabla global `fashionstore.catalogo_reportes_ia` con semilla de 4 reportes permitidos (`RF32`) y columnas de trazabilidad en `fashionstore.solicitudes_reporte_ia`.
+- **Base de Datos (`Ec-backend/alembic/versions/0018_catalogo_reportes_ia.py`)**: Tabla global `fashionstore.catalogo_reportes_ia` con semilla de 4 reportes permitidos (`RF32`) y columnas de trazabilidad en `fashionstore.solicitudes_reporte_ia`.
 - **Backend (`Ec-backend/`)**:
   - `app/modules/plataforma/cu22_catalogo_reportes/` bajo `/api/v1/plataforma/catalogo-reportes` (para `super_administrador`).
   - `app/modules/comercial/cu21_reportes_ia/` bajo `/api/v1/reportes-ia` (para `administrador` de empresa).

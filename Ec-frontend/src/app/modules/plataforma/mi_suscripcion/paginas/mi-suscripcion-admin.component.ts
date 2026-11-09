@@ -57,30 +57,13 @@ export class MiSuscripcionAdminComponent implements OnInit {
     return +(precio * this.mesesSeleccionados()).toFixed(2);
   });
 
-  readonly tasaCambioBob = computed(() => {
-    const tc = Number(this.resumen()?.empresa?.tipo_cambio_bob);
-    if (tc && tc > 0) return tc;
-    const moneda = (this.resumen()?.empresa?.moneda || 'BOB').toUpperCase();
-    if (moneda === 'BOB') return 1;
-    return 6.96;
-  });
+  readonly tasaCambioBob = computed(() => 1);
 
-  readonly importeEstimadoBob = computed(() => {
-    const plan = this.planSeleccionado();
-    if (!plan) return 0;
-    const moneda = (this.resumen()?.empresa?.moneda || 'BOB').toUpperCase();
-    const precioBob =
-      plan.precio_mensual_bob !== undefined
-        ? Number(plan.precio_mensual_bob)
-        : (Number(plan.precio_mensual) || 0) * (moneda === 'BOB' ? 1 : this.tasaCambioBob());
-    return +(precioBob * this.mesesSeleccionados()).toFixed(2);
-  });
+  readonly importeEstimadoBob = computed(() => this.importeEstimado());
 
   convertirABob(monto: number | string | undefined): string {
     const valor = Number(monto) || 0;
-    const moneda = (this.resumen()?.empresa?.moneda || 'BOB').toUpperCase();
-    const enBob = moneda === 'BOB' ? valor : valor * this.tasaCambioBob();
-    return enBob.toFixed(2);
+    return valor.toFixed(2);
   }
 
   readonly porcentajeUsoSucursales = computed(() => {

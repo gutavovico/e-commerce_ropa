@@ -1,12 +1,13 @@
 """Servicio de aplicación y dominio para P2-CU07: Gestionar suscripciones de empresas."""
 
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from core.errors import ConflictError, NotFoundError, UnprocessableEntityError
 from core.tenant import limpiar_cache_tenants
+from core.tiempo import ahora, hoy
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.plataforma.cu07_suscripciones.esquemas import (
     HistorialSuscripcionItemOut,
@@ -84,12 +85,12 @@ class SuscripcionesAdminServicio:
         id_plan: Optional[int] = None,
         id_tenant: Optional[int] = None,
     ) -> list[SuscripcionEmpresaOut]:
-        hoy = datetime.now(timezone.utc).date()
+        hoy_bolivia = hoy()
         filas = SuscripcionesAdminRepositorio.listar_suscripciones_empresas(
             db, estado=estado, id_plan=id_plan, id_tenant=id_tenant
         )
         return [
-            SuscripcionesAdminServicio._armar_suscripcion_out(db, susc, tenant, plan, hoy)
+            SuscripcionesAdminServicio._armar_suscripcion_out(db, susc, tenant, plan, hoy_bolivia)
             for susc, tenant, plan in filas
         ]
 
@@ -119,11 +120,16 @@ class SuscripcionesAdminServicio:
                 code="EMPRESA_NO_ENCONTRADA",
             )
 
-        hoy = datetime.now(timezone.utc).date()
+        hoy_bolivia = hoy()
         par_actual = SuscripcionesAdminRepositorio.suscripcion_actual_empresa(db, id_tenant)
         operacion = datos.operacion
 
         if operacion == "alta":
+            if par_actual and par_actual[0].estado in ("prueba", "activa"):
+                raise ConflictError(
+                    "La empresa ya cuenta con una suscripción vigente. Utilice la opción 'Cambiar de plan' o 'Renovar' (CU07 A1).",
+                    code="SUSCRIPCION_VIGENTE_EXISTENTE",
+                )
             if datos.id_plan is None or datos.fecha_inicio is None or datos.fecha_vencimiento is None:
                 raise UnprocessableEntityError(
                     "Para dar de alta una suscripción debe indicar id_plan, fecha_inicio y fecha_vencimiento.",
@@ -333,5 +339,5 @@ class SuscripcionesAdminServicio:
             },
             db=db,
         )
-        return SuscripcionesAdminServicio._armar_suscripcion_out(db, susc, tenant, plan_final, hoy)
+        return SuscripcionesAdminServicio._armar_suscripcion_out(db, susc, tenant, plan_final, hoy_bolivia)
 
