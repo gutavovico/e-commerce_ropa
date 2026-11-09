@@ -4,6 +4,12 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ## [Unreleased] - 2026-11-09 (Parcial 2)
 
+### Integración continua y revisión obligatoria de PR
+- **Motivo:** el PR #2 se fusionó en `main` con solo los checks de Vercel. Traía una migración (`0017`) con el hash y la contraseña en claro del super administrador en un repositorio público, y tres migraciones sin aplicar en producción. Ninguna de las pruebas locales se ejecutaba en GitHub.
+- **CI** (`.github/workflows/ci.yml`): backend, migraciones en un PostgreSQL temporal (cadena completa, `downgrade`/`upgrade` y `test_esquema_bd`), integración contra `pruebas-multitenant`, web, móvil y guardas (`.github/scripts/guardas.sh` y gitleaks). No toca producción.
+- **Revisión:** `.github/CODEOWNERS` según `reparticion.md` y plantilla de PR con las casillas de spec, suites, secretos y migraciones.
+- **Primer resultado sobre `main`:** las guardas detectan el hash y la contraseña de la `0017` y una conversión fija `'EUR' → 7.5` en `mi-suscripcion-admin.component.ts`; ambos quedan para su responsable.
+
 ### Aprendizaje Automático y Analítica Predictiva en Bolivianos — P2-CU23 (Gestionar datos y modelos de aprendizaje), P2-CU24 (Consultar predicciones) y P2-CU25 (Consultar segmentos de clientes)
 - **Base de datos (migración `0019_aprendizaje_automatico_ml`):** tablas multitenant `fashionstore.datasets_ml`, `fashionstore.modelos_ml`, `fashionstore.predicciones_ml` y `fashionstore.segmentos_clientes_ml` con `id_tenant`, políticas `ROW LEVEL SECURITY` y restricción `CHECK (probabilidad >= 0.0000 AND probabilidad <= 1.0000)` (`RN50`).
 - **Backend (`Ec-backend`):** paquete `app/modules/comercial/cu23_cu25_aprendizaje_ml/` expuesto en `/api/v1/aprendizaje-ml` para el `administrador` de empresa:
