@@ -8,6 +8,7 @@ import { of } from 'rxjs';
 import { PuntoVentaComponent } from './punto-venta.component';
 import { LoginService } from '../../../autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 import { UsuarioSesion } from '../../../autenticacion_seguridad/cu02_iniciar_sesion/modelos/login.dto';
+import { ConectividadService } from '../../../../core/sin-conexion/conectividad.service';
 
 /**
  * Payloads literales con la forma exacta que serializa el backend (`esquemas.py`): los importes
@@ -182,6 +183,24 @@ describe('PuntoVentaComponent (CU31-CU32)', () => {
       expect(raiz.querySelector('a[href="/admin"]')).toBeNull();
       expect(raiz.querySelector('#pos-sesion-cajero')?.textContent).toContain('Carlos Perez');
       expect(raiz.querySelector('#btn-cerrar-sesion-pos')).toBeTruthy();
+    });
+
+    it('CU16 A4 / CU17 A4: sin conexión avisa y no deja registrar ni cobrar', () => {
+      anadir();
+      http.expectOne('/api/v1/pos/ventas/previsualizar').flush(PREVISUALIZACION);
+      TestBed.inject(ConectividadService).enLinea.set(false);
+      fixture.detectChanges();
+
+      const raiz = fixture.nativeElement as HTMLElement;
+      expect(raiz.querySelector('#aviso-caja-sin-conexion')?.textContent).toContain('Sin conexión');
+      expect((raiz.querySelector('#btn-registrar-venta') as HTMLButtonElement).disabled).toBe(true);
+      component.registrarVenta();
+      http.expectNone('/api/v1/pos/ventas');
+
+      TestBed.inject(ConectividadService).enLinea.set(true);
+      fixture.detectChanges();
+      expect(raiz.querySelector('#aviso-caja-sin-conexion')).toBeNull();
+      expect((raiz.querySelector('#btn-registrar-venta') as HTMLButtonElement).disabled).toBe(false);
     });
 
     it('ya no menciona escanear: el buscador es por nombre, categoría o SKU', () => {

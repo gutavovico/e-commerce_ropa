@@ -12,6 +12,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from core.errors import AuthorizationError, ConflictError, NotFoundError
+from core.tiempo import ahora
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.reservas.cu13_consultar_cancelar_reservas.esquemas import (
     MisReservasOut,
@@ -35,7 +36,9 @@ ESTADOS_CANCELABLES = ("pendiente", "confirmada")
 # Estados que cuentan como "próxima" en el panel del cliente, no como historial.
 ESTADOS_ACTIVOS = ("pendiente", "confirmada", "en_atencion")
 
-# Tolerancia tras la hora de la cita antes de considerar la reserva vencida (spec.md, D1-A).
+# Regla del Parcial 1 (spec.md, D1-A): tolerancia tras la hora de la cita. Desde P2-CU15 (RN25)
+# la reserva guarda `vence_en`; esta tolerancia solo se aplica a una fila sin `vence_en`, que tras
+# la migración 0020 no existe en la base (queda para los dobles de prueba antiguos).
 TOLERANCIA_VENCIMIENTO = timedelta(hours=2)
 
 MOTIVO_VENCIMIENTO = "Vencida sin atención dentro del plazo."
@@ -172,8 +175,12 @@ class ReservaConsultaServicio:
         """Filtro barato (sin bloqueo) para no releer con `FOR UPDATE` cada reserva del listado."""
         if reserva.estado not in ("pendiente", "confirmada"):
             return False
-        limite = ReservaConsultaServicio._con_tz(reserva.fecha_hora_atencion) + TOLERANCIA_VENCIMIENTO
-        return datetime.now(timezone.utc) > limite
+        vence_en = getattr(reserva, "vence_en", None)
+        if vence_en is not None:
+            limite = ReservaConsultaServicio._con_tz(vence_en)
+        else:
+            limite = ReservaConsultaServicio._con_tz(reserva.fecha_hora_atencion) + TOLERANCIA_VENCIMIENTO
+        return ahora() > limite
 
     @staticmethod
     def _vencer_si_corresponde(db: Session, reserva: ReservaORM, usuario: UsuarioORM) -> bool:
@@ -286,4 +293,6 @@ class ReservaConsultaServicio:
             total_prendas=total_prendas,
             observacion=reserva.observacion,
             puede_cancelar=puede_cancelar,
+            vence_en=getattr(reserva, "vence_en", None),
+            codigo_provisional=getattr(reserva, "codigo_provisional", None),
         )

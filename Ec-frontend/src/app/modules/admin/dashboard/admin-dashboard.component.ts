@@ -2,9 +2,12 @@ import { MarcaTiendaComponent } from '../../../core/tenant/marca-tienda.componen
 import {
   ChangeDetectionStrategy,
   Component,
+  OnInit,
   computed,
   inject,
+  signal,
 } from '@angular/core';
+import { ConflictosService } from '../../sincronizacion/cu20_conflictos/servicios/conflictos.service';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterModule } from '@angular/router';
 import { LoginService } from '../../autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
@@ -17,7 +20,11 @@ import { LoginService } from '../../autenticacion_seguridad/cu02_iniciar_sesion/
   styleUrls: ['./admin-dashboard.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AdminDashboardComponent {
+export class AdminDashboardComponent implements OnInit {
+  private readonly conflictos = inject(ConflictosService);
+  /** P2-CU20 A4: conflictos pendientes de revisar, sin notificación push. */
+  readonly conflictosPendientes = signal(0);
+
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
 
@@ -65,6 +72,15 @@ export class AdminDashboardComponent {
   readonly nivelAccesoLabel = computed(() =>
     this.esAdmin() ? 'Superusuario' : 'Encargado de Sede'
   );
+
+  ngOnInit(): void {
+    if (this.esAdmin() || this.esEncargado()) {
+      this.conflictos.resumen().subscribe({
+        next: (r) => this.conflictosPendientes.set(r.pendiente),
+        error: () => this.conflictosPendientes.set(0),
+      });
+    }
+  }
 
   navegar(ruta: string, event?: Event): void {
     if (event) {

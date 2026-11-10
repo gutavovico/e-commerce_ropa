@@ -129,6 +129,43 @@ void main() {
       },
     );
 
+    test('P2-CU19: sin red al confirmar, guarda la compra interrumpida y no la da por fallida', () async {
+      final api = MockPagoApi(
+        excepcionAlConfirmar: const PagoException('No se pudo conectar con el atelier al confirmar el pago.'),
+      );
+      final guardadas = <(int, int, String)>[];
+      final bloc = PagoBloc(
+        api: api,
+        token: kToken,
+        registrarCompraInterrumpida: ({required idVenta, required idPago, required comprobante}) async =>
+            guardadas.add((idVenta, idPago, comprobante)),
+      );
+      await bloc.cargarResumen(1);
+
+      final exito = await bloc.confirmarYPagar();
+
+      expect(exito, false);
+      expect(bloc.estado, isA<PagoPendienteDeSincronizar>());
+      expect(guardadas.single.$1, 1);
+      expect(guardadas.single.$2, isNonZero);
+    });
+
+    test('un rechazo 402 al confirmar no se guarda como compra interrumpida', () async {
+      final api = MockPagoApi(
+        excepcionAlConfirmar: const PagoException('Rechazado.', codigoHttp: 402, codigo: 'PAGO_RECHAZADO'),
+      );
+      var guardadas = 0;
+      final bloc = PagoBloc(
+        api: api,
+        token: kToken,
+        registrarCompraInterrumpida: ({required idVenta, required idPago, required comprobante}) async => guardadas++,
+      );
+      await bloc.cargarResumen(1);
+      await bloc.confirmarYPagar();
+      expect(bloc.estado, isA<PagoRechazado>());
+      expect(guardadas, 0);
+    });
+
     test('un rechazo 402 al confirmar transiciona a PagoRechazado y conserva la orden para reintentar', () async {
       final api = MockPagoApi(
         excepcionAlConfirmar: const PagoException(

@@ -1,0 +1,15 @@
+{
+  "name": "Tiendas de moda",
+  "short_name": "Tiendas",
+  "description": "Catálogo y reservas de tus tiendas, también sin conexión.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "icons/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

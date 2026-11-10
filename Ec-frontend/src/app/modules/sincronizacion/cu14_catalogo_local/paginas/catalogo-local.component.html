@@ -1,0 +1,184 @@
+<div class="min-h-screen bg-[#FAFAFB] text-neutral-900 font-sans">
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-6 lg:px-12 py-4">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
+      <button
+        type="button"
+        (click)="volver()"
+        class="group flex items-center gap-2 text-xs uppercase tracking-widest font-semibold text-neutral-600 hover:text-black transition-colors"
+        aria-label="Volver a la vista anterior"
+      >
+        <span class="transition-transform group-hover:-translate-x-1">←</span>
+        <span>Volver</span>
+      </button>
+      <span class="text-xs font-semibold tracking-widest uppercase text-neutral-500 truncate">
+        <app-marca-tienda /> · Catálogo guardado
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 lg:px-12 py-8">
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-neutral-950">Catálogo sin conexión</h1>
+      @if (servicio.guardadoEn(); as fecha) {
+        <p class="text-sm text-neutral-500 mt-1">
+          Puede estar desactualizado · Datos del {{ fecha | date: 'dd/MM/yyyy HH:mm' }}.
+          Las existencias se confirman al sincronizar.
+        </p>
+      }
+    </div>
+
+    @if (!catalogo()) {
+      <div class="bg-white rounded-3xl p-8 border border-neutral-100 text-center">
+        <p class="text-neutral-700 font-semibold">No hay un catálogo guardado en este dispositivo.</p>
+        <p class="text-sm text-neutral-500 mt-2">
+          Entra en la tienda con conexión y con tu sesión iniciada para descargarlo.
+        </p>
+      </div>
+    } @else {
+      <div class="flex flex-col sm:flex-row gap-3 mb-6">
+        <input
+          type="search"
+          class="flex-1 border border-neutral-200 rounded-2xl px-4 py-3 text-sm bg-white"
+          placeholder="Buscar en el catálogo guardado"
+          [ngModel]="texto()"
+          (ngModelChange)="texto.set($event)"
+          aria-label="Buscar en el catálogo guardado"
+        />
+        <select
+          class="border border-neutral-200 rounded-2xl px-4 py-3 text-sm bg-white"
+          [ngModel]="categoria()"
+          (ngModelChange)="categoria.set($event === null ? null : +$event)"
+          aria-label="Categoría"
+        >
+          <option [ngValue]="null">Todas las categorías</option>
+          @for (c of catalogo()!.categorias; track c.id_categoria) {
+            <option [ngValue]="c.id_categoria">{{ c.nombre }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (p of productos(); track p.id_producto) {
+          <button
+            type="button"
+            (click)="elegir(p)"
+            class="text-left bg-white rounded-3xl border border-neutral-100 overflow-hidden hover:shadow-md transition"
+          >
+            @if (p.imagen_url) {
+              <img [src]="p.imagen_url" [alt]="p.nombre" class="w-full h-48 object-cover bg-neutral-100" loading="lazy" />
+            }
+            <div class="p-4">
+              <p class="font-semibold text-neutral-950 truncate">{{ p.nombre }}</p>
+              <p class="text-sm text-neutral-600 mt-1">{{ p.precio_base | importe: catalogo()!.moneda }}</p>
+            </div>
+          </button>
+        } @empty {
+          <p class="text-sm text-neutral-500">No hay prendas que coincidan con la búsqueda.</p>
+        }
+      </div>
+    }
+  </main>
+
+  @if (seleccionado(); as p) {
+    <div class="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div class="bg-white rounded-3xl w-full max-w-lg max-h-full overflow-y-auto p-6">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div class="min-w-0">
+            <h2 class="text-xl font-bold text-neutral-950">{{ p.nombre }}</h2>
+            @if (p.descripcion) {
+              <p class="text-sm text-neutral-500 mt-1">{{ p.descripcion }}</p>
+            }
+          </div>
+          <button type="button" (click)="cerrarDetalle()" class="text-neutral-500 hover:text-black" aria-label="Cerrar">✕</button>
+        </div>
+
+        @if (reservada(); as codigo) {
+          <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-900">
+            <p class="font-semibold">Reserva guardada: {{ codigo }}</p>
+            <p class="mt-1">
+              {{ servicio.enLinea() ? 'La estamos enviando a la tienda.' : 'Se enviará a la tienda cuando vuelva la conexión.' }}
+              Puedes ver su estado en
+              <a [routerLink]="'/sincronizacion' | rutaPortal" class="underline font-semibold">Sincronización</a>.
+            </p>
+          </div>
+        } @else {
+          <label class="block text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1" for="variante">Talla y color</label>
+          <select
+            id="variante"
+            class="w-full border border-neutral-200 rounded-2xl px-4 py-3 text-sm mb-4"
+            [ngModel]="variante()?.id_variante"
+            (ngModelChange)="elegirVariante($event)"
+          >
+            @for (v of p.variantes; track v.id_variante) {
+              <option [ngValue]="v.id_variante">
+                {{ nombreTalla(v.id_talla) }} · {{ nombreColor(v.id_color) }} · {{ v.precio | importe: catalogo()!.moneda }}
+              </option>
+            }
+          </select>
+
+          <p class="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Sucursal</p>
+          <div class="space-y-2 mb-4">
+            @for (s of existencias(); track s.id_sucursal) {
+              <button
+                type="button"
+                [disabled]="s.disponible === 0"
+                (click)="sucursal.set(s.id_sucursal); cantidad.set(1)"
+                class="w-full flex items-center justify-between gap-3 border rounded-2xl px-4 py-3 text-sm text-left disabled:opacity-50"
+                [class]="sucursal() === s.id_sucursal ? 'border-black bg-neutral-50' : 'border-neutral-200'"
+              >
+                <span class="min-w-0 truncate">{{ s.nombre }}{{ s.ciudad ? ' · ' + s.ciudad : '' }}</span>
+                <span class="shrink-0 text-neutral-500">
+                  {{ s.disponible === 0 ? 'Sin existencias' : s.disponible + ' disponibles' }}
+                </span>
+              </button>
+            }
+          </div>
+
+          @if (sucursal() !== null) {
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1" for="franja">Hora de visita</label>
+                <select id="franja" class="w-full border border-neutral-200 rounded-2xl px-3 py-3 text-sm" [ngModel]="franja()" (ngModelChange)="franja.set($event)">
+                  <option [ngValue]="null">Elige una hora</option>
+                  @for (f of franjas(); track f.iso) {
+                    <option [ngValue]="f.iso">{{ f.etiqueta }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1" for="cantidad">Unidades</label>
+                <select id="cantidad" class="w-full border border-neutral-200 rounded-2xl px-3 py-3 text-sm" [ngModel]="cantidad()" (ngModelChange)="cantidad.set(+$event)">
+                  @for (n of cantidades(); track n) {
+                    <option [ngValue]="n">{{ n }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+            <p class="text-xs text-neutral-500 mb-4">
+              La reserva se mantiene {{ servicio.horasVencimiento() }} h desde que la haces.
+            </p>
+          }
+
+          @if (error(); as mensaje) {
+            <p class="text-sm text-red-700 bg-red-50 rounded-2xl px-4 py-3 mb-4" role="alert">{{ mensaje }}</p>
+          }
+
+          @if (!servicio.puedeReservarSinConexion()) {
+            <p class="text-sm text-neutral-600 bg-neutral-100 rounded-2xl px-4 py-3">
+              Esta tienda no permite reservar sin conexión, o este dispositivo aún no se preparó con conexión.
+            </p>
+          } @else {
+            <button
+              type="button"
+              (click)="reservar()"
+              [disabled]="guardando() || sucursal() === null || !franja()"
+              class="w-full bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold tracking-wider uppercase px-5 py-4 rounded-2xl disabled:opacity-50"
+            >
+              {{ guardando() ? 'Guardando…' : 'Reservar' }}
+            </button>
+          }
+        }
+      </div>
+    </div>
+  }
+</div>

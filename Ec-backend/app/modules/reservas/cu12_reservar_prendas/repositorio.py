@@ -108,6 +108,25 @@ class ReservaRepositorio:
         return db.execute(stmt_sin_stock).scalars().first()
 
     @staticmethod
+    def sucursales_con_existencias(
+        db: Session, id_variante: int, cantidad: int, excluir: int
+    ) -> List[SucursalORM]:
+        """Otras sucursales activas con `cantidad` unidades disponibles de la variante (P2-CU15 A3)."""
+        stmt = (
+            select(SucursalORM)
+            .join(InventarioSucursalORM, InventarioSucursalORM.id_sucursal == SucursalORM.id_sucursal)
+            .where(
+                InventarioSucursalORM.id_variante == id_variante,
+                InventarioSucursalORM.cantidad_disponible >= cantidad,
+                SucursalORM.activa.is_(True),
+                SucursalORM.id_sucursal != excluir,
+            )
+            .distinct()
+            .order_by(SucursalORM.id_sucursal.asc())
+        )
+        return list(db.execute(stmt).scalars().all())
+
+    @staticmethod
     def crear_reserva(
         db: Session,
         id_cliente: int,
@@ -115,6 +134,9 @@ class ReservaRepositorio:
         fecha_hora_atencion: datetime,
         canal_origen: str,
         observacion: Optional[str] = None,
+        creado_en: Optional[datetime] = None,
+        vence_en: Optional[datetime] = None,
+        codigo_provisional: Optional[str] = None,
     ) -> ReservaORM:
         """Crea la cabecera de la reserva en estado pendiente."""
         reserva = ReservaORM(
@@ -124,6 +146,9 @@ class ReservaRepositorio:
             estado="pendiente",
             canal_origen=canal_origen,
             observacion=observacion,
+            creado_en=creado_en,
+            vence_en=vence_en,
+            codigo_provisional=codigo_provisional,
         )
         db.add(reserva)
         db.flush()

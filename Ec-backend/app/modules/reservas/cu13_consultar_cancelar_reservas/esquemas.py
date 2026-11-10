@@ -44,6 +44,9 @@ class ReservaOut(BaseModel):
     # cancelable a partir del estado y la fecha, que es justo la regla que más adelante podría
     # cambiar (tolerancias, nuevos estados) sin que el cliente se entere.
     puede_cancelar: bool
+    # P2-CU15 (RN25): vencimiento guardado; código provisional si se hizo sin conexión.
+    vence_en: Optional[datetime] = None
+    codigo_provisional: Optional[str] = None
 
 
 class ResumenProximaReservaOut(BaseModel):

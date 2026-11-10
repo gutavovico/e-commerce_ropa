@@ -4,6 +4,16 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ## [Unreleased] - 2026-11-09 (Parcial 2)
 
+### Fix · La reserva web y móvil ignoraba la franja elegida (defecto sin numerar: se numera al fusionar)
+- **Móvil:** la hoja de reserva de `PantallaProductoDetalle` tenía el mismo defecto: franjas fijas («SÁBADO 11:00H») y la cita siempre a «ahora + 1 día», justo en el límite del vencimiento de 24 h. Usa ahora `franjasDeCita` (`core/sin_conexion/franjas_cita.dart`), con el mismo criterio que la web, y el 409 muestra las sucursales alternativas.
+- **Causa (web):** el modal de reserva del detalle de producto ofrecía franjas fijas («MAÑANA 11:30H», «MAÑANA 16:30H», «VIERNES 12:00H»), pero siempre enviaba la cita para el día siguiente a las 11:30, eligiera lo que eligiera el cliente. Con el vencimiento de P2-CU15 (RN25: 24 h desde la creación por defecto), esa hora fija superaba el plazo en cuanto se reservaba antes de las 11:30 y el servidor la rechazaba con `CITA_FUERA_DE_PLAZO`.
+- **Solución:** las horas se generan con `franjasDeCita` (`core/sin-conexion/franjas-cita.ts`) dentro del vencimiento de la empresa y del horario de la tienda, y se envía exactamente la elegida. El 409 por falta de stock muestra las sucursales alternativas que devuelve el servidor.
+
+### Fix · Pruebas de integración que fallaban según la hora o con el esquema real (defecto sin numerar: se numera al fusionar)
+- **Causa 1 (intermitente):** `test_login_de_empleado_con_suscripcion_vencida_403` y `test_cu12_suscripcion_vencida` vencían la suscripción con `current_date - 1` desde una conexión sin zona horaria, es decir, con la fecha UTC. Entre las 20:00 y las 24:00 de Bolivia esa fecha ya es «mañana», y «ayer» en UTC seguía siendo «hoy» para la aplicación (`core/tiempo.py`): la suscripción seguía vigente y las pruebas fallaban.
+- **Causa 2:** `test_aislamiento_multitenant_tablas_nuevas_ia_ml_suscripcion` insertaba en `datasets_ml`, `modelos_ml`, `predicciones_ml` y `segmentos_clientes_ml` columnas que la migración `0019` no crea (`tipo`, `registros`, `horizonte_dias`…). Se saltaba sin avisar mientras la rama de pruebas estaba en `0016`, y empezó a fallar al aplicarle `0017`–`0019` para ensayar la `0020`.
+- **Solución:** el `_contexto` de las pruebas fija también `TimeZone = America/La_Paz` en la transacción, como hace la aplicación. La prueba de ML usa las columnas reales de `0019` y sigue comprobando lo mismo (aislamiento entre empresas).
+
 ### Empresa de prueba Menshopping — P2-RF15
 - **Qué:** segunda empresa del SaaS, de moda masculina, cargada en producción: plan Básico, sucursales en Santa Cruz y Beni (Trinidad, ciudad global nueva), 4 prendas en BOB (Bs 120 / 280 / 350 / 480) con tallas M y L, stock 5 + 5 y 2 + 2, y 5 empleados (administrador, encargado y cajero por sucursal). Sin ventas inventadas: las ventas son las reales hechas en la caja de cada sucursal.
 - **Cómo:** `Ec-backend/scripts/cargar_menshopping.py` con los datos en `scripts/datos/menshopping.json` (sin contraseñas); una transacción, ensayo sin `--aplicar` y contraseña inicial por `getpass`. PNG del vestidor en `Ec-frontend/public/ar/menshopping_*.png`, desplegados antes de la carga.

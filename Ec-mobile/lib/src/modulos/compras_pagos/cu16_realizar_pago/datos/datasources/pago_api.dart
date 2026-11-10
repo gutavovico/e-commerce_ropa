@@ -25,6 +25,9 @@ class PagoException implements Exception {
   bool get esOrdenExpirada => codigo == 'ORDEN_EXPIRADA';
   bool get esOrdenYaLiquidada => codigo == 'VENTA_YA_LIQUIDADA';
 
+  /// Sin respuesta del servidor (sin red o tiempo agotado): P2-CU19, compra interrumpida.
+  bool get esErrorDeRed => codigoHttp == null;
+
   @override
   String toString() => mensaje;
 }

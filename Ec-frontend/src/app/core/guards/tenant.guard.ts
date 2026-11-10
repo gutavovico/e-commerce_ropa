@@ -42,11 +42,14 @@ export const tenantGuard: CanActivateFn = (route) => {
   return tenant.cargar(codigo).pipe(
     map(() => true),
     catchError((error: HttpErrorResponse) =>
-      of(
-        router.createUrlTree(['/'], {
-          queryParams: { aviso: error.status === 404 ? 'tienda-inexistente' : 'tienda-no-disponible' },
-        })
-      )
+      // P2-CU14 (A4): sin red (status 0), con la tienda ya visitada, el portal se abre igual.
+      error.status === 0 && tenant.abrirDesdeCache(codigo)
+        ? of(true)
+        : of(
+            router.createUrlTree(['/'], {
+              queryParams: { aviso: error.status === 404 ? 'tienda-inexistente' : 'tienda-no-disponible' },
+            })
+          )
     )
   );
 };

@@ -205,6 +205,23 @@ class CheckoutServicio:
         bloqueada —como CU16 al detectar una ventana vencida— pueda reutilizar esta lógica sin
         volver a consultarla, lo que además evitaría leer fuera del alcance de ese bloqueo.
         """
+        unidades = CheckoutServicio.devolver_existencias(db, venta, usuario.id_usuario)
+        venta.estado = "anulada"
+        db.commit()
+
+        return RetencionLiberadaOut(
+            id_venta=venta.id_venta,
+            numero_comprobante=venta.numero_comprobante,
+            estado=venta.estado,
+            unidades_liberadas=unidades,
+            mensaje="Las existencias retenidas han vuelto a estar disponibles.",
+        )
+
+    @staticmethod
+    def devolver_existencias(db: Session, venta: VentaORM, id_usuario_responsable: int) -> int:
+        """Devuelve a disponible lo que la venta retenía, **sin confirmar la transacción** ni
+        cambiar el estado de la venta. Lo usa también la sincronización (P2-CU19) cuando una
+        compra cobrada queda en conflicto. Devuelve las unidades liberadas."""
         unidades = 0
         for detalle in venta.detalles:
             inventario = CarritoRepositorio.obtener_inventario(
@@ -229,7 +246,7 @@ class CheckoutServicio:
                     id_inventario=inventario.id_inventario,
                     tipo_movimiento="cancelacion_pedido",
                     cantidad=detalle.cantidad,
-                    id_usuario_responsable=usuario.id_usuario,
+                    id_usuario_responsable=id_usuario_responsable,
                     referencia_documento=f"VENTA-{venta.id_venta}",
                     observacion=(
                         f"Liberación de existencias por cancelación o vencimiento de la orden "
@@ -239,17 +256,7 @@ class CheckoutServicio:
                     saldo_nuevo=inventario.cantidad_disponible,
                 )
             )
-
-        venta.estado = "anulada"
-        db.commit()
-
-        return RetencionLiberadaOut(
-            id_venta=venta.id_venta,
-            numero_comprobante=venta.numero_comprobante,
-            estado=venta.estado,
-            unidades_liberadas=unidades,
-            mensaje="Las existencias retenidas han vuelto a estar disponibles.",
-        )
+        return unidades
 
     # ------------------------------------------------------------------
     # Apoyo interno

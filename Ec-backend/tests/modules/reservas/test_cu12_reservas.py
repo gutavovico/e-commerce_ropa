@@ -118,7 +118,7 @@ def test_crear_reserva_presencial_exitosa_201(client):
     app.dependency_overrides[get_db] = lambda: db_mock
     app.dependency_overrides[get_current_user] = lambda: usuario
     try:
-        fecha_cita = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+        fecha_cita = (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat()
         payload = {
             "id_sucursal": 1,
             "fecha_hora_atencion": fecha_cita,
@@ -185,7 +185,7 @@ def test_crear_reserva_conflicto_stock_insuficiente_409(client):
     app.dependency_overrides[get_db] = lambda: db_mock
     app.dependency_overrides[get_current_user] = lambda: usuario
     try:
-        fecha_cita = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+        fecha_cita = (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat()
         payload = {
             "id_sucursal": 1,
             "fecha_hora_atencion": fecha_cita,
@@ -250,7 +250,7 @@ def test_crear_reserva_variante_duplicada_consolida_lineas_201(client):
     app.dependency_overrides[get_db] = lambda: db_mock
     app.dependency_overrides[get_current_user] = lambda: usuario
     try:
-        fecha_cita = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+        fecha_cita = (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat()
         payload = {
             "id_sucursal": 1,
             "fecha_hora_atencion": fecha_cita,
@@ -304,7 +304,7 @@ def test_crear_reserva_variante_duplicada_excede_maximo_400(client):
     app.dependency_overrides[get_db] = lambda: db_mock
     app.dependency_overrides[get_current_user] = lambda: usuario
     try:
-        fecha_cita = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+        fecha_cita = (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat()
         payload = {
             "id_sucursal": 1,
             "fecha_hora_atencion": fecha_cita,
@@ -383,7 +383,7 @@ def test_crear_reserva_fecha_pasada_400(client):
 
 def test_crear_reserva_no_autenticado_401(client):
     """Verifica que un usuario anónimo sin token no pueda crear una reserva (HTTP 401)."""
-    fecha_cita = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+    fecha_cita = (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat()
     payload = {
         "id_sucursal": 1,
         "fecha_hora_atencion": fecha_cita,

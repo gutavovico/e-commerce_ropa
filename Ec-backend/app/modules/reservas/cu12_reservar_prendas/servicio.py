@@ -1,11 +1,17 @@
 """Servicio transaccional de dominio para CU12: Reservar Varias Prendas."""
 
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import timedelta, timezone
 from decimal import Decimal
-from typing import Dict, List
+from typing import Dict, List, Optional
 from sqlalchemy.orm import Session
 
 from core.errors import ConflictError, DomainError, NotFoundError
+from core.tenant import contexto
+from core.tiempo import ahora as ahora_utc
+from modules.catalogo.modelos import SucursalORM
+from modules.plataforma.cu11_parametros_empresa.servicio import ParametrosEmpresaServicio
+from modules.reservas.modelos import ReservaORM
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.reservas.cu12_reservar_prendas.esquemas import (
     ReservaCreadaOut,
@@ -18,6 +24,19 @@ from modules.reservas.cu12_reservar_prendas.repositorio import ReservaRepositori
 # Tope de unidades de una misma variante por cita, alineado con `ReservaItemIn.cantidad` (le=5).
 MAX_UNIDADES_POR_VARIANTE = 5
 
+#: RN25: horas por defecto. Solo se usa con una sesión simulada (pruebas unitarias); con base de
+#: datos real manda `configuracion_tenant.horas_vencimiento_reserva`.
+HORAS_VENCIMIENTO_POR_DEFECTO = 24
+
+
+@dataclass
+class ReservaRegistrada:
+    """Reserva creada y aún sin confirmar (`commit`), para quien gestiona la transacción (CU19)."""
+
+    reserva: ReservaORM
+    sucursal: SucursalORM
+    items: List[ReservaItemOut]
+
 
 class ReservaServicio:
     """Orquestador transaccional de reservas de citas presenciales en boutiques de alta costura."""
@@ -29,6 +48,36 @@ class ReservaServicio:
         payload: ReservaCrearIn,
     ) -> ReservaCreadaOut:
         """Formaliza la cita de prueba en boutique, apartando inventario y registrando auditoría física."""
+        registrada = ReservaServicio.registrar(db, usuario, payload)
+        # Confirmación atómica de la transacción.
+        # `commit()` expira la instancia, así que el refresh es obligatorio: si fallara, los
+        # accesos posteriores a `reserva.*` dispararían igualmente un lazy-load contra la BD.
+        # Silenciarlo solo convertiría un error diagnosticable en uno opaco.
+        db.commit()
+        db.refresh(registrada.reserva)
+        ReservaServicio.auditar(db, usuario, registrada)
+        return ReservaServicio.salida(registrada)
+
+    @staticmethod
+    def horas_vencimiento(db: Session) -> int:
+        """Horas de vencimiento vigentes de la empresa (RN25, CU11 C7)."""
+        if contexto(db) is None:
+            return HORAS_VENCIMIENTO_POR_DEFECTO
+        return ParametrosEmpresaServicio.vigentes(db).horas_vencimiento_reserva
+
+    @staticmethod
+    def registrar(
+        db: Session,
+        usuario: UsuarioORM,
+        payload: ReservaCrearIn,
+        codigo_provisional: Optional[str] = None,
+    ) -> ReservaRegistrada:
+        """Valida, aparta el stock y crea la reserva **sin confirmar la transacción**.
+
+        La usan la reserva en línea (que confirma a continuación) y la sincronización de CU19,
+        que la confirma junto con el registro de la operación. Lanza las excepciones de dominio
+        de siempre; quien llama decide si deshace.
+        """
         # 1. Validar Boutique Insignia
         sucursal = ReservaRepositorio.obtener_sucursal_activa(db, payload.id_sucursal)
         if not sucursal:
@@ -38,7 +87,7 @@ class ReservaServicio:
             )
 
         # 2. Validar Fecha y Hora de Cita
-        ahora = datetime.now(timezone.utc)
+        ahora = ahora_utc()
         fecha_cita = payload.fecha_hora_atencion
         if fecha_cita.tzinfo is None:
             fecha_cita = fecha_cita.replace(tzinfo=timezone.utc)
@@ -47,6 +96,17 @@ class ReservaServicio:
             raise DomainError(
                 "La fecha y hora de la cita de prueba debe ser posterior al momento actual.",
                 code="FECHA_HORA_INVALIDA",
+            )
+
+        # P2-CU15 (RN25): la reserva vence a las horas de la empresa desde su creación. Una cita
+        # posterior a ese instante no llegaría a atenderse: se rechaza antes de apartar nada.
+        horas = ReservaServicio.horas_vencimiento(db)
+        vence_en = ahora + timedelta(hours=horas)
+        if fecha_cita > vence_en:
+            raise DomainError(
+                f"La reserva se mantiene {horas} h desde que la haces. Elige una hora de visita "
+                "dentro de ese plazo.",
+                code="CITA_FUERA_DE_PLAZO",
             )
 
         # 3. Asegurar Ficha de Cliente
@@ -89,10 +149,22 @@ class ReservaServicio:
 
             if not inventario or inventario.cantidad_disponible < cantidad_total:
                 disp_actual = inventario.cantidad_disponible if inventario else 0
+                # P2-CU15 A3: proponer ajustar la cantidad u otra sucursal.
+                alternativas = [
+                    {"id_sucursal": otra.id_sucursal, "nombre": otra.nombre}
+                    for otra in ReservaRepositorio.sucursales_con_existencias(
+                        db, id_variante, cantidad_total, payload.id_sucursal
+                    )
+                ]
                 raise ConflictError(
                     f"No hay existencias suficientes de '{variante.producto.nombre}' (Talla {variante.talla.codigo}) "
                     f"en {sucursal.nombre}. Disponibles: {disp_actual}, Solicitadas: {cantidad_total}.",
                     code="STOCK_INSUFICIENTE_RESERVA",
+                    datos={
+                        "id_variante": id_variante,
+                        "disponible": disp_actual,
+                        "alternativas": alternativas,
+                    },
                 )
 
             # Apartado de inventario. El saldo previo se captura ANTES del descuento: en el
@@ -116,6 +188,9 @@ class ReservaServicio:
             fecha_hora_atencion=fecha_cita,
             canal_origen=canal,
             observacion=payload.observacion,
+            creado_en=ahora,
+            vence_en=vence_en,
+            codigo_provisional=codigo_provisional,
         )
 
         # 7. Crear Líneas de Detalle y Movimientos de Inventario
@@ -155,16 +230,18 @@ class ReservaServicio:
                 )
             )
 
-        # Confirmación atómica de la transacción.
-        # `commit()` expira la instancia, así que el refresh es obligatorio: si fallara, los
-        # accesos posteriores a `reserva.*` dispararían igualmente un lazy-load contra la BD.
-        # Silenciarlo solo convertiría un error diagnosticable en uno opaco.
-        db.commit()
-        db.refresh(reserva)
+        return ReservaRegistrada(reserva=reserva, sucursal=sucursal, items=items_procesados)
 
+    @staticmethod
+    def codigo(reserva: ReservaORM) -> str:
+        return formatear_codigo_reserva(reserva.id_reserva or 1, reserva.creado_en or ahora_utc())
+
+    @staticmethod
+    def auditar(db: Session, usuario: UsuarioORM, registrada: ReservaRegistrada) -> None:
+        """Bitácora (CU30) de una reserva ya confirmada."""
+        reserva, sucursal, items_procesados = registrada.reserva, registrada.sucursal, registrada.items
         res_id = reserva.id_reserva or 1
-        res_creado = reserva.creado_en or ahora
-        cod_reserva = formatear_codigo_reserva(res_id, res_creado)
+        cod_reserva = ReservaServicio.codigo(reserva)
 
         # 8. Persistencia en Bitacora de Auditoria (CU30)
         from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
@@ -187,13 +264,17 @@ class ReservaServicio:
                 "id_sucursal": sucursal.id_sucursal,
                 "total_items": len(items_procesados),
                 "canal_origen": reserva.canal_origen,
+                "codigo_provisional": reserva.codigo_provisional,
             },
             db=db,
         )
 
+    @staticmethod
+    def salida(registrada: ReservaRegistrada) -> ReservaCreadaOut:
+        reserva, sucursal, items_procesados = registrada.reserva, registrada.sucursal, registrada.items
         return ReservaCreadaOut(
-            id_reserva=res_id,
-            codigo_reserva=cod_reserva,
+            id_reserva=reserva.id_reserva or 1,
+            codigo_reserva=ReservaServicio.codigo(reserva),
             id_sucursal=sucursal.id_sucursal,
             nombre_sucursal=sucursal.nombre,
             direccion_sucursal=sucursal.direccion,
@@ -207,5 +288,7 @@ class ReservaServicio:
                 "Asesoramiento privado de estilista sénior de atelier",
                 "Ajustes menores de costura y entallado sin coste adicional",
             ],
-            creado_en=res_creado,
+            creado_en=reserva.creado_en or ahora_utc(),
+            vence_en=reserva.vence_en,
+            codigo_provisional=reserva.codigo_provisional,
         )

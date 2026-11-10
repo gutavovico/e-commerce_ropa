@@ -8,9 +8,12 @@ Los services lanzan estas excepciones; los routers no las atrapan directamente.
 class DomainError(Exception):
     """Base para todas las excepciones de dominio."""
 
-    def __init__(self, message: str = "Error de dominio", code: str = "DOMAIN_ERROR"):
+    def __init__(self, message: str = "Error de dominio", code: str = "DOMAIN_ERROR", datos: dict | None = None):
         self.message = message
         self.code = code
+        # Campos adicionales de la respuesta (p. ej. `alternativas` de P2-CU15 A3). Nunca pisan
+        # `detail` ni `code`.
+        self.datos = datos or {}
         super().__init__(message)
 
 
@@ -24,8 +27,8 @@ class NotFoundError(DomainError):
 class ConflictError(DomainError):
     """Conflicto de estado o unicidad (HTTP 409)."""
 
-    def __init__(self, message: str = "Conflicto", code: str = "CONFLICT"):
-        super().__init__(message, code=code)
+    def __init__(self, message: str = "Conflicto", code: str = "CONFLICT", datos: dict | None = None):
+        super().__init__(message, code=code, datos=datos)
 
 
 class AuthenticationError(DomainError):

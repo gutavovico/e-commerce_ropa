@@ -153,20 +153,23 @@
             2. FECHA Y HORA PREFERENTE
           </label>
           <div class="grid grid-cols-3 gap-2">
-            @for (franja of franjasHorarias; track franja) {
+            @for (franja of franjasHorarias; track franja.iso) {
               <button
                 type="button"
-                (click)="seleccionarHorario(franja)"
+                (click)="seleccionarHorario(franja.iso)"
                 class="py-2.5 px-2 text-center text-xs font-mono font-medium rounded transition-all"
                 [ngClass]="{
-                  'bg-black text-white shadow-sm': horarioSeleccionado() === franja,
-                  'bg-stone-100 text-stone-700 hover:bg-stone-200': horarioSeleccionado() !== franja
+                  'bg-black text-white shadow-sm': horarioSeleccionado() === franja.iso,
+                  'bg-stone-100 text-stone-700 hover:bg-stone-200': horarioSeleccionado() !== franja.iso
                 }"
               >
-                {{ franja }}
+                {{ franja.etiqueta }}
               </button>
+            } @empty {
+              <p class="col-span-3 text-xs text-stone-600">No quedan horas de visita disponibles hoy. Inténtalo más tarde.</p>
             }
           </div>
+          <p class="text-xs text-stone-500">La reserva se mantiene {{ horasVencimiento() }} h desde que la haces.</p>
         </div>
 
         <!-- Nota de Cortesía Atelier -->

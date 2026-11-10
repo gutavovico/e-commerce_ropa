@@ -170,8 +170,10 @@ describe('ModalReservaBoutiqueComponent (CU12)', () => {
     fixture.detectChanges();
 
     const comp = fixture.componentInstance;
-    comp['seleccionarHorario']('MAÑANA 16:30H');
-    expect(comp['horarioSeleccionado']()).toBe('MAÑANA 16:30H');
+    const franjas = comp['franjasHorarias'];
+    const ultima = franjas[franjas.length - 1];
+    comp['seleccionarHorario'](ultima.iso);
+    expect(comp['horarioSeleccionado']()).toBe(ultima.iso);
   });
 
   it('debe enviar la reserva al servicio y emitir reservaConfirmada si está autenticado', () => {

@@ -21,6 +21,8 @@ import {
 import { ReservaService } from '../../servicios/reserva.service';
 import { LoginService } from '../../../../autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 import { ImportePipe } from '../../../../../core/tenant/moneda';
+import { SinConexionService } from '../../../../../core/sin-conexion/sin-conexion.service';
+import { FranjaCita, franjasDeCita } from '../../../../../core/sin-conexion/franjas-cita';
 
 @Component({
   selector: 'app-modal-reserva-boutique',
@@ -35,6 +37,7 @@ export class ModalReservaBoutiqueComponent {
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
   private readonly portal = inject(TenantService);
+  private readonly sinConexion = inject(SinConexionService);
 
   @Input({ required: true }) producto!: ProductoDetalle;
   @Input({ required: true }) varianteSeleccionada!: VarianteDetalle;
@@ -44,12 +47,14 @@ export class ModalReservaBoutiqueComponent {
   @Output() reservaConfirmada = new EventEmitter<ReservaConfirmacion>();
 
   protected readonly sucursalSeleccionadaId = signal<number>(1);
-  protected readonly horarioSeleccionado = signal<string>('MAÑANA 11:30H');
-  protected readonly franjasHorarias = [
-    'MAÑANA 11:30H',
-    'MAÑANA 16:30H',
-    'VIERNES 12:00H',
-  ];
+  /**
+   * P2-CU15 (RN25): solo horas anteriores al vencimiento de la reserva (las horas de la empresa desde
+   * ahora). Antes se ofrecían franjas fijas («VIERNES 12:00H») y la cita se enviaba siempre para
+   * mañana a las 11:30, sin relación con la franja elegida.
+   */
+  protected readonly franjasHorarias: FranjaCita[] = franjasDeCita(new Date(), this.sinConexion.horasVencimiento(), 6);
+  protected readonly horarioSeleccionado = signal<string | null>(this.franjasHorarias[0]?.iso ?? null);
+  protected readonly horasVencimiento = this.sinConexion.horasVencimiento;
 
   protected readonly cargando = signal<boolean>(false);
   protected readonly error = signal<string | null>(null);
@@ -93,10 +98,12 @@ export class ModalReservaBoutiqueComponent {
       return;
     }
 
-    // Calcular fecha futura acorde a la franja seleccionada
-    const fechaAtencion = new Date();
-    fechaAtencion.setDate(fechaAtencion.getDate() + 1);
-    fechaAtencion.setHours(11, 30, 0, 0);
+    const franja = this.franjasHorarias.find((f) => f.iso === this.horarioSeleccionado());
+    if (!franja) {
+      this.error.set('Elige la hora de tu visita.');
+      this.cargando.set(false);
+      return;
+    }
 
     const talla = this.varianteSeleccionada.talla_codigo || 'Única';
     const color = this.varianteSeleccionada.color_nombre || 'Estándar';
@@ -105,9 +112,9 @@ export class ModalReservaBoutiqueComponent {
 
     const payload: ReservaCrearPayload = {
       id_sucursal: sucursalId,
-      fecha_hora_atencion: fechaAtencion.toISOString(),
+      fecha_hora_atencion: franja.iso,
       canal_origen: 'web',
-      observacion: `Cita privada de prueba presencial para ${nombreProd} (Talla: ${talla}, Color: ${color}) en franja ${this.horarioSeleccionado()}`,
+      observacion: `Cita privada de prueba presencial para ${nombreProd} (Talla: ${talla}, Color: ${color}) (${franja.etiqueta})`,
       items: [
         {
           id_variante: this.varianteSeleccionada.id_variante,
@@ -125,8 +132,11 @@ export class ModalReservaBoutiqueComponent {
       error: (err) => {
         this.cargando.set(false);
         if (err.status === 409) {
+          // P2-CU15 A3: el servidor propone las sucursales que sí tienen la prenda.
+          const alternativas: { nombre: string }[] = err.error?.alternativas ?? [];
           this.error.set(
-            'Lo sentimos, las existencias para esta talla acaban de agotarse en la boutique seleccionada.'
+            'Lo sentimos, las existencias para esta talla acaban de agotarse en la boutique seleccionada.' +
+              (alternativas.length ? ` Disponible en: ${alternativas.map((a) => a.nombre).join(', ')}.` : '')
           );
         } else if (err.status === 401) {
           this.error.set(

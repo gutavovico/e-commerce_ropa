@@ -46,7 +46,23 @@ export class TenantService {
   cargar(codigo: string): Observable<EmpresaPublica> {
     return this.http
       .get<EmpresaPublica>(`/api/v1/tenants/${encodeURIComponent(codigo)}`)
-      .pipe(tap((empresa) => this.tenantActual.set(empresa)));
+      .pipe(
+        tap((empresa) => {
+          this.tenantActual.set(empresa);
+          guardarEnCache(empresa);
+        })
+      );
+  }
+
+  /**
+   * P2-CU14 (A4): sin red, el portal se abre con los datos públicos de la última visita a la tienda.
+   * Devuelve false si nunca se abrió en este navegador.
+   */
+  abrirDesdeCache(codigo: string): boolean {
+    const empresa = leerDeCache(codigo);
+    if (!empresa) return false;
+    this.tenantActual.set(empresa);
+    return true;
   }
 
   directorio(): Observable<EmpresaPublica[]> {
@@ -90,6 +106,25 @@ export class TenantService {
     const [primero, ...demas] = partes;
     const segmentos = String(primero).split('/').filter((s) => s.length > 0);
     return ['/', tienda.codigo, ...segmentos, ...demas];
+  }
+}
+
+const PREFIJO_CACHE = 'fashionstore_tienda_';
+
+function guardarEnCache(empresa: EmpresaPublica): void {
+  try {
+    localStorage.setItem(PREFIJO_CACHE + empresa.codigo, JSON.stringify(empresa));
+  } catch {
+    // Sin almacenamiento (modo privado): el portal solo se abrirá con red.
+  }
+}
+
+function leerDeCache(codigo: string): EmpresaPublica | null {
+  try {
+    const texto = localStorage.getItem(PREFIJO_CACHE + codigo);
+    return texto ? (JSON.parse(texto) as EmpresaPublica) : null;
+  } catch {
+    return null;
   }
 }
 

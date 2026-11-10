@@ -1,0 +1,148 @@
+<div class="min-h-screen bg-[#FAFAFB] text-neutral-900 font-sans">
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-100 px-6 lg:px-12 py-4">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
+      <button
+        type="button"
+        (click)="volver()"
+        class="group flex items-center gap-2 text-xs uppercase tracking-widest font-semibold text-neutral-600 hover:text-black transition-colors"
+        aria-label="Volver a la vista anterior"
+      >
+        <span class="transition-transform group-hover:-translate-x-1">←</span>
+        <span>Volver</span>
+      </button>
+      <span
+        class="text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full"
+        [class]="servicio.enLinea() ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-900 text-white'"
+      >
+        {{ servicio.enLinea() ? 'Con conexión' : 'Sin conexión' }}
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 lg:px-12 py-8 space-y-8">
+    <div>
+      <h1 class="text-3xl font-bold text-neutral-950">Sincronización</h1>
+      <p class="text-sm text-neutral-500 mt-1">
+        Tus reservas hechas sin conexión y los avisos de la tienda.
+      </p>
+    </div>
+
+    @if (!servicio.clave()) {
+      <div class="bg-white rounded-3xl p-8 border border-neutral-100 text-center text-sm text-neutral-600">
+        Inicia sesión como cliente en la tienda para usarla sin conexión.
+      </div>
+    } @else {
+      <!-- Estado del dispositivo y del catálogo -->
+      <section class="bg-white rounded-3xl p-6 border border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="min-w-0">
+          <p class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Catálogo guardado</p>
+          @if (servicio.guardadoEn(); as fecha) {
+            <p class="text-sm text-neutral-800 mt-1">Datos del {{ fecha | date: 'dd/MM/yyyy HH:mm' }}</p>
+          } @else {
+            <p class="text-sm text-neutral-800 mt-1">Todavía no se descargó.</p>
+          }
+          @if (servicio.dispositivo()?.codigoCorto; as corto) {
+            <p class="text-xs text-neutral-500 mt-1">Dispositivo {{ corto }}</p>
+          }
+          @if (servicio.dispositivo()?.parametros?.operacion_offline_habilitada === false) {
+            <p class="text-xs text-amber-800 mt-1">Esta tienda no permite reservar sin conexión.</p>
+          }
+        </div>
+        <div class="flex flex-wrap gap-2 shrink-0">
+          @if (servicio.catalogo()) {
+            <a [routerLink]="'/sin-conexion' | rutaPortal" class="border border-neutral-300 text-xs font-semibold uppercase tracking-wider px-4 py-3 rounded-2xl">
+              Ver catálogo
+            </a>
+          }
+          <button
+            type="button"
+            (click)="descargar()"
+            [disabled]="!servicio.enLinea() || servicio.descargando()"
+            class="border border-neutral-300 text-xs font-semibold uppercase tracking-wider px-4 py-3 rounded-2xl disabled:opacity-50"
+          >
+            {{ servicio.descargando() ? 'Descargando…' : 'Actualizar catálogo' }}
+          </button>
+          <button
+            type="button"
+            (click)="sincronizar()"
+            [disabled]="servicio.sincronizando()"
+            class="bg-neutral-950 text-white text-xs font-semibold uppercase tracking-wider px-4 py-3 rounded-2xl disabled:opacity-50"
+          >
+            {{ servicio.sincronizando() ? 'Sincronizando…' : 'Sincronizar' }}
+          </button>
+        </div>
+      </section>
+
+      @if (servicio.registradoEnTienda() === false) {
+        <p class="text-sm bg-amber-50 text-amber-900 rounded-2xl px-4 py-3" role="status">
+          Todavía no estás registrado en esta tienda. Regístrate con «Registrarme en esta tienda» para descargar
+          su catálogo y reservar sin conexión.
+        </p>
+      }
+      @if (mensaje(); as texto) {
+        <p class="text-sm bg-neutral-100 text-neutral-800 rounded-2xl px-4 py-3" role="status">{{ texto }}</p>
+      }
+
+      <!-- Operaciones (RN36) -->
+      <section>
+        <h2 class="text-lg font-bold text-neutral-950 mb-3">Operaciones</h2>
+        <div class="space-y-3">
+          @for (op of servicio.operaciones(); track op.uuid) {
+            <article class="bg-white rounded-3xl p-5 border border-neutral-100">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="font-semibold text-neutral-950 truncate">{{ op.resumen.producto }}</p>
+                  <p class="text-xs text-neutral-500 mt-1 truncate">{{ op.resumen.variante }} · {{ op.resumen.sucursal }}</p>
+                  <p class="text-xs text-neutral-500 mt-1">
+                    {{ op.codigoReserva ?? op.codigoProvisional }} · visita {{ op.datos.fecha_hora_atencion | date: 'dd/MM HH:mm' }}
+                  </p>
+                </div>
+                <span class="shrink-0 text-xs font-semibold px-3 py-1 rounded-full" [class]="estilo(op)">{{ etiqueta(op) }}</span>
+              </div>
+              @if (op.mensaje && op.estado !== 'confirmada') {
+                <p class="text-sm text-neutral-700 mt-3">{{ op.mensaje }}</p>
+              }
+              @if (conflicto(op); as texto) {
+                <p class="text-sm text-amber-900 mt-2">{{ texto }}</p>
+              }
+            </article>
+          } @empty {
+            <p class="text-sm text-neutral-500">No hay operaciones hechas sin conexión.</p>
+          }
+        </div>
+      </section>
+
+      <!-- Bandeja de avisos (D1: sin push) -->
+      <section>
+        <h2 class="text-lg font-bold text-neutral-950 mb-3">
+          Avisos
+          @if (servicio.avisosNoLeidos() > 0) {
+            <span class="ml-2 text-xs bg-neutral-950 text-white rounded-full px-2 py-1">{{ servicio.avisosNoLeidos() }}</span>
+          }
+        </h2>
+        @if (!servicio.enLinea()) {
+          <p class="text-sm text-neutral-500">Los avisos se consultan con conexión.</p>
+        } @else if (cargandoAvisos() && avisos().length === 0) {
+          <div class="bg-white rounded-3xl p-6 border border-neutral-100 animate-pulse h-20"></div>
+        } @else {
+          <div class="space-y-3">
+            @for (a of avisos(); track a.id_aviso) {
+              <button
+                type="button"
+                (click)="marcarLeido(a)"
+                class="w-full text-left bg-white rounded-3xl p-5 border"
+                [class]="a.leido ? 'border-neutral-100' : 'border-neutral-900'"
+              >
+                <p class="font-semibold text-neutral-950">{{ a.titulo }}</p>
+                <p class="text-sm text-neutral-700 mt-1">{{ a.mensaje }}</p>
+                <p class="text-xs text-neutral-400 mt-2">{{ a.creado_en | date: 'dd/MM/yyyy HH:mm' }}</p>
+              </button>
+            } @empty {
+              <p class="text-sm text-neutral-500">No tienes avisos.</p>
+            }
+          </div>
+        }
+      </section>
+    }
+  </main>
+</div>

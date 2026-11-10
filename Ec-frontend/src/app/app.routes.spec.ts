@@ -108,6 +108,26 @@ describe('app.routes', () => {
     }
   });
 
+  it('P2-CU14/CU19: catálogo sin conexión y sincronización son hojas del portal, fuera del layout y protegidas', () => {
+    const hijasDelLayout = (layout()?.children ?? []).map((hija) => hija.path);
+    for (const path of ['sin-conexion', 'sincronizacion']) {
+      expect(hijasDelLayout).not.toContain(path);
+      const hoja = hijosDelPortal().find((r) => r.path === path);
+      expect(hoja?.loadComponent).toBeDefined();
+      expect(hoja?.canActivate).toContain(authGuard);
+    }
+  });
+
+  it('P2-CU20: /admin/conflictos es una ruta fija con guard de rol (sin cajero), antes del portal', () => {
+    const indice = routes.findIndex((r) => r.path === 'admin/conflictos');
+    const ruta = routes[indice];
+    expect(ruta?.loadComponent).toBeDefined();
+    expect(ruta?.canActivate).toContain(authGuard);
+    expect(ruta?.canActivate?.length).toBe(2);
+    expect(ruta?.canActivate).not.toContain(cajeroACajaGuard);
+    expect(indice).toBeLessThan(routes.findIndex((r) => r.path === ':codigo'));
+  });
+
   it('P2-CU02: el portal tiene su login, registro y recuperación de acceso', () => {
     const paths = hijosDelPortal().map((r) => r.path);
     expect(paths).toEqual(expect.arrayContaining(['login', 'registro', 'recuperar-password']));

@@ -6,6 +6,7 @@ import 'package:flutter_stripe/flutter_stripe.dart' show CardField, CardFieldInp
 import '../../datos/modelos/pago_dto.dart';
 import '../bloc/pago_bloc.dart';
 import 'package:ec_mobile/src/core/moneda.dart';
+import 'package:ec_mobile/src/core/theme/app_theme.dart';
 
 /// Pantalla de Pago Seguro (CU16), abierta desde la Bolsa de Compra tras tramitar el pedido.
 ///
@@ -248,6 +249,7 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
     return switch (estado) {
       PagoInicial() || PagoCargandoResumen() => _construirEsqueleto(),
       PagoError(mensaje: final mensaje) => _construirError(mensaje),
+      PagoPendienteDeSincronizar() => _construirPendienteDeSincronizar(),
       PagoExitoso(confirmacion: final pago) => _construirConfirmacion(pago),
       PagoListo(resumen: final resumen) => _construirContenido(resumen, estado, null),
       PagoProcesando(resumen: final resumen) => _construirContenido(resumen, null, null),
@@ -264,6 +266,41 @@ class _CheckoutPaymentScreenState extends State<CheckoutPaymentScreen> {
       itemBuilder: (_, _) => Container(
         height: 110,
         decoration: BoxDecoration(color: _fondoSuave, borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  /// P2-CU19 · Compra interrumpida: se confirmará al recuperar la conexión.
+  Widget _construirPendienteDeSincronizar() {
+    return Center(
+      child: Padding(
+        padding: AppSpacing.paddingSpace6,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_outlined, size: 44, color: AppColors.slate900),
+            AppSpacing.gapVSpace4,
+            const Text(
+              'Tu pago se registró',
+              key: Key('pago-pendiente-sincronizar'),
+              style: AppTypography.h3,
+            ),
+            AppSpacing.gapVSpace3,
+            const Text(
+              'Se perdió la conexión antes de confirmar tu compra. La confirmaremos al recuperar la '
+              'conexión; si no pudiera completarse, te devolveremos el importe. Puedes seguir su estado '
+              'en Perfil › Avisos y sincronización.',
+              textAlign: TextAlign.center,
+              style: AppTypography.body,
+            ),
+            AppSpacing.gapVSpace5,
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.slate900),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
       ),
     );
   }

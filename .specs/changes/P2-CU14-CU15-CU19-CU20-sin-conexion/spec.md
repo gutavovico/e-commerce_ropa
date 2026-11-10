@@ -1,177 +1,245 @@
-# Especificación Técnica: Operación sin conexión — P2-CU14, CU15, CU19 y CU20 (+ adaptación web de CU16/CU17)
+# Requisitos · P2-CU14, CU15, CU19 y CU20 — Operación sin conexión   Nivel: 3   Estado: aprobado
 
 **ID del cambio:** `P2-CU14-CU15-CU19-CU20-sin-conexion`
-**Fuente:** `SI2-Parcial2.md` §2.1.2.3, CU14, CU15, CU16, CU17, CU19, CU20, RF16–RF19, RF25, RF26,
-RNF03, RNF15, RN21, RN25, RN33–RN43; decisiones del usuario del 2026-11-09:
-- avisos al cliente en una **bandeja dentro de la app**, sin Firebase;
-- reembolsos del cierre de mes lanzados por un **botón del administrador**;
-- la **caja en el móvil** (CU16/CU17 Flutter) va en un cambio aparte, antes de CU18.
-
-**Depende de:** `P2-CU13-CU12-fundacion-multitenant`, `P2-CU11-parametros-empresa` (parámetros
-sin conexión y de reserva) y de que **`0017`–`0019` (Tony) estén aplicadas en producción** antes
-de aplicar `0020`.
-**Nivel SDD:** **3 (riesgo alto)**: migración, inventario, dinero (reembolsos) y tres stacks.
-**Bloques:** Backend → Web (PWA + CU20) → Móvil (SQLite). Cada bloque se aprueba antes del
-siguiente.
-**Responsable:** Gustavo (`reparticion.md`, bloque 3).
-**Estado:** 🟡 Pendiente de aprobación.
-**Fecha:** 2026-11-09
+**Aprobado por:** Gustavo (usuario) **Fecha:** 2026-11-09
+**Fase SDD:** 1 de 4 (Requisitos). Diseño en `plan.md`, tareas en `tasks.md`, puertas en `checkpoint.md`.
+**Fuente:** `SI2-Parcial2.md` CU14, CU15, CU16 A4, CU17 A4, CU19 y CU20; RN25, RN33–RN43, RNF03, RNF15.
+**Decisiones del usuario (2026-11-09):** D1 avisos en una bandeja dentro de la app, sin Firebase ·
+D2 reembolsos del cierre de mes con un botón del administrador · D3 caja móvil (CU16/CU17 Flutter)
+en un cambio aparte.
+**Depende de:** `P2-CU13-CU12-fundacion-multitenant`, `P2-CU11-parametros-empresa` y de que Tony
+aplique `0017`–`0019` en producción antes de la migración de este cambio.
+**Nivel 3 porque** toca inventario, reservas, pagos y reembolsos, migración que altera datos y tres stacks.
 
 ---
 
-## 0. Hallazgos (rama de pruebas y código, al 2026-11-09)
+## Propósito
 
-| Necesita | Hoy |
+Que el cliente pueda consultar el catálogo y reservar prendas sin internet, en la PWA y en la app
+móvil, y que esas operaciones lleguen al servidor sin duplicarse cuando vuelve la conexión. Lo que
+el servidor no pueda aceptar se cancela (reservas) o se reembolsa (compras ya cobradas), con aviso
+al cliente y revisión del encargado o el administrador.
+
+## Actores y precondiciones
+
+| Actor | Precondiciones |
 | :--- | :--- |
-| Tablas `dispositivos`, `operaciones_sync`, `conflictos_sync` y `sync_log` (nota del §5 de `SI2-Parcial2.md`) | **No existen.** |
-| PWA (service worker, manifiesto, IndexedDB) | **No existe.** La web no funciona sin conexión. |
-| SQLite, conectividad y UUID en el móvil | **No existen** (`pubspec.yaml` no tiene `sqflite`, `connectivity_plus` ni `uuid`). |
-| Reserva de varias prendas en línea (CU15) | **Existe** (`POST /api/v1/reservas`, web y móvil), con `reserva_detalle` y movimientos de inventario. |
-| Vencimiento de la reserva por parámetro (RN25, CU11 C1/C7) | **No.** `reservas` no tiene `vence_en`; una reserva vence 2 h después de la cita (D1-A del Parcial 1) y `horas_vencimiento_reserva` no se usa. |
-| Compra interrumpida | El servidor crea la venta `pendiente` y retiene el stock 25 min **antes** de cobrar; el pago se confirma con `POST /pagos/{id}/confirmar` o el webhook. Si se corta la red tras el cobro, la venta queda pendiente y la retención caduca. |
-| Reembolsos con Stripe | `StripeService` no tiene reembolso. |
-| Avisos al cliente | No hay tabla ni pantalla. |
+| Cliente | Sesión iniciada; registrado en la empresa (`cliente_tenant`); PWA o app Flutter. |
+| Encargado de sucursal | Sesión iniciada; ve solo sus sucursales autorizadas (RN07). |
+| Administrador | Sesión iniciada; ve toda su empresa. |
+| Stripe (modo de prueba) | Verifica cobros y procesa reembolsos; simulador determinista sin clave. |
+
+## Hallazgos que condicionan los requisitos (código al 2026-11-09)
+
+- No existen las tablas de dispositivos, operaciones, conflictos, registro de sincronización ni avisos.
+- No hay PWA (sin service worker ni manifiesto) ni SQLite en el móvil.
+- La reserva en línea existe (`POST /api/v1/reservas`), pero vence **2 h después de la cita**, no a
+  las horas de la empresa (RN25), y no guarda su vencimiento.
+- `StripeService` no sabe reembolsar.
 
 ---
 
-## 1. Decisiones
+## Requisitos (EARS)
 
-| ID | Decisión |
+### CU14 · Descargar catálogo y registrar dispositivo
+
+- **AC-14.1** Cuando el cliente abre la app por primera vez en una empresa, el sistema deberá
+  registrar el dispositivo con su identificador (UUID generado en el dispositivo) y su plataforma
+  (`pwa`/`flutter`), asociado al cliente y a esa empresa, y devolver su código corto de 4 caracteres.
+- **AC-14.2** Si el dispositivo ya está registrado en esa empresa, entonces el sistema deberá
+  reutilizarlo sin crear otro (A1).
+- **AC-14.3** Cuando el cliente pide la descarga, el sistema deberá entregar los productos activos
+  con variantes y precios, categorías, tallas, colores, promociones vigentes, sucursales activas y
+  existencias por sucursal **solo de la empresa de la cabecera**, con la fecha `generado_en`.
+- **AC-14.4** Cuando la descarga termina, el sistema deberá guardar la fecha de la última descarga del
+  dispositivo y una fila en el registro de sincronización.
+- **AC-14.5** Si la descarga se interrumpe, entonces la app deberá conservar los datos anteriores sin
+  reemplazarlos (A2).
+- **AC-14.6** Si el dispositivo no tiene espacio, entonces la app deberá informarlo y pedir la
+  descarga `indispensable`, sin descripciones, promociones ni colecciones (A3).
+- **AC-14.7** Mientras no haya conexión, la app deberá mostrar el catálogo descargado con el aviso
+  «Puede estar desactualizado · Datos del dd/mm/aaaa hh:mm» (A4, RN42, RNF15).
+- **AC-14.8** Donde la empresa tenga `operacion_offline_habilitada = false`, el sistema deberá
+  registrar el dispositivo y la app no deberá permitir reservar sin conexión (A5).
+
+### CU15 · Reservar varias prendas
+
+- **AC-15.1** Cuando el cliente confirma una reserva en línea, el sistema deberá validar plan y
+  suscripción (CU12) y existencias en la sucursal, crearla `pendiente`, apartar las unidades con su
+  movimiento de inventario y fijar `vence_en = creado_en + horas_vencimiento_reserva` con el valor
+  vigente en ese momento (RN25, CU11 C7).
+- **AC-15.2** Si una línea supera las existencias en línea, entonces el sistema deberá responder 409
+  `STOCK_INSUFICIENTE` con el máximo disponible y las sucursales que sí tienen las unidades (A3).
+- **AC-15.3** Si el plan no incluye reservas o la suscripción no está vigente, entonces el sistema
+  deberá responder 403 `FUNCIONALIDAD_NO_INCLUIDA` o `SUSCRIPCION_NO_VIGENTE` (A4).
+- **AC-15.4** Cuando pasa `vence_en` sin atenderse, la reserva deberá pasar a `vencida` y liberar sus
+  unidades con su movimiento (A5); se comprueba de forma perezosa al consultarla, como hoy.
+- **AC-15.5** Mientras no haya conexión y la empresa lo permita, la app deberá guardar la reserva en el
+  dispositivo con un identificador único, el estado «registrada localmente» y el código provisional
+  `PROV-<código corto>-<correlativo de 6 dígitos>` (A1, RN34).
+
+### CU19 · Sincronizar operaciones pendientes
+
+- **AC-19.1** Cuando vuelve la conexión, al entrar en la tienda o cuando el cliente pulsa
+  «Sincronizar», la app deberá enviar las operaciones pendientes y marcarlas «enviada».
+- **AC-19.2** Cuando el servidor recibe una operación, deberá procesarla en este orden: empresa de la
+  cabecera (CU13), suscripción vigente y plan con reservas (CU12), antigüedad ≤
+  `dias_antiguedad_offline` (RN41), sucursal activa, producto y variante activos, y stock (RN39).
+- **AC-19.3** Si una operación ya se había recibido (mismo identificador en la empresa), entonces el
+  servidor deberá devolver el resultado guardado sin ejecutar nada de nuevo (A2, RN35).
+- **AC-19.4** Cuando una reserva pasa todas las reglas, el servidor deberá crearla con el flujo de
+  AC-15.1, asignarle su código definitivo y conservar el provisional; la operación queda `confirmada`.
+- **AC-19.5** Si una reserva no tiene stock, entonces el servidor deberá rechazarla con el motivo
+  `STOCK_INSUFICIENTE` y dejar un aviso al cliente en su bandeja (A3, RN40; D1 sustituye la
+  notificación push del documento).
+- **AC-19.6** Si la suscripción venció o la operación supera la antigüedad máxima, entonces el servidor
+  deberá rechazarla e informar el motivo (A4).
+- **AC-19.7** Cuando llega una compra interrumpida (solo móvil), el servidor deberá verificar el cobro
+  con Stripe (RN38) y confirmar la compra con el mismo flujo del pago en línea.
+- **AC-19.8** Si una compra cobrada no puede confirmarse por cualquier regla de AC-19.2, entonces el
+  servidor deberá dejarla `en_conflicto` y crear un conflicto para CU20. **Una compra cobrada nunca
+  queda `rechazada`.**
+- **AC-19.9** Si el pago de una compra interrumpida no fue aprobado por Stripe, entonces el servidor
+  deberá rechazar la operación (no hubo cobro).
+- **AC-19.10** Si falla la red o el servidor no responde, entonces la app deberá conservar las
+  operaciones y reintentar con espera creciente (A1, RN37).
+- **AC-19.11** Si la sesión expiró, entonces la app deberá pedir iniciar sesión y conservar las
+  operaciones (A5).
+- **AC-19.12** El sistema deberá dejar en el registro de sincronización cada envío con conteos y
+  resultado, sin tokens, contraseñas ni datos de pago (RN43).
+- **AC-19.13** La app deberá conservar cada operación tras enviarla y mostrar su estado final
+  (`confirmada`, `rechazada` o `en_conflicto`) (RN36, RN37, RNF03).
+
+### CU20 · Resolver conflictos de sincronización
+
+- **AC-20.1** Cuando el encargado o el administrador entra en «Conflictos», el sistema deberá listar
+  los pendientes con su tipo: stock insuficiente, precio modificado, producto inactivo, sucursal
+  inactiva o suscripción no vigente.
+- **AC-20.2** Cuando abre un conflicto, el sistema deberá mostrar la compra original, su pago y el dato
+  que no coincide (esperado y encontrado).
+- **AC-20.3** Cuando acepta el reembolso, el sistema deberá anular la compra **sin tocar el
+  inventario**, dejar el reembolso pendiente para el cierre del mes, avisar al cliente en su bandeja
+  («Recibirá su reembolso al finalizar el mes o en 15 días hábiles») y registrarlo en la bitácora.
+- **AC-20.4** Cuando el administrador pulsa «Procesar reembolsos del cierre» el último día del mes
+  (hora de Bolivia), el sistema deberá reembolsar con Stripe cada conflicto pendiente de reembolso,
+  marcar el pago `reembolsado`, el conflicto `resuelto` y avisar al cliente (D2).
+- **AC-20.5** Si el administrador pulsa el botón otro día, entonces el sistema deberá pedir una
+  confirmación explícita de «cierre anticipado de prueba» y registrarlo así en la bitácora; sin esa
+  confirmación responde 409 `CIERRE_NO_DISPONIBLE`.
+- **AC-20.6** Si el reembolso falla en Stripe, entonces el conflicto deberá seguir pendiente con el
+  motivo y el número de intento, para el siguiente cierre (A1).
+- **AC-20.7** Mientras el usuario sea encargado, el sistema no deberá mostrarle ni dejarle tocar los
+  conflictos de sucursales no autorizadas (A2). El cajero no ve ninguno.
+- **AC-20.8** Si el conflicto ya lo resolvió otro usuario, entonces el sistema deberá responder 409
+  `CONFLICTO_YA_RESUELTO` y la web refrescar la lista (A3).
+- **AC-20.9** El panel deberá mostrar el número de conflictos pendientes, sin push (A4).
+
+### Caja web (CU16 A4 y CU17 A4)
+
+- **AC-16.1** Mientras el navegador esté sin conexión, la caja `/admin/pos` deberá mostrar «Sin
+  conexión» y no permitir registrar ni cobrar.
+
+### Avisos al cliente (D1)
+
+- **AC-AV.1** El sistema deberá guardar cada aviso al cliente (reserva cancelada, reembolso aceptado,
+  reembolso procesado) en su empresa; la app los mostrará en una bandeja en Perfil con contador de no
+  leídos y permitirá marcarlos como leídos.
+
+### Transversales
+
+- **AC-T.1** El sistema deberá aislar por empresa todas las tablas nuevas (RLS y `id_tenant`); un
+  dispositivo de una empresa no podrá operar sobre sucursales ni productos de otra (CU13).
+- **AC-T.2** Si dos operaciones compiten por la última unidad, entonces solo una deberá llevársela y el
+  stock no deberá quedar negativo (ERR-04).
+- **AC-T.3** El almacenamiento local deberá separar los datos por empresa y conservar las operaciones
+  pendientes tras cerrar sesión o reiniciar (RNF03).
+- **AC-T.4** El service worker no deberá cachear respuestas de la API: los datos sin conexión salen solo
+  del almacenamiento local que escribe la app.
+
+---
+
+## Casos de error
+
+| Caso | Respuesta |
 | :--- | :--- |
-| **S1** | **Qué se hace sin conexión (RN33):** el cliente consulta el catálogo descargado y registra **reservas**; en el **móvil** se conserva además la **compra interrumpida**. La caja (CU16/CU17) y los cambios (CU18) exigen conexión. Si la empresa tiene `operacion_offline_habilitada = false`, el dispositivo se registra pero la app no deja reservar sin conexión (CU14 A5); lo ya pendiente se sigue sincronizando (CU11 A2). |
-| **S2** | **Dispositivo:** la app genera un UUID la primera vez y lo conserva; el servidor lo registra **por empresa** (`dispositivos` es de empresa, con RLS) asociado al cliente y a su plataforma (`pwa`/`flutter`). Volver a registrarlo lo reutiliza (CU14 A1). El código corto del dispositivo son los 4 primeros caracteres hexadecimales del UUID en mayúsculas. |
-| **S3** | **Código provisional (RN34):** `PROV-<código corto>-<correlativo de 6 dígitos>`, con el correlativo local del dispositivo. Al confirmarse, la reserva recibe su código definitivo de siempre (`RES-…`) y conserva el provisional en `reservas.codigo_provisional`. |
-| **S4** | **Descarga del catálogo (CU14):** un paquete completo de la empresa: productos activos con variantes y precios, categorías, tallas, colores, promociones vigentes, sucursales activas y existencias por sucursal, con `generado_en`. Con `modo=indispensable` (A3) omite descripciones, promociones y colecciones. La app solo reemplaza lo guardado si la descarga termina (A2). Cada descarga deja `sync_log` y `dispositivos.ultima_descarga_en`. |
-| **S5** | **Sincronización (CU19):** un lote de operaciones, `POST /sin-conexion/sincronizar`. Cada operación se procesa en su **propio punto de guardado**: una que falla no tumba las demás. Estados en el servidor: `confirmada`, `rechazada` o `en_conflicto`; `registrada_localmente` y `enviada` solo existen en el dispositivo (RN36). |
-| **S6** | **Idempotencia (RN35):** `UNIQUE (id_tenant, uuid_operacion)`. Si el UUID ya existe, el servidor devuelve el **resultado guardado** sin volver a ejecutar nada (A2). Dos envíos simultáneos del mismo UUID: el segundo espera al primero por la clave única y devuelve su resultado. |
-| **S7** | **Validación al sincronizar (RN39, RN41)**, en este orden: suscripción vigente y plan con reservas (CU12); antigüedad ≤ `dias_antiguedad_offline` contada desde `registrada_en` del dispositivo (con margen de 5 min de reloj); sucursal activa; productos y variantes activos; stock con `SELECT … FOR UPDATE` (ERR-04: nunca negativo). |
-| **S8** | **Resultado de una reserva:** todo bien → se crea con el flujo de CU15 y queda `confirmada`. **Sin stock → la reserva no se crea, la operación queda `rechazada` con motivo `STOCK_INSUFICIENTE` y el cliente recibe un aviso** (CU15 A2, RN40: «se cancela»; no hay nada que reembolsar, así que **no** es un conflicto de CU20). Cualquier otra regla incumplida → `rechazada` con su motivo (A4). |
-| **S9** | **Resultado de una compra interrumpida (móvil):** la operación lleva `id_venta` e `id_pago` (nunca datos de tarjeta). El servidor verifica el PaymentIntent con Stripe (**RN38: el cobro no basta**) y reutiliza la confirmación de pago existente. Si la venta ya se confirmó (webhook o un envío anterior) → `confirmada` con el resultado anterior. Si la retención caducó, vuelve a tomar stock con `FOR UPDATE`; si ya no hay, o falla otra regla de S7, → **`en_conflicto`** y se crea un conflicto de CU20 con reembolso pendiente. **Una compra cobrada nunca queda `rechazada`**: el dinero se devuelve por CU20. Un PaymentIntent no aprobado → `rechazada` (no hubo cobro). |
-| **S10** | **Conflictos (CU20, RN40):** tipos `stock_insuficiente`, `precio_modificado`, `producto_inactivo`, `sucursal_inactiva` y `suscripcion_no_vigente`, con el dato que no coincide (esperado y encontrado). Estados: `pendiente` → (aceptar reembolso) `reembolso_pendiente` → (cierre de mes) `resuelto`. Al aceptar: la venta pasa a `anulada`, **el inventario no se toca** (la compra nunca se confirmó) y el cliente recibe el aviso «Recibirá su reembolso al finalizar el mes o en 15 días hábiles». Si dos usuarios aceptan a la vez, el segundo recibe 409 `CONFLICTO_YA_RESUELTO` (A3). |
-| **S11** | **Cierre de mes (decisión del usuario):** botón «Procesar reembolsos del cierre» en `/admin/conflictos`, solo para el **administrador**. Se habilita el **último día del mes** (hora de Bolivia). Fuera de ese día, el administrador puede forzarlo con una confirmación explícita («cierre anticipado de prueba»), que queda en la bitácora como tal. Reembolsa con Stripe (`refunds`, simulador sin clave) cada conflicto `reembolso_pendiente`. El pago pasa a `reembolsado` y el conflicto a `resuelto`; si Stripe falla, el conflicto sigue pendiente con el motivo y el número de intento (A1). El cliente ve el nuevo estado en su dispositivo al sincronizar. |
-| **S12** | **Quién ve los conflictos:** administrador, todos los de su empresa; encargado, solo los de sus sucursales autorizadas (`SucursalesEmpleadoServicio`, A2). El cajero, ninguno. Aviso dentro de la web (A4): contador de conflictos pendientes en la tarjeta del panel. |
-| **S13** | **Avisos al cliente (decisión del usuario):** tabla `avisos_cliente` por empresa. La app los descarga al sincronizar y al abrirse, y los muestra en una bandeja con contador (Perfil). Sin Firebase: no llegan con la app cerrada. Tipos: `reserva_cancelada`, `reembolso_aceptado` y `reembolso_procesado`. |
-| **S14** | **Registro de sincronización (RN43):** `sync_log` guarda dispositivo, tipo (`descarga`/`sincronizacion`), inicio, fin, resultado, conteos y un mensaje. `operaciones_sync.datos` guarda la operación **saneada**: sin tokens, contraseñas, `client_secret` ni datos de tarjeta. |
-| **S15** | **CU15 en línea:** cada reserva guarda **`vence_en = creado_en + horas_vencimiento_reserva`**, con el valor vigente al crearla (CU11 C7, RN25). Sustituye la regla del Parcial 1 (cita + 2 h). Al vencer pasa a `vencida` y libera sus unidades, de forma perezosa al consultarla, como hoy. Las reservas ya existentes se rellenan con `creado_en + 24 h` y, si ya vencieron, siguen sus reglas de siempre hasta su atención o cancelación. Sin stock en línea (A3): 409 con las sucursales que sí tienen las unidades. Plan sin reservas o suscripción vencida (A4): 403 `FUNCIONALIDAD_NO_INCLUIDA` o `SUSCRIPCION_NO_VIGENTE`. |
-| **S16** | **CU16/CU17 web:** la caja muestra «Sin conexión» y deshabilita registrar y cobrar mientras `navigator.onLine` sea falso (A4 de ambos). El servidor no cambia. |
-| **S17** | **Dependencias nuevas** (*Ask First* de las constituciones):<ul><li>web: `@angular/service-worker` (misma versión que Angular) e `idb` (envoltorio de IndexedDB, ~1 KB);</li><li>móvil: `sqflite`, `path_provider`, `connectivity_plus` y `uuid`.</li></ul> |
-| **S18** | **La PWA no cachea la API:** el service worker guarda solo la aplicación y sus recursos (RF16). Los datos sin conexión salen de IndexedDB, que escribe la propia app. Así no se sirven nunca respuestas de otra empresa o de otra sesión. |
+| Cliente no registrado en la empresa | 403 `CLIENTE_NO_REGISTRADO` |
+| Dispositivo desconocido para la empresa | 404 `DISPOSITIVO_NO_ENCONTRADO` |
+| Lote con más de 50 operaciones | 422 |
+| Stock insuficiente en línea | 409 `STOCK_INSUFICIENTE` + `alternativas` |
+| Plan sin reservas / suscripción vencida | 403 `FUNCIONALIDAD_NO_INCLUIDA` / `SUSCRIPCION_NO_VIGENTE` |
+| Conflicto ya resuelto | 409 `CONFLICTO_YA_RESUELTO` |
+| Cierre fuera del último día sin forzar | 409 `CIERRE_NO_DISPONIBLE` |
+| Encargado sobre sucursal no autorizada / cajero | 404 (no existe para él) / 403 |
+| Reglas de una operación sincronizada | No es un error HTTP: el lote responde 200 y cada operación lleva `estado` y `motivo` |
 
----
+## Diferencias con el documento (delta)
 
-## 2. Base de datos — migración `0020_sin_conexion` (`down_revision = "0019"`)
+- **MODIFIED** CU15 A2, CU19 A3 y CU20 paso 4: «notificación push» → aviso en la bandeja de la app (D1).
+- **MODIFIED** RN25 en el código: la reserva vencía 2 h después de la cita (Parcial 1) → vence a
+  `creado_en + horas_vencimiento_reserva`. Las reservas existentes reciben `creado_en + 24 h`.
+- **ADDED** cierre anticipado de prueba (AC-20.5), para poder demostrarlo cualquier día.
 
-Todas son tablas de empresa: `id_tenant NOT NULL` con el valor por defecto del contexto,
-`UNIQUE (id_tenant, pk)`, FK compuestas y la política `aislamiento_tenant`.
+### Ajustes de la implementación del backend (2026-11-09, a revisar en la puerta 4a)
 
-| Tabla | Columnas principales |
-| :--- | :--- |
-| `dispositivos` | `id_dispositivo`, `identificador UUID`, `id_cliente` (→ `cliente_tenant`), `plataforma` (`pwa`/`flutter`), `codigo_corto CHAR(4)`, `registrado_en`, `ultima_descarga_en`, `ultima_sincronizacion_en`. `UNIQUE (id_tenant, identificador)`. |
-| `operaciones_sync` | `id_operacion_sync`, `uuid_operacion UUID`, `id_dispositivo`, `id_sucursal`, `tipo` (`reserva`/`compra_interrumpida`), `estado` (`confirmada`/`rechazada`/`en_conflicto`), `codigo_provisional`, `registrada_en` (reloj del dispositivo), `recibida_en`, `datos JSONB` (saneados), `resultado JSONB`, `motivo`, `id_reserva`, `id_venta`. `UNIQUE (id_tenant, uuid_operacion)`. |
-| `conflictos_sync` | `id_conflicto`, `id_operacion_sync`, `id_venta`, `id_pago`, `id_sucursal`, `tipo`, `detalle JSONB`, `estado` (`pendiente`/`reembolso_pendiente`/`resuelto`), `aceptado_por`, `aceptado_en`, `resuelto_en`, `referencia_reembolso`, `intentos_reembolso`, `ultimo_error`. |
-| `sync_log` | `id_sync_log`, `id_dispositivo`, `tipo` (`descarga`/`sincronizacion`), `iniciado_en`, `finalizado_en`, `resultado` (`ok`/`parcial`/`error`), `enviadas`, `confirmadas`, `rechazadas`, `en_conflicto`, `mensaje`. |
-| `avisos_cliente` | `id_aviso`, `id_cliente` (→ `cliente_tenant`), `tipo`, `titulo`, `mensaje`, `id_reserva`, `id_venta`, `creado_en`, `leido_en`. |
-| `reservas` (cambio) | `vence_en TIMESTAMPTZ` (relleno `creado_en + 24 h`, después `NOT NULL`) y `codigo_provisional VARCHAR(24)`. |
+- **ADDED AC-15.6** Si la hora de la cita es posterior a `vence_en`, entonces el sistema deberá
+  rechazar la reserva con 400 `CITA_FUERA_DE_PLAZO` sin apartar stock. Con 24 h por defecto, una cita
+  a dos días vencería antes de la visita; la web y el móvil deberán limitar el selector de fecha.
+- **ADDED AC-14.9** Si el plan no incluye `operacion_offline` (RN16), entonces registrar el dispositivo
+  y descargar el catálogo deberán responder 403 `FUNCIONALIDAD_NO_INCLUIDA`. Sincronizar lo ya
+  pendiente sigue permitido (CU11 A2).
+- **ADDED** estado de respuesta `reintentar` (no se guarda): Stripe no respondió al verificar una
+  compra interrumpida; la app conserva la operación y la reenvía (A1).
+- **ADDED** tipo de conflicto `antiguedad_excedida`: una compra **cobrada** que supera la antigüedad
+  máxima también se reembolsa. Su antigüedad se mide desde `ventas.fecha_venta` (reloj del servidor).
+- **ADDED** un solo conflicto por compra (`UNIQUE (id_tenant, id_venta)`): otro envío con un UUID
+  distinto para la misma compra responde `en_conflicto` con el conflicto existente.
+- **MODIFIED** AC-15.2: el código del 409 se mantiene `STOCK_INSUFICIENTE_RESERVA` (lo usan la web y
+  el móvil); se añaden `disponible` y `alternativas` al cuerpo.
+- **NO IMPLEMENTADO** `precio_modificado` como causa: el precio de una compra se congela en el
+  checkout (invariante del dominio) y una reserva no tiene precio. El tipo existe en la tabla.
 
-Los estados y tipos van como `VARCHAR` con `CHECK`, no como nuevos `ENUM` de PostgreSQL. Un
-`ENUM` no admite quitar valores en un `downgrade`.
+### Ajustes de la implementación de la web (2026-11-09, a revisar en la puerta 4b)
 
----
+- **MODIFIED** AC-14.7 (plan §4): el catálogo sin conexión es una hoja propia del portal,
+  `/{codigo}/sin-conexion` (búsqueda, detalle con existencias por sucursal y reserva), en lugar de
+  hacer que las páginas en línea de catálogo, búsqueda y detalle lean IndexedDB. Así no se toca el
+  flujo en línea. La banda «Sin conexión» enlaza con ella.
+- **ADDED** sin red, el portal de una tienda ya visitada se abre con los datos públicos guardados de
+  la última visita (`tenantGuard`); sin visita previa vuelve al directorio.
+- **ADDED** el service worker guarda también Tailwind (CDN) y las fuentes de Google: sin ellos la
+  aplicación se abría sin estilos. Siguen fuera la API y cualquier dato (S18).
+- **FIXED** el modal de reserva en línea enviaba la cita siempre para «mañana a las 11:30», con
+  franjas fijas («VIERNES 12:00H») que no se usaban. Ahora ofrece horas dentro del vencimiento
+  (AC-15.6) y el 409 muestra las sucursales alternativas (AC-15.2).
+- Iconos de la PWA neutros (una percha), sin marca: la misma aplicación sirve a varias tiendas.
+- **ADDED** la web solo llama a la API sin conexión cuando sabe que el cliente está registrado en la
+  tienda; si no lo está, la hoja «Sincronización» lo dice en lugar de un error de red (hallado al
+  probar contra `pruebas-multitenant`).
 
-## 3. Contratos (prefijo `/api/v1`)
+### Ajustes de la implementación móvil (2026-11-09, a revisar en la puerta 4c)
 
-| Método y ruta | Quién | Comportamiento |
-| :--- | :--- | :--- |
-| `POST /sin-conexion/dispositivos` | Cliente (cabecera `X-Tenant`) | Registra o reutiliza el dispositivo `{identificador, plataforma}`. Devuelve `codigo_corto`, `operacion_offline_habilitada`, `dias_antiguedad_offline` y `ultima_descarga_en`. |
-| `GET /sin-conexion/catalogo?dispositivo=&modo=completo\|indispensable` | Cliente | Paquete de S4 con `generado_en`; registra la descarga. |
-| `POST /sin-conexion/sincronizar` | Cliente | `{dispositivo, operaciones: [{uuid, tipo, id_sucursal, registrada_en, codigo_provisional, datos}]}` → un resultado por operación: `{uuid, estado, motivo?, codigo_reserva?, id_venta?, id_conflicto?}`. Máx. 50 operaciones por lote. |
-| `GET /sin-conexion/operaciones?dispositivo=` | Cliente | Estado actual de las operaciones del dispositivo (para ver la resolución de CU20). |
-| `GET /avisos` · `POST /avisos/{id}/leido` | Cliente | Bandeja de S13. |
-| `GET /conflictos-sync?estado=` · `GET /conflictos-sync/{id}` | Administrador, encargado | Lista y detalle de S10 y S12: compra, pago y dato que no coincide. |
-| `GET /conflictos-sync/resumen` | Administrador, encargado | Pendientes por estado, para el contador del panel. |
-| `POST /conflictos-sync/{id}/aceptar-reembolso` | Administrador, encargado | S10. 409 `CONFLICTO_YA_RESUELTO`. |
-| `POST /conflictos-sync/procesar-cierre` | Administrador | S11. `{forzar: bool}`. Fuera del último día sin `forzar` → 409 `CIERRE_NO_DISPONIBLE`. Devuelve los conflictos procesados, reembolsados y fallidos. |
-| `POST /reservas` (cambio) | Cliente | S15: `vence_en`; 409 `STOCK_INSUFICIENTE` con `alternativas`. |
+- **MODIFIED** AC-14.7: como en la web, el catálogo sin conexión es una hoja propia
+  (`PantallaCatalogoSinConexion`, con `BackButton`) y no se tocan las pantallas en línea. La banda de
+  estado va encima de la barra de navegación del hub, para no tapar la barra de estado del sistema.
+- **MODIFIED** dependencias: no se usa `path_provider` (`sqflite` ya da la ruta con
+  `getDatabasesPath`). Quedan `sqflite`, `connectivity_plus` y `uuid`, y `sqflite_common_ffi` en pruebas.
+- **ADDED** el id del cliente se lee del `sub` del JWT que ya recibe el hub (sin petición extra); solo
+  para separar los datos locales por cliente, la firma la comprueba el servidor.
+- **ADDED** compra interrumpida: si `confirmarPago` falla por la red después de abrir el cobro, el
+  pago queda en el estado `PagoPendienteDeSincronizar` y se guarda `{id_venta, id_pago}`. Un rechazo
+  402 no se guarda (no hubo cobro).
+- **FIXED** la reserva en línea del detalle de producto enviaba la cita siempre para «ahora + 1 día»
+  con franjas fijas; ahora usa las mismas franjas dentro del vencimiento que la web, y el 409 muestra
+  las sucursales alternativas.
 
-Bitácora: `DISPOSITIVO_REGISTRADO`, `SINCRONIZACION`, `CONFLICTO_REGISTRADO`,
-`REEMBOLSO_ACEPTADO`, `CIERRE_REEMBOLSOS` (con `forzado`) y `REEMBOLSO_FALLIDO`.
+## Fuera de alcance
 
----
+- Caja en el móvil (CU16/CU17 Flutter): cambio siguiente (D3).
+- Push real (Firebase o Web Push) (D1).
+- Compras sin conexión en la web: el documento solo prevé la compra interrumpida en el móvil.
+- RN21 (inventario sin temporada): se sigue con la clave real `(id_variante, id_sucursal, id_temporada)`.
+- Descarga incremental del catálogo: cada descarga es completa.
 
-## 4. Web (PWA y CU20)
+## Preguntas abiertas
 
-- **PWA (RF16):** `@angular/service-worker` con `ngsw-config.json` (solo la app y sus recursos,
-  S18), manifiesto con los iconos de la marca e instalación. Hay que comprobar que `vercel.json`
-  sirve `ngsw-worker.js` y `ngsw.json` sin reescribirlos a `index.html`.
-- **IndexedDB:** catálogo por empresa, operaciones pendientes, correlativo local y fecha de la
-  última descarga. Las claves llevan el código de la empresa: una tienda no ve lo de otra en el
-  mismo navegador. Al cerrar sesión se borra el catálogo, pero **nunca las operaciones
-  pendientes** (RNF03, RN37).
-- **Estado sin conexión (RNF15):** banda fija en el portal con «Sin conexión», el número de
-  pendientes y «Datos del dd/mm/aaaa hh:mm» (RN42).
-- **Catálogo, búsqueda y detalle** leen de IndexedDB cuando no hay red. Lo que exige servidor
-  (vestidor, asistente, carrito y pago) se muestra deshabilitado con su motivo.
-- **Reservar sin conexión:** el mismo formulario guarda la reserva con su código `PROV-…` y el
-  estado «registrada localmente».
-- **Sincronización:** hoja `/{codigo}/sincronizacion` con las operaciones y su estado y el botón
-  «Sincronizar». Se lanza sola al volver la red y al entrar en la tienda. Reintentos con espera
-  creciente (A1). Si la sesión expiró, pide iniciar sesión y conserva todo (A5).
-- **Bandeja de avisos** en Perfil, con contador.
-- **CU20:** `/admin/conflictos` (`roleGuard`: administrador y encargado), con lista, detalle,
-  aceptar reembolso y el botón de cierre (solo el administrador, S11). Tarjeta en el panel con el
-  contador de pendientes.
-- **CU16/CU17:** S16 en `/admin/pos`.
-
-## 5. Móvil (SQLite)
-
-- **SQLite** (`sqflite`): las mismas tablas locales que IndexedDB, más las compras interrumpidas.
-  Toda escritura local va en una transacción. La base sobrevive a reinicios (RNF03).
-- **Conectividad** (`connectivity_plus`) y comprobación real contra `/health` antes de sincronizar.
-- **Catálogo, búsqueda y detalle** leen de SQLite sin red, con el mismo aviso de datos
-  desactualizados.
-- **Reservar sin conexión** desde el detalle de producto, con código `PROV-…`.
-- **Compra interrumpida:** si `POST /pagos/{id}/confirmar` falla por la red **después** de que
-  Stripe confirmó el cobro, la app guarda `{id_venta, id_pago}` como operación pendiente y lo
-  dice: «Tu pago se registró; confirmaremos la compra al recuperar la conexión».
-- **Pantalla «Sincronización»** (hoja con `BackButton`) y **bandeja de avisos** en Perfil.
-- **Todo datasource nuevo usa `ClienteHttpApi()`** (cabecera `X-Tenant`).
-
-## 6. Pruebas
-
-- **Unitarias del backend:**
-  - idempotencia (mismo UUID, mismo resultado, sin duplicados);
-  - cada regla de S7;
-  - reserva sin stock (rechazada con aviso, sin conflicto);
-  - compra interrumpida confirmada, ya confirmada, en conflicto y no aprobada;
-  - aceptar reembolso (venta anulada, inventario intacto, aviso);
-  - cierre: fuera de fecha, forzado, Stripe fallido;
-  - visibilidad del encargado;
-  - `vence_en` con el parámetro vigente;
-  - saneado de `datos`.
-- **Integración** (`pruebas-multitenant`):
-  - aislamiento de las 5 tablas nuevas entre empresas;
-  - dos sincronizaciones concurrentes de la última unidad: una confirma y la otra no deja stock negativo (ERR-04, PI-13);
-  - el mismo UUID enviado dos veces a la vez;
-  - un dispositivo de una empresa que envía una sucursal de otra (PI-14).
-- **Web:**
-  - la cola de IndexedDB sobrevive a recargar;
-  - reintento tras un fallo;
-  - código `PROV`;
-  - lectura del catálogo sin red;
-  - guardas de `/admin/conflictos`;
-  - caja bloqueada sin red.
-- **Móvil:**
-  - DTO con `fromJson` sobre payloads literales del backend;
-  - repositorio SQLite con `sqflite_common_ffi` en pruebas;
-  - cola y estados.
-- **Manual en un dispositivo físico:** modo avión, reservar, reiniciar la app, reconectar y sincronizar. Además, la compra interrumpida cortando la red justo después del cobro.
-
-## 7. Fuera de alcance
-
-- Caja en el móvil (CU16/CU17 Flutter): cambio siguiente.
-- Push real (Firebase / Web Push): la bandeja cubre el contenido (decisión del usuario).
-- Compras sin conexión en la web: el documento solo las prevé en el móvil.
-- RN21 (una fila de inventario por variante y sucursal, sin temporada): este cambio sigue con la
-  clave real `(id_variante, id_sucursal, id_temporada)`; la unificación es otro cambio.
-- Sincronización incremental del catálogo («solo lo que cambió»): cada descarga es completa; el
-  catálogo de una empresa es pequeño.
+Ninguna. Las tres decisiones pendientes se cerraron el 2026-11-09 (D1–D3).

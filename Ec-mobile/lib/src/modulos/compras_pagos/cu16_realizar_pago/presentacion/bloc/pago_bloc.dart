@@ -5,6 +5,19 @@ import 'package:flutter/foundation.dart';
 import '../../datos/datasources/pago_api.dart';
 import '../../datos/datasources/stripe_gateway.dart';
 import '../../datos/modelos/pago_dto.dart';
+import '../../../../../core/sin_conexion/sin_conexion_servicio.dart';
+
+/// P2-CU19 · Guarda una compra interrumpida para sincronizarla (solo `id_venta` e `id_pago`).
+typedef RegistrarCompraInterrumpida = Future<void> Function({
+  required int idVenta,
+  required int idPago,
+  required String comprobante,
+});
+
+Future<void> _registrarEnElServicio({required int idVenta, required int idPago, required String comprobante}) async {
+  await SinConexionServicio.instanciaSiExiste
+      ?.registrarCompraInterrumpida(idVenta: idVenta, idPago: idPago, comprobante: comprobante);
+}
 
 /// Estados sellados del ciclo de pago de CU16.
 sealed class PagoEstado {
@@ -83,6 +96,15 @@ class PagoError extends PagoEstado {
   const PagoError(this.mensaje);
 }
 
+/// P2-CU19 · Se perdió la conexión después de abrir el cobro: la compra queda guardada en el
+/// teléfono y el servidor la verifica con Stripe al sincronizar (RN38). Si no puede completarse,
+/// se reembolsa (CU20); nunca se cobra dos veces.
+class PagoPendienteDeSincronizar extends PagoEstado {
+  final ResumenPagoDto resumen;
+
+  const PagoPendienteDeSincronizar(this.resumen);
+}
+
 /// Orquesta el ciclo de pago de CU16: consulta el resumen, permite elegir método y cierra el
 /// cobro contra Stripe en dos pasos (revisado el 2026-09-28: el backend nunca recibe la tarjeta).
 ///
@@ -95,6 +117,7 @@ class PagoBloc extends ChangeNotifier {
   final PagoApi _api;
   final StripeGateway _stripeGateway;
   final String _token;
+  final RegistrarCompraInterrumpida _registrarCompraInterrumpida;
 
   PagoEstado _estado = const PagoInicial();
   PagoEstado get estado => _estado;
@@ -103,10 +126,15 @@ class PagoBloc extends ChangeNotifier {
   /// hace que el backend devuelva el cobro ya confirmado en vez de cobrar dos veces.
   String? _claveIdempotencia;
 
-  PagoBloc({PagoApi? api, StripeGateway? stripeGateway, required String token})
-      : _api = api ?? PagoApiImpl(),
+  PagoBloc({
+    PagoApi? api,
+    StripeGateway? stripeGateway,
+    required String token,
+    RegistrarCompraInterrumpida? registrarCompraInterrumpida,
+  })  : _api = api ?? PagoApiImpl(),
         _stripeGateway = stripeGateway ?? const StripeGatewayReal(),
-        _token = token;
+        _token = token,
+        _registrarCompraInterrumpida = registrarCompraInterrumpida ?? _registrarEnElServicio;
 
   /// Sin un SDK de Stripe real inicializado, la pantalla muestra el panel de «modo simulador».
   bool get stripeDisponible => _stripeGateway.disponible;
@@ -222,7 +250,22 @@ class PagoBloc extends ChangeNotifier {
 
       // El servidor decide el desenlace final por su cuenta, nunca por lo que este cliente
       // reporte: recupera el `PaymentIntent` de Stripe y lo compara.
-      final confirmacion = await _api.confirmarPago(intento.idPago, token: _token);
+      final PagoConfirmadoDto confirmacion;
+      try {
+        confirmacion = await _api.confirmarPago(intento.idPago, token: _token);
+      } on PagoException catch (e) {
+        if (!e.esErrorDeRed) rethrow;
+        // P2-CU19: la red se cortó tras abrir el cobro. Se guarda la compra (sin datos de tarjeta)
+        // y el servidor decide al sincronizar: confirma, la deja en conflicto o la rechaza.
+        await _registrarCompraInterrumpida(
+          idVenta: resumen.idVenta,
+          idPago: intento.idPago,
+          comprobante: resumen.numeroComprobante,
+        );
+        _estado = PagoPendienteDeSincronizar(resumen);
+        notifyListeners();
+        return false;
+      }
       _estado = PagoExitoso(confirmacion);
       notifyListeners();
       return true;

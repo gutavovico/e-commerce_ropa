@@ -174,6 +174,16 @@ export const routes: Routes = [
     title: 'Configuración',
   },
   {
+    // P2-CU20: conflictos de sincronización (administrador y encargado; el cajero no)
+    path: 'admin/conflictos',
+    canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
+    loadComponent: () =>
+      import(
+        './modules/sincronizacion/cu20_conflictos/paginas/conflictos-admin.component'
+      ).then((m) => m.ConflictosAdminComponent),
+    title: 'Conflictos de sincronización',
+  },
+  {
     path: 'admin/reportes',
     canActivate: [authGuard, roleGuard(['administrador', 'admin', 'encargado_sucursal'])],
     loadComponent: () =>
@@ -367,6 +377,26 @@ export const routes: Routes = [
             './modules/reservas/cu13_consultar_cancelar_reservas/paginas/mis-reservas.component'
           ).then((m) => m.MisReservasComponent),
         title: 'FASHION STORE | Mis Reservas de Probador',
+      },
+      {
+        // P2-CU14 / CU15 A1: catálogo guardado en el dispositivo y reserva sin conexión
+        path: 'sin-conexion',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import(
+            './modules/sincronizacion/cu14_catalogo_local/paginas/catalogo-local.component'
+          ).then((m) => m.CatalogoLocalComponent),
+        title: 'Catálogo sin conexión',
+      },
+      {
+        // P2-CU19: operaciones sin conexión, sincronización y bandeja de avisos
+        path: 'sincronizacion',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import(
+            './modules/sincronizacion/cu19_sincronizacion/paginas/sincronizacion.component'
+          ).then((m) => m.SincronizacionComponent),
+        title: 'Sincronización',
       },
       {
         path: 'productos/:id',

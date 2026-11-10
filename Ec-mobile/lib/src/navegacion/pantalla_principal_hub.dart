@@ -1,4 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../core/empresa_actual.dart';
+import '../core/sin_conexion/banda_sin_conexion.dart';
+import '../core/sin_conexion/sin_conexion_servicio.dart';
+import '../core/sin_conexion/token_jwt.dart';
 import '../modulos/autenticacion_seguridad/cu04_gestionar_perfil/dominio/repositorios/perfil_repositorio.dart';
 import '../modulos/autenticacion_seguridad/cu04_gestionar_perfil/presentacion/pantallas/pantalla_perfil.dart';
 import '../modulos/catalogo/cu05_consultar_catalogo/presentacion/pantallas/pantalla_catalogo.dart';
@@ -58,6 +64,24 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
     if (_nombreUsuarioActual.isEmpty && widget.token.isNotEmpty) {
       _cargarNombreUsuario(widget.token);
     }
+    _prepararSinConexion();
+  }
+
+  /// P2-CU14 / CU19: un cliente con tienda elegida la deja lista para usarla sin conexión
+  /// (dispositivo, catálogo y sincronización de lo pendiente). Los empleados no la usan.
+  void _prepararSinConexion() {
+    final sesion = leerToken(widget.token);
+    final tienda = EmpresaActual.instancia.empresa;
+    if (sesion.rol != 'cliente' || sesion.idUsuario == null || tienda == null) {
+      return;
+    }
+    unawaited(
+      SinConexionServicio.instancia.prepararTienda(
+        codigoTienda: tienda.codigo,
+        idCliente: sesion.idUsuario!,
+        token: widget.token,
+      ),
+    );
   }
 
   @override
@@ -186,6 +210,8 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
         alIrACatalogo: () => _cambiarTab(2),
         alCerrarSesion: () {
           ChatbotBloc.purgarSesion();
+          // RNF03: se borra el catálogo guardado, nunca las operaciones pendientes.
+          unawaited(SinConexionServicio.instanciaSiExiste?.cerrarSesion());
           widget.alCerrarSesion?.call();
         },
         alCambiarDeTienda: widget.alCambiarDeTienda == null
@@ -199,10 +225,7 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: IndexedStack(
-        index: _indiceActual,
-        children: pestanas,
-      ),
+      body: IndexedStack(index: _indiceActual, children: pestanas),
       floatingActionButton: AnimatedBuilder(
         animation: _chatbotBloc,
         builder: (context, _) {
@@ -229,7 +252,9 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
                     width: 14,
                     height: 14,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFAD8C63), // Camel dorado alta costura
+                      color: const Color(
+                        0xFFAD8C63,
+                      ), // Camel dorado alta costura
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                       boxShadow: const [
@@ -246,45 +271,52 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
           );
         },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _indiceActual,
-        onTap: _cambiarTab,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: const Color(0xFF777777),
-        selectedLabelStyle: const TextStyle(
-          fontFamily: 'Outfit',
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontFamily: 'Outfit',
-          fontSize: 10,
-          letterSpacing: 0.5,
-        ),
-        elevation: 8,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search_outlined),
-            activeIcon: Icon(Icons.search),
-            label: 'Buscar',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_outlined),
-            activeIcon: Icon(Icons.grid_view),
-            label: 'Catálogo',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Perfil',
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (SinConexionServicio.instanciaSiExiste != null)
+            BandaSinConexion(servicio: SinConexionServicio.instanciaSiExiste!),
+          BottomNavigationBar(
+            currentIndex: _indiceActual,
+            onTap: _cambiarTab,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.white,
+            selectedItemColor: Colors.black,
+            unselectedItemColor: const Color(0xFF777777),
+            selectedLabelStyle: const TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 10,
+              letterSpacing: 0.5,
+            ),
+            elevation: 8,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
+                label: 'Inicio',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.search_outlined),
+                activeIcon: Icon(Icons.search),
+                label: 'Buscar',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.grid_view_outlined),
+                activeIcon: Icon(Icons.grid_view),
+                label: 'Catálogo',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'Perfil',
+              ),
+            ],
           ),
         ],
       ),

@@ -56,9 +56,11 @@ def motor():
 
 
 def _contexto(c, tenant=None, usuario=None, plataforma=False):
+    # Zona de Bolivia, como la aplicación (`core.tenant`): sin ella `current_date` es la fecha UTC y,
+    # entre las 20:00 y las 24:00 de Bolivia, «ayer» todavía es hoy para la aplicación.
     c.execute(
         text("SELECT set_config('app.id_tenant', :t, true), set_config('app.id_usuario', :u, true), "
-             "set_config('app.modo_plataforma', :p, true)"),
+             "set_config('app.modo_plataforma', :p, true), set_config('TimeZone', 'America/La_Paz', true)"),
         {"t": str(tenant) if tenant else "", "u": str(usuario) if usuario else "", "p": "on" if plataforma else ""},
     )
 
@@ -726,25 +728,26 @@ def test_aislamiento_multitenant_tablas_nuevas_ia_ml_suscripcion(mundo):
 
     if tablas_ml_existen:
         _contexto(c, tenant=1)
+        # Columnas de la migración 0019 (las anteriores de esta prueba no existían en el esquema)
         id_ds = c.execute(text(
-            "INSERT INTO fashionstore.datasets_ml "
-            "(id_tenant, tipo, caracteristicas, registros, estado) "
-            "VALUES (1, 'demanda', '[]'::jsonb, 10, 'disponible') RETURNING id_dataset"
+            "INSERT INTO fashionstore.datasets_ml (id_tenant, nombre, origen, cantidad_registros) "
+            "VALUES (1, 'Demanda de prueba', 'sintetico', 10) RETURNING id_dataset"
         )).scalar()
         id_mod = c.execute(text(
             "INSERT INTO fashionstore.modelos_ml "
-            "(id_tenant, id_dataset, algoritmo, metricas, estado, activo) "
-            "VALUES (1, :ds, 'random_forest', '{}'::jsonb, 'activo', true) RETURNING id_modelo"
+            "(id_tenant, id_dataset, nombre, tipo_modelo, algoritmo, origen_datos, estado, activo) "
+            "VALUES (1, :ds, 'Modelo de prueba', 'supervisado', 'random_forest', 'sintetico', 'activo', true) "
+            "RETURNING id_modelo"
         ), {"ds": id_ds}).scalar()
         c.execute(text(
             "INSERT INTO fashionstore.predicciones_ml "
-            "(id_tenant, id_modelo, horizonte_dias, resultado) "
-            "VALUES (1, :m, 30, '[]'::jsonb)"
+            "(id_tenant, id_modelo, nombre_producto, nombre_sucursal, periodo) "
+            "VALUES (1, :m, 'Producto', 'Sucursal', '2026-12')"
         ), {"m": id_mod})
         c.execute(text(
             "INSERT INTO fashionstore.segmentos_clientes_ml "
-            "(id_tenant, id_modelo, algoritmo, numero_clusters, clusters) "
-            "VALUES (1, :m, 'kmeans', 3, '[]'::jsonb)"
+            "(id_tenant, id_modelo, codigo_grupo, nombre_grupo, descripcion) "
+            "VALUES (1, :m, 'G1', 'Grupo 1', 'Grupo de prueba')"
         ), {"m": id_mod})
 
         assert c.execute(text("SELECT count(*) FROM fashionstore.datasets_ml")).scalar() >= 1
@@ -785,3 +788,367 @@ def test_aislamiento_multitenant_tablas_nuevas_ia_ml_suscripcion(mundo):
         _contexto(c, tenant=id_b)
         assert c.execute(text("SELECT count(*) FROM fashionstore.historial_suscripcion WHERE id_tenant = 1")).scalar() == 0
 
+
+
+# --------------------------------------------------------------------------------- P2-CU14, CU15, CU19 y CU20 (0020)
+# Spec: `.specs/changes/P2-CU14-CU15-CU19-CU20-sin-conexion/plan.md` §9.
+
+import threading
+import uuid as _uuid
+from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+
+
+def _catalogo_b(mundo, unidades=2):
+    """Prenda, inventario y un cliente registrado en la empresa B (dentro de la transacción de la prueba)."""
+    c = mundo["conexion"]
+    t = mundo["id_b"]
+    _contexto(c, plataforma=True)
+    q = lambda sql, **p: c.execute(text(sql), p).scalar()
+    s1, s2 = c.execute(text("SELECT id_sucursal FROM fashionstore.sucursales WHERE id_tenant = :t ORDER BY id_sucursal"),
+                       {"t": t}).scalars().all()
+    cat = q("INSERT INTO fashionstore.categorias (id_tenant, nombre) VALUES (:t, 'Camisas B') RETURNING id_categoria", t=t)
+    temp = q("INSERT INTO fashionstore.temporadas (id_tenant, nombre, fecha_inicio, fecha_fin) "
+             "VALUES (:t, 'Temporada sync', current_date, current_date + 90) RETURNING id_temporada", t=t)
+    prod = q("INSERT INTO fashionstore.productos (id_tenant, id_categoria, nombre, precio_base) "
+             "VALUES (:t, :c, 'Camisa B', 100) RETURNING id_producto", t=t, c=cat)
+    var = q("INSERT INTO fashionstore.variantes_producto (id_tenant, id_producto, id_talla, id_color, sku) "
+            "VALUES (:t, :p, (SELECT min(id_talla) FROM fashionstore.tallas), (SELECT min(id_color) FROM fashionstore.colores), "
+            "'SYNC-B-1') RETURNING id_variante", t=t, p=prod)
+    inv = q("INSERT INTO fashionstore.inventario_sucursal (id_tenant, id_variante, id_sucursal, id_temporada, cantidad_disponible) "
+            "VALUES (:t, :v, :s, :temp, :n) RETURNING id_inventario", t=t, v=var, s=s1, temp=temp, n=unidades)
+    cliente = q("INSERT INTO fashionstore.usuarios (email, password_hash, nombres, apellidos, rol, activo) "
+                "VALUES ('cliente.sync@ejemplo.com', :h, 'Cliente', 'Sync', 'cliente', true) RETURNING id_usuario",
+                h=hash_password(CLAVE_PRUEBA))
+    q("INSERT INTO fashionstore.clientes (id_cliente) VALUES (:c) RETURNING id_cliente", c=cliente)
+    q("INSERT INTO fashionstore.cliente_tenant (id_tenant, id_cliente) VALUES (:t, :c) RETURNING id_cliente", t=t, c=cliente)
+    sucursal_fs = q("SELECT min(id_sucursal) FROM fashionstore.sucursales WHERE id_tenant = 1")
+    _contexto(c)
+    return {"s1": s1, "s2": s2, "producto": prod, "variante": var, "inventario": inv, "cliente": cliente,
+            "sucursal_fs": sucursal_fs,
+            "auth": {**_token(cliente, "cliente", None), CABECERA_TENANT: "pruebas-b"}}
+
+
+def _op_reserva(id_sucursal, id_variante, cantidad=1, provisional="PROV-AAAA-000001", **cambios):
+    ahora = _dt.now(_tz.utc)
+    op = {
+        "uuid": str(_uuid.uuid4()), "tipo": "reserva", "id_sucursal": id_sucursal,
+        "registrada_en": (ahora - _td(minutes=30)).isoformat(), "codigo_provisional": provisional,
+        "datos": {"fecha_hora_atencion": (ahora + _td(hours=3)).isoformat(),
+                  "items": [{"id_variante": id_variante, "cantidad": cantidad}]},
+    }
+    op.update(cambios)
+    return op
+
+
+def _fila(c, sql, **p):
+    _contexto(c, plataforma=True)
+    try:
+        return c.execute(text(sql), p).one()
+    finally:
+        _contexto(c)
+
+
+def test_p2_cu14_cu19_flujo_del_cliente_sin_conexion(mundo):
+    d = _catalogo_b(mundo)
+    api, c = mundo["cliente"], mundo["conexion"]
+    disp = str(_uuid.uuid4())
+
+    # CU14: alta (201) y reutilización (200, A1)
+    alta = api.post("/api/v1/sin-conexion/dispositivos", json={"identificador": disp, "plataforma": "pwa"}, headers=d["auth"])
+    assert alta.status_code == 201, alta.text
+    assert alta.json()["codigo_corto"] == disp[:4].upper()
+    assert alta.json()["horas_vencimiento_reserva"] == 24
+    assert api.post("/api/v1/sin-conexion/dispositivos", json={"identificador": disp, "plataforma": "pwa"},
+                    headers=d["auth"]).status_code == 200
+
+    # CU14: el paquete trae solo lo de la empresa B (RLS)
+    paquete = api.get(f"/api/v1/sin-conexion/catalogo?dispositivo={disp}", headers=d["auth"])
+    assert paquete.status_code == 200, paquete.text
+    cuerpo = paquete.json()
+    assert [p["id_producto"] for p in cuerpo["productos"]] == [d["producto"]]
+    assert {s["id_sucursal"] for s in cuerpo["sucursales"]} == {d["s1"], d["s2"]}
+    assert {"id_variante": d["variante"], "id_sucursal": d["s1"], "cantidad_disponible": 2} in cuerpo["existencias"]
+    assert cuerpo["productos"][0]["precio_base"] == "100.00"
+
+    # El cliente no registrado en FASHION STORE no registra dispositivos allí
+    ajeno = api.post("/api/v1/sin-conexion/dispositivos", json={"identificador": str(_uuid.uuid4()), "plataforma": "pwa"},
+                     headers={**d["auth"], CABECERA_TENANT: "fashionstore"})
+    assert ajeno.status_code == 403 and ajeno.json()["code"] == "CLIENTE_NO_REGISTRADO"
+
+    # CU19: confirmada, sin stock (rechazada con aviso) y sucursal de otra empresa (PI-14)
+    ops = [
+        _op_reserva(d["s1"], d["variante"], 1, "PROV-AAAA-000001"),
+        _op_reserva(d["s1"], d["variante"], 2, "PROV-AAAA-000002"),
+        _op_reserva(d["sucursal_fs"], d["variante"], 1, "PROV-AAAA-000003"),
+    ]
+    lote = api.post("/api/v1/sin-conexion/sincronizar", json={"dispositivo": disp, "operaciones": ops}, headers=d["auth"])
+    assert lote.status_code == 200, lote.text
+    estados = [(r["estado"], r["motivo"]) for r in lote.json()["resultados"]]
+    assert estados == [("confirmada", None), ("rechazada", "STOCK_INSUFICIENTE"), ("rechazada", "SUCURSAL_INACTIVA")]
+    assert lote.json()["resultados"][0]["codigo_reserva"].startswith("RES-")
+
+    # La reserva guarda su vencimiento (RN25: 24 h por defecto) y el código provisional
+    horas, provisional = _fila(c, "SELECT extract(epoch FROM vence_en - creado_en) / 3600, codigo_provisional "
+                                  "FROM fashionstore.reservas WHERE id_reserva = :r",
+                               r=lote.json()["resultados"][0]["id_reserva"])
+    assert (round(horas), provisional) == (24, "PROV-AAAA-000001")
+    assert tuple(_fila(c, "SELECT cantidad_disponible, cantidad_reservada FROM fashionstore.inventario_sucursal "
+                          "WHERE id_inventario = :i", i=d["inventario"])) == (1, 1)
+
+    # Reenviar el lote no duplica nada (RN35)
+    otra_vez = api.post("/api/v1/sin-conexion/sincronizar", json={"dispositivo": disp, "operaciones": ops}, headers=d["auth"])
+    assert [r["repetida"] for r in otra_vez.json()["resultados"]] == [True, True, True]
+    assert otra_vez.json()["resultados"][0]["codigo_reserva"] == lote.json()["resultados"][0]["codigo_reserva"]
+    assert tuple(_fila(c, "SELECT cantidad_disponible, cantidad_reservada FROM fashionstore.inventario_sucursal "
+                          "WHERE id_inventario = :i", i=d["inventario"])) == (1, 1)
+
+    # Bandeja: un aviso por cada reserva rechazada
+    bandeja = api.get("/api/v1/avisos", headers=d["auth"]).json()
+    assert bandeja["no_leidos"] == 2 and {a["tipo"] for a in bandeja["avisos"]} == {"reserva_cancelada"}
+    leido = api.post(f"/api/v1/avisos/{bandeja['avisos'][0]['id_aviso']}/leido", headers=d["auth"])
+    assert leido.status_code == 200 and leido.json()["leido"] is True
+
+    # Estado de las operaciones y registro de sincronización sin datos sensibles (RN43)
+    assert len(api.get(f"/api/v1/sin-conexion/operaciones?dispositivo={disp}", headers=d["auth"]).json()) == 3
+    tipos = _fila(c, "SELECT array_agg(tipo ORDER BY id_sync_log) FROM fashionstore.sync_log s "
+                     "JOIN fashionstore.dispositivos d USING (id_tenant, id_dispositivo) WHERE d.identificador = :u", u=disp)[0]
+    assert tipos == ["descarga", "sincronizacion", "sincronizacion"]
+
+
+def test_p2_tablas_sin_conexion_aisladas_por_empresa(mundo):
+    d = _catalogo_b(mundo)
+    c = mundo["conexion"]
+    _contexto(c, tenant=mundo["id_b"])
+    c.execute(text("INSERT INTO fashionstore.dispositivos (identificador, id_cliente, plataforma, codigo_corto) "
+                   "VALUES (gen_random_uuid(), :c, 'pwa', 'ABCD')"), {"c": d["cliente"]})
+    c.execute(text("INSERT INTO fashionstore.avisos_cliente (id_cliente, tipo, titulo, mensaje) "
+                   "VALUES (:c, 'reserva_cancelada', 't', 'm')"), {"c": d["cliente"]})
+    for tabla in ("dispositivos", "avisos_cliente"):
+        _contexto(c, tenant=mundo["id_b"])
+        assert c.execute(text(f"SELECT count(*) FROM fashionstore.{tabla}")).scalar() == 1
+        _contexto(c, tenant=1)
+        assert c.execute(text(f"SELECT count(*) FROM fashionstore.{tabla} WHERE id_tenant = :t"), {"t": mundo["id_b"]}).scalar() == 0
+        _contexto(c)
+        assert c.execute(text(f"SELECT count(*) FROM fashionstore.{tabla}")).scalar() == 0
+
+    # Escribir en otra empresa: lo impide la RLS; mezclar empresas: lo impiden las FK compuestas
+    _contexto(c, tenant=1)
+    error = _falla(c, "INSERT INTO fashionstore.avisos_cliente (id_tenant, id_cliente, tipo, titulo, mensaje) "
+                      "VALUES (:t, :c, 'reserva_cancelada', 't', 'm')", t=mundo["id_b"], c=d["cliente"])
+    assert error and "row-level security" in error
+    _contexto(c, tenant=mundo["id_b"])
+    disp = c.execute(text("SELECT id_dispositivo FROM fashionstore.dispositivos")).scalar()
+    error = _falla(c, "INSERT INTO fashionstore.operaciones_sync (uuid_operacion, id_dispositivo, id_sucursal, tipo, estado, registrada_en) "
+                      "VALUES (gen_random_uuid(), :d, :s, 'reserva', 'rechazada', now())", d=disp, s=d["sucursal_fs"])
+    assert error and "fk_operaciones_sync_sucursal" in error
+    _contexto(c)
+
+
+def test_p2_cu19_cu20_compra_cobrada_sin_stock_se_reembolsa(mundo, monkeypatch):
+    from integrations.stripe_service import ResultadoPasarela, StripeService
+    from modules.sincronizacion.cu19_sincronizar import servicio as cu19
+    from modules.sincronizacion.cu20_conflictos import servicio as cu20
+
+    aprobado = ResultadoPasarela(aprobado=True, referencia="pi_sbx_sync", codigo_respuesta="succeeded", mensaje="ok")
+    monkeypatch.setattr(cu19.PagoServicio, "verificar_cobro", staticmethod(lambda pago, pasarela=None: aprobado))
+    monkeypatch.setattr(cu20, "StripeService", lambda: StripeService(api_key="", latencia_simulada_ms=0))
+
+    d = _catalogo_b(mundo, unidades=0)
+    api, c, t = mundo["cliente"], mundo["conexion"], mundo["id_b"]
+    _contexto(c, plataforma=True)
+    q = lambda sql, **p: c.execute(text(sql), p).scalar()
+    # Compra móvil cuya retención venció (anulada) y que Stripe cobró: no queda stock para completarla
+    venta = q("INSERT INTO fashionstore.ventas (id_tenant, id_cliente, id_sucursal, tipo_venta, numero_comprobante, estado, "
+              "subtotal, total, fecha_venta) VALUES (:t, :c, :s, 'digital_movil', 'SYNC-B-0001', 'anulada', 100, 100, "
+              "now() - interval '1 hour') RETURNING id_venta", t=t, c=d["cliente"], s=d["s1"])
+    q("INSERT INTO fashionstore.venta_detalle (id_tenant, id_venta, id_variante, cantidad, precio_unitario, id_sucursal) "
+      "VALUES (:t, :v, :var, 1, 100, :s) RETURNING id_venta_detalle", t=t, v=venta, var=d["variante"], s=d["s1"])
+    pago = q("INSERT INTO fashionstore.pagos (id_tenant, id_venta, metodo_pago, monto, estado, referencia_pasarela) "
+             "VALUES (:t, :v, 'tarjeta_credito', 100, 'pendiente', 'pi_sbx_sync') RETURNING id_pago", t=t, v=venta)
+    # Encargado autorizado solo en la otra sucursal
+    encargado = q("INSERT INTO fashionstore.usuarios (email, password_hash, nombres, apellidos, rol, activo, id_tenant, id_sucursal) "
+                  "VALUES ('encargado.sync@empresa-b.com', :h, 'Enc', 'B', 'encargado_sucursal', true, :t, :s) RETURNING id_usuario",
+                  h=hash_password(CLAVE_PRUEBA), t=t, s=d["s2"])
+    q("INSERT INTO fashionstore.empleados (id_empleado, id_tenant, codigo_empleado, cargo, fecha_contratacion) "
+      "VALUES (:u, :t, 'EMP-B-SYNC', 'Encargado', current_date) RETURNING id_empleado", u=encargado, t=t)
+    _contexto(c)
+
+    disp = str(_uuid.uuid4())
+    assert api.post("/api/v1/sin-conexion/dispositivos", json={"identificador": disp, "plataforma": "flutter"},
+                    headers=d["auth"]).status_code == 201
+    compra = {"uuid": str(_uuid.uuid4()), "tipo": "compra_interrumpida",
+              "registrada_en": _dt.now(_tz.utc).isoformat(),
+              "datos": {"id_venta": venta, "id_pago": pago, "client_secret": "no-debe-guardarse"}}
+    lote = api.post("/api/v1/sin-conexion/sincronizar", json={"dispositivo": disp, "operaciones": [compra]}, headers=d["auth"])
+    resultado = lote.json()["resultados"][0]
+    assert (resultado["estado"], resultado["motivo"]) == ("en_conflicto", "STOCK_INSUFICIENTE"), lote.text
+    id_conflicto = resultado["id_conflicto"]
+    assert _fila(c, "SELECT estado FROM fashionstore.pagos WHERE id_pago = :p", p=pago)[0] == "confirmado"
+    assert "client_secret" not in str(_fila(c, "SELECT datos FROM fashionstore.operaciones_sync WHERE id_venta = :v", v=venta)[0])
+    assert tuple(_fila(c, "SELECT cantidad_disponible, cantidad_reservada FROM fashionstore.inventario_sucursal "
+                          "WHERE id_inventario = :i", i=d["inventario"])) == (0, 0)
+
+    admin = _token(mundo["admin_b"], "administrador", t)
+    enc = _token(encargado, "encargado_sucursal", t)
+    # A2: el encargado de la otra sucursal no lo ve; FASHION STORE tampoco (RLS)
+    assert api.get("/api/v1/conflictos-sync", headers=enc).json() == []
+    assert api.get(f"/api/v1/conflictos-sync/{id_conflicto}", headers=enc).status_code == 404
+    _contexto(c, tenant=1)
+    assert c.execute(text("SELECT count(*) FROM fashionstore.conflictos_sync WHERE id_conflicto = :i"), {"i": id_conflicto}).scalar() == 0
+    _contexto(c)
+
+    lista = api.get("/api/v1/conflictos-sync", headers=admin)
+    assert [x["id_conflicto"] for x in lista.json()] == [id_conflicto]
+    detalle = api.get(f"/api/v1/conflictos-sync/{id_conflicto}", headers=admin).json()
+    assert detalle["detalle"]["esperado"] == 1 and detalle["detalle"]["encontrado"] == 0
+    assert detalle["pago"]["monto"] == "100.00"
+    assert api.get("/api/v1/conflictos-sync/resumen", headers=admin).json() == {"pendiente": 1, "reembolso_pendiente": 0}
+
+    # Aceptar (y el segundo intento choca, A3)
+    aceptado = api.post(f"/api/v1/conflictos-sync/{id_conflicto}/aceptar-reembolso", headers=admin)
+    assert aceptado.status_code == 200, aceptado.text
+    assert aceptado.json()["estado"] == "reembolso_pendiente"
+    otra = api.post(f"/api/v1/conflictos-sync/{id_conflicto}/aceptar-reembolso", headers=admin)
+    assert otra.status_code == 409 and otra.json()["code"] == "CONFLICTO_YA_RESUELTO"
+    assert tuple(_fila(c, "SELECT cantidad_disponible, cantidad_reservada FROM fashionstore.inventario_sucursal "
+                          "WHERE id_inventario = :i", i=d["inventario"])) == (0, 0)  # el inventario no se toca
+
+    # Cierre: el encargado no puede; sin forzar solo el último día; forzado reembolsa
+    assert api.post("/api/v1/conflictos-sync/procesar-cierre", json={"forzar": True}, headers=enc).status_code == 403
+    if not api.get("/api/v1/conflictos-sync/cierre", headers=admin).json()["es_ultimo_dia_del_mes"]:
+        sin_forzar = api.post("/api/v1/conflictos-sync/procesar-cierre", json={"forzar": False}, headers=admin)
+        assert sin_forzar.status_code == 409 and sin_forzar.json()["code"] == "CIERRE_NO_DISPONIBLE"
+    cierre = api.post("/api/v1/conflictos-sync/procesar-cierre", json={"forzar": True}, headers=admin)
+    assert cierre.status_code == 200, cierre.text
+    assert (cierre.json()["procesados"], cierre.json()["reembolsados"]) == (1, 1)
+    assert _fila(c, "SELECT estado FROM fashionstore.pagos WHERE id_pago = :p", p=pago)[0] == "reembolsado"
+    assert _fila(c, "SELECT estado FROM fashionstore.conflictos_sync WHERE id_conflicto = :i", i=id_conflicto)[0] == "resuelto"
+
+    # El cliente ve los avisos y el nuevo estado de su operación
+    assert {a["tipo"] for a in api.get("/api/v1/avisos", headers=d["auth"]).json()["avisos"]} == {
+        "reembolso_aceptado", "reembolso_procesado"}
+    operaciones = api.get(f"/api/v1/sin-conexion/operaciones?dispositivo={disp}", headers=d["auth"]).json()
+    assert operaciones[0]["estado_conflicto"] == "resuelto"
+
+
+# ----------------------------------------------------- concurrencia real (dos conexiones, datos confirmados)
+
+@pytest.fixture
+def empresa_confirmada(motor):
+    """Empresa suspendida (no aparece en el directorio) con una unidad en stock, **confirmada** en la rama
+    de pruebas para que dos conexiones la vean. Se borra entera al terminar."""
+    limpiar_cache_tenants()
+    sufijo = _uuid.uuid4().hex[:8]
+    ids = {}
+    with motor.connect() as c:
+        with c.begin():
+            _contexto(c, plataforma=True)
+            q = lambda sql, **p: c.execute(text(sql), p).scalar()
+            t = q("INSERT INTO fashionstore.tenants (codigo, nombre, estado) VALUES (:c, 'Concurrencia', 'suspendida') "
+                  "RETURNING id_tenant", c=f"sync-{sufijo}")
+            q("INSERT INTO fashionstore.suscripciones (id_tenant, id_plan, estado, fecha_inicio, fecha_vencimiento) "
+              "VALUES (:t, (SELECT id_plan FROM fashionstore.planes WHERE nombre = 'Básico'), 'activa', current_date - 1, "
+              "current_date + 30) RETURNING id_suscripcion", t=t)
+            q("INSERT INTO fashionstore.configuracion_tenant (id_tenant) VALUES (:t) RETURNING id_tenant", t=t)
+            s = q("INSERT INTO fashionstore.sucursales (id_tenant, nombre, direccion, id_ciudad) VALUES "
+                  "(:t, 'Sucursal C', 'Calle de prueba 1', (SELECT min(id_ciudad) FROM fashionstore.ciudades)) RETURNING id_sucursal", t=t)
+            cat = q("INSERT INTO fashionstore.categorias (id_tenant, nombre) VALUES (:t, 'Cat C') RETURNING id_categoria", t=t)
+            temp = q("INSERT INTO fashionstore.temporadas (id_tenant, nombre, fecha_inicio, fecha_fin) "
+                     "VALUES (:t, 'Temp C', current_date, current_date + 30) RETURNING id_temporada", t=t)
+            prod = q("INSERT INTO fashionstore.productos (id_tenant, id_categoria, nombre, precio_base) "
+                     "VALUES (:t, :c, 'Prenda C', 50) RETURNING id_producto", t=t, c=cat)
+            var = q("INSERT INTO fashionstore.variantes_producto (id_tenant, id_producto, id_talla, id_color, sku) VALUES "
+                    "(:t, :p, (SELECT min(id_talla) FROM fashionstore.tallas), (SELECT min(id_color) FROM fashionstore.colores), "
+                    "'SYNC-C-1') RETURNING id_variante", t=t, p=prod)
+            inv = q("INSERT INTO fashionstore.inventario_sucursal (id_tenant, id_variante, id_sucursal, id_temporada, "
+                    "cantidad_disponible) VALUES (:t, :v, :s, :tp, 1) RETURNING id_inventario", t=t, v=var, s=s, tp=temp)
+            cliente = q("INSERT INTO fashionstore.usuarios (email, password_hash, nombres, apellidos, rol, activo) VALUES "
+                        "(:e, :h, 'Cliente', 'Concurrente', 'cliente', true) RETURNING id_usuario",
+                        e=f"concurrencia.{sufijo}@ejemplo.com", h=hash_password(CLAVE_PRUEBA))
+            q("INSERT INTO fashionstore.clientes (id_cliente) VALUES (:c) RETURNING id_cliente", c=cliente)
+            q("INSERT INTO fashionstore.cliente_tenant (id_tenant, id_cliente) VALUES (:t, :c) RETURNING id_cliente", t=t, c=cliente)
+            disp = q("INSERT INTO fashionstore.dispositivos (id_tenant, identificador, id_cliente, plataforma, codigo_corto) "
+                     "VALUES (:t, gen_random_uuid(), :c, 'pwa', 'CCCC') RETURNING id_dispositivo", t=t, c=cliente)
+            ids = {"tenant": t, "sucursal": s, "variante": var, "inventario": inv, "cliente": cliente, "dispositivo": disp}
+    try:
+        yield ids
+    finally:
+        with motor.connect() as c:
+            with c.begin():
+                _contexto(c, plataforma=True)
+                for tabla in ("avisos_cliente", "conflictos_sync", "sync_log", "operaciones_sync", "dispositivos",
+                              "movimientos_inventario", "reserva_detalle", "reservas", "inventario_sucursal",
+                              "variantes_producto", "productos", "categorias", "temporadas", "bitacora",
+                              "configuracion_tenant", "sucursales", "historial_suscripcion", "suscripciones",
+                              "cliente_tenant"):
+                    c.execute(text(f"DELETE FROM fashionstore.{tabla} WHERE id_tenant = :t"), {"t": ids["tenant"]})
+                c.execute(text("DELETE FROM fashionstore.tenants WHERE id_tenant = :t"), {"t": ids["tenant"]})
+                c.execute(text("DELETE FROM fashionstore.clientes WHERE id_cliente = :c"), {"c": ids["cliente"]})
+                c.execute(text("DELETE FROM fashionstore.usuarios WHERE id_usuario = :c"), {"c": ids["cliente"]})
+        limpiar_cache_tenants()
+
+
+def _en_paralelo(motor, empresa, operaciones):
+    """Procesa cada operación en su propia conexión, a la vez, con el servicio real de CU19."""
+    from modules.autenticacion_seguridad.modelos import UsuarioORM
+    from modules.sincronizacion.cu19_sincronizar.esquemas import OperacionIn
+    from modules.sincronizacion.cu19_sincronizar.servicio import SincronizacionServicio
+
+    barrera = threading.Barrier(len(operaciones))
+    resultados = [None] * len(operaciones)
+
+    def trabajar(i, op):
+        sesion = Session(bind=motor)
+        sesion.info.update({"id_tenant": empresa["tenant"], "id_usuario": empresa["cliente"], "modo_plataforma": False})
+        try:
+            usuario = sesion.get(UsuarioORM, empresa["cliente"])
+            sesion.commit()
+            barrera.wait(timeout=30)
+            resultados[i] = SincronizacionServicio._procesar(
+                sesion, usuario, empresa["dispositivo"], "web", OperacionIn(**op), None
+            )
+        except Exception as exc:  # noqa: BLE001 - se comprueba abajo
+            resultados[i] = exc
+        finally:
+            sesion.close()
+
+    hilos = [threading.Thread(target=trabajar, args=(i, op)) for i, op in enumerate(operaciones)]
+    for h in hilos:
+        h.start()
+    for h in hilos:
+        h.join(timeout=120)
+    for r in resultados:
+        assert not isinstance(r, Exception), repr(r)
+    return resultados
+
+
+def _estado_stock(motor, empresa):
+    with motor.connect() as c:
+        with c.begin():
+            _contexto(c, plataforma=True)
+            stock = c.execute(text("SELECT cantidad_disponible, cantidad_reservada FROM fashionstore.inventario_sucursal "
+                                   "WHERE id_inventario = :i"), {"i": empresa["inventario"]}).one()
+            reservas = c.execute(text("SELECT count(*) FROM fashionstore.reservas WHERE id_tenant = :t"),
+                                 {"t": empresa["tenant"]}).scalar()
+            operaciones = c.execute(text("SELECT count(*) FROM fashionstore.operaciones_sync WHERE id_tenant = :t"),
+                                    {"t": empresa["tenant"]}).scalar()
+    return tuple(stock), reservas, operaciones
+
+
+def test_p2_err04_dos_sincronizaciones_por_la_ultima_unidad(motor, empresa_confirmada):
+    e = empresa_confirmada
+    ops = [_op_reserva(e["sucursal"], e["variante"], 1, f"PROV-CCCC-00000{i}") for i in (1, 2)]
+    resultados = _en_paralelo(motor, e, ops)
+    assert sorted(r.estado for r in resultados) == ["confirmada", "rechazada"]
+    assert next(r for r in resultados if r.estado == "rechazada").motivo == "STOCK_INSUFICIENTE"
+    assert _estado_stock(motor, e) == ((0, 1), 1, 2)  # nunca negativo, una sola reserva
+
+
+def test_p2_rn35_el_mismo_uuid_enviado_a_la_vez_se_aplica_una_vez(motor, empresa_confirmada):
+    e = empresa_confirmada
+    op = _op_reserva(e["sucursal"], e["variante"], 1, "PROV-CCCC-000009")
+    resultados = _en_paralelo(motor, e, [op, dict(op)])
+    assert {r.estado for r in resultados} == {"confirmada"}
+    assert resultados[0].codigo_reserva == resultados[1].codigo_reserva
+    assert sorted(r.repetida for r in resultados) == [False, True]
+    assert _estado_stock(motor, e) == ((0, 1), 1, 1)
