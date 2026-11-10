@@ -1,0 +1,146 @@
+@if (cambio(); as c) {
+  <!-- AC-9: ticket del cambio (imprimible como el de la caja) -->
+  <div class="flex flex-col items-center gap-4">
+    <div class="pos-ticket" id="ticket-cambio">
+      <p class="pos-ticket__marca"><app-marca-tienda /></p>
+      <p class="pos-ticket__centro">{{ c.nombre_sucursal }}</p>
+      <hr />
+      <p>CAMBIO DE PRENDA {{ c.numero_comprobante }}</p>
+      <p>{{ c.creado_en | date: 'dd/MM/yyyy HH:mm' }}</p>
+      <p>Venta original: {{ c.comprobante_venta }}</p>
+      @if (c.atendido_por) { <p>Atendió: {{ c.atendido_por }}</p> }
+      <hr />
+      <p>DEVUELVE</p>
+      @for (l of c.devueltas; track l.id_variante) {
+        <p>{{ l.cantidad }} × {{ l.nombre_producto }} {{ l.talla_codigo }} · {{ l.subtotal | importe }}</p>
+      }
+      <p>SE LLEVA</p>
+      @for (l of c.nuevas; track l.id_variante) {
+        <p>{{ l.cantidad }} × {{ l.nombre_producto }} {{ l.talla_codigo }} · {{ l.subtotal | importe }}</p>
+      }
+      <hr />
+      <p>Valor devuelto: {{ c.valor_devuelto | importe }}</p>
+      <p>Valor nuevo: {{ c.valor_nuevo | importe }}</p>
+      @if (+c.diferencia > 0) {
+        <p>Pagó la diferencia: {{ c.diferencia | importe }} ({{ c.metodo_pago }})</p>
+        @if (c.monto_recibido) { <p>Recibido: {{ c.monto_recibido | importe }} · Vuelto: {{ c.vuelto | importe }}</p> }
+        @if (c.referencia) { <p>Referencia: {{ c.referencia }}</p> }
+      } @else if (+c.devuelto_al_cliente > 0) {
+        <p>Se le devuelve en efectivo: {{ c.devuelto_al_cliente | importe }}</p>
+      } @else {
+        <p>Sin diferencia</p>
+      }
+    </div>
+    <div class="flex gap-2 pos-no-imprimir">
+      <button type="button" (click)="imprimir()" class="border border-slate-300 text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-xl">Imprimir</button>
+      <button type="button" id="btn-nuevo-cambio" (click)="reiniciar()" class="bg-[#0F172A] text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-xl">Nuevo cambio</button>
+    </div>
+  </div>
+} @else {
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pos-no-imprimir">
+    <section class="lg:col-span-2 space-y-4">
+      <!-- 1. Venta -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5">
+        <label for="campo-comprobante-cambio" class="text-xs font-bold uppercase tracking-wider text-slate-500">Comprobante de la venta</label>
+        <div class="flex gap-2 mt-2">
+          <input id="campo-comprobante-cambio" type="text" class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm"
+                 placeholder="FS-2026-000123" [value]="comprobante()" (input)="comprobante.set($any($event.target).value)"
+                 (keydown.enter)="buscarVenta()" />
+          <button type="button" id="btn-buscar-venta-cambio" (click)="buscarVenta()" [disabled]="cargando() || !comprobante().trim()"
+                  class="bg-[#0F172A] text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-xl disabled:opacity-40">Buscar</button>
+        </div>
+      </div>
+
+      @if (venta(); as v) {
+        <!-- 2. Qué devuelve -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5">
+          <p class="text-sm text-slate-600">
+            {{ v.numero_comprobante }} · {{ v.fecha_venta | date: 'dd/MM/yyyy' }} · {{ v.cliente_nombre ?? 'Sin cuenta' }} ·
+            hace {{ v.dias_transcurridos }} {{ v.dias_transcurridos === 1 ? 'día' : 'días' }} (plazo {{ v.plazo_dias }})
+          </p>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mt-4 mb-2">Qué devuelve</p>
+          @for (l of v.lineas; track l.id_venta_detalle) {
+            <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-100">
+              <div class="min-w-0">
+                <p class="text-sm font-semibold truncate">{{ l.nombre_producto }} · {{ l.talla_codigo }} · {{ l.color_nombre }}</p>
+                <p class="text-xs text-slate-500">{{ l.cambiables }} de {{ l.vendidas }} por cambiar · vale {{ l.valor_unitario | importe }} c/u</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button type="button" class="w-8 h-8 border rounded-lg" [disabled]="!(devolver()[l.id_venta_detalle] > 0)"
+                        (click)="cambiarDevolucion(l.id_venta_detalle, -1, l.cambiables)" aria-label="Menos">−</button>
+                <span class="w-6 text-center text-sm" [attr.data-devolver]="l.id_venta_detalle">{{ devolver()[l.id_venta_detalle] ?? 0 }}</span>
+                <button type="button" class="w-8 h-8 border rounded-lg" [disabled]="(devolver()[l.id_venta_detalle] ?? 0) >= l.cambiables"
+                        (click)="cambiarDevolucion(l.id_venta_detalle, 1, l.cambiables)" [attr.aria-label]="'Devolver ' + l.sku">+</button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 3. Qué se lleva -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5">
+          <label for="campo-prenda-cambio" class="text-xs font-bold uppercase tracking-wider text-slate-500">Qué se lleva</label>
+          <input id="campo-prenda-cambio" type="text" class="w-full mt-2 border border-slate-200 rounded-xl px-3 py-2 text-sm"
+                 placeholder="Nombre, categoría o SKU" [value]="textoPrenda()" (input)="buscarPrendas($any($event.target).value)" />
+          @for (r of resultados(); track r.id_variante) {
+            <button type="button" class="w-full text-left flex justify-between gap-3 py-2 border-b border-slate-100 disabled:opacity-50"
+                    [disabled]="r.disponible_en_sucursal <= 0" (click)="agregarNueva(r)">
+              <span class="truncate text-sm">{{ r.nombre_producto }} · {{ r.talla_codigo }} · {{ r.color_nombre }}
+                <span class="text-xs text-slate-500">({{ r.disponible_en_sucursal }} disp.)</span></span>
+              <span class="text-sm shrink-0">{{ r.precio_final | importe }}</span>
+            </button>
+          }
+          @for (n of nuevas(); track n.variante.id_variante) {
+            <div class="flex justify-between gap-3 py-2 text-sm">
+              <span class="truncate">{{ n.cantidad }} × {{ n.variante.nombre_producto }} · {{ n.variante.talla_codigo }}</span>
+              <button type="button" class="text-xs text-rose-700" (click)="quitarNueva(n.variante.id_variante)">Quitar</button>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- 4. Diferencia y cobro -->
+    <aside class="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 h-fit">
+      @if (!enLinea()) {
+        <p class="text-sm bg-slate-900 text-white rounded-xl px-3 py-2">Sin conexión: no se puede registrar el cambio.</p>
+      }
+      @if (error(); as e) {
+        <p role="alert" id="error-cambio" class="text-sm text-rose-800 bg-rose-50 rounded-xl px-3 py-2">{{ e }}</p>
+      }
+      @if (previo(); as p) {
+        <div class="text-sm space-y-1">
+          <div class="flex justify-between"><span>Devuelve</span><span>{{ p.valor_devuelto | importe }}</span></div>
+          <div class="flex justify-between"><span>Se lleva</span><span>{{ p.valor_nuevo | importe }}</span></div>
+          <div class="flex justify-between font-bold border-t border-slate-100 pt-2" id="diferencia-cambio">
+            <span>{{ diferencia() > 0 ? 'Paga el cliente' : diferencia() < 0 ? 'Se devuelve al cliente' : 'Sin diferencia' }}</span>
+            <span>{{ (diferencia() < 0 ? p.diferencia.replace('-', '') : p.diferencia) | importe }}</span>
+          </div>
+        </div>
+        @if (diferencia() > 0) {
+          <div class="flex flex-wrap gap-2">
+            @for (m of metodos; track m.valor) {
+              <button type="button" class="text-xs px-3 py-1 rounded-lg border"
+                      [class]="metodo() === m.valor ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'border-slate-200'"
+                      (click)="metodo.set(m.valor)">{{ m.nombre }}</button>
+            }
+          </div>
+          @if (metodo() === 'efectivo') {
+            <input id="campo-monto-cambio" type="text" inputmode="decimal" placeholder="Monto recibido"
+                   class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" [value]="monto()" (input)="monto.set($any($event.target).value)" />
+          } @else {
+            <input id="campo-referencia-cambio" type="text" placeholder="Referencia de la operación"
+                   class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" [value]="referencia()" (input)="referencia.set($any($event.target).value)" />
+          }
+        } @else if (diferencia() < 0) {
+          <p class="text-xs text-slate-500">Entrega la diferencia al cliente en efectivo.</p>
+        }
+      } @else {
+        <p class="text-sm text-slate-500">Elige qué devuelve y qué se lleva para ver la diferencia.</p>
+      }
+      <button type="button" id="btn-registrar-cambio" (click)="registrar()" [disabled]="!puedeRegistrar()"
+              class="w-full py-3 rounded-xl bg-[#0F172A] text-white text-xs font-bold uppercase tracking-wider disabled:opacity-40">
+        {{ cargando() ? 'Registrando…' : 'Registrar cambio' }}
+      </button>
+    </aside>
+  </div>
+}

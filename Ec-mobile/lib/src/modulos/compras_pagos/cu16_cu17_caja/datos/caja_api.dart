@@ -113,7 +113,7 @@ class CajaApi {
   Map<String, String> _sucursal(int? idSucursal) => idSucursal == null ? const {} : {'id_sucursal': '$idSucursal'};
 
   Future<List<Map<String, dynamic>>> _lista(String ruta, Map<String, String> parametros, String token) async {
-    final datos = await _enviar('GET', ruta, token: token, parametros: parametros);
+    final datos = await solicitar('GET', ruta, token: token, parametros: parametros);
     return [for (final e in (datos as List? ?? const [])) e as Map<String, dynamic>];
   }
 
@@ -124,11 +124,13 @@ class CajaApi {
     Map<String, String> parametros = const {},
     Object? cuerpo,
   }) async {
-    final datos = await _enviar(metodo, ruta, token: token, parametros: parametros, cuerpo: cuerpo);
+    final datos = await solicitar(metodo, ruta, token: token, parametros: parametros, cuerpo: cuerpo);
     return datos is Map<String, dynamic> ? datos : const {};
   }
 
-  Future<Object?> _enviar(
+  /// Petición a la API con el manejo común de errores (`CajaException`). Pública para que otros
+  /// módulos de caja (P2-CU18, cambio de prenda) no dupliquen este código.
+  Future<Object?> solicitar(
     String metodo,
     String ruta, {
     required String token,

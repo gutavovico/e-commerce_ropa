@@ -4,6 +4,14 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ## [Unreleased] - 2026-11-09 (Parcial 2)
 
+### Cambio de prenda — P2-CU18
+- **Qué:** el cajero, el encargado o el administrador cambia en caja una o más prendas de una venta pagada por otras, dentro del plazo de la empresa (`dias_cambio_prenda`, RN30). La prenda devuelta vale lo pagado, con el cupón repartido (decisión F2). Si la diferencia es a favor de la tienda, se cobra con cualquier método de la caja; si es a favor del cliente, se le devuelve en efectivo (F1). Se puede cambiar varias veces la misma venta sin pasar de lo vendido (RN31), y el inventario de la sucursal y su kardex quedan al día (RN32). Sin conexión no se registra.
+- **Backend:** módulo `compras_pagos/cu18_cambio_prenda` (`/api/v1/pos/cambios`: venta cambiable, previsualizar, registrar, listar y detalle) y migración `0021_cambios_prenda` (`cambios_prenda` y `cambio_prenda_detalle` con RLS y FK compuestas; no toca tablas existentes). Comprobante `CAM-AAAA-NNNNN` por empresa; la venta original sigue `pagada`.
+- **Web:** pestaña «Cambios» en `/admin/pos` con ticket imprimible. **Móvil:** «Cambio de prenda» en el menú de la caja, con comprobante en pantalla; reutiliza la caja abierta (`CajaBloc.api`, `CajaApi.solicitar`).
+- **Pruebas:** backend 875 (20 unitarias y 3 de integración, una de concurrencia real con dos conexiones), web 711 (5 nuevas), móvil 330 (5 nuevas).
+- **Despliegue:** requiere aplicar `0021` en producción antes del push.
+- **Spec:** `.specs/modules/compras_pagos/P2-CU18-cambio-prenda.md` · historial en `.specs/finalized/P2-CU18-cambio-prenda/`.
+
 ### Caja en el móvil — P2-CU16 y P2-CU17
 - **Qué:** cajero, encargado y administrador entran en la app directamente a la caja, sin el hub del cliente (decisión E1). Venden con buscador de prendas, cliente y sus reservas, y cupón; cobran en efectivo, con tarjeta, QR o transferencia, incluido el rechazo del datáfono; ven el comprobante en pantalla (E2); gestionan las pendientes del día y los pedidos web en efectivo (E3). Sin conexión no se registra ni se cobra.
 - **Cómo:** solo móvil (`cu16_cu17_caja`), con el mismo contrato que la caja web; sin cambios en backend ni web y sin dependencias nuevas. Todos los importes los calcula el servidor.

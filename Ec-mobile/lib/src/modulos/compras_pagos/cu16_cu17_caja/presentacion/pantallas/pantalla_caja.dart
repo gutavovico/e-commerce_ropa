@@ -6,6 +6,7 @@ import '../../../../../core/empresa_actual.dart';
 import '../../../../../core/moneda.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../comercial/cu31_reportes_voz/presentacion/pantallas/pantalla_reportes_voz.dart';
+import '../../../cu18_cambio_prenda/presentacion/pantallas/pantalla_cambio_prenda.dart';
 import '../../datos/modelos_caja.dart';
 import '../bloc/caja_bloc.dart';
 import 'pantalla_cobro.dart';
@@ -166,6 +167,9 @@ class _PantallaCajaState extends State<PantallaCaja> {
                 switch (opcion) {
                   case 'sucursal':
                     _bloc.volverASucursales();
+                  case 'cambio':
+                    Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => PantallaCambioPrenda(caja: _bloc, token: widget.token)));
                   case 'reportes':
                     Navigator.of(context)
                         .push(MaterialPageRoute(builder: (_) => PantallaReportesVoz(token: widget.token)));
@@ -174,6 +178,7 @@ class _PantallaCajaState extends State<PantallaCaja> {
                 }
               },
               itemBuilder: (_) => [
+                if (_bloc.sucursal != null) const PopupMenuItem(value: 'cambio', child: Text('Cambio de prenda')),
                 if (_bloc.puedeCambiarSucursal) const PopupMenuItem(value: 'sucursal', child: Text('Cambiar de sucursal')),
                 if (_puedeVerReportes) const PopupMenuItem(value: 'reportes', child: Text('Reportes por voz')),
                 const PopupMenuItem(value: 'salir', child: Text('Cerrar sesión')),

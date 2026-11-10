@@ -77,6 +77,9 @@ class CajaBloc extends ChangeNotifier {
   List<PedidoWebEfectivo> _pedidosWeb = const [];
 
   EstadoCaja get estado => _estado;
+
+  /// Cliente de la API de la caja, compartido con las hojas que abre (P2-CU18, cambio de prenda).
+  CajaApi get api => _api;
   List<SucursalCaja> get sucursales => _sucursales;
   bool get enLinea => _enLinea;
   bool get puedeCambiarSucursal => _sucursales.length > 1;
