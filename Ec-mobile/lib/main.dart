@@ -8,7 +8,22 @@ import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/datos/modelos/lo
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_seleccion_empresa.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/repositorios/login_repositorio.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
+import 'src/modulos/compras_pagos/cu16_cu17_caja/presentacion/pantallas/pantalla_caja.dart';
 import 'src/navegacion/pantalla_principal_hub.dart';
+
+/// P2-CU16/CU17 (decisión E1): roles que entran directo a la caja, sin el hub del cliente.
+const Set<String> rolesDeCaja = {'administrador', 'admin', 'encargado_sucursal', 'cajero'};
+
+enum DestinoSesion { seleccionDeTienda, caja, hub }
+
+/// A dónde va cada rol tras el login: el cliente elige tienda (P2-CU02), el personal de caja abre la
+/// caja (E1) y el resto (super administrador) sigue en el hub.
+DestinoSesion destinoTrasLogin(String rol) {
+  final normalizado = rol.toLowerCase().trim();
+  if (normalizado == 'cliente') return DestinoSesion.seleccionDeTienda;
+  if (rolesDeCaja.contains(normalizado)) return DestinoSesion.caja;
+  return DestinoSesion.hub;
+}
 
 Future<void> main() async {
   // Sin STRIPE_PUBLISHABLE_KEY (--dart-define), no se inicializa el SDK: CU16 cae en su panel de
@@ -116,7 +131,8 @@ class _EcMobileAppState extends State<EcMobileApp> {
   /// su cuenta.
   void _despuesDelLogin(String token, LoginRespuestaDto usuario) {
     final nombreCompleto = '${usuario.nombres} ${usuario.apellidos}'.trim();
-    if (usuario.esCliente) {
+    final destino = destinoTrasLogin(usuario.rol);
+    if (destino == DestinoSesion.seleccionDeTienda) {
       _abrirSeleccionEmpresa(token, nombreCompleto, usuario.empresas);
       return;
     }
@@ -124,7 +140,26 @@ class _EcMobileAppState extends State<EcMobileApp> {
     if (empresa != null) {
       EmpresaActual.instancia.elegir(empresa);
     }
+    if (destino == DestinoSesion.caja) {
+      _abrirCaja(token, nombreCompleto, usuario.rol.toLowerCase().trim());
+      return;
+    }
     _abrirHub(token, nombreCompleto, esCliente: false);
+  }
+
+  /// P2-CU16/CU17: espacio del empleado. Como el cajero en la web (`/admin/pos`), sin el hub.
+  void _abrirCaja(String token, String nombreEmpleado, String rol) {
+    _navegadorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => PantallaCaja(
+          token: token,
+          nombreEmpleado: nombreEmpleado,
+          rol: rol,
+          alCerrarSesion: () => _cerrarSesion(token),
+        ),
+      ),
+      (route) => false,
+    );
   }
 
   /// Pantalla intermedia de selección de tienda. Con [empresas] null («Cambiar de tienda») las pide

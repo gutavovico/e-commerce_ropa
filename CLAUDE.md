@@ -9,7 +9,7 @@ que comparten una única base de datos PostgreSQL desplegada en Neon.
 | :--- | :--- | :--- |
 | `Ec-backend/` | Python ≥ 3.11 · FastAPI · SQLAlchemy 2.0 · Alembic | API REST, única fuente de verdad de datos e importes |
 | `Ec-frontend/` | Angular 21 · standalone · Signals · Tailwind | Cliente web |
-| `Ec-mobile/` | Flutter 3.x · Dart 3 | Cliente móvil (rol Cliente; incluye además la pantalla de reportes por voz de CU31) |
+| `Ec-mobile/` | Flutter 3.x · Dart 3 | Cliente móvil (rol Cliente) y caja del personal (P2-CU16/CU17), con reportes por voz de CU31 |
 
 El idioma del dominio es el español: nombres de clase, variables, comentarios y documentación.
 
@@ -372,6 +372,9 @@ lib/src/{core,navegacion}/
   **Todo datasource nuevo usa `ClienteHttpApi()` como cliente por defecto**, nunca `http.Client()`: es
   el que añade `X-Tenant`; sin él el backend no devuelve datos de ninguna empresa. La marca visible es
   `EmpresaActual.instancia.marca`.
+- **Personal en el móvil (P2-CU16/CU17):** `destinoTrasLogin` (en `main.dart`) envía a administrador,
+  encargado y cajero a `PantallaCaja`, su espacio, sin el hub del cliente; el super administrador sigue
+  en el hub. Una pantalla nueva de empleado se abre desde la caja, nunca desde el hub.
 - **Sin conexión (P2-CU14/CU19):** SQLite (`core/sin_conexion/almacen_local.dart`) y
   `SinConexionServicio.instancia`, que crea el hub solo para clientes; en el resto del código usa
   `instanciaSiExiste`. Las pruebas usan `sqflite_common_ffi` con `inMemoryDatabasePath`.

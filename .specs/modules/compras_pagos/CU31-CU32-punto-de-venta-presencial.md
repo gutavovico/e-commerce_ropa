@@ -4,7 +4,7 @@
 **Paquete de Dominio:** `compras_pagos` (las reservas se operan por el servicio del paquete `reservas`)
 **Backend:** `app/modules/compras_pagos/cu31_cu32_punto_venta/` · `app/modules/reservas/atencion_caja.py`
 **Frontend:** `src/app/modules/compras_pagos/cu31_cu32_punto_venta/` (ruta `/admin/pos`)
-**Mobile:** excluido (el cajero opera en la web)
+**Mobile:** desde el 2026-11-10, caja móvil con el mismo contrato: `P2-CU16-CU17-caja-movil.md`
 **Actores:** cajero · encargado de sucursal · administrador
 **Estado:** Aprobado y promovido a permanente (2026-11-08)
 **Historial del cambio:** `.specs/finalized/CU31-CU32-punto-de-venta-presencial/` · `CHANGELOG.md` defectos 49 y 50
