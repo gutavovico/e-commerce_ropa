@@ -20,6 +20,7 @@ from modules.plataforma.cu09_cu10_suscripcion_empresa.router import (
 from modules.plataforma.cu22_catalogo_reportes.router import (
     router as router_cu22_catalogo_reportes,
 )
+from modules.plataforma.rnf18_respaldos.router import router as router_rnf18_respaldos
 
 router = APIRouter(prefix="/plataforma")
 
@@ -29,4 +30,5 @@ router.include_router(router_cu07_suscripciones)
 router.include_router(router_cu08_catalogos_globales)
 router.include_router(router_cu09_cu10_suscripcion_empresa)
 router.include_router(router_cu22_catalogo_reportes)
+router.include_router(router_rnf18_respaldos)
 

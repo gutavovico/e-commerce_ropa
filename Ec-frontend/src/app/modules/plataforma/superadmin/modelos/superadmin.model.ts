@@ -18,7 +18,8 @@ export type PestanaSuperadmin =
   | 'suscripciones'
   | 'catalogos'
   | 'reportes_ia'
-  | 'bitacora';
+  | 'bitacora'
+  | 'respaldos';
 
 export interface SuscripcionResumenEmpresa {
   id_suscripcion: number;

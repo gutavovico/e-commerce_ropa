@@ -22,25 +22,34 @@ abstract class AlmacenLocal {
 
   Future<List<OperacionLocal>> operaciones(String clave);
   Future<void> guardarOperacion(OperacionLocal operacion);
+
+  /// Valores sueltos de la app (p. ej. la sesión guardada), en la tabla `dispositivos` con una clave
+  /// que empieza por `__`, que nunca coincide con la de un dispositivo (`<codigo>:<idCliente>`).
+  Future<Map<String, dynamic>?> valor(String clave);
+  Future<void> guardarValor(String clave, Map<String, dynamic> valor);
+  Future<void> borrarValor(String clave);
 }
 
 class AlmacenSqlite implements AlmacenLocal {
   static const _nombre = 'fashionstore_sin_conexion.db';
 
-  final DatabaseFactory _fabrica;
+  /// Nula: la de `sqflite`, resuelta al abrir la base (no al construir), para que un fallo quede
+  /// dentro de la operación que lo trata y no rompa, por ejemplo, el cierre de sesión.
+  final DatabaseFactory? _fabrica;
   final String? _ruta;
   Future<Database>? _bd;
 
   /// `fabrica` y `ruta` se inyectan en las pruebas (`sqflite_common_ffi`, `inMemoryDatabasePath`).
   AlmacenSqlite({DatabaseFactory? fabrica, String? ruta})
-      : _fabrica = fabrica ?? databaseFactory,
+      : _fabrica = fabrica,
         _ruta = ruta;
 
   static final AlmacenSqlite instancia = AlmacenSqlite();
 
   Future<Database> _abrir() => _bd ??= () async {
-        final ruta = _ruta ?? '${await _fabrica.getDatabasesPath()}/$_nombre';
-        return _fabrica.openDatabase(
+        final fabrica = _fabrica ?? databaseFactory;
+        final ruta = _ruta ?? '${await fabrica.getDatabasesPath()}/$_nombre';
+        return fabrica.openDatabase(
           ruta,
           options: OpenDatabaseOptions(
             version: 1,
@@ -123,6 +132,26 @@ class AlmacenSqlite implements AlmacenLocal {
           {'uuid': operacion.uuid, 'clave': operacion.clave, 'json': jsonEncode(operacion.toJson())},
           conflictAlgorithm: ConflictAlgorithm.replace,
         ));
+  }
+
+  @override
+  Future<Map<String, dynamic>?> valor(String clave) async {
+    final filas = await (await _abrir()).query('dispositivos', where: 'clave = ?', whereArgs: [clave]);
+    return filas.isEmpty ? null : jsonDecode(filas.first['json'] as String) as Map<String, dynamic>;
+  }
+
+  @override
+  Future<void> guardarValor(String clave, Map<String, dynamic> valor) async {
+    await (await _abrir()).transaction((tx) => tx.insert(
+          'dispositivos',
+          {'clave': clave, 'json': jsonEncode(valor)},
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        ));
+  }
+
+  @override
+  Future<void> borrarValor(String clave) async {
+    await (await _abrir()).delete('dispositivos', where: 'clave = ?', whereArgs: [clave]);
   }
 
   Future<void> cerrar() async {

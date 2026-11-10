@@ -90,10 +90,26 @@
       >
         Bitácora de Plataforma
       </button>
+      <button
+        type="button"
+        id="pestana-respaldos"
+        (click)="cambiarPestana('respaldos')"
+        [class.bg-[#F9F6F0]]="pestanaActiva() === 'respaldos'"
+        [class.text-black]="pestanaActiva() === 'respaldos'"
+        [class.text-white/75]="pestanaActiva() !== 'respaldos'"
+        class="px-5 py-3 text-xs uppercase tracking-[0.18em] font-medium transition-colors"
+      >
+        Respaldos
+      </button>
     </nav>
   </header>
 
   <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <!-- RNF18: respaldos -->
+    @if (pestanaActiva() === 'respaldos') {
+      <app-respaldos [empresas]="empresas()" />
+    }
+
     <!-- Alertas de retroalimentación -->
     @if (mensajeExito()) {
       <div class="border border-emerald-800 bg-emerald-50 text-emerald-950 px-5 py-3 flex items-center justify-between text-sm">

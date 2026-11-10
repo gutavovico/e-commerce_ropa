@@ -43,7 +43,8 @@ Cada tarea se marca **en cuanto se termina y se verifica**, con lo que cambió r
   - Pendiente: prueba manual en dispositivo físico (usuario).
 
 ## Publicación y cierre
-- [ ] **T-PR-01 (usuario) ·** Aplicar `0021` en producción antes del push; PR con los seis checks.
+- [x] **T-PR-01 (usuario) ·** Aplicar `0021` en producción antes del push; PR con los seis checks.
+  - Verificado (2026-11-10): `alembic current` en producción = `0021 (head)`; PR #15 fusionado en `main`.
 - [x] **T-PR-02 ·** `CHANGELOG.md`, spec permanente, `CLAUDE.md` (cadena `0021`) y promoción a `finalized/`.
   - Hecho (2026-11-10): entrada en `CHANGELOG.md` (sin defecto numerado: es funcionalidad nueva); `.specs/modules/compras_pagos/P2-CU18-cambio-prenda.md`; `CLAUDE.md` con la cadena hasta `0021`, siguiente `0022`, el módulo en `compras_pagos` y la regla de reutilizar `CajaBloc` en las hojas de empleado; carpeta movida a `.specs/finalized/P2-CU18-cambio-prenda/`.
   - Cambió: `CLAUDE.md` ya da producción en `0021`; solo es cierto tras T-PR-01, que va antes del push.
