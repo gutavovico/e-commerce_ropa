@@ -124,7 +124,6 @@ class _EcMobileAppState extends State<EcMobileApp> {
     unawaited(_sesiones.guardar(
         SesionPersistida(token: token, nombreUsuario: nombreUsuario ?? '', rol: rol, empresa: empresa)));
   }
-  }
 
   @override
   void dispose() {
