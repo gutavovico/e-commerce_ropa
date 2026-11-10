@@ -9,6 +9,9 @@ import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/
 import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/pantallas/pantalla_mis_reservas.dart';
 import '../../../../../core/empresa_actual.dart';
 import 'package:ec_mobile/src/core/moneda.dart';
+import 'package:ec_mobile/src/core/sin_conexion/sin_conexion_servicio.dart';
+import 'package:ec_mobile/src/core/theme/app_theme.dart';
+import 'package:ec_mobile/src/modulos/sincronizacion/cu19_sincronizacion/presentacion/pantalla_sincronizacion.dart';
 
 class PantallaPerfil extends StatefulWidget {
   final String token;
@@ -915,7 +918,12 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            AppSpacing.gapVSpace4,
+
+            // P2-CU19 / decisión D1: bandeja de avisos y operaciones sin conexión (solo clientes)
+            if (SinConexionServicio.instanciaSiExiste != null)
+              _TarjetaAvisos(servicio: SinConexionServicio.instanciaSiExiste!),
+            AppSpacing.gapVSpace5,
 
             // 3. Registro Histórico de Compras y Pedidos (CU17)
             const Text(
@@ -1361,6 +1369,59 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// P2-CU19 · Acceso a «Sincronización» con el contador de avisos no leídos (sin push, D1).
+class _TarjetaAvisos extends StatelessWidget {
+  final SinConexionServicio servicio;
+
+  const _TarjetaAvisos({required this.servicio});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: servicio,
+      builder: (context, _) {
+        if (servicio.clave == null) return const SizedBox.shrink();
+        final pendientes = servicio.pendientes.length;
+        return Material(
+          color: AppColors.white,
+          shape: const RoundedRectangleBorder(
+            borderRadius: AppRadius.radiusLarge,
+            side: BorderSide(color: AppColors.slate200),
+          ),
+          child: ListTile(
+            key: const Key('tarjeta-avisos'),
+            leading: const Icon(Icons.notifications_none, color: AppColors.slate900),
+            title: Row(
+              children: [
+                const Flexible(child: Text('Avisos y sincronización', overflow: TextOverflow.ellipsis)),
+                if (servicio.avisosNoLeidos > 0) ...[
+                  AppSpacing.gapHSpace3,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space3, vertical: AppSpacing.space1),
+                    decoration: const BoxDecoration(color: AppColors.slate900, borderRadius: AppRadius.radiusMedium),
+                    child: Text('${servicio.avisosNoLeidos}',
+                        style: AppTypography.labelSmall.copyWith(color: AppColors.white)),
+                  ),
+                ],
+              ],
+            ),
+            subtitle: Text(
+              pendientes > 0
+                  ? '$pendientes ${pendientes == 1 ? 'operación por sincronizar' : 'operaciones por sincronizar'}'
+                  : 'Reservas sin conexión y avisos de la tienda',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => PantallaSincronizacion(servicio: servicio))),
+          ),
+        );
+      },
     );
   }
 }

@@ -23,6 +23,7 @@ import { LoginService } from '../../cu02_iniciar_sesion/servicios/login.service'
 import { PedidoHistorico, PerfilClienteActualizar } from '../modelos/perfil.dto';
 import { MisReservasService } from '../../../reservas/cu13_consultar_cancelar_reservas/servicios/mis-reservas.service';
 import { ImportePipe } from '../../../../core/tenant/moneda';
+import { SinConexionService } from '../../../../core/sin-conexion/sin-conexion.service';
 
 @Component({
   selector: 'app-perfil',
@@ -35,6 +36,8 @@ import { ImportePipe } from '../../../../core/tenant/moneda';
 export class PerfilComponent implements OnInit {
   protected readonly perfilService = inject(PerfilService);
   protected readonly misReservasService = inject(MisReservasService);
+  /** P2-CU19 / D1: bandeja de avisos y operaciones sin conexión. */
+  protected readonly sinConexion = inject(SinConexionService);
   private readonly loginService = inject(LoginService);
   private readonly router = inject(Router);
   private readonly portal = inject(TenantService);

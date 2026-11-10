@@ -1,5 +1,11 @@
 <div class="min-h-screen bg-slate-50 text-slate-900 font-['Outfit',sans-serif]">
   <main class="max-w-[1440px] px-4 sm:px-6 py-8 mx-auto space-y-6">
+    @if (!enLinea()) {
+      <!-- CU16 A4 / CU17 A4: sin conexión no se registra ni se cobra -->
+      <div id="aviso-caja-sin-conexion" role="alert" class="bg-slate-900 text-white rounded-xl px-4 py-3 text-sm font-semibold pos-no-imprimir">
+        Sin conexión: no se puede registrar ni cobrar hasta recuperarla.
+      </div>
+    }
 
     <!-- 1. Cabecera -->
     <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200 pos-no-imprimir">
@@ -468,12 +474,12 @@
                 }
 
                 <div class="flex flex-col gap-2">
-                  <button type="button" id="btn-confirmar-cobro" (click)="cobrar(true)" [disabled]="cobrando()"
+                  <button type="button" id="btn-confirmar-cobro" (click)="cobrar(true)" [disabled]="cobrando() || !enLinea()"
                     class="w-full py-3 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider disabled:opacity-40">
                     {{ cobrando() ? 'Procesando…' : 'Confirmar cobro' }}
                   </button>
                   @if (esTarjeta()) {
-                    <button type="button" id="btn-cobro-rechazado" (click)="cobrar(false)" [disabled]="cobrando()"
+                    <button type="button" id="btn-cobro-rechazado" (click)="cobrar(false)" [disabled]="cobrando() || !enLinea()"
                       class="w-full py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-bold uppercase tracking-wider disabled:opacity-40">
                       Datáfono rechazó la tarjeta
                     </button>
@@ -567,7 +573,7 @@
 
                 <div class="flex flex-col gap-2">
                   <button type="button" id="btn-registrar-venta" (click)="registrarVenta()"
-                    [disabled]="!previsualizacion() || calculando() || registrando()"
+                    [disabled]="!enLinea() || !previsualizacion() || calculando() || registrando()"
                     class="w-full py-3 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider disabled:opacity-40">
                     {{ registrando() ? 'Registrando…' : 'Registrar y cobrar' }}
                   </button>

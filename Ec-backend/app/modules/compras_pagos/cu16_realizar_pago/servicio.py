@@ -308,25 +308,112 @@ class PagoServicio:
             )
 
         # Aprobación: cobro, cambio de estado y consolidación, todo en una transacción.
-        confirmado_en = CarritoRepositorio.ahora_utc()
+        PagoServicio.marcar_cobro_confirmado(db, pago, resultado)
+        PagoServicio.completar_venta_cobrada(db, venta, usuario.id_usuario)
+
+        db.commit()
+        db.refresh(pago)
+
+        return PagoServicio._construir_confirmacion(venta, pago, resultado)
+
+    # ------------------------------------------------------------------
+    # Piezas sin `commit` (las reutiliza la sincronización de P2-CU19)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def cargar_compra_para_cobro(
+        db: Session, id_venta: int, id_pago: int, bloquear: bool = True
+    ) -> tuple[VentaORM, PagoORM]:
+        """Venta y pago digital (bloqueados con `FOR UPDATE` por defecto), en el mismo orden que
+        `confirmar_pago`."""
+        pago = PagoServicio._cargar_pago_digital(db, id_pago, bloquear=bloquear)
+        venta = PagoServicio._cargar_venta(db, pago.id_venta, bloquear=bloquear)
+        if venta.id_venta != id_venta:
+            raise NotFoundError("El pago no corresponde a la orden indicada.", code="PAGO_NO_ENCONTRADO")
+        return venta, pago
+
+    @staticmethod
+    def verificar_cobro(pago: PagoORM, pasarela: Optional[PasarelaPagos] = None):
+        """Desenlace del cobro según la pasarela (RN38). Puede lanzar `ErrorPasarela`."""
+        pasarela = pasarela or StripeService()
+        escenario_prueba = (pago.payload_respuesta or {}).get("escenario_prueba")
+        return pasarela.verificar_intento(pago.referencia_pasarela, escenario_prueba=escenario_prueba)
+
+    @staticmethod
+    def marcar_cobro_rechazado(db: Session, pago: PagoORM, resultado) -> None:
+        pago.estado = "rechazado"
+        pago.payload_respuesta = {
+            **(pago.payload_respuesta or {}),
+            **PagoServicio._payload_auditoria(resultado, aprobado=False),
+        }
+        db.add(pago)
+
+    @staticmethod
+    def marcar_cobro_confirmado(db: Session, pago: PagoORM, resultado) -> None:
+        """El dinero ya se cobró: el pago queda `confirmado` aunque la venta no llegue a pagarse
+        (en ese caso la sincronización abre un conflicto con reembolso, P2-CU20)."""
         pago.estado = "confirmado"
-        pago.confirmado_en = confirmado_en
+        pago.confirmado_en = CarritoRepositorio.ahora_utc()
         pago.payload_respuesta = {
             **(pago.payload_respuesta or {}),
             **PagoServicio._payload_auditoria(resultado, aprobado=True),
         }
         db.add(pago)
 
+    @staticmethod
+    def completar_venta_cobrada(db: Session, venta: VentaORM, id_usuario_responsable: int) -> None:
+        """Venta `pendiente` con su retención → `pagada`: las unidades retenidas salen del almacén
+        y las prendas salen de la bolsa."""
         venta.estado = "pagada"
-        PagoServicio._consolidar_inventario(db, venta, usuario)
+        PagoServicio._consolidar_inventario(db, venta, id_usuario_responsable=id_usuario_responsable)
         # El cobro está confirmado por la pasarela (tarjeta o Bizum/QR): ahora sí, las prendas
         # compradas salen de la bolsa. Antes de este punto la bolsa permanece intacta.
         PagoServicio._retirar_de_la_bolsa(db, venta)
 
-        db.commit()
-        db.refresh(pago)
+    @staticmethod
+    def retomar_y_completar_venta_cobrada(db: Session, venta: VentaORM, id_usuario_responsable: int) -> None:
+        """Venta `anulada` porque venció su retención, pero cobrada (P2-CU19, compra interrumpida).
 
-        return PagoServicio._construir_confirmacion(venta, pago, resultado)
+        Vuelve a tomar las unidades de `cantidad_disponible` con `FOR UPDATE`. Si alguna línea no
+        alcanza, lanza `ConflictError(STOCK_INSUFICIENTE)` con lo esperado y lo encontrado; quien
+        llama deshace la transacción.
+        """
+        for detalle in venta.detalles:
+            id_sucursal = detalle.id_sucursal or venta.id_sucursal
+            inventario = CarritoRepositorio.obtener_inventario(
+                db, detalle.id_variante, id_sucursal, cantidad=detalle.cantidad, bloquear=True
+            )
+            disponible = inventario.cantidad_disponible if inventario else 0
+            if disponible < detalle.cantidad:
+                raise ConflictError(
+                    "No quedan existencias para completar la compra.",
+                    code="STOCK_INSUFICIENTE",
+                    datos={
+                        "id_variante": detalle.id_variante,
+                        "id_sucursal": id_sucursal,
+                        "esperado": detalle.cantidad,
+                        "encontrado": disponible,
+                    },
+                )
+            saldo_anterior = inventario.cantidad_disponible
+            inventario.cantidad_disponible -= detalle.cantidad
+            db.add(
+                MovimientoInventarioORM(
+                    id_inventario=inventario.id_inventario,
+                    tipo_movimiento="venta_confirmada",
+                    cantidad=-detalle.cantidad,
+                    id_usuario_responsable=id_usuario_responsable,
+                    referencia_documento=f"VENTA-{venta.id_venta}",
+                    observacion=(
+                        f"Salida por compra cobrada sin conexión de la orden {venta.numero_comprobante} "
+                        "(retención vencida, existencias retomadas al sincronizar)"
+                    ),
+                    saldo_anterior=saldo_anterior,
+                    saldo_nuevo=inventario.cantidad_disponible,
+                )
+            )
+        venta.estado = "pagada"
+        PagoServicio._retirar_de_la_bolsa(db, venta)
 
     @staticmethod
     def _verificar_orden_pagable(db: Session, usuario: UsuarioORM, venta: VentaORM) -> None:

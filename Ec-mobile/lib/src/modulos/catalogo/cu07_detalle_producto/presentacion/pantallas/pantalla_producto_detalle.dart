@@ -1,3 +1,5 @@
+import 'package:ec_mobile/src/core/sin_conexion/franjas_cita.dart';
+import 'package:ec_mobile/src/core/sin_conexion/sin_conexion_servicio.dart';
 import 'package:flutter/material.dart';
 import '../../datos/modelos/producto_detalle_dto.dart';
 import '../../../../compras_pagos/cu11_gestionar_carrito/presentacion/pantallas/shopping_bag_screen.dart';
@@ -1378,12 +1380,14 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
   ) {
     int sucursalIdSeleccionada = sucursalSeleccionadaInicial.idSucursal;
     int franjaHorariaIndex = 0;
-    final franjas = [
-      'MAÑANA 11:30H',
-      'MAÑANA 16:30H',
-      'VIERNES 12:00H',
-      'SÁBADO 11:00H',
-    ];
+    // P2-CU15 (RN25): solo horas anteriores al vencimiento de la reserva. Antes se ofrecían franjas
+    // fijas y la cita se enviaba siempre para «ahora + 1 día», sin relación con la elegida.
+    final franjasCita = franjasDeCita(
+      DateTime.now(),
+      SinConexionServicio.instanciaSiExiste?.horasVencimiento ?? 24,
+      maximo: 6,
+    );
+    final franjas = [for (final f in franjasCita) f.etiqueta];
 
     showModalBottomSheet(
       context: context,
@@ -1723,10 +1727,11 @@ class _PantallaProductoDetalleState extends State<PantallaProductoDetalle> {
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () async {
+                              if (franjasCita.isEmpty) return;
                               Navigator.pop(ctx);
                               final exito = await _bloc.confirmarReserva(
                                 idSucursal: sucursalActiva.idSucursal,
-                                fechaReserva: DateTime.now().add(const Duration(days: 1)),
+                                fechaReserva: franjasCita[franjaHorariaIndex].instante,
                                 token: widget.token,
                               );
                               if (exito && mounted) {

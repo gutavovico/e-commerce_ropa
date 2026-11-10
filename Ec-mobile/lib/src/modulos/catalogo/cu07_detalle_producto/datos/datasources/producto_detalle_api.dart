@@ -184,6 +184,14 @@ class ProductoDetalleApiImpl implements ProductoDetalleApi {
           if (errJson.containsKey('detail')) {
             mensajeError = errJson['detail'].toString();
           }
+          // P2-CU15 A3: el servidor propone las sucursales que sí tienen la prenda.
+          final alternativas = (errJson['alternativas'] as List? ?? const [])
+              .map((a) => (a as Map)['nombre']?.toString() ?? '')
+              .where((n) => n.isNotEmpty)
+              .toList();
+          if (alternativas.isNotEmpty) {
+            mensajeError = '$mensajeError Disponible en: ${alternativas.join(', ')}.';
+          }
         } catch (_) {}
 
         // 401 Unauthorized: sesión expirada → auto-redirect al login

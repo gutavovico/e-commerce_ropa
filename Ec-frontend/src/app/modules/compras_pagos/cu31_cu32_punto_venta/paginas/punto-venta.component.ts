@@ -33,6 +33,7 @@ import { PuntoVentaService } from '../servicios/punto-venta.service';
 import { TicketComprobanteComponent } from '../componentes/ticket-comprobante/ticket-comprobante.component';
 import { ImportePipe, SimboloMonedaPipe } from '../../../../core/tenant/moneda';
 import { MonedaService, formatearImporte } from '../../../../core/tenant/moneda';
+import { ConectividadService } from '../../../../core/sin-conexion/conectividad.service';
 
 type Pestana = 'nueva' | 'pendientes' | 'web';
 
@@ -60,6 +61,8 @@ export class PuntoVentaComponent implements OnInit {
   private readonly monedas = inject(MonedaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
+  /** CU16 A4 y CU17 A4: la caja opera siempre con conexión. */
+  readonly enLinea = inject(ConectividadService).enLinea;
 
   private readonly campoPrenda = viewChild<ElementRef<HTMLInputElement>>('campoPrenda');
 
@@ -508,7 +511,7 @@ export class PuntoVentaComponent implements OnInit {
   }
 
   registrarVenta(): void {
-    if (!this.previsualizacion() || this.registrando() || this.calculando()) return;
+    if (!this.enLinea() || !this.previsualizacion() || this.registrando() || this.calculando()) return;
     this.registrando.set(true);
     this.error.set(null);
     this.servicio
@@ -568,7 +571,7 @@ export class PuntoVentaComponent implements OnInit {
   /** `aprobado = false` registra el rechazo del datáfono: la venta sigue pendiente. */
   cobrar(aprobado = true): void {
     const venta = this.ventaEnCobro();
-    if (!venta || this.cobrando()) return;
+    if (!this.enLinea() || !venta || this.cobrando()) return;
     const monto = this.montoRecibido().trim().replace(',', '.');
     this.cobrando.set(true);
     this.error.set(null);

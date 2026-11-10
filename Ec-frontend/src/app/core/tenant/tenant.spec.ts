@@ -111,6 +111,25 @@ describe('P2-CU02 · portal de tienda (web)', () => {
     expect(tenant.tenantActual()).toEqual(TIENDA_FASHION);
   });
 
+  it('P2-CU14 A4: sin red, una tienda ya visitada se abre con los datos guardados', async () => {
+    const primera = ejecutarGuard('menshopping');
+    http.expectOne('/api/v1/tenants/menshopping').flush({ codigo: 'menshopping', nombre: 'Menshopping', moneda: 'BOB' });
+    expect(await primera).toBe(true);
+    tenant.tenantActual.set(null);
+
+    const sinRed = ejecutarGuard('menshopping');
+    http.expectOne('/api/v1/tenants/menshopping').flush(null, { status: 0, statusText: 'Sin red' });
+    expect(await sinRed).toBe(true);
+    expect(tenant.tenantActual()).toEqual({ codigo: 'menshopping', nombre: 'Menshopping', moneda: 'BOB' });
+  });
+
+  it('P2-CU14 A4: sin red y sin visita previa, vuelve al directorio', async () => {
+    const promesa = ejecutarGuard('nunca-visitada');
+    http.expectOne('/api/v1/tenants/nunca-visitada').flush(null, { status: 0, statusText: 'Sin red' });
+    const destino = (await promesa) as UrlTree;
+    expect(TestBed.inject(Router).serializeUrl(destino)).toBe('/?aviso=tienda-no-disponible');
+  });
+
   it('A5: un empleado de otra empresa va a su panel', async () => {
     TestBed.inject(LoginService).usuarioActual.set(CAJERO_OTRA_EMPRESA);
     const destino = (await ejecutarGuard('fashionstore')) as UrlTree;

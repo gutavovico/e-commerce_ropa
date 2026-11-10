@@ -53,3 +53,7 @@ class ReservaCreadaOut(BaseModel):
         ]
     )
     creado_en: datetime
+    # P2-CU15 (RN25): instante en que vence si no se atiende; lo fijan las horas de la empresa.
+    vence_en: Optional[datetime] = None
+    # P2-CU15 A1: código provisional con que se registró sin conexión (solo si vino de CU19).
+    codigo_provisional: Optional[str] = None

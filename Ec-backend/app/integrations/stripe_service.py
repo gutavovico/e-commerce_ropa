@@ -45,6 +45,10 @@ ESCENARIOS_PRUEBA = {
 }
 
 
+#: Escenario del simulador para que un reembolso falle (P2-CU20 A1). Con Stripe real se ignora.
+ESCENARIO_REEMBOLSO_FALLIDO = "reembolso_fallido"
+
+
 class ErrorPasarela(Exception):
     """Fallo técnico de la pasarela: red, credenciales o error interno de Stripe.
 
@@ -75,6 +79,16 @@ class ResultadoPasarela:
     payload: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class ResultadoReembolso:
+    """Desenlace de un reembolso (P2-CU20). `exitoso=False` incluye el fallo técnico: el conflicto
+    sigue pendiente con el motivo y se reintenta en el siguiente cierre (A1)."""
+
+    exitoso: bool
+    referencia: Optional[str]
+    mensaje: str
+
+
 class PasarelaPagos:
     """Contrato que consume `PagoServicio`.
 
@@ -100,6 +114,15 @@ class PasarelaPagos:
     def verificar_intento(
         self, referencia: str, escenario_prueba: Optional[str] = None
     ) -> ResultadoPasarela:
+        raise NotImplementedError
+
+    def reembolsar(
+        self,
+        referencia: str,
+        monto: Decimal,
+        idempotency_key: str,
+        escenario_prueba: Optional[str] = None,
+    ) -> ResultadoReembolso:
         raise NotImplementedError
 
 
@@ -171,6 +194,22 @@ class StripeService(PasarelaPagos):
             return self._verificar_intento_stripe(referencia)
         return self._verificar_intento_simulado(referencia, escenario_prueba)
 
+    def reembolsar(
+        self,
+        referencia: str,
+        monto: Decimal,
+        idempotency_key: str,
+        escenario_prueba: Optional[str] = None,
+    ) -> ResultadoReembolso:
+        """Devuelve `monto` del `PaymentIntent` `referencia` (P2-CU20, cierre de mes).
+
+        `idempotency_key` evita un segundo reembolso si el mismo intento se repite (red caída
+        tras la respuesta de Stripe). Nunca lanza: un fallo vuelve como `exitoso=False`.
+        """
+        if self.usa_stripe_real:
+            return self._reembolsar_stripe(referencia, monto, idempotency_key)
+        return self._reembolsar_simulado(referencia, escenario_prueba)
+
     # ------------------------------------------------------------------
     # Stripe real (modo test)
     # ------------------------------------------------------------------
@@ -240,6 +279,26 @@ class StripeService(PasarelaPagos):
             marca=tarjeta.get("brand", "").upper() if tarjeta else None,
             ultimos_digitos=tarjeta.get("last4") if tarjeta else None,
             payload=self._sanear(dict(intento)),
+        )
+
+    def _reembolsar_stripe(self, referencia: str, monto: Decimal, idempotency_key: str) -> ResultadoReembolso:
+        import stripe
+
+        stripe.api_key = self.api_key
+        try:
+            reembolso = stripe.Refund.create(
+                payment_intent=referencia,
+                amount=self.a_centimos(monto),
+                idempotency_key=idempotency_key,
+            )
+        except Exception as exc:  # noqa: BLE001 - se registra en el conflicto y se reintenta
+            logger.warning("Fallo al reembolsar el intento %s en Stripe: %s", referencia, exc)
+            return ResultadoReembolso(False, None, "La pasarela no pudo procesar el reembolso.")
+
+        if reembolso.get("status") in ("succeeded", "pending"):
+            return ResultadoReembolso(True, reembolso.get("id"), "Reembolso procesado por la pasarela.")
+        return ResultadoReembolso(
+            False, reembolso.get("id"), f"La pasarela devolvió el estado «{reembolso.get('status')}»."
         )
 
     @staticmethod
@@ -325,3 +384,8 @@ class StripeService(PasarelaPagos):
                 "status": "succeeded",
             },
         )
+
+    def _reembolsar_simulado(self, referencia: str, escenario_prueba: Optional[str]) -> ResultadoReembolso:
+        if escenario_prueba == ESCENARIO_REEMBOLSO_FALLIDO:
+            return ResultadoReembolso(False, None, "La pasarela no pudo procesar el reembolso (simulado).")
+        return ResultadoReembolso(True, f"re_sbx_{referencia}", "Reembolso procesado por la pasarela (simulado).")

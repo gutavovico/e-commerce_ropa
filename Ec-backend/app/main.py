@@ -88,7 +88,7 @@ app.add_middleware(
 def _domain_error_response(status_code: int, exc: DomainError) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
-        content={"detail": exc.message, "code": exc.code},
+        content={**getattr(exc, "datos", {}), "detail": exc.message, "code": exc.code},
     )
 
 
@@ -185,6 +185,7 @@ from modules.plataforma.cu02_acceso_empresa.router import router as router_acces
 from modules.plataforma.cu11_parametros_empresa.router import router as router_parametros_empresa
 from modules.plataforma.router import router as router_plataforma
 from modules.seguridad.cu30_bitacora.router import router as router_bitacora
+from modules.sincronizacion.router import router as router_sincronizacion
 
 app.include_router(router_autenticacion, prefix="/api/v1")
 app.include_router(router_perfil, prefix="/api/v1")
@@ -199,6 +200,7 @@ app.include_router(router_bitacora, prefix="/api/v1")
 app.include_router(router_acceso_empresa, prefix="/api/v1")
 app.include_router(router_parametros_empresa, prefix="/api/v1")
 app.include_router(router_plataforma, prefix="/api/v1")
+app.include_router(router_sincronizacion, prefix="/api/v1")
 
 # --- Almacenamiento Estatico Local ---
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

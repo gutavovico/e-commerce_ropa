@@ -1,3 +1,4 @@
+import 'package:ec_mobile/src/core/sin_conexion/franjas_cita.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ec_mobile/src/modulos/catalogo/cu07_detalle_producto/datos/datasources/producto_detalle_api.dart';
@@ -609,7 +610,8 @@ void main() {
       expect(find.text('RESERVAR CITA DE PRUEBA EN BOUTIQUE'), findsOneWidget);
       expect(find.text('1. SELECCIONA LA BOUTIQUE INSIGNIA'), findsOneWidget);
       expect(find.text('2. FECHA Y HORA PREFERENTE'), findsOneWidget);
-      expect(find.text('MAÑANA 11:30H'), findsOneWidget);
+      // P2-CU15: las franjas salen del vencimiento de la reserva (24 h sin dispositivo preparado)
+      expect(find.text(franjasDeCita(DateTime.now(), 24, maximo: 6).first.etiqueta), findsOneWidget);
       expect(find.text('CONFIRMAR RESERVA EN BOUTIQUE'), findsOneWidget);
 
       // Confirmar reserva

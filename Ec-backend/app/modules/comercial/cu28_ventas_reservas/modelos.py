@@ -319,6 +319,11 @@ class ReservaORM(Base):
     )
     atendido_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # P2-CU15 (RN25, migración 0020): vencimiento fijado al crearla con las horas de la empresa
+    # vigentes en ese momento. Cambiar la configuración no lo recalcula (CU11 C7).
+    vence_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=False)
+    # P2-CU15 A1 (RN34): código `PROV-…` con que el dispositivo la registró sin conexión.
+    codigo_provisional: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
 
     cliente: Mapped["ClienteORM"] = relationship(
         "ClienteORM",

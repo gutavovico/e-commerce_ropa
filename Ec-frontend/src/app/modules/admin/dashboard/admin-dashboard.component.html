@@ -932,6 +932,52 @@
         </div>
       }
 
+      <!-- Tarjeta: Conflictos de sincronización (P2-CU20, A4: aviso dentro de la web) -->
+      @if (esAdmin() || esEncargado()) {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-[11px] font-bold tracking-widest text-[#AD8C63] uppercase">
+                Sincronización
+              </span>
+              @if (conflictosPendientes() > 0) {
+                <span id="contador-conflictos" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-900 border border-amber-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                  {{ conflictosPendientes() }} {{ conflictosPendientes() === 1 ? 'pendiente' : 'pendientes' }}
+                </span>
+              }
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-[#AD8C63] transition-colors">
+                <svg class="w-5 h-5 text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 group-hover:text-black transition-colors">
+                  Conflictos de sincronización
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Compras pagadas sin conexión que no pudieron completarse: reembolso y cierre de mes.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-3">
+            <a
+              id="btn-conflictos-sync"
+              routerLink="/admin/conflictos"
+              (click)="navegar('/admin/conflictos', $event)"
+              class="w-full inline-flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <span>Revisar</span>
+            </a>
+          </div>
+        </div>
+      }
+
       <!-- Tarjeta 13: Generar reportes ejecutivos y consultas por voz (CU31) -->
       @if (esAdmin() || esEncargado()) {
         <div class="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#AD8C63] transition-all shadow-xs hover:shadow-md group flex flex-col justify-between">
