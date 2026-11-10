@@ -1076,10 +1076,14 @@ def empresa_confirmada(motor):
         with motor.connect() as c:
             with c.begin():
                 _contexto(c, plataforma=True)
+                # Orden de las FK: lo que apunta a ventas, empleados o usuarios se borra antes (P2-CU18).
                 for tabla in ("avisos_cliente", "conflictos_sync", "sync_log", "operaciones_sync", "dispositivos",
-                              "movimientos_inventario", "reserva_detalle", "reservas", "inventario_sucursal",
+                              "cambio_prenda_detalle", "cambios_prenda",
+                              "movimientos_inventario", "reserva_detalle", "reservas", "pagos", "venta_detalle",
+                              "ventas", "inventario_sucursal",
                               "variantes_producto", "productos", "categorias", "temporadas", "bitacora",
-                              "configuracion_tenant", "sucursales", "historial_suscripcion", "suscripciones",
+                              "configuracion_tenant", "empleado_sucursal", "empleados", "usuarios",
+                              "sucursales", "historial_suscripcion", "suscripciones",
                               "cliente_tenant"):
                     c.execute(text(f"DELETE FROM fashionstore.{tabla} WHERE id_tenant = :t"), {"t": ids["tenant"]})
                 c.execute(text("DELETE FROM fashionstore.tenants WHERE id_tenant = :t"), {"t": ids["tenant"]})
@@ -1152,3 +1156,159 @@ def test_p2_rn35_el_mismo_uuid_enviado_a_la_vez_se_aplica_una_vez(motor, empresa
     assert resultados[0].codigo_reserva == resultados[1].codigo_reserva
     assert sorted(r.repetida for r in resultados) == [False, True]
     assert _estado_stock(motor, e) == ((0, 1), 1, 1)
+
+
+# --------------------------------------------------------------------------------- P2-CU18 (0021)
+# Spec: `.specs/changes/P2-CU18-cambio-prenda/plan.md` §8.
+
+def _venta_pagada_b(mundo, d, cupon=False):
+    """Venta pagada en la empresa B (hace 2 días) de 2 unidades de la prenda del catálogo de prueba,
+    y un cajero de B en la sucursal 1. Devuelve ids y la cabecera del cajero."""
+    c, t = mundo["conexion"], mundo["id_b"]
+    _contexto(c, plataforma=True)
+    q = lambda sql, **p: c.execute(text(sql), p).scalar()
+    otra = q("INSERT INTO fashionstore.variantes_producto (id_tenant, id_producto, id_talla, id_color, sku) VALUES "
+             "(:t, :p, (SELECT max(id_talla) FROM fashionstore.tallas), (SELECT min(id_color) FROM fashionstore.colores), "
+             "'SYNC-B-2') RETURNING id_variante", t=t, p=d["producto"])
+    temp = q("SELECT id_temporada FROM fashionstore.inventario_sucursal WHERE id_inventario = :i", i=d["inventario"])
+    inv_otra = q("INSERT INTO fashionstore.inventario_sucursal (id_tenant, id_variante, id_sucursal, id_temporada, "
+                 "cantidad_disponible) VALUES (:t, :v, :s, :tp, 3) RETURNING id_inventario", t=t, v=otra, s=d["s1"], tp=temp)
+    total = 180 if cupon else 200
+    venta = q("INSERT INTO fashionstore.ventas (id_tenant, id_cliente, id_sucursal, tipo_venta, numero_comprobante, estado, "
+              "subtotal, descuento, total, fecha_venta) VALUES (:t, :c, :s, 'presencial', 'B-CAMBIO-0001', 'pagada', 200, :desc, "
+              ":tot, now() - interval '2 days') RETURNING id_venta",
+              t=t, c=d["cliente"], s=d["s1"], desc=200 - total, tot=total)
+    linea = q("INSERT INTO fashionstore.venta_detalle (id_tenant, id_venta, id_variante, cantidad, precio_unitario, id_sucursal) "
+              "VALUES (:t, :v, :var, 2, 100, :s) RETURNING id_venta_detalle", t=t, v=venta, var=d["variante"], s=d["s1"])
+    cajero = q("INSERT INTO fashionstore.usuarios (email, password_hash, nombres, apellidos, rol, activo, id_tenant, id_sucursal) "
+               "VALUES ('cajero.cambio@empresa-b.com', :h, 'Caja', 'B', 'cajero', true, :t, :s) RETURNING id_usuario",
+               h=hash_password(CLAVE_PRUEBA), t=t, s=d["s1"])
+    q("INSERT INTO fashionstore.empleados (id_empleado, id_tenant, codigo_empleado, cargo, fecha_contratacion) "
+      "VALUES (:u, :t, 'EMP-B-CAJA', 'Cajero', current_date) RETURNING id_empleado", u=cajero, t=t)
+    _contexto(c)
+    return {"venta": venta, "linea": linea, "otra": otra, "inv_otra": inv_otra,
+            "cajero": _token(cajero, "cajero", t)}
+
+
+def test_p2_cu18_cambio_de_prenda_con_kardex_y_aislamiento(mundo):
+    d = _catalogo_b(mundo, unidades=1)
+    v = _venta_pagada_b(mundo, d, cupon=True)
+    api, c = mundo["cliente"], mundo["conexion"]
+
+    # AC-1: la venta con lo que queda por cambiar y lo pagado por unidad (cupón repartido: 100 × 180/200)
+    venta = api.get("/api/v1/pos/cambios/venta?comprobante=b-cambio-0001", headers=v["cajero"])
+    assert venta.status_code == 200, venta.text
+    linea = venta.json()["lineas"][0]
+    assert (linea["cambiables"], linea["valor_unitario"], venta.json()["dias_transcurridos"]) == (2, "90.00", 2)
+
+    # AC-6/AC-7: devuelve 1 (vale 90) y se lleva la otra talla (100): paga 10 en efectivo con 20
+    cuerpo = {"id_venta": v["venta"], "devueltas": [{"id_venta_detalle": v["linea"], "cantidad": 1}],
+              "nuevas": [{"id_variante": v["otra"], "cantidad": 1}]}
+    previo = api.post("/api/v1/pos/cambios/previsualizar", json=cuerpo, headers=v["cajero"])
+    assert previo.json()["diferencia"] == "10.00", previo.text
+    sin_cobro = api.post("/api/v1/pos/cambios", json=cuerpo, headers=v["cajero"])
+    assert sin_cobro.status_code == 422 and sin_cobro.json()["code"] == "COBRO_REQUERIDO"
+    hecho = api.post("/api/v1/pos/cambios", json={**cuerpo, "cobro": {"metodo_pago": "efectivo", "monto_recibido": "20"}},
+                     headers=v["cajero"])
+    assert hecho.status_code == 201, hecho.text
+    comprobante = hecho.json()
+    assert comprobante["numero_comprobante"].startswith("CAM-") and comprobante["numero_comprobante"].endswith("-00001")
+    assert (comprobante["vuelto"], comprobante["comprobante_venta"]) == ("10.00", "B-CAMBIO-0001")
+
+    # AC-8 (RN32): entra la devuelta y sale la nueva, con sus movimientos
+    _contexto(c, plataforma=True)
+    saldos = dict(c.execute(text("SELECT id_inventario, cantidad_disponible FROM fashionstore.inventario_sucursal "
+                                 "WHERE id_inventario IN (:a, :b)"), {"a": d["inventario"], "b": v["inv_otra"]}).all())
+    movimientos = sorted(c.execute(text("SELECT tipo_movimiento::text, cantidad FROM fashionstore.movimientos_inventario "
+                                        "WHERE referencia_documento = :r"), {"r": f"CAMBIO-{comprobante['id_cambio']}"}).all())
+    estado_venta = c.execute(text("SELECT estado::text FROM fashionstore.ventas WHERE id_venta = :v"), {"v": v["venta"]}).scalar()
+    _contexto(c)
+    assert (saldos[d["inventario"]], saldos[v["inv_otra"]]) == (2, 2)
+    assert movimientos == [("devolucion", 1), ("venta_confirmada", -1)]
+    assert estado_venta == "pagada"
+
+    # AC-10/RN31: queda una unidad; pedir dos se rechaza
+    otra_vez = api.post("/api/v1/pos/cambios/previsualizar",
+                        json={**cuerpo, "devueltas": [{"id_venta_detalle": v["linea"], "cantidad": 2}]}, headers=v["cajero"])
+    assert otra_vez.status_code == 409 and otra_vez.json()["code"] == "CANTIDAD_NO_CAMBIABLE"
+
+    # AC-12: FASHION STORE no ve el cambio de B; un cajero de B no ve una venta de otra empresa
+    _contexto(c, tenant=1)
+    assert c.execute(text("SELECT count(*) FROM fashionstore.cambios_prenda WHERE id_cambio = :i"),
+                     {"i": comprobante["id_cambio"]}).scalar() == 0
+    ajena = c.execute(text("SELECT numero_comprobante FROM fashionstore.ventas WHERE estado = 'pagada' LIMIT 1")).scalar()
+    _contexto(c)
+    if ajena:
+        r = api.get(f"/api/v1/pos/cambios/venta?comprobante={ajena}", headers=v["cajero"])
+        assert r.status_code == 404 and r.json()["code"] == "VENTA_NO_ENCONTRADA"
+
+
+def test_p2_cu18_plazo_vencido(mundo):
+    d = _catalogo_b(mundo)
+    v = _venta_pagada_b(mundo, d)
+    c = mundo["conexion"]
+    _contexto(c, plataforma=True)
+    c.execute(text("UPDATE fashionstore.ventas SET fecha_venta = now() - interval '20 days' WHERE id_venta = :v"), {"v": v["venta"]})
+    _contexto(c)
+    r = mundo["cliente"].get("/api/v1/pos/cambios/venta?comprobante=B-CAMBIO-0001", headers=v["cajero"])
+    assert r.status_code == 409 and r.json()["code"] == "PLAZO_DE_CAMBIO_VENCIDO"
+    assert (r.json()["dias_transcurridos"], r.json()["plazo_dias"]) == (20, 15)
+
+
+def test_p2_cu18_dos_cambios_a_la_vez_sobre_la_ultima_unidad(motor, empresa_confirmada):
+    """AC-11: la línea vendida tiene 1 unidad; dos cajas la cambian a la vez → solo una puede."""
+    from core.errors import DomainError
+    from modules.autenticacion_seguridad.modelos import UsuarioORM
+    from modules.compras_pagos.cu18_cambio_prenda.esquemas import CambioIn
+    from modules.compras_pagos.cu18_cambio_prenda.servicio import CambioPrendaServicio
+
+    e = empresa_confirmada
+    with motor.connect() as c:
+        with c.begin():
+            _contexto(c, plataforma=True)
+            q = lambda sql, **p: c.execute(text(sql), p).scalar()
+            venta = q("INSERT INTO fashionstore.ventas (id_tenant, id_cliente, id_sucursal, tipo_venta, numero_comprobante, "
+                      "estado, subtotal, total, fecha_venta) VALUES (:t, :c, :s, 'presencial', 'C-0001', 'pagada', 50, 50, now()) "
+                      "RETURNING id_venta", t=e["tenant"], c=e["cliente"], s=e["sucursal"])
+            linea = q("INSERT INTO fashionstore.venta_detalle (id_tenant, id_venta, id_variante, cantidad, precio_unitario, "
+                      "id_sucursal) VALUES (:t, :v, :var, 1, 50, :s) RETURNING id_venta_detalle",
+                      t=e["tenant"], v=venta, var=e["variante"], s=e["sucursal"])
+            cajero = q("INSERT INTO fashionstore.usuarios (email, password_hash, nombres, apellidos, rol, activo, id_tenant, "
+                       "id_sucursal) VALUES (:m, :h, 'Caja', 'C', 'cajero', true, :t, :s) RETURNING id_usuario",
+                       m=f"caja.{e['tenant']}@ejemplo.com", h=hash_password(CLAVE_PRUEBA), t=e["tenant"], s=e["sucursal"])
+            q("INSERT INTO fashionstore.empleados (id_empleado, id_tenant, codigo_empleado, cargo, fecha_contratacion) "
+              "VALUES (:u, :t, 'EMP-C', 'Cajero', current_date) RETURNING id_empleado", u=cajero, t=e["tenant"])
+
+    datos = CambioIn(id_venta=venta, devueltas=[{"id_venta_detalle": linea, "cantidad": 1}],
+                     nuevas=[{"id_variante": e["variante"], "cantidad": 1}])
+    barrera = threading.Barrier(2)
+    resultados = [None, None]
+
+    def trabajar(i):
+        sesion = Session(bind=motor)
+        sesion.info.update({"id_tenant": e["tenant"], "id_usuario": cajero, "modo_plataforma": False})
+        try:
+            usuario = sesion.get(UsuarioORM, cajero)
+            sesion.commit()
+            barrera.wait(timeout=30)
+            resultados[i] = CambioPrendaServicio.registrar(sesion, usuario, datos).numero_comprobante
+        except DomainError as exc:
+            resultados[i] = exc.code
+        finally:
+            sesion.close()
+
+    hilos = [threading.Thread(target=trabajar, args=(i,)) for i in (0, 1)]
+    for h in hilos:
+        h.start()
+    for h in hilos:
+        h.join(timeout=120)
+
+    assert sorted(resultados, key=str)[1] == "CANTIDAD_NO_CAMBIABLE", resultados
+    assert str(sorted(resultados, key=str)[0]).startswith("CAM-")
+    with motor.connect() as c:
+        with c.begin():
+            _contexto(c, plataforma=True)
+            n = c.execute(text("SELECT count(*) FROM fashionstore.cambios_prenda WHERE id_tenant = :t"), {"t": e["tenant"]}).scalar()
+            stock = c.execute(text("SELECT cantidad_disponible FROM fashionstore.inventario_sucursal WHERE id_inventario = :i"),
+                              {"i": e["inventario"]}).scalar()
+    assert (n, stock) == (1, 1)  # un solo cambio; la prenda entra y sale: el stock queda igual

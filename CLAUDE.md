@@ -136,8 +136,9 @@ sola cuando no hay `DATABASE_URL` en `Ec-backend/.env`.
 `0001 → … → 0008 → 0009 → 0009a → 0010 → 0010a → 0011`. `0009a` (CU28) y `0010a` (CU29) son
 marcadores vacíos; los IDs llevan sufijo porque `0009` y `0010` ya pertenecían a migraciones con DDL
 real. Desde la fundación multitenant la cadena sigue `0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017
-→ 0018 → 0019 → 0020` (`0017`–`0019`: superadmin, reportes IA y ML; `0020`: operación sin conexión).
-Producción y la rama `pruebas-multitenant` están en `0020` (2026-11-10). **Nueva migración:** `down_revision = "0020"` e ID nuevo y único (`0021`);
+→ 0018 → 0019 → 0020 → 0021` (`0017`–`0019`: superadmin, reportes IA y ML; `0020`: operación sin conexión;
+`0021`: cambios de prenda, P2-CU18). Producción y la rama `pruebas-multitenant` están en `0021` (2026-11-10).
+**Nueva migración:** `down_revision = "0021"` e ID nuevo y único (`0022`);
 avisa al resto del equipo del número antes de crearla y comprueba `alembic heads` antes de enviarla.
 Una migración que añade una columna `NOT NULL` a una tabla que el código desplegado ya escribe necesita
 un valor por defecto: entre la migración y el push sigue corriendo el código anterior.
@@ -268,7 +269,7 @@ app/core/{config,database,deps,errors,security,token_blacklist}.py
 ```
 
 Paquetes actuales: `autenticacion_seguridad`, `catalogo`, `reservas`, `compras_pagos` (incluye el POS
-`cu31_cu32_punto_venta`), `comercial` (CU27–CU29 y `cu31_reportes_voz`), `gestion_operativa` (CU21–CU26)
+`cu31_cu32_punto_venta` y el cambio de prenda `cu18_cambio_prenda`, P2-CU18), `comercial` (CU27–CU29 y `cu31_reportes_voz`), `gestion_operativa` (CU21–CU26)
 `seguridad` (CU30 bitácora), `plataforma` (modelo SaaS: empresas, planes, suscripciones; P2-CU12) y
 `sincronizacion` (operación sin conexión: dispositivos, catálogo local, sincronización, conflictos con
 reembolso y avisos al cliente; P2-CU14, CU19 y CU20).
@@ -374,7 +375,8 @@ lib/src/{core,navegacion}/
   `EmpresaActual.instancia.marca`.
 - **Personal en el móvil (P2-CU16/CU17):** `destinoTrasLogin` (en `main.dart`) envía a administrador,
   encargado y cajero a `PantallaCaja`, su espacio, sin el hub del cliente; el super administrador sigue
-  en el hub. Una pantalla nueva de empleado se abre desde la caja, nunca desde el hub.
+  en el hub. Una pantalla nueva de empleado se abre desde la caja, nunca desde el hub, y reutiliza su
+  `CajaBloc` (sucursal, red, `api`), como `PantallaCambioPrenda` (P2-CU18).
 - **Sin conexión (P2-CU14/CU19):** SQLite (`core/sin_conexion/almacen_local.dart`) y
   `SinConexionServicio.instancia`, que crea el hub solo para clientes; en el resto del código usa
   `instanciaSiExiste`. Las pruebas usan `sqflite_common_ffi` con `inMemoryDatabasePath`.

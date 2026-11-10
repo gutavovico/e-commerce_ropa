@@ -31,11 +31,12 @@ import {
 } from '../modelos/punto-venta.dto';
 import { PuntoVentaService } from '../servicios/punto-venta.service';
 import { TicketComprobanteComponent } from '../componentes/ticket-comprobante/ticket-comprobante.component';
+import { CambioPrendaComponent } from '../componentes/cambio-prenda/cambio-prenda.component';
 import { ImportePipe, SimboloMonedaPipe } from '../../../../core/tenant/moneda';
 import { MonedaService, formatearImporte } from '../../../../core/tenant/moneda';
 import { ConectividadService } from '../../../../core/sin-conexion/conectividad.service';
 
-type Pestana = 'nueva' | 'pendientes' | 'web';
+type Pestana = 'nueva' | 'pendientes' | 'web' | 'cambios';
 
 interface LineaCaja {
   variante: VariantePos;
@@ -51,7 +52,7 @@ interface LineaCaja {
 @Component({
   selector: 'app-punto-venta',
   standalone: true,
-  imports: [ImportePipe, SimboloMonedaPipe, MarcaTiendaComponent, FormsModule, RouterLink, DatePipe, TicketComprobanteComponent],
+  imports: [ImportePipe, SimboloMonedaPipe, MarcaTiendaComponent, FormsModule, RouterLink, DatePipe, TicketComprobanteComponent, CambioPrendaComponent],
   templateUrl: './punto-venta.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -12,6 +12,9 @@ class ServidorCaja {
   http.Response Function(http.Request)? previsualizar;
   http.Response Function(http.Request)? cobrar;
 
+  /// Rutas de otros módulos de caja (p. ej. P2-CU18, cambios): si devuelve respuesta, manda.
+  http.Response? Function(http.Request)? otrasRutas;
+
   static http.Response ok(String cuerpo, [int estado = 200]) =>
       http.Response.bytes(utf8.encode(cuerpo), estado, headers: {'content-type': 'application/json'});
 
@@ -20,6 +23,8 @@ class ServidorCaja {
 
   late final MockClient cliente = MockClient((r) async {
     peticiones.add(r);
+    final otra = otrasRutas?.call(r);
+    if (otra != null) return otra;
     final ruta = r.url.path;
     if (ruta == '/api/v1/mis-sucursales') return ok(sucursales);
     if (ruta == '/api/v1/pos/variantes') return ok('[${p.variante},${p.varianteAgotada}]');

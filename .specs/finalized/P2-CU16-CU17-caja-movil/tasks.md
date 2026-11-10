@@ -34,5 +34,5 @@ Cada tarea se marca **en cuanto se termina y se verifica**, con lo que cambió r
 - [ ] **T-08 ·** Prueba manual en dispositivo físico (venta en efectivo y con tarjeta). Pendiente del usuario.
 
 ## Publicación y cierre
-- [ ] **T-PR-01 (usuario) ·** Commit, push y PR de `p2/caja-movil` (sin migración), con el cierre incluido.
+- [x] **T-PR-01 (usuario) ·** PR #14 de `p2/caja-movil` fusionado en `main` (2026-11-10), con el cierre incluido.
 - [x] **T-PR-02 ·** `CHANGELOG.md`, spec permanente (`.specs/modules/compras_pagos/P2-CU16-CU17-caja-movil.md`), «Mobile: excluido» corregido en la spec de CU31-CU32, regla del personal en `CLAUDE.md` y promoción a `finalized/` (2026-11-10).
