@@ -4,6 +4,15 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ## [Unreleased] - 2026-11-09 (Parcial 2)
 
+### Operación sin conexión — P2-CU14, CU15, CU19 y CU20 (bloque 3)
+- **Qué:** el cliente descarga el catálogo de su tienda y reserva sin internet en la PWA y en la app Flutter. Al volver la conexión las operaciones se sincronizan sin duplicarse (RN35). Lo que el servidor no acepta se cancela con un aviso (reservas) o se reembolsa (compras ya cobradas, solo móvil). El encargado o el administrador revisa los conflictos y el administrador procesa los reembolsos con Stripe al cierre del mes. La caja web no opera sin conexión. Las reservas vencen a las horas que define la empresa (RN25).
+- **Backend:** paquete nuevo `sincronizacion` (12 endpoints) y migración `0020_sin_conexion` (5 tablas con RLS; `reservas.vence_en` y `codigo_provisional`). Reutiliza los servicios de reserva y pago con piezas sin `commit`, sin copiar sus reglas.
+- **Web:** service worker (solo la aplicación, nunca la API), IndexedDB, banda «Sin conexión», hojas `/{codigo}/sin-conexion` y `/{codigo}/sincronizacion`, y `/admin/conflictos`.
+- **Móvil:** SQLite, `connectivity_plus` con comprobación de `/health`, catálogo y reserva sin conexión, compra interrumpida y bandeja de avisos.
+- **Pruebas:** backend 852 (5 de integración, 2 de concurrencia real), web 706, móvil 299.
+- **Despliegue:** requiere aplicar `0017`–`0020` en producción antes del push. `vence_en` tiene valor por defecto para que el código anterior siga creando reservas mientras tanto.
+- **Spec:** `.specs/modules/sincronizacion/P2-CU14-CU15-CU19-CU20-sin-conexion.md` · historial en `.specs/finalized/P2-CU14-CU15-CU19-CU20-sin-conexion/`.
+
 ### Fix · La reserva web y móvil ignoraba la franja elegida (defecto sin numerar: se numera al fusionar)
 - **Móvil:** la hoja de reserva de `PantallaProductoDetalle` tenía el mismo defecto: franjas fijas («SÁBADO 11:00H») y la cita siempre a «ahora + 1 día», justo en el límite del vencimiento de 24 h. Usa ahora `franjasDeCita` (`core/sin_conexion/franjas_cita.dart`), con el mismo criterio que la web, y el 409 muestra las sucursales alternativas.
 - **Causa (web):** el modal de reserva del detalle de producto ofrecía franjas fijas («MAÑANA 11:30H», «MAÑANA 16:30H», «VIERNES 12:00H»), pero siempre enviaba la cita para el día siguiente a las 11:30, eligiera lo que eligiera el cliente. Con el vencimiento de P2-CU15 (RN25: 24 h desde la creación por defecto), esa hora fija superaba el plazo en cuanto se reservaba antes de las 11:30 y el servidor la rechazaba con `CITA_FUERA_DE_PLAZO`.
