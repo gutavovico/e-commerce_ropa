@@ -1,6 +1,6 @@
 """ORM de la operación sin conexión (migración 0020).
 
-Spec: `.specs/changes/P2-CU14-CU15-CU19-CU20-sin-conexion/plan.md` §4. Todas son tablas de empresa:
+Spec: `.specs/finalized/P2-CU14-CU15-CU19-CU20-sin-conexion/plan.md` §4. Todas son tablas de empresa:
 `id_tenant` se mapea con `FetchedValue()` y PostgreSQL lo toma del contexto de la transacción.
 """
 

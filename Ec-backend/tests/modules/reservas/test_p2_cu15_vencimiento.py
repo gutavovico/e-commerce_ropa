@@ -1,6 +1,6 @@
 """P2-CU15 · Reservar varias prendas: vencimiento por las horas de la empresa (RN25) y alternativas.
 
-Spec: `.specs/changes/P2-CU14-CU15-CU19-CU20-sin-conexion/spec.md` AC-15.1 a AC-15.4.
+Spec: `.specs/finalized/P2-CU14-CU15-CU19-CU20-sin-conexion/spec.md` AC-15.1 a AC-15.4.
 """
 
 from datetime import datetime, timedelta, timezone

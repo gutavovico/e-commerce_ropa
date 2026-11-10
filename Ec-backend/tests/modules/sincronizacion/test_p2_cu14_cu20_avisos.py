@@ -1,7 +1,7 @@
 """Pruebas unitarias de P2-CU14 (dispositivo y catálogo), P2-CU20 (conflictos y cierre), la bandeja
 de avisos y el reembolso de Stripe. Sin base de datos.
 
-Spec: `.specs/changes/P2-CU14-CU15-CU19-CU20-sin-conexion/`.
+Spec: `.specs/finalized/P2-CU14-CU15-CU19-CU20-sin-conexion/`.
 """
 
 import uuid

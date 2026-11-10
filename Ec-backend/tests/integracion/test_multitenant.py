@@ -791,7 +791,7 @@ def test_aislamiento_multitenant_tablas_nuevas_ia_ml_suscripcion(mundo):
 
 
 # --------------------------------------------------------------------------------- P2-CU14, CU15, CU19 y CU20 (0020)
-# Spec: `.specs/changes/P2-CU14-CU15-CU19-CU20-sin-conexion/plan.md` §9.
+# Spec: `.specs/finalized/P2-CU14-CU15-CU19-CU20-sin-conexion/plan.md` §9.
 
 import threading
 import uuid as _uuid

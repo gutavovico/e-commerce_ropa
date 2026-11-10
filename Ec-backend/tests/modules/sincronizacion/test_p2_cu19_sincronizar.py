@@ -1,6 +1,6 @@
 """Pruebas unitarias de P2-CU19 · Sincronizar operaciones pendientes (sin base de datos).
 
-Spec: `.specs/changes/P2-CU14-CU15-CU19-CU20-sin-conexion/` (AC-19.2 a AC-19.9, AC-19.12).
+Spec: `.specs/finalized/P2-CU14-CU15-CU19-CU20-sin-conexion/` (AC-19.2 a AC-19.9, AC-19.12).
 La concurrencia real (mismo UUID a la vez, última unidad) está en `tests/integracion/test_multitenant.py`.
 """
 
