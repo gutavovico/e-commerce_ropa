@@ -18,6 +18,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { LoginService } from '../../../autenticacion_seguridad/cu02_iniciar_sesion/servicios/login.service';
 import { SuperadminService } from '../servicios/superadmin.service';
+import { RespaldosComponent } from '../../rnf18_respaldos/componentes/respaldos/respaldos.component';
 import {
   BitacoraPlataformaItem,
   CatalogoReporteItem,
@@ -40,7 +41,7 @@ import {
 @Component({
   selector: 'app-superadmin-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, RespaldosComponent],
   templateUrl: './superadmin-panel.component.html',
   styleUrls: ['./superadmin-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -212,6 +213,8 @@ export class SuperadminPanelComponent implements OnInit {
       this.cargarCatalogoReportesIa();
     } else if (pestana === 'bitacora') {
       this.cargarBitacora(1);
+    } else if (pestana === 'respaldos' && this.empresas().length === 0) {
+      this.cargarEmpresasYMetricas();
     }
   }
 

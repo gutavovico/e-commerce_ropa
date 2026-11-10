@@ -1,0 +1,138 @@
+# RNF18 · Respaldo automático de la base (y su restauración en una rama que no sea producción).
+# Spec: .specs/changes/P2-cierre-sesion-respaldos-push/ (parte B, decisiones H2–H4).
+#
+# - Respaldar: cada día a las 03:00 de Bolivia, o a mano («Run workflow» → respaldar). `pg_dump` de toda
+#   la base (esquema y datos), cifrado con gpg (AES-256) y subido a Cloudflare R2. Lo que no esté
+#   cifrado nunca sale del runner; el archivo cifrado solo se sube si el volcado terminó bien y se
+#   puede leer de vuelta.
+# - Restaurar (solo a mano): descarga un archivo de R2 y lo restaura en DATABASE_URL_RESTAURACION, que
+#   debe ser una rama de Neon creada para eso. Se niega si apunta al mismo endpoint que producción.
+#
+# Secretos: DATABASE_URL_RESPALDO (rol dueño, producción), RESPALDO_FRASE, R2_ACCESS_KEY_ID,
+# R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET y, para restaurar, DATABASE_URL_RESTAURACION.
+# La retención (30 días) es una regla de ciclo de vida del bucket en R2.
+
+name: Respaldo de la base (RNF18)
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # 03:00 en Bolivia (UTC-4, sin horario de verano)
+  workflow_dispatch:
+    inputs:
+      accion:
+        description: "respaldar o restaurar"
+        type: choice
+        options: [respaldar, restaurar]
+        default: respaldar
+      archivo:
+        description: "Solo al restaurar: nombre del archivo en R2 (fashionstore-AAAAMMDD-HHMM.dump.gpg)"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: respaldo-base
+  cancel-in-progress: false
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: auto
+  R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+  R2_BUCKET: ${{ secrets.R2_BUCKET }}
+  RESPALDO_FRASE: ${{ secrets.RESPALDO_FRASE }}
+  DATABASE_URL_RESPALDO: ${{ secrets.DATABASE_URL_RESPALDO }}
+  PG_BIN: /usr/lib/postgresql/18/bin
+
+jobs:
+  respaldar:
+    if: github.event_name == 'schedule' || inputs.accion == 'respaldar'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Comprobar secretos
+        run: |
+          for v in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ENDPOINT R2_BUCKET RESPALDO_FRASE DATABASE_URL_RESPALDO; do
+            [ -n "${!v}" ] || { echo "::error::Falta el secreto $v"; exit 1; }
+          done
+
+      - name: Cliente de PostgreSQL 18 (misma versión que Neon)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18
+
+      - name: Volcar, cifrar, comprobar y subir
+        run: |
+          set -euo pipefail
+          # URL de libpq, sin el driver de SQLAlchemy y sin el pooler (pg_dump necesita conexión directa).
+          url="${DATABASE_URL_RESPALDO/postgresql+psycopg:/postgresql:}"
+          url="${url/-pooler./.}"
+          archivo="fashionstore-$(TZ=America/La_Paz date +%Y%m%d-%H%M).dump.gpg"
+          destino="$RUNNER_TEMP/$archivo"
+
+          # El volcado va directo a gpg: lo que no está cifrado no toca el disco.
+          "$PG_BIN/pg_dump" --format=custom --no-owner "$url" \
+            | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 \
+                  --output "$destino" 3<<<"$RESPALDO_FRASE"
+
+          # Comprobación: se descifra y pg_restore lee su índice completo.
+          tablas=$(gpg --batch --quiet --pinentry-mode loopback --passphrase-fd 3 --decrypt "$destino" 3<<<"$RESPALDO_FRASE" \
+            | "$PG_BIN/pg_restore" --list | grep -c " TABLE DATA ")
+          [ "$tablas" -gt 0 ] || { echo "::error::El respaldo no contiene datos"; exit 1; }
+
+          aws s3 cp "$destino" "s3://$R2_BUCKET/$archivo" --endpoint-url "$R2_ENDPOINT" --only-show-errors
+          rm -f "$destino"
+          {
+            echo "### Respaldo subido"
+            echo "- Archivo: \`$archivo\` ($tablas tablas con datos)"
+            echo "- Bucket: \`$R2_BUCKET\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  restaurar:
+    if: github.event_name == 'workflow_dispatch' && inputs.accion == 'restaurar'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL_RESTAURACION: ${{ secrets.DATABASE_URL_RESTAURACION }}
+      ARCHIVO: ${{ inputs.archivo }}
+    steps:
+      - name: Comprobar entradas y destino
+        run: |
+          set -euo pipefail
+          for v in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ENDPOINT R2_BUCKET RESPALDO_FRASE DATABASE_URL_RESPALDO DATABASE_URL_RESTAURACION; do
+            [ -n "${!v}" ] || { echo "::error::Falta el secreto $v"; exit 1; }
+          done
+          [[ "$ARCHIVO" =~ ^fashionstore-[0-9]{8}-[0-9]{4}\.dump\.gpg$ ]] || { echo "::error::Nombre de archivo no válido"; exit 1; }
+          endpoint() { local h="${1#*@}"; h="${h%%/*}"; h="${h%%.*}"; echo "${h%-pooler}"; }
+          if [ "$(endpoint "$DATABASE_URL_RESTAURACION")" = "$(endpoint "$DATABASE_URL_RESPALDO")" ]; then
+            echo "::error::DATABASE_URL_RESTAURACION apunta a producción. Usa una rama de Neon creada para restaurar."
+            exit 1
+          fi
+
+      - name: Cliente de PostgreSQL 18
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18
+
+      - name: Descargar, descifrar y restaurar
+        run: |
+          set -euo pipefail
+          url="${DATABASE_URL_RESTAURACION/postgresql+psycopg:/postgresql:}"
+          url="${url/-pooler./.}"
+          aws s3 cp "s3://$R2_BUCKET/$ARCHIVO" "$RUNNER_TEMP/r.dump.gpg" --endpoint-url "$R2_ENDPOINT" --only-show-errors
+          gpg --batch --quiet --pinentry-mode loopback --passphrase-fd 3 --decrypt --output "$RUNNER_TEMP/r.dump" \
+            "$RUNNER_TEMP/r.dump.gpg" 3<<<"$RESPALDO_FRASE"
+          # --clean: la rama nace como copia de producción; se reemplaza su contenido por el del respaldo.
+          "$PG_BIN/pg_restore" --clean --if-exists --no-owner --exit-on-error --single-transaction \
+            --dbname "$url" "$RUNNER_TEMP/r.dump"
+          rm -f "$RUNNER_TEMP/r.dump" "$RUNNER_TEMP/r.dump.gpg"
+          echo "### Restaurado \`$ARCHIVO\` en la rama de restauración" >> "$GITHUB_STEP_SUMMARY"

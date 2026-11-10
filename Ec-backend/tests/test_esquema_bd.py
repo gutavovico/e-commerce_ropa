@@ -276,3 +276,38 @@ def _dialecto():
     from sqlalchemy.dialects import postgresql
 
     return postgresql.dialect()
+
+
+def test_los_enums_del_orm_admiten_todos_los_valores_de_la_base_de_datos():
+    """Un valor que existe en la base y falta en el `PG_ENUM` del ORM hace fallar cualquier lectura
+    de esa fila con `LookupError` (500). Así se rompió el login del super administrador."""
+    from sqlalchemy import Enum
+
+    base = _cargar_todos_los_modelos()
+    try:
+        motor = create_engine(DATABASE_URL)
+        with motor.connect() as conexion:
+            filas = conexion.execute(
+                text(
+                    "SELECT t.typname, e.enumlabel FROM pg_type t "
+                    "JOIN pg_enum e ON e.enumtypid = t.oid JOIN pg_namespace n ON n.oid = t.typnamespace "
+                    "WHERE n.nspname = :esquema"
+                ),
+                {"esquema": ESQUEMA},
+            ).fetchall()
+    except SQLAlchemyError as exc:
+        pytest.skip(f"No se pudo conectar a la base de datos para verificar el esquema: {exc}")
+
+    reales: dict[str, set[str]] = {}
+    for nombre, valor in filas:
+        reales.setdefault(nombre, set()).add(valor)
+
+    faltantes = []
+    for tabla in base.metadata.tables.values():
+        for columna in tabla.columns:
+            tipo = columna.type
+            if isinstance(tipo, Enum) and tipo.name in reales:
+                faltan = reales[tipo.name] - set(tipo.enums)
+                if faltan:
+                    faltantes.append(f"{tabla.name}.{columna.name} ({tipo.name}): {sorted(faltan)}")
+    assert not faltantes, "Enums del ORM sin valores que existen en la base de datos: " + "; ".join(faltantes)

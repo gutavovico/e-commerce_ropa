@@ -4,7 +4,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import column, func, or_, select, table, text
+from sqlalchemy import String, cast, column, func, or_, select, table, text
 from sqlalchemy.orm import Session
 
 from core.tiempo import ahora
@@ -171,7 +171,9 @@ class EmpresasSupervisionRepositorio:
                 func.coalesce(func.sum(_t_ventas.c.total), Decimal("0.00")).label("monto"),
             )
             .select_from(_t_ventas)
-            .where(_t_ventas.c.id_tenant == id_tenant, _t_ventas.c.estado == "pagada")
+            # `estado` es el enum `estado_venta`: sin el CAST, psycopg 3 envía el literal como VARCHAR y
+            # PostgreSQL no compara enum con varchar (500 en el panel del super administrador).
+            .where(_t_ventas.c.id_tenant == id_tenant, cast(_t_ventas.c.estado, String) == "pagada")
         ).first()
         ventas_cant = int(fila_ventas.cantidad if fila_ventas else 0)
         ventas_monto = Decimal(str(fila_ventas.monto if fila_ventas else "0.00"))

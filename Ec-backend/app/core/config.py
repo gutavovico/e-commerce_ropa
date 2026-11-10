@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     # aplicación (pruebas de aislamiento). Si faltan, esas pruebas se saltan.
     DATABASE_URL_PRUEBAS: str = ""
     DATABASE_URL_PRUEBAS_APP: str = ""
+    # RNF18: rama de Neon NUEVA donde `scripts/restaurar_respaldo.py` restaura un respaldo manual
+    # (rol dueño). Nunca la de producción: el script la rechaza.
+    DATABASE_URL_RESTAURACION: str = ""
 
     # --- Opcionales (con default) ---
     JWT_EXPIRE_MINUTES: int = 1440

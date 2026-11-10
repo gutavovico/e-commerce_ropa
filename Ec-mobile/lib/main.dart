@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'api_config.dart';
 import 'src/core/empresa_actual.dart';
+import 'src/core/sesion_guardada.dart';
 import 'src/core/sesion_manager.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/datos/modelos/login_dto.dart';
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_seleccion_empresa.dart';
@@ -27,10 +28,10 @@ DestinoSesion destinoTrasLogin(String rol) {
 }
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   // Sin STRIPE_PUBLISHABLE_KEY (--dart-define), no se inicializa el SDK: CU16 cae en su panel de
   // «modo simulador» en vez de intentar montar un CardField sin clave configurada.
   if (ApiConfig.stripePublishableKey.isNotEmpty) {
-    WidgetsFlutterBinding.ensureInitialized();
     Stripe.publishableKey = ApiConfig.stripePublishableKey;
     // Requerido por Stripe en cuanto el `PaymentIntent` admite algún método que pueda redirigir
     // (§A.2 de `spec.md`: se quitó `allow_redirects: 'never'` a propósito, para permitir 3DS/SCA).
@@ -42,7 +43,10 @@ Future<void> main() async {
     Stripe.urlScheme = 'fashionstore';
     await Stripe.instance.applySettings();
   }
-  runApp(const EcMobileApp());
+  // Sesión guardada (defecto del bloque 3): se lee antes de pintar para entrar sin pasar por el
+  // login, también sin conexión. Si falla la lectura, se muestra el login.
+  final sesion = await SesionGuardada.instancia.leerVigente();
+  runApp(EcMobileApp(sesionInicial: sesion));
 }
 
 /// Raíz de la aplicación y propietaria del ciclo de vida de la sesión.
@@ -59,7 +63,13 @@ Future<void> main() async {
 /// puede ocurrir— y que volver a iniciar sesión tras un logout no hacía nada, porque
 /// los callbacks apuntaban a un estado ya destruido.
 class EcMobileApp extends StatefulWidget {
-  const EcMobileApp({super.key});
+  /// Sesión vigente restaurada al arrancar: la app entra directo a su destino (AC-A2).
+  final SesionPersistida? sesionInicial;
+
+  /// Dónde se guarda la sesión; las pruebas inyectan una con SQLite en memoria.
+  final SesionGuardada? sesionGuardada;
+
+  const EcMobileApp({super.key, this.sesionInicial, this.sesionGuardada});
 
   @override
   State<EcMobileApp> createState() => _EcMobileAppState();
@@ -75,12 +85,45 @@ class _EcMobileAppState extends State<EcMobileApp> {
   StreamSubscription<NotificacionPush>? _subPushClick;
   String? _tokenActivo;
 
+  SesionGuardada get _sesiones => widget.sesionGuardada ?? SesionGuardada.instancia;
+
   @override
   void initState() {
     super.initState();
     _subSesion = SesionManager.instancia.eventos.listen(_alExpirarSesion);
     _subPushPrimerPlano = ServicioPush.instancia.enPrimerPlano.listen(_alRecibirPushPrimerPlano);
     _subPushClick = ServicioPush.instancia.alPulsarNotificacion.listen(_alPulsarPush);
+    final sesion = widget.sesionInicial;
+    if (sesion != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _entrarConSesion(sesion));
+    }
+  }
+
+  /// AC-A2: con la sesión guardada se va al mismo destino que tras el login, sin pedir de nuevo la
+  /// tienda al cliente que ya la había elegido. Si el token ya no sirve, el primer 401 lleva al login.
+  void _entrarConSesion(SesionPersistida sesion) {
+    _tokenActivo = sesion.token;
+    SesionManager.instancia.reiniciar();
+    final empresa = sesion.empresa;
+    if (empresa != null) EmpresaActual.instancia.elegir(empresa);
+    switch (destinoTrasLogin(sesion.rol)) {
+      case DestinoSesion.seleccionDeTienda:
+        if (empresa != null) {
+          _abrirHub(sesion.token, sesion.nombreUsuario, esCliente: true);
+        } else {
+          _abrirSeleccionEmpresa(sesion.token, sesion.nombreUsuario, null);
+        }
+      case DestinoSesion.caja:
+        _abrirCaja(sesion.token, sesion.nombreUsuario, sesion.rol.toLowerCase().trim());
+      case DestinoSesion.hub:
+        _abrirHub(sesion.token, sesion.nombreUsuario, esCliente: false);
+    }
+  }
+
+  void _guardarSesion(String token, String? nombreUsuario, String rol, EmpresaTienda? empresa) {
+    unawaited(_sesiones.guardar(
+        SesionPersistida(token: token, nombreUsuario: nombreUsuario ?? '', rol: rol, empresa: empresa)));
+  }
   }
 
   @override
@@ -139,6 +182,8 @@ class _EcMobileAppState extends State<EcMobileApp> {
     // si no, un 401 posterior quedaría silenciado para siempre.
     SesionManager.instancia.reiniciar();
     EmpresaActual.instancia.limpiar();
+    // AC-A3 / AC-A4: la sesión guardada se borra; las operaciones pendientes, no (RN37).
+    unawaited(_sesiones.borrar());
     _navegadorKey.currentState?.pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => _construirLogin()),
       (route) => false,
@@ -160,6 +205,8 @@ class _EcMobileAppState extends State<EcMobileApp> {
     _tokenActivo = token;
     final nombreCompleto = '${usuario.nombres} ${usuario.apellidos}'.trim();
     final destino = destinoTrasLogin(usuario.rol);
+    // AC-A1: el empleado con la empresa de su cuenta; el cliente, sin tienda hasta que la elija.
+    _guardarSesion(token, nombreCompleto, usuario.rol, destino == DestinoSesion.seleccionDeTienda ? null : usuario.tenant);
     if (destino == DestinoSesion.seleccionDeTienda) {
       _abrirSeleccionEmpresa(token, nombreCompleto, usuario.empresas);
       return;
@@ -201,6 +248,8 @@ class _EcMobileAppState extends State<EcMobileApp> {
           empresasIniciales: empresas,
           alElegir: (empresa) {
             EmpresaActual.instancia.elegir(empresa);
+            // AC-A5: también al cambiar de tienda desde Perfil.
+            _guardarSesion(token, nombreUsuario, 'cliente', empresa);
             _abrirHub(token, nombreUsuario, esCliente: true);
           },
           alCerrarSesion: () => _cerrarSesion(token),
@@ -212,8 +261,14 @@ class _EcMobileAppState extends State<EcMobileApp> {
 
   Future<void> _cerrarSesion(String token) async {
     final repo = LoginRepositorioImpl();
-    await repo.cerrarSesion(token);
-    _volverAlLogin();
+    try {
+      await repo.cerrarSesion(token);
+    } catch (_) {
+      // Sin conexión no se puede revocar el token en el servidor, pero se sale igual: la sesión
+      // guardada se borra y el token vence solo.
+    } finally {
+      _volverAlLogin();
+    }
   }
 
   void _abrirHub(String tokenActivo, String? nombreUsuario, {required bool esCliente}) {
@@ -256,7 +311,9 @@ class _EcMobileAppState extends State<EcMobileApp> {
           elevation: 0,
         ),
       ),
-      home: _construirLogin(),
+      home: widget.sesionInicial == null
+          ? _construirLogin()
+          : const Scaffold(body: Center(child: CircularProgressIndicator())),
     );
   }
 }

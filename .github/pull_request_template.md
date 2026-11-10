@@ -21,6 +21,7 @@
 
 - [ ] Número avisado al resto del equipo antes de crearla; `down_revision` = la última de `main`.
 - [ ] Ensayada en `pruebas-multitenant` con `upgrade → downgrade → upgrade`.
+- [ ] Rama de respaldo de producción creada justo antes de aplicarla (`respaldo-pre-NNNN`, RNF18).
 - [ ] **Aplicada en producción antes de fusionar** (`alembic current` = esta migración). La aplica: @gutavovico
 
 ## Cómo probarlo
