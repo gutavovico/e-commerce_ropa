@@ -17,12 +17,18 @@ usarse como referencia (ver `CHANGELOG.md`, defecto 34).
 from datetime import datetime, timezone
 from typing import List
 
+from decimal import Decimal
+from typing import Optional
+
 from sqlalchemy import (
     BigInteger,
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
+    String,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import FetchedValue
@@ -152,7 +158,56 @@ class CarritoDetalleORM(Base):
 
 
 
+class CambioPrendaORM(Base):
+    """P2-CU18 · Cambio de prenda: documento propio asociado a la venta original (migración 0021)."""
+
+    __tablename__ = "cambios_prenda"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_cambio: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
+    numero_comprobante: Mapped[str] = mapped_column(String(30), nullable=False)
+    id_venta: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    id_sucursal: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_usuario: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    valor_devuelto: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    valor_nuevo: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    diferencia: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    metodo_pago: Mapped[Optional[str]] = mapped_column(String(20))
+    monto_recibido: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2))
+    vuelto: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2))
+    referencia: Mapped[Optional[str]] = mapped_column(String(150))
+
+    detalles: Mapped[List["CambioPrendaDetalleORM"]] = relationship(
+        "CambioPrendaDetalleORM",
+        primaryjoin="CambioPrendaORM.id_cambio == foreign(CambioPrendaDetalleORM.id_cambio)",
+        lazy="selectin",
+        order_by="CambioPrendaDetalleORM.id_cambio_detalle",
+    )
+
+
+class CambioPrendaDetalleORM(Base):
+    """P2-CU18 · Prenda devuelta (con su línea de venta) o nueva de un cambio."""
+
+    __tablename__ = "cambio_prenda_detalle"
+    __table_args__ = {"schema": "fashionstore"}
+
+    id_cambio_detalle: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id_tenant: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=FetchedValue())
+    id_cambio: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    tipo: Mapped[str] = mapped_column(String(10), nullable=False)
+    id_venta_detalle: Mapped[Optional[int]] = mapped_column(BigInteger)
+    id_variante: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
+    precio_unitario: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+
+
+
 __all__ = [
+    "CambioPrendaORM",
+    "CambioPrendaDetalleORM",
     "CarritoORM",
     "CarritoDetalleORM",
     "PagoORM",
