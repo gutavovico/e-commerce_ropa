@@ -693,3 +693,95 @@ def test_rf15_carga_de_menshopping_aislada_de_fashion_store(mundo):
     # Una segunda carga se detiene sin tocar nada (R5)
     with pytest.raises(carga.CargaError, match="ya existe"):
         carga.cargar(c, datos, "x", imagenes, date(2026, 11, 9))
+
+
+# --------------------------------------------------------------------------------- Tablas nuevas Parcial 2 (CU21–CU25, CU09–CU10)
+
+def test_aislamiento_multitenant_tablas_nuevas_ia_ml_suscripcion(mundo):
+    """Verifica que las tablas de CU21-CU25 y CU09-CU10 respetan RLS entre FASHION STORE y Empresa B."""
+    c = mundo["conexion"]
+    id_b = mundo["id_b"]
+
+    # 1. solicitudes_reporte_ia
+    _contexto(c, tenant=1)
+    admin_fs = c.execute(text(
+        "SELECT id_usuario FROM fashionstore.usuarios WHERE id_tenant = 1 AND rol = 'administrador' LIMIT 1"
+    )).scalar()
+    if admin_fs:
+        c.execute(text(
+            "INSERT INTO fashionstore.solicitudes_reporte_ia "
+            "(id_tenant, id_usuario, comando_voz_texto, tipo_reporte, estado) "
+            "VALUES (1, :u, 'ventas del mes', 'ventas_por_sucursal', 'completada')"
+        ), {"u": admin_fs})
+        assert c.execute(text("SELECT count(*) FROM fashionstore.solicitudes_reporte_ia")).scalar() >= 1
+
+        _contexto(c, tenant=id_b)
+        assert c.execute(text("SELECT count(*) FROM fashionstore.solicitudes_reporte_ia")).scalar() == 0
+
+    # 2. datasets_ml, modelos_ml, predicciones_ml y segmentos_clientes_ml (CU23–CU25)
+    tablas_ml_existen = c.execute(text(
+        "SELECT count(*) FROM information_schema.tables "
+        "WHERE table_schema = 'fashionstore' AND table_name = 'datasets_ml'"
+    )).scalar() > 0
+
+    if tablas_ml_existen:
+        _contexto(c, tenant=1)
+        id_ds = c.execute(text(
+            "INSERT INTO fashionstore.datasets_ml "
+            "(id_tenant, tipo, caracteristicas, registros, estado) "
+            "VALUES (1, 'demanda', '[]'::jsonb, 10, 'disponible') RETURNING id_dataset"
+        )).scalar()
+        id_mod = c.execute(text(
+            "INSERT INTO fashionstore.modelos_ml "
+            "(id_tenant, id_dataset, algoritmo, metricas, estado, activo) "
+            "VALUES (1, :ds, 'random_forest', '{}'::jsonb, 'activo', true) RETURNING id_modelo"
+        ), {"ds": id_ds}).scalar()
+        c.execute(text(
+            "INSERT INTO fashionstore.predicciones_ml "
+            "(id_tenant, id_modelo, horizonte_dias, resultado) "
+            "VALUES (1, :m, 30, '[]'::jsonb)"
+        ), {"m": id_mod})
+        c.execute(text(
+            "INSERT INTO fashionstore.segmentos_clientes_ml "
+            "(id_tenant, id_modelo, algoritmo, numero_clusters, clusters) "
+            "VALUES (1, :m, 'kmeans', 3, '[]'::jsonb)"
+        ), {"m": id_mod})
+
+        assert c.execute(text("SELECT count(*) FROM fashionstore.datasets_ml")).scalar() >= 1
+        assert c.execute(text("SELECT count(*) FROM fashionstore.modelos_ml")).scalar() >= 1
+        assert c.execute(text("SELECT count(*) FROM fashionstore.predicciones_ml")).scalar() >= 1
+        assert c.execute(text("SELECT count(*) FROM fashionstore.segmentos_clientes_ml")).scalar() >= 1
+
+        _contexto(c, tenant=id_b)
+        assert c.execute(text("SELECT count(*) FROM fashionstore.datasets_ml")).scalar() == 0
+        assert c.execute(text("SELECT count(*) FROM fashionstore.modelos_ml")).scalar() == 0
+        assert c.execute(text("SELECT count(*) FROM fashionstore.predicciones_ml")).scalar() == 0
+        assert c.execute(text("SELECT count(*) FROM fashionstore.segmentos_clientes_ml")).scalar() == 0
+
+        _contexto(c, plataforma=True)
+        assert c.execute(text("SELECT count(*) FROM fashionstore.datasets_ml")).scalar() >= 1
+
+    # 3. catalogo_reportes_ia (CU22): catálogo global visible por todos los tenants
+    cat_existe = c.execute(text(
+        "SELECT count(*) FROM information_schema.tables "
+        "WHERE table_schema = 'fashionstore' AND table_name = 'catalogo_reportes_ia'"
+    )).scalar() > 0
+
+    if cat_existe:
+        _contexto(c, tenant=id_b)
+        total_cat = c.execute(text("SELECT count(*) FROM fashionstore.catalogo_reportes_ia WHERE activo = true")).scalar()
+        assert total_cat >= 4
+
+    # 4. historial_suscripcion (CU07/CU10)
+    _contexto(c, tenant=1)
+    susc_1 = c.execute(text("SELECT id_suscripcion FROM fashionstore.suscripciones WHERE id_tenant = 1 LIMIT 1")).scalar()
+    if susc_1:
+        c.execute(text(
+            "INSERT INTO fashionstore.historial_suscripcion (id_tenant, id_suscripcion, evento, detalle) "
+            "VALUES (1, :s, 'cambio_plan', '{\"motivo\": \"test\"}'::jsonb)"
+        ), {"s": susc_1})
+        assert c.execute(text("SELECT count(*) FROM fashionstore.historial_suscripcion WHERE id_tenant = 1")).scalar() >= 1
+
+        _contexto(c, tenant=id_b)
+        assert c.execute(text("SELECT count(*) FROM fashionstore.historial_suscripcion WHERE id_tenant = 1")).scalar() == 0
+

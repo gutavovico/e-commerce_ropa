@@ -123,6 +123,21 @@ class MiSuscripcionRepositorio:
         return list(db.execute(stmt).scalars().all())
 
     @staticmethod
+    def referencia_pago_ya_utilizada(db: Session, referencia_pago: str) -> bool:
+        """Verifica si una referencia de PaymentIntent ya fue aplicada en `historial_suscripcion`."""
+        ref = (referencia_pago or "").strip()
+        if not ref:
+            return False
+        fila = db.execute(
+            text(
+                "SELECT 1 FROM fashionstore.historial_suscripcion "
+                "WHERE detalle->>'referencia_pago' = :ref LIMIT 1"
+            ),
+            {"ref": ref},
+        ).first()
+        return fila is not None
+
+    @staticmethod
     def actualizar_suscripcion_y_registrar_historial(
         db: Session,
         *,
@@ -152,4 +167,3 @@ class MiSuscripcionRepositorio:
         db.add(item)
         db.flush()
         return suscripcion
-

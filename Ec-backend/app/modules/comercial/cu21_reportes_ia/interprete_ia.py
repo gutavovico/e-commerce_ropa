@@ -17,6 +17,7 @@ import urllib.request
 from typing import Any, Optional
 
 from core.config import settings
+from core.tiempo import hoy as hoy_bolivia
 from modules.comercial.cu21_reportes_ia.esquemas import (
     FormatoVisualizacionIa,
     InterpretacionReporteIaOut,
@@ -179,7 +180,7 @@ class InterpreteReportesIA:
         usar_gemini: bool = False,
     ) -> InterpretacionReporteIaOut:
         texto_norm = _normalizar(prompt_texto)
-        hoy = datetime.now(timezone.utc).date()
+        hoy = hoy_bolivia()
 
         # 0. Detectar intento de consultar datos de otra empresa en texto libre (CU21 A7, RN46)
         for termino_tenant in TERMINOS_OTRO_TENANT:

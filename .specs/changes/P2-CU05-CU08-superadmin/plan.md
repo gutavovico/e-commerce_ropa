@@ -3,9 +3,9 @@
 ## Orden de Ejecución (con Puertas de Aprobación)
 
 1. **Gate 0 — Aprobación de Especificación (`spec.md`):**
-   - Revisar y aprobar las decisiones **S1–S4** (migración `0016` para `activo` en catálogos globales + semilla de `super_administrador`, y contratos `/api/v1/plataforma/...`).
+   - Revisar y aprobar las decisiones **S1–S4** (migración `0017` para `activo` en catálogos globales + creación de `super_administrador` fuera de banda, y contratos `/api/v1/plataforma/...`).
 2. **Bloque 1 — Backend (`Ec-backend/`, Gate 1):**
-   - Coordinar con Gustavo el número de migración (`0016`) según `Repartición.md` regla #1 y ensayarla en la rama de Neon de pruebas (`upgrade → downgrade → upgrade`).
+   - Coordinar con Gustavo el número de migración (`0017`) según `Repartición.md` regla #1 y ensayarla en la rama de Neon de pruebas (`upgrade → downgrade → upgrade`).
    - Implementar `app/modules/plataforma/dependencias.py` (`exigir_super_administrador` con `modo_plataforma=True`).
    - Implementar `cu05_empresas_supervision`, `cu06_planes_funcionalidades`, `cu07_suscripciones` y `cu08_catalogos_globales`.
    - Registrar el router agregador de plataforma en `app/main.py` (solo por adición).

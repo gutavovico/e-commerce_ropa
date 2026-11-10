@@ -1,10 +1,12 @@
 """Repositorio de datos para P2-CU07: Gestionar suscripciones de empresas."""
 
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Any, Optional
 
 from sqlalchemy import column, func, select, table
 from sqlalchemy.orm import Session
+
+from core.tiempo import ahora
 
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.plataforma.modelos import (
@@ -126,7 +128,7 @@ class SuscripcionesAdminRepositorio:
             evento=evento,
             detalle=detalle,
             id_usuario=id_usuario,
-            creado_en=datetime.now(timezone.utc),
+            creado_en=ahora(),
         )
         db.add(registro)
         return registro
@@ -141,7 +143,7 @@ class SuscripcionesAdminRepositorio:
         fecha_inicio: date,
         fecha_vencimiento: date,
     ) -> SuscripcionORM:
-        # Asegurar RN13: cerrar cualquier suscripción previa en ('prueba', 'activa')
+        # CU07 A1: rechazar si ya existe suscripción activa o de prueba vigente
         previas = (
             db.execute(
                 select(SuscripcionORM).where(
@@ -152,9 +154,13 @@ class SuscripcionesAdminRepositorio:
             .scalars()
             .all()
         )
-        for p in previas:
-            p.estado = "cancelada"
-        db.flush()
+        if previas:
+            from core.errors import ConflictError
+
+            raise ConflictError(
+                "La empresa ya cuenta con una suscripción vigente. Utilice la opción 'Cambiar de plan' o 'Renovar'.",
+                code="SUSCRIPCION_VIGENTE_EXISTENTE",
+            )
 
         nueva = SuscripcionORM(
             id_tenant=id_tenant,
@@ -162,7 +168,7 @@ class SuscripcionesAdminRepositorio:
             estado=estado,
             fecha_inicio=fecha_inicio,
             fecha_vencimiento=fecha_vencimiento,
-            creado_en=datetime.now(timezone.utc),
+            creado_en=ahora(),
         )
         db.add(nueva)
         db.flush()

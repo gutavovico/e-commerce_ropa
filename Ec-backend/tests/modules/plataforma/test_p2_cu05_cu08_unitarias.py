@@ -245,9 +245,8 @@ def test_ac02_registrar_empresa_rechaza_plan_inactivo_y_correo_ocupado(monkeypat
         staticmethod(lambda db, i: SimpleNamespace(id_plan=i, nombre="Básico", activo=True)),
     )
     monkeypatch.setattr(
-        EmpresasSupervisionRepositorio,
-        "correo_existe",
-        staticmethod(lambda db, email: True),
+        "modules.plataforma.cu05_empresas_supervision.servicio.correo_ocupado",
+        lambda db, email: True,
     )
     with pytest.raises(ConflictError) as exc2:
         EmpresasSupervisionServicio.registrar_empresa(MagicMock(), datos, super_admin)
@@ -288,7 +287,8 @@ def test_ac02_registrar_empresa_exitoso_atomico(monkeypatch, super_admin):
         EmpresasSupervisionRepositorio, "obtener_plan", staticmethod(lambda db, i: plan)
     )
     monkeypatch.setattr(
-        EmpresasSupervisionRepositorio, "correo_existe", staticmethod(lambda db, e: False)
+        "modules.plataforma.cu05_empresas_supervision.servicio.correo_ocupado",
+        lambda db, e: False,
     )
     monkeypatch.setattr(
         EmpresasSupervisionRepositorio,
@@ -575,6 +575,30 @@ def test_ac05_actualizar_plan_genera_advertencias_cuando_empresa_supera_nuevo_li
     assert "FASHION STORE" in res.advertencias[0]
 
 
+def test_ac05_cambiar_estado_plan_rechaza_desactivar_con_empresas_vigentes(
+    monkeypatch, super_admin
+):
+    """CU06 A2: no se puede desactivar un plan con empresas suscritas."""
+    plan = SimpleNamespace(id_plan=1, nombre="Básico", activo=True)
+    monkeypatch.setattr(
+        PlanesFuncionalidadesRepositorio, "obtener_plan", staticmethod(lambda db, i: plan)
+    )
+    monkeypatch.setattr(
+        PlanesFuncionalidadesRepositorio,
+        "empresas_con_suscripcion_activa_en_plan",
+        staticmethod(lambda db, i: [SimpleNamespace(id_tenant=1, nombre="FASHION STORE")]),
+    )
+
+    datos = CambiarEstadoPlanIn(activo=False)
+    with pytest.raises(ConflictError) as exc:
+        PlanesFuncionalidadesServicio.cambiar_estado_plan(
+            MagicMock(), 1, datos, super_admin
+        )
+    assert exc.value.code == "PLAN_CON_EMPRESAS_SUSCRITAS"
+    assert "FASHION STORE" not in str(exc.value) or "1 empresa(s)" in str(exc.value)
+
+
+
 # ---------------------------------------------------------------------------
 # AC-06: P2-CU07 (Suscripciones de empresas y Curso Alterno A1)
 # ---------------------------------------------------------------------------
@@ -702,6 +726,49 @@ def test_ac06_renovacion_y_suspension_registran_historial(monkeypatch, super_adm
     )
     assert res_susp.estado == "suspendida"
     assert eventos_registrados[-1]["evento"] == "suspension"
+
+
+def test_ac06_alta_suscripcion_rechaza_si_ya_existe_suscripcion_vigente(
+    monkeypatch, super_admin
+):
+    """CU07 A1: dar de alta una suscripción a una empresa con suscripción vigente debe rechazarse."""
+    now = datetime.now(timezone.utc)
+    tenant = SimpleNamespace(
+        id_tenant=1, codigo="fashionstore", nombre="FASHION STORE", estado="activa"
+    )
+    susc_vigente = SimpleNamespace(
+        id_suscripcion=10,
+        id_tenant=1,
+        id_plan=1,
+        estado="activa",
+        fecha_inicio=date(2026, 1, 1),
+        fecha_vencimiento=date(2027, 1, 1),
+        creado_en=now,
+    )
+    plan = SimpleNamespace(id_plan=1, nombre="Básico", activo=True)
+
+    monkeypatch.setattr(
+        SuscripcionesAdminRepositorio, "obtener_tenant", staticmethod(lambda db, i: tenant)
+    )
+    monkeypatch.setattr(
+        SuscripcionesAdminRepositorio,
+        "suscripcion_actual_empresa",
+        staticmethod(lambda db, i: (susc_vigente, plan)),
+    )
+
+    datos = OperacionSuscripcionIn(
+        operacion="alta",
+        id_plan=2,
+        fecha_inicio=date(2026, 12, 1),
+        fecha_vencimiento=date(2027, 12, 1),
+    )
+    with pytest.raises(ConflictError) as exc:
+        SuscripcionesAdminServicio.operar_suscripcion(
+            SesionFalsa(), 1, datos, super_admin  # type: ignore[arg-type]
+        )
+    assert exc.value.code == "SUSCRIPCION_VIGENTE_EXISTENTE"
+    assert "suscripción vigente" in str(exc.value)
+
 
 
 # ---------------------------------------------------------------------------

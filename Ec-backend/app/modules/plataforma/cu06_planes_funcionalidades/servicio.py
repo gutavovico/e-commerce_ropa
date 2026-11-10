@@ -1,11 +1,11 @@
 """Servicio de aplicación y dominio para P2-CU06: Gestionar planes y funcionalidades."""
 
-from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from core.errors import ConflictError, NotFoundError, UnprocessableEntityError
+from core.tiempo import hoy
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.plataforma.cu06_planes_funcionalidades.esquemas import (
     CambiarEstadoPlanIn,
@@ -29,10 +29,10 @@ class PlanesFuncionalidadesServicio:
         *,
         advertencias: Optional[list[str]] = None,
     ) -> PlanDetalleOut:
-        hoy = datetime.now(timezone.utc).date()
+        hoy_bolivia = hoy()
         funcs = PlanesFuncionalidadesRepositorio.funcionalidades_de_plan(db, plan.id_plan)
         vigentes, totales = PlanesFuncionalidadesRepositorio.contar_empresas_del_plan(
-            db, plan.id_plan, hoy
+            db, plan.id_plan, hoy_bolivia
         )
         return PlanDetalleOut(
             id_plan=plan.id_plan,
@@ -221,6 +221,14 @@ class PlanesFuncionalidadesServicio:
                 f"El plan con identificador {id_plan} no existe.",
                 code="PLAN_NO_ENCONTRADO",
             )
+
+        if not datos.activo:
+            empresas_activas = PlanesFuncionalidadesRepositorio.empresas_con_suscripcion_activa_en_plan(db, id_plan)
+            if empresas_activas:
+                raise ConflictError(
+                    f"No se puede desactivar el plan '{plan.nombre}' porque existen {len(empresas_activas)} empresa(s) con suscripciones vigentes (CU06 A2).",
+                    code="PLAN_CON_EMPRESAS_SUSCRITAS",
+                )
 
         anterior = plan.activo
         plan.activo = datos.activo

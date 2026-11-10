@@ -45,7 +45,10 @@ def _leer_database_url() -> str | None:
         for clave in ("DATABASE_URL_PRUEBAS", "DATABASE_URL"):
             if linea.startswith(f"{clave}="):
                 valores[clave] = linea.split("=", 1)[1].strip().strip("\"'") or None
-    return valores.get("DATABASE_URL_PRUEBAS") or valores.get("DATABASE_URL")
+    url = valores.get("DATABASE_URL_PRUEBAS") or valores.get("DATABASE_URL")
+    if url and url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
 
 
 DATABASE_URL = _leer_database_url()

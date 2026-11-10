@@ -1,9 +1,9 @@
 """Servicio de aplicación y dominio para P2-CU09 y P2-CU10 (Suscripción de la empresa + Stripe)."""
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
@@ -15,6 +15,7 @@ from core.errors import (
     ServiceUnavailableError,
 )
 from core.tenant import limpiar_cache_tenants, tenant_actual
+from core.tiempo import hoy as hoy_bolivia
 from integrations.stripe_service import ErrorPasarela, PasarelaPagos, StripeService
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.plataforma.cu09_cu10_suscripcion_empresa.esquemas import (
@@ -40,25 +41,25 @@ from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
 DIAS_ALERTA_VENCIMIENTO = 7
 DIAS_POR_MES = 30
 
-# Tipos de cambio referenciales hacia Bolivianos (BOB / Bs. - Banco Central de Bolivia)
-TASAS_CAMBIO_BOB: dict[str, Decimal] = {
-    "BOB": Decimal("1.00"),
-    "USD": Decimal("6.96"),
-    "EUR": Decimal("7.50"),
-}
-TIPO_CAMBIO_USD_BOB_OFICIAL = Decimal("6.96")
+# Registro en memoria de intentos abiertos por `iniciar_pago` para que el simulador de Stripe
+# (que no persiste metadatos entre crear_intento y verificar_intento) conserve el vínculo
+# con el importe, la moneda y los metadatos (id_tenant, id_plan, meses).
+_INTENTOS_SUSCRIPCION_ABIERTOS: dict[str, dict[str, Any]] = {}
 
 
-def obtener_tasa_cambio_bob(moneda: str) -> Decimal:
-    """Devuelve el factor de conversión a Bolivianos (Bs. / BOB) según la moneda de la empresa."""
-    codigo = (moneda or "BOB").strip().upper()
-    return TASAS_CAMBIO_BOB.get(codigo, TIPO_CAMBIO_USD_BOB_OFICIAL)
-
-
-def convertir_a_bolivianos(monto: Decimal, moneda: str) -> Decimal:
-    """Convierte un importe a Bolivianos (BOB / Bs.) redondeado a 2 decimales."""
-    tasa = obtener_tasa_cambio_bob(moneda)
-    return (Decimal(str(monto)) * tasa).quantize(Decimal("0.01"))
+def registrar_intento_suscripcion(
+    referencia: str,
+    *,
+    amount_centimos: int,
+    currency: str,
+    metadatos: dict[str, str],
+) -> None:
+    """Guarda los datos del intento abierto para verificar coherencia en `confirmar_cambio_o_renovacion`."""
+    _INTENTOS_SUSCRIPCION_ABIERTOS[referencia] = {
+        "amount": int(amount_centimos),
+        "currency": str(currency).strip().lower(),
+        "metadata": dict(metadatos),
+    }
 
 
 def _resolver_id_tenant_empresa(db: Session, usuario_actual: UsuarioORM) -> int:
@@ -120,6 +121,73 @@ def _evaluar_compatibilidad_uso(
     return True, None
 
 
+def _verificar_correspondencia_intento(
+    *,
+    referencia_pago: str,
+    payload_pasarela: dict[str, Any],
+    monto_esperado: Decimal,
+    moneda_esperada: str,
+    id_tenant_esperado: int,
+    id_plan_esperado: int,
+    meses_esperados: int,
+) -> None:
+    """Verifica que el PaymentIntent corresponda exactamente al importe, moneda, empresa, plan y meses."""
+    registrado = _INTENTOS_SUSCRIPCION_ABIERTOS.get(referencia_pago) or {}
+    payload = payload_pasarela if isinstance(payload_pasarela, dict) else {}
+
+    amount_raw = payload.get("amount", registrado.get("amount"))
+    currency_raw = payload.get("currency", registrado.get("currency"))
+    metadata_raw = payload.get("metadata")
+    if not isinstance(metadata_raw, dict):
+        metadata_raw = registrado.get("metadata")
+
+    if amount_raw is None or currency_raw is None or not isinstance(metadata_raw, dict):
+        raise ConflictError(
+            "El PaymentIntent no contiene importe, moneda ni metadatos verificables para esta suscripción.",
+            code="PAGO_NO_CORRESPONDE_A_SOLICITUD",
+        )
+
+    centimos_esperados = StripeService.a_centimos(monto_esperado)
+    try:
+        centimos_cobrados = int(amount_raw)
+    except (TypeError, ValueError) as exc:
+        raise ConflictError(
+            "El importe del PaymentIntent es inválido.",
+            code="PAGO_IMPORTE_NO_COINCIDE",
+        ) from exc
+
+    if centimos_cobrados != centimos_esperados:
+        raise ConflictError(
+            f"El importe del PaymentIntent ({centimos_cobrados} céntimos) no coincide con el total "
+            f"recalculado del plan ({centimos_esperados} céntimos).",
+            code="PAGO_IMPORTE_NO_COINCIDE",
+        )
+
+    if str(currency_raw).strip().upper() != moneda_esperada.strip().upper():
+        raise ConflictError(
+            f"La moneda del PaymentIntent ('{currency_raw}') no coincide con la moneda de la empresa ('{moneda_esperada}').",
+            code="PAGO_MONEDA_NO_COINCIDE",
+        )
+
+    if str(metadata_raw.get("id_tenant", "")).strip() != str(id_tenant_esperado):
+        raise ConflictError(
+            "El PaymentIntent pertenece a otra empresa y no puede utilizarse en esta suscripción.",
+            code="PAGO_EMPRESA_NO_COINCIDE",
+        )
+
+    if str(metadata_raw.get("id_plan", "")).strip() != str(id_plan_esperado):
+        raise ConflictError(
+            "El PaymentIntent fue emitido para un plan distinto al solicitado.",
+            code="PAGO_PLAN_NO_COINCIDE",
+        )
+
+    if str(metadata_raw.get("meses", "")).strip() != str(meses_esperados):
+        raise ConflictError(
+            "El PaymentIntent fue emitido para una cantidad de meses distinta a la solicitada.",
+            code="PAGO_MESES_NO_COINCIDEN",
+        )
+
+
 class MiSuscripcionServicio:
     """Casos de uso P2-CU09 (Consultar suscripción y uso) y P2-CU10 (Cambiar de plan y renovar con Stripe)."""
 
@@ -149,7 +217,7 @@ class MiSuscripcionServicio:
     ) -> MiSuscripcionResumenOut:
         """Ejecuta P2-CU09: devuelve estado de suscripción, días restantes, uso, funcionalidades e historial."""
         tenant, susc, plan = MiSuscripcionServicio._obtener_contexto_empresa(db, usuario_actual)
-        hoy = datetime.now(timezone.utc).date()
+        hoy = hoy_bolivia()
         moneda = MiSuscripcionRepositorio.obtener_moneda_empresa(db, tenant.id_tenant)
 
         estado_efectivo, vigente, dias_restantes, proxima_a_vencer = _calcular_estado_y_vigencia(
@@ -205,8 +273,7 @@ class MiSuscripcionServicio:
                 )
 
         historial_orm = MiSuscripcionRepositorio.listar_historial(db, tenant.id_tenant)
-        tasa_bob = obtener_tasa_cambio_bob(moneda)
-        precio_bob = convertir_a_bolivianos(plan.precio_mensual, moneda)
+        precio_plan = Decimal(str(plan.precio_mensual)).quantize(Decimal("0.01"))
 
         return MiSuscripcionResumenOut(
             empresa=EmpresaSuscripcionInfoOut(
@@ -215,15 +282,15 @@ class MiSuscripcionServicio:
                 nombre=tenant.nombre,
                 estado=tenant.estado,
                 moneda=moneda,
-                simbolo_moneda="Bs." if moneda == "BOB" else moneda,
-                tipo_cambio_bob=tasa_bob if moneda != "BOB" else TIPO_CAMBIO_USD_BOB_OFICIAL,
+                simbolo_moneda="Bs." if moneda == "BOB" else "US$",
+                tipo_cambio_bob=Decimal("1.00"),
             ),
             suscripcion=SuscripcionEmpresaDetalleOut(
                 id_suscripcion=susc.id_suscripcion,
                 id_plan=plan.id_plan,
                 nombre_plan=plan.nombre,
-                precio_mensual=plan.precio_mensual,
-                precio_mensual_bob=precio_bob,
+                precio_mensual=precio_plan,
+                precio_mensual_bob=precio_plan,
                 estado=susc.estado,
                 estado_efectivo=estado_efectivo,
                 fecha_inicio=susc.fecha_inicio,
@@ -253,7 +320,6 @@ class MiSuscripcionServicio:
         tenant, susc, _plan_actual = MiSuscripcionServicio._obtener_contexto_empresa(
             db, usuario_actual
         )
-        moneda = MiSuscripcionRepositorio.obtener_moneda_empresa(db, tenant.id_tenant)
         sucursales_lista = MiSuscripcionRepositorio.listar_sucursales_activas(db, tenant.id_tenant)
         empleados_activos = MiSuscripcionRepositorio.contar_empleados_activos(db, tenant.id_tenant)
 
@@ -265,12 +331,13 @@ class MiSuscripcionServicio:
                 sucursales_activas=sucursales_lista,
                 empleados_activos=empleados_activos,
             )
+            precio_plan = Decimal(str(p.precio_mensual)).quantize(Decimal("0.01"))
             resultado.append(
                 PlanDisponibleEmpresaOut(
                     id_plan=p.id_plan,
                     nombre=p.nombre,
-                    precio_mensual=p.precio_mensual,
-                    precio_mensual_bob=convertir_a_bolivianos(p.precio_mensual, moneda),
+                    precio_mensual=precio_plan,
+                    precio_mensual_bob=precio_plan,
                     max_sucursales_activas=p.max_sucursales_activas,
                     max_empleados=p.max_empleados,
                     funcionalidades=MiSuscripcionRepositorio.funcionalidades_por_plan(
@@ -290,7 +357,7 @@ class MiSuscripcionServicio:
         usuario_actual: UsuarioORM,
         pasarela: Optional[PasarelaPagos] = None,
     ) -> IntentoPagoSuscripcionOut:
-        """Valida uso vs límites (`CU10 A1`) y abre un PaymentIntent en Stripe para el plan elegido."""
+        """Valida uso vs límites (`CU10 A1`) y abre un PaymentIntent en Stripe en la moneda de la empresa."""
         tenant, susc, _plan_actual = MiSuscripcionServicio._obtener_contexto_empresa(
             db, usuario_actual
         )
@@ -323,22 +390,33 @@ class MiSuscripcionServicio:
         monto_total = (Decimal(str(plan_destino.precio_mensual)) * Decimal(datos.meses)).quantize(
             Decimal("0.01")
         )
-        monto_bob = convertir_a_bolivianos(monto_total, moneda)
-        tasa_bob = (
-            obtener_tasa_cambio_bob(moneda) if moneda != "BOB" else TIPO_CAMBIO_USD_BOB_OFICIAL
-        )
         operacion: str = "renovacion" if plan_destino.id_plan == susc.id_plan else "cambio_plan"
+        metadatos = {
+            "id_tenant": str(tenant.id_tenant),
+            "codigo_empresa": tenant.codigo,
+            "id_plan": str(plan_destino.id_plan),
+            "nombre_plan": plan_destino.nombre,
+            "meses": str(datos.meses),
+            "operacion": operacion,
+            "moneda": moneda,
+        }
 
         if monto_total <= Decimal("0.00"):
             ref_free = f"pi_free_{uuid.uuid4().hex[:12]}"
+            registrar_intento_suscripcion(
+                ref_free,
+                amount_centimos=0,
+                currency=moneda,
+                metadatos=metadatos,
+            )
             return IntentoPagoSuscripcionOut(
                 referencia=ref_free,
                 client_secret=f"{ref_free}_secret_free",
                 estado_pago="succeeded",
                 monto=monto_total,
-                monto_bob=monto_bob,
+                monto_bob=monto_total,
                 moneda=moneda,
-                tipo_cambio_bob=tasa_bob,
+                tipo_cambio_bob=Decimal("1.00"),
                 id_plan=plan_destino.id_plan,
                 nombre_plan=plan_destino.nombre,
                 meses=datos.meses,
@@ -355,28 +433,27 @@ class MiSuscripcionServicio:
                     f"Suscripción FashionStore ({operacion}) - Empresa {tenant.nombre} "
                     f"- Plan {plan_destino.nombre} ({datos.meses} mes/es)"
                 ),
-                metadatos={
-                    "id_tenant": str(tenant.id_tenant),
-                    "codigo_empresa": tenant.codigo,
-                    "id_plan": str(plan_destino.id_plan),
-                    "nombre_plan": plan_destino.nombre,
-                    "meses": str(datos.meses),
-                    "operacion": operacion,
-                    "moneda": moneda,
-                    "monto_bob": str(monto_bob),
-                },
+                metadatos=metadatos,
+                moneda=moneda,
             )
         except ErrorPasarela as exc:
             raise ServiceUnavailableError(str(exc), code="PASARELA_NO_DISPONIBLE") from exc
+
+        registrar_intento_suscripcion(
+            intento.referencia,
+            amount_centimos=StripeService.a_centimos(monto_total),
+            currency=moneda,
+            metadatos=metadatos,
+        )
 
         return IntentoPagoSuscripcionOut(
             referencia=intento.referencia,
             client_secret=intento.client_secret,
             estado_pago="requires_confirmation",
             monto=monto_total,
-            monto_bob=monto_bob,
+            monto_bob=monto_total,
             moneda=moneda,
-            tipo_cambio_bob=tasa_bob,
+            tipo_cambio_bob=Decimal("1.00"),
             id_plan=plan_destino.id_plan,
             nombre_plan=plan_destino.nombre,
             meses=datos.meses,
@@ -392,7 +469,7 @@ class MiSuscripcionServicio:
         direccion_ip: Optional[str] = None,
         pasarela: Optional[PasarelaPagos] = None,
     ) -> MiSuscripcionResumenOut:
-        """Verifica el pago en Stripe (`CU10 A2`) y aplica el cambio de plan o renovación (`RN17`)."""
+        """Verifica el pago en Stripe (`CU10 A2`), su correspondencia con el plan/empresa/meses/importe y aplica el cambio (`RN17`)."""
         tenant, susc, plan_anterior = MiSuscripcionServicio._obtener_contexto_empresa(
             db, usuario_actual
         )
@@ -406,6 +483,13 @@ class MiSuscripcionServicio:
             raise ConflictError(
                 f"El plan '{plan_destino.nombre}' no está disponible actualmente.",
                 code="PLAN_INACTIVO",
+            )
+
+        # Impedir reutilización de una referencia ya registrada en historial_suscripcion
+        if MiSuscripcionRepositorio.referencia_pago_ya_utilizada(db, datos.referencia_pago):
+            raise ConflictError(
+                f"La referencia de pago '{datos.referencia_pago}' ya fue utilizada previamente.",
+                code="REFERENCIA_PAGO_YA_UTILIZADA",
             )
 
         # Revalidar CU10 A1 antes de confirmar
@@ -441,12 +525,23 @@ class MiSuscripcionServicio:
                 raise ServiceUnavailableError(str(exc), code="PASARELA_NO_DISPONIBLE") from exc
 
             if not resultado.aprobado:
-                # Curso Alterno A2 (CU10): el pago es rechazado; se mantiene el plan y vencimiento actuales
+                # Curso Alterno A2 (CU10): el pago es rechazado; se mantienen el plan y vencimiento actuales
                 raise PaymentRequiredError(
                     f"No se pudo completar el cobro en Stripe: {resultado.mensaje} "
                     "Se mantienen el plan y la fecha de vencimiento actuales.",
                     code="PAGO_RECHAZADO",
                 )
+
+            _verificar_correspondencia_intento(
+                referencia_pago=datos.referencia_pago,
+                payload_pasarela=resultado.payload if isinstance(resultado.payload, dict) else {},
+                monto_esperado=monto_total,
+                moneda_esperada=moneda,
+                id_tenant_esperado=tenant.id_tenant,
+                id_plan_esperado=plan_destino.id_plan,
+                meses_esperados=datos.meses,
+            )
+
             marca_tarjeta = resultado.marca
             ultimos_digitos = resultado.ultimos_digitos
         else:
@@ -456,8 +551,17 @@ class MiSuscripcionServicio:
                     "Se mantienen el plan y la fecha de vencimiento actuales.",
                     code="PAGO_RECHAZADO",
                 )
+            _verificar_correspondencia_intento(
+                referencia_pago=datos.referencia_pago,
+                payload_pasarela={},
+                monto_esperado=monto_total,
+                moneda_esperada=moneda,
+                id_tenant_esperado=tenant.id_tenant,
+                id_plan_esperado=plan_destino.id_plan,
+                meses_esperados=datos.meses,
+            )
 
-        hoy = datetime.now(timezone.utc).date()
+        hoy = hoy_bolivia()
         es_mismo_plan = plan_destino.id_plan == susc.id_plan
         evento = "renovacion" if es_mismo_plan else "cambio_plan"
         dias_adicionales = DIAS_POR_MES * datos.meses
@@ -478,19 +582,17 @@ class MiSuscripcionServicio:
             "id_plan_anterior": plan_anterior.id_plan,
             "plan_nuevo": plan_destino.nombre,
             "id_plan_nuevo": plan_destino.id_plan,
-            "estado_anterior": estado_previo,
-            "estado_nuevo": "activa",
-            "vencimiento_anterior": vencimiento_previo.isoformat(),
-            "fecha_inicio": nueva_fecha_inicio.isoformat(),
-            "fecha_vencimiento": nueva_fecha_vencimiento.isoformat(),
-            "meses": datos.meses,
-            "monto": str(monto_total),
-            "monto_bob": str(convertir_a_bolivianos(monto_total, moneda)),
+            "meses_contratados": datos.meses,
+            "monto_cobrado": str(monto_total),
+            "monto_cobrado_bob": str(monto_total),
             "moneda": moneda,
-            "tipo_cambio_bob": str(obtener_tasa_cambio_bob(moneda)),
-            "referencia_stripe": datos.referencia_pago,
+            "referencia_pago": datos.referencia_pago,
+            "pasarela": "stripe",
             "marca_tarjeta": marca_tarjeta,
             "ultimos_digitos": ultimos_digitos,
+            "estado_anterior": estado_previo,
+            "vencimiento_anterior": str(vencimiento_previo),
+            "vencimiento_nuevo": str(nueva_fecha_vencimiento),
         }
 
         MiSuscripcionRepositorio.actualizar_suscripcion_y_registrar_historial(
@@ -505,20 +607,34 @@ class MiSuscripcionServicio:
             detalle=detalle_evento,
             id_usuario=usuario_actual.id_usuario,
         )
-        db.commit()
-        db.refresh(susc)
 
-        limpiar_cache_tenants()
+        # Consumir el intento en memoria tras aplicarse
+        _INTENTOS_SUSCRIPCION_ABIERTOS.pop(datos.referencia_pago, None)
+
         ServicioBitacoraAuditoria.registrar_evento_seguro(
-            id_usuario=usuario_actual.id_usuario,
-            usuario_nombre=usuario_actual.email,
-            accion=f"MI_SUSCRIPCION_{evento.upper()}",
-            tabla_modulo="plataforma.suscripciones",
-            direccion_ip=direccion_ip,
-            severidad="INFO",
-            payload_nuevo=detalle_evento,
             db=db,
+            accion=(
+                "SUSCRIPCION_EMPRESA_RENOVADA"
+                if es_mismo_plan
+                else "SUSCRIPCION_EMPRESA_PLAN_CAMBIADO"
+            ),
+            modulo="plataforma",
+            descripcion=(
+                f"La empresa '{tenant.nombre}' ({tenant.codigo}) ejecutó '{evento}' al plan "
+                f"'{plan_destino.nombre}' por {datos.meses} mes(es) con referencia Stripe "
+                f"{datos.referencia_pago} ({monto_total} {moneda})."
+            ),
+            usuario=usuario_actual,
+            direccion_ip=direccion_ip,
+            datos_anteriores={
+                "id_plan": plan_anterior.id_plan,
+                "plan": plan_anterior.nombre,
+                "estado": estado_previo,
+                "fecha_vencimiento": str(vencimiento_previo),
+            },
+            datos_nuevos=detalle_evento,
         )
+        db.commit()
+        limpiar_cache_tenants()
 
         return MiSuscripcionServicio.consultar_mi_suscripcion(db, usuario_actual)
-

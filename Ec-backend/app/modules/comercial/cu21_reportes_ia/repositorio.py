@@ -7,6 +7,8 @@ from typing import Any, Optional
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from core.tiempo import ahora
+
 from modules.comercial.cu21_reportes_ia.modelos import SolicitudReporteIaORM
 from modules.plataforma.cu22_catalogo_reportes.modelos import CatalogoReporteIaORM
 from modules.plataforma.modelos import ConfiguracionTenantORM, TenantORM
@@ -124,7 +126,7 @@ class ReportesIaRepositorio:
             {
                 "formato": formato,
                 "usuario": usuario_email,
-                "exportado_en": datetime.now(timezone.utc).isoformat(),
+                "exportado_en": ahora().isoformat(),
             }
         )
         solicitud.exportaciones = actuales

@@ -375,3 +375,48 @@ class TestP2CU23CU25AprendizajeAutomaticoML:
             AprendizajeMlServicio.consultar_segmentos(db, _usuario_admin(10))
         assert exc_susc.value.code == "SUSCRIPCION_NO_VIGENTE"
 
+    def test_cero_datos_inventados_cuando_empresa_no_tiene_productos_o_sucursales(self) -> None:
+        """Bloqueante 2 Auditoría: Si la empresa no tiene productos o sucursales, no inventa nombres."""
+        from modules.comercial.cu23_cu25_aprendizaje_ml.motor_ml import MotorAprendizajeML
+
+        # Caso dataset sin productos ni sucursales
+        total, resumen, muestra = MotorAprendizajeML.construir_dataset_y_preprocesar(
+            id_tenant=99,
+            origen="real",
+            cantidad_sinteticos=20,
+            horizonte_meses=3,
+            variables_seleccionadas=["precio_bob"],
+            productos_empresa=[],
+            sucursales_empresa=[],
+            clientes_empresa=[],
+            registros_reales_ventas=0,
+            factor_bob=Decimal("1.00"),
+        )
+        assert total == 0
+        assert len(muestra) == 0
+
+        # Caso entrenamiento supervisado sin productos ni sucursales
+        m_train, m_val, m_test, predicciones = MotorAprendizajeML.entrenar_modelo_supervisado(
+            id_tenant=99,
+            id_dataset=1,
+            variable_objetivo="demanda_unidades",
+            variables_entrada=["precio_bob"],
+            origen_datos="real",
+            productos_empresa=[],
+            sucursales_empresa=[],
+            factor_bob=Decimal("1.00"),
+        )
+        assert len(predicciones) == 0
+
+        # Caso entrenamiento no supervisado con origen real y sin clientes
+        m_train_u, m_val_u, m_test_u, segmentos = MotorAprendizajeML.entrenar_modelo_no_supervisado(
+            id_tenant=99,
+            id_dataset=1,
+            numero_clusters=3,
+            origen_datos="real",
+            clientes_empresa=[],
+            factor_bob=Decimal("1.00"),
+        )
+        assert len(segmentos) == 0
+
+

@@ -11,6 +11,28 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 - **Incidencia del CI:** la guarda de contraseñas en claro tomó por contraseña el identificador `"clave": "santacruz"` del archivo de datos. Se renombró a `codigo` en lugar de aflojar la guarda. En local no saltó porque la guarda solo revisa archivos ya versionados.
 - **Spec:** `.specs/modules/plataforma/P2-RF15-menshopping.md` · historial en `.specs/finalized/P2-RF15-menshopping/`.
 
+### Correcciones de Auditoría Parcial 2 — Trabajo de Plataforma, Reportes IA y ML (Tony)
+- **CU10 (Bloqueante 1 y Punto 3 — Pagos con Stripe y moneda BOB):**
+  - Vinculación estricta de pagos: `confirmar_cambio_o_renovacion` valida que el `PaymentIntent` de Stripe coincida exactamente en importe (`amount`), moneda (`currency`), `id_tenant`, `id_plan` y `meses`.
+  - Anti-reutilización de pagos: bloqueo con índice único parcial `uq_historial_suscripcion_referencia_pago` en migración `0017` y validación de servicio (409 `REFERENCIA_PAGO_YA_UTILIZADA`).
+  - Precios en `BOB` sin tipos de cambio manuales: se eliminaron tasas fijas de conversión (`TASAS_CAMBIO_BOB`), cobrando directamente en la moneda de la empresa y transmitiendo la moneda a Stripe.
+- **CU23–CU25 (Bloqueante 2 — Aprendizaje automático real con scikit-learn y cero datos inventados):**
+  - Motor ML reescrito con `scikit-learn`, `pandas` y `numpy` reales (`RandomForestRegressor`, `KMeans`, `StandardScaler`, `train_test_split` 70/15/15). Eliminado `_hash_fraccion`.
+  - Cero datos inventados: prendas, variantes, sucursales y clientes provienen exclusivamente de las tablas de la empresa en PostgreSQL. Si no hay datos, se devuelve estado vacío sin nombres ficticios.
+- **CU07 A1 (Punto 4 — Suscripciones):**
+  - Al dar de alta una suscripción (`alta`), si la empresa ya tiene una suscripción vigente (`activa` o `prueba`), se rechaza con `409 SUSCRIPCION_VIGENTE_EXISTENTE` remitiendo a cambiar plan o renovar, eliminando la cancelación silenciosa previa.
+- **CU06 A2 (Punto 5 — Planes):**
+  - Se impide desactivar un plan si existen empresas con suscripciones vigentes (`409 PLAN_CON_EMPRESAS_SUSCRITAS`).
+- **CU21 (Punto 6 — Reportes con IA):**
+  - Rechazo explícito de reportes no implementados con `422 REPORTE_NO_EJECUTABLE`, impidiendo caídas silenciosas en consultas de reservas.
+- **Hallazgos menores:**
+  - Hora oficial de Bolivia: sustituido `datetime.now(timezone.utc).date()` por `core.tiempo.hoy()` y `core.tiempo.ahora()` en todos los módulos de plataforma y comercial.
+  - Validación de correo en CU05 con función `SECURITY DEFINER` `correo_ocupado()`.
+  - Configuración inicial de empresa en `cu05` fijada a moneda `BOB` y zona `America/La_Paz` (evitando violación de CHECK constraints de migración 0016).
+  - Pruebas de integración multitenant para tablas nuevas (`solicitudes_reporte_ia`, `datasets_ml`, `modelos_ml`, `predicciones_ml`, `segmentos_clientes_ml`, `historial_suscripcion`) en `tests/integracion/test_multitenant.py`.
+  - Normalización de URL en `test_esquema_bd.py` para compatibilidad nativa con `psycopg` v3.
+  - Especificaciones SDD sincronizadas con migraciones `0017–0019`, promovidas a `.specs/finalized/` y especificaciones permanentes creadas en `.specs/modules/`.
+
 ### Fix · «Mi perfil» del empleado (defecto sin numerar: se numera al fusionar)
 - **Causa:**
   - «MI CUENTA» en el dashboard, productos, categorías y sucursales enlazaba a `/perfil`, una ruta antigua del cliente que desde P2-CU02 redirige al directorio de tiendas.

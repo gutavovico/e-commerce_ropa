@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from core.errors import AuthorizationError, NotFoundError, UnprocessableEntityError
 from core.tenant import tenant_actual
+from core.tiempo import ahora, ahora_local, hoy
 from modules.autenticacion_seguridad.modelos import UsuarioORM
 from modules.comercial.cu21_reportes_ia.esquemas import (
     ContextoReportesIaEmpresaOut,
@@ -30,7 +31,6 @@ from modules.seguridad.cu30_bitacora.servicio import ServicioBitacoraAuditoria
 TASAS_CAMBIO_BOB: dict[str, Decimal] = {
     "BOB": Decimal("1.00"),
     "USD": Decimal("6.96"),
-    "EUR": Decimal("7.50"),
 }
 
 
@@ -447,50 +447,55 @@ class ReportesIaServicio:
             }
             return columnas, filas, serie, kpis
 
-        # reservas_por_estado_sucursal
-        datos = ReportesIaRepositorio.ejecutar_reservas_por_estado_sucursal(
-            db,
-            id_tenant=id_tenant,
-            fecha_inicio=interpretacion.fecha_inicio,
-            fecha_fin=interpretacion.fecha_fin,
-            id_sucursal=interpretacion.id_sucursal,
-        )
-        columnas = [
-            "Sucursal",
-            "Estado de Reserva",
-            "Cantidad de Reservas",
-            "Prendas Reservadas",
-        ]
-        filas = []
-        serie = []
-        total_reservas = 0
-        total_prendas = 0
-
-        for d in datos:
-            total_reservas += d["total_reservas"]
-            total_prendas += d["prendas_reservadas"]
-            filas.append(
-                [
-                    d["sucursal"],
-                    d["estado"],
-                    d["total_reservas"],
-                    d["prendas_reservadas"],
-                ]
+        if codigo == "reservas_por_estado_sucursal":
+            datos = ReportesIaRepositorio.ejecutar_reservas_por_estado_sucursal(
+                db,
+                id_tenant=id_tenant,
+                fecha_inicio=interpretacion.fecha_inicio,
+                fecha_fin=interpretacion.fecha_fin,
+                id_sucursal=interpretacion.id_sucursal,
             )
-            serie.append(
-                PuntoGraficoReporteOut(
-                    etiqueta=f"{d['sucursal']} ({d['estado']})",
-                    valor=float(d["total_reservas"]),
-                    valor_secundario=float(d["prendas_reservadas"]),
-                    unidad="reservas",
+            columnas = [
+                "Sucursal",
+                "Estado de Reserva",
+                "Cantidad de Reservas",
+                "Prendas Reservadas",
+            ]
+            filas = []
+            serie = []
+            total_reservas = 0
+            total_prendas = 0
+
+            for d in datos:
+                total_reservas += d["total_reservas"]
+                total_prendas += d["prendas_reservadas"]
+                filas.append(
+                    [
+                        d["sucursal"],
+                        d["estado"],
+                        d["total_reservas"],
+                        d["prendas_reservadas"],
+                    ]
                 )
-            )
+                serie.append(
+                    PuntoGraficoReporteOut(
+                        etiqueta=f"{d['sucursal']} ({d['estado']})",
+                        valor=float(d["total_reservas"]),
+                        valor_secundario=float(d["prendas_reservadas"]),
+                        unidad="reservas",
+                    )
+                )
 
-        kpis = {
-            "reservas_totales": total_reservas,
-            "prendas_reservadas_totales": total_prendas,
-        }
-        return columnas, filas, serie, kpis
+            kpis = {
+                "reservas_totales": total_reservas,
+                "prendas_reservadas_totales": total_prendas,
+            }
+            return columnas, filas, serie, kpis
+
+        raise UnprocessableEntityError(
+            f"El reporte con código '{codigo}' no cuenta con una consulta ejecutable configurada (CU21).",
+            code="REPORTE_NO_EJECUTABLE",
+        )
 
     @staticmethod
     def listar_historial(
@@ -553,7 +558,7 @@ class ReportesIaServicio:
             "Moneda": "Bolivianos (Bs. / BOB) · T.C. 1 USD = 6.96 Bs.",
         }
 
-        fecha_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+        fecha_str = hoy().strftime("%Y%m%d")
         if formato == "pdf":
             contenido = GeneradorPDF.generar(
                 titulo=titulo_empresa,

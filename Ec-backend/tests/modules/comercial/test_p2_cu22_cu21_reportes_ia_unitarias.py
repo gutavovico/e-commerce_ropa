@@ -618,3 +618,60 @@ class TestP2CU21GenerarReporteConIA:
         assert "spreadsheetml" in xlsx_mime
         assert xlsx_name.endswith(".xlsx")
         assert mock_repo.registrar_exportacion_en_solicitud.call_count == 2
+
+    @patch("modules.comercial.cu21_reportes_ia.servicio.ReportesIaRepositorio")
+    @patch("modules.comercial.cu21_reportes_ia.servicio.SuscripcionServicio.validar")
+    def test_ac08_cu21_reporte_desconocido_rechaza_sin_caer_en_reservas(
+        self,
+        mock_validar_susc: MagicMock,
+        mock_repo: MagicMock,
+    ) -> None:
+        """Auditoría Parcial 2 (Punto 6): un código de reporte no reconocido debe rechazarse explícitamente."""
+        from modules.comercial.cu21_reportes_ia.esquemas import InterpretacionReporteIaOut
+
+        ahora = datetime.now(timezone.utc)
+        rep_nuevo = SimpleNamespace(
+            id_reporte_catalogo=99,
+            codigo="reporte_sin_ejecutor",
+            nombre="Reporte no implementado",
+            descripcion="Reporte de prueba sin handler SQL.",
+            vista_origen="vw_desconocida",
+            metricas=[],
+            dimensiones=[],
+            filtros_permitidos=[],
+            tipos_grafico=["barras"],
+            ejemplos_consulta=[],
+            activo=True,
+            creado_en=ahora,
+            actualizado_en=ahora,
+        )
+        mock_repo.listar_catalogo_activo.return_value = [rep_nuevo]
+        mock_repo.obtener_moneda_empresa.return_value = "BOB"
+
+        interpretacion_mock = InterpretacionReporteIaOut(
+            estado="completada",
+            codigo_reporte="reporte_sin_ejecutor",
+            nombre_reporte="Reporte no implementado",
+            vista_origen="vw_desconocida",
+            tipo_grafico_sugerido="barras",
+            explicacion_ia="Reporte configurado en catálogo",
+            origen_motor="validador_catalogo_cu22",
+        )
+
+        with patch.object(
+            InterpreteReportesIA, "interpretar", return_value=interpretacion_mock
+        ):
+            with pytest.raises(UnprocessableEntityError) as exc:
+                ReportesIaServicio.generar_reporte(
+                    MagicMock(),
+                    datos=GenerarReporteIaIn(
+                        prompt_texto="dame el reporte sin ejecutor",
+                        codigo_reporte="reporte_sin_ejecutor",
+                    ),
+                    usuario=_usuario_admin_empresa(10),
+                )
+            assert exc.value.code == "REPORTE_NO_EJECUTABLE"
+            assert "reporte_sin_ejecutor" in str(exc.value)
+            # Asegurar que NO se llamó a ejecutar_reservas_por_estado_sucursal
+            mock_repo.ejecutar_reservas_por_estado_sucursal.assert_not_called()
+

@@ -1,11 +1,11 @@
 """Repositorio de acceso a datos para P2-CU22: Gestionar catálogo de reportes permitidos."""
 
-from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from core.tiempo import ahora
 from modules.plataforma.cu22_catalogo_reportes.modelos import CatalogoReporteIaORM
 
 
@@ -34,7 +34,7 @@ class CatalogoReportesRepositorio:
 
     @staticmethod
     def crear(db: Session, datos: dict) -> CatalogoReporteIaORM:
-        ahora = datetime.now(timezone.utc)
+        instante_actual = ahora()
         item = CatalogoReporteIaORM(
             codigo=datos["codigo"],
             nombre=datos["nombre"],
@@ -46,8 +46,8 @@ class CatalogoReportesRepositorio:
             tipos_grafico=datos["tipos_grafico"],
             ejemplos_consulta=datos.get("ejemplos_consulta", []),
             activo=datos.get("activo", True),
-            creado_en=ahora,
-            actualizado_en=ahora,
+            creado_en=instante_actual,
+            actualizado_en=instante_actual,
         )
         db.add(item)
         db.commit()
@@ -68,7 +68,7 @@ class CatalogoReportesRepositorio:
         item.tipos_grafico = datos["tipos_grafico"]
         item.ejemplos_consulta = datos.get("ejemplos_consulta", [])
         item.activo = datos.get("activo", item.activo)
-        item.actualizado_en = datetime.now(timezone.utc)
+        item.actualizado_en = ahora()
         db.commit()
         db.refresh(item)
         return item
@@ -78,7 +78,7 @@ class CatalogoReportesRepositorio:
         db: Session, item: CatalogoReporteIaORM, activo: bool
     ) -> CatalogoReporteIaORM:
         item.activo = activo
-        item.actualizado_en = datetime.now(timezone.utc)
+        item.actualizado_en = ahora()
         db.commit()
         db.refresh(item)
         return item
