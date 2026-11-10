@@ -4,6 +4,13 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ## [Unreleased] - 2026-11-09 (Parcial 2)
 
+### Caja en el móvil — P2-CU16 y P2-CU17
+- **Qué:** cajero, encargado y administrador entran en la app directamente a la caja, sin el hub del cliente (decisión E1). Venden con buscador de prendas, cliente y sus reservas, y cupón; cobran en efectivo, con tarjeta, QR o transferencia, incluido el rechazo del datáfono; ven el comprobante en pantalla (E2); gestionan las pendientes del día y los pedidos web en efectivo (E3). Sin conexión no se registra ni se cobra.
+- **Cómo:** solo móvil (`cu16_cu17_caja`), con el mismo contrato que la caja web; sin cambios en backend ni web y sin dependencias nuevas. Todos los importes los calcula el servidor.
+- **Corregido durante el desarrollo:** el diálogo de anulación liberaba su controlador mientras animaba el cierre; el bloc notificaba tras cerrarse la caja.
+- **Pruebas:** 26 nuevas (`test/caja/`); suite móvil 325/325.
+- **Spec:** `.specs/modules/compras_pagos/P2-CU16-CU17-caja-movil.md` · historial en `.specs/finalized/P2-CU16-CU17-caja-movil/`.
+
 ### Operación sin conexión — P2-CU14, CU15, CU19 y CU20 (bloque 3)
 - **Qué:** el cliente descarga el catálogo de su tienda y reserva sin internet en la PWA y en la app Flutter. Al volver la conexión las operaciones se sincronizan sin duplicarse (RN35). Lo que el servidor no acepta se cancela con un aviso (reservas) o se reembolsa (compras ya cobradas, solo móvil). El encargado o el administrador revisa los conflictos y el administrador procesa los reembolsos con Stripe al cierre del mes. La caja web no opera sin conexión. Las reservas vencen a las horas que define la empresa (RN25).
 - **Backend:** paquete nuevo `sincronizacion` (12 endpoints) y migración `0020_sin_conexion` (5 tablas con RLS; `reservas.vence_en` y `codigo_provisional`). Reutiliza los servicios de reserva y pago con piezas sin `commit`, sin copiar sus reglas.
