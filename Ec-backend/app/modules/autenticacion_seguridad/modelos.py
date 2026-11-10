@@ -20,6 +20,9 @@ rol_usuario_enum = PG_ENUM(
     "encargado_sucursal",
     "cajero",
     "proveedor",
+    # P2-CU05: sin este valor, cargar la cuenta del super administrador lanzaba `LookupError` y su
+    # login respondía 500. `test_esquema_bd` compara ahora los valores de cada enum con la base.
+    "super_administrador",
     name="rol_usuario",
     schema="fashionstore",
     create_type=False,
