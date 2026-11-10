@@ -1,6 +1,6 @@
 """P2-CU14, CU15, CU19 y CU20 · Operación sin conexión.
 
-Spec: `.specs/changes/P2-CU14-CU15-CU19-CU20-sin-conexion/plan.md` §4.
+Spec: `.specs/finalized/P2-CU14-CU15-CU19-CU20-sin-conexion/plan.md` §4.
 
 - Crea `dispositivos`, `operaciones_sync`, `conflictos_sync`, `sync_log` y `avisos_cliente`, todas de
   empresa: `id_tenant` con el valor por defecto del contexto, `UNIQUE (id_tenant, pk)`, FK compuestas
