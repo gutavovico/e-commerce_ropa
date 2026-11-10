@@ -36,10 +36,38 @@ class SinConexionApi {
       : _cliente = cliente ?? ClienteHttpApi(),
         _baseUrl = baseUrl ?? (() => ApiConfig.baseUrl);
 
-  Future<DispositivoDto> registrarDispositivo(String identificador, {required String token}) async {
-    final datos = await _post('/api/v1/sin-conexion/dispositivos',
-        {'identificador': identificador, 'plataforma': 'flutter'}, token, 'registrar el dispositivo');
+  Future<DispositivoDto> registrarDispositivo(
+    String identificador, {
+    required String token,
+    String? tokenPush,
+  }) async {
+    final cuerpo = <String, dynamic>{
+      'identificador': identificador,
+      'plataforma': 'flutter',
+    };
+    if (tokenPush != null && tokenPush.isNotEmpty) {
+      cuerpo['token_push'] = tokenPush;
+    }
+    final datos = await _post(
+      '/api/v1/sin-conexion/dispositivos',
+      cuerpo,
+      token,
+      'registrar el dispositivo',
+    );
     return DispositivoDto.fromJson(datos as Map<String, dynamic>);
+  }
+
+  Future<void> registrarTokenPush(
+    String identificador,
+    String tokenPush, {
+    required String token,
+  }) async {
+    await _post(
+      '/api/v1/sin-conexion/dispositivos/token-push',
+      {'identificador': identificador, 'token_push': tokenPush},
+      token,
+      'registrar el token push',
+    );
   }
 
   /// Devuelve el JSON tal cual: se guarda entero en SQLite.

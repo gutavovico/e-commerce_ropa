@@ -14,6 +14,18 @@ from pydantic import BaseModel
 class DispositivoIn(BaseModel):
     identificador: uuid.UUID
     plataforma: Literal["pwa", "flutter"]
+    token_push: Optional[str] = None
+
+
+class DispositivoTokenPushIn(BaseModel):
+    identificador: uuid.UUID
+    token_push: str
+
+
+class DispositivoTokenPushOut(BaseModel):
+    ok: bool = True
+    identificador: uuid.UUID
+    token_push: str
 
 
 class DispositivoOut(BaseModel):
@@ -23,6 +35,7 @@ class DispositivoOut(BaseModel):
     codigo_corto: str
     registrado_en: datetime
     ultima_descarga_en: Optional[datetime] = None
+    token_push: Optional[str] = None
     # Parámetros de la empresa que la app aplica sin conexión (CU11, RN33, RN41)
     operacion_offline_habilitada: bool
     dias_antiguedad_offline: int

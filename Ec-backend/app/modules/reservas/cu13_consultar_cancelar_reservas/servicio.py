@@ -143,6 +143,15 @@ class ReservaConsultaServicio:
         ReservaConsultaServicio._liberar_stock(db, reserva, usuario, payload.motivo)
         reserva.estado = "cancelada"
 
+        from integrations.fcm_service import notificar_cliente
+        notificar_cliente(
+            db,
+            id_cliente=reserva.id_cliente,
+            titulo="Reserva cancelada",
+            cuerpo=f"Tu reserva #{reserva.id_reserva} ha sido cancelada.",
+            datos={"pantalla": "reservas", "id": str(reserva.id_reserva)},
+        )
+
         db.commit()
         db.refresh(reserva)
 
@@ -205,7 +214,42 @@ class ReservaConsultaServicio:
             db=db,
         )
 
+        from integrations.fcm_service import notificar_cliente
+        notificar_cliente(
+            db,
+            id_cliente=reserva.id_cliente,
+            titulo="Reserva vencida",
+            cuerpo=f"Tu reserva #{reserva.id_reserva} ha vencido y sus prendas fueron liberadas.",
+            datos={"pantalla": "reservas", "id": str(reserva.id_reserva)},
+        )
+
         return True
+
+    @staticmethod
+    def vencer_todas_expiradas(db: Session) -> int:
+        """Vence todas las reservas expiradas del tenant en curso y emite push a cada cliente afectado."""
+        from sqlalchemy import select
+        usuario_sistema = UsuarioORM(
+            id_usuario=1,
+            nombres="Sistema",
+            apellidos="Cron",
+            email="cron@fashionstore.local",
+            rol="superadmin",
+            activo=True,
+        )
+        stmt = select(ReservaORM).where(
+            ReservaORM.estado.in_(("pendiente", "confirmada"))
+        )
+        reservas = db.execute(stmt).scalars().all()
+        vencidas = 0
+        for r in reservas:
+            if not ReservaConsultaServicio._es_candidata_a_vencer(r):
+                continue
+            bloqueada = ReservaConsultaRepositorio.obtener_reserva_para_actualizar(db, r.id_reserva)
+            if bloqueada and ReservaConsultaServicio._vencer_si_corresponde(db, bloqueada, usuario_sistema):
+                db.commit()
+                vencidas += 1
+        return vencidas
 
     @staticmethod
     def _liberar_stock(

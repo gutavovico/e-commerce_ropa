@@ -87,6 +87,7 @@ Thumbs.db
 # Scripts y logs temporales de operacion local
 scratch/
 *.log
+Repartición.md
 
 # Reparto de trabajo del Parcial 2 (local, no se versiona)
 reparticion.md

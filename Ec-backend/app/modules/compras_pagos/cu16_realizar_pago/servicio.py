@@ -369,6 +369,23 @@ class PagoServicio:
         # El cobro está confirmado por la pasarela (tarjeta o Bizum/QR): ahora sí, las prendas
         # compradas salen de la bolsa. Antes de este punto la bolsa permanece intacta.
         PagoServicio._retirar_de_la_bolsa(db, venta)
+        if venta.id_cliente:
+            from integrations.fcm_service import notificar_cliente
+            notificar_cliente(
+                db,
+                id_cliente=venta.id_cliente,
+                titulo="Pago confirmado",
+                cuerpo=f"Tu pago de {venta.total} para la orden {venta.numero_comprobante} fue aprobado.",
+                datos={"pantalla": "compras", "id": str(venta.id_venta)},
+            )
+            if venta.tipo_entrega == "retiro_sucursal":
+                notificar_cliente(
+                    db,
+                    id_cliente=venta.id_cliente,
+                    titulo="Pedido listo para recoger",
+                    cuerpo=f"Tu pedido {venta.numero_comprobante} ya está listo para recoger en boutique.",
+                    datos={"pantalla": "compras", "id": str(venta.id_venta)},
+                )
 
     @staticmethod
     def retomar_y_completar_venta_cobrada(db: Session, venta: VentaORM, id_usuario_responsable: int) -> None:
@@ -414,6 +431,23 @@ class PagoServicio:
             )
         venta.estado = "pagada"
         PagoServicio._retirar_de_la_bolsa(db, venta)
+        if venta.id_cliente:
+            from integrations.fcm_service import notificar_cliente
+            notificar_cliente(
+                db,
+                id_cliente=venta.id_cliente,
+                titulo="Pago confirmado",
+                cuerpo=f"Tu pago de {venta.total} para la orden {venta.numero_comprobante} fue aprobado.",
+                datos={"pantalla": "compras", "id": str(venta.id_venta)},
+            )
+            if venta.tipo_entrega == "retiro_sucursal":
+                notificar_cliente(
+                    db,
+                    id_cliente=venta.id_cliente,
+                    titulo="Pedido listo para recoger",
+                    cuerpo=f"Tu pedido {venta.numero_comprobante} ya está listo para recoger en boutique.",
+                    datos={"pantalla": "compras", "id": str(venta.id_venta)},
+                )
 
     @staticmethod
     def _verificar_orden_pagable(db: Session, usuario: UsuarioORM, venta: VentaORM) -> None:

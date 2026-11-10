@@ -11,6 +11,7 @@ import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/dominio/reposito
 import 'src/modulos/autenticacion_seguridad/cu02_iniciar_sesion/presentacion/pantallas/pantalla_login.dart';
 import 'src/modulos/compras_pagos/cu16_cu17_caja/presentacion/pantallas/pantalla_caja.dart';
 import 'src/navegacion/pantalla_principal_hub.dart';
+import 'src/core/push/servicio_push.dart';
 
 /// P2-CU16/CU17 (decisión E1): roles que entran directo a la caja, sin el hub del cliente.
 const Set<String> rolesDeCaja = {'administrador', 'admin', 'encargado_sucursal', 'cajero'};
@@ -80,6 +81,9 @@ class _EcMobileAppState extends State<EcMobileApp> {
       GlobalKey<ScaffoldMessengerState>();
 
   StreamSubscription<SesionEvento>? _subSesion;
+  StreamSubscription<NotificacionPush>? _subPushPrimerPlano;
+  StreamSubscription<NotificacionPush>? _subPushClick;
+  String? _tokenActivo;
 
   SesionGuardada get _sesiones => widget.sesionGuardada ?? SesionGuardada.instancia;
 
@@ -87,6 +91,8 @@ class _EcMobileAppState extends State<EcMobileApp> {
   void initState() {
     super.initState();
     _subSesion = SesionManager.instancia.eventos.listen(_alExpirarSesion);
+    _subPushPrimerPlano = ServicioPush.instancia.enPrimerPlano.listen(_alRecibirPushPrimerPlano);
+    _subPushClick = ServicioPush.instancia.alPulsarNotificacion.listen(_alPulsarPush);
     final sesion = widget.sesionInicial;
     if (sesion != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _entrarConSesion(sesion));
@@ -96,6 +102,7 @@ class _EcMobileAppState extends State<EcMobileApp> {
   /// AC-A2: con la sesión guardada se va al mismo destino que tras el login, sin pedir de nuevo la
   /// tienda al cliente que ya la había elegido. Si el token ya no sirve, el primer 401 lleva al login.
   void _entrarConSesion(SesionPersistida sesion) {
+    _tokenActivo = sesion.token;
     SesionManager.instancia.reiniciar();
     final empresa = sesion.empresa;
     if (empresa != null) EmpresaActual.instancia.elegir(empresa);
@@ -121,7 +128,27 @@ class _EcMobileAppState extends State<EcMobileApp> {
   @override
   void dispose() {
     _subSesion?.cancel();
+    _subPushPrimerPlano?.cancel();
+    _subPushClick?.cancel();
     super.dispose();
+  }
+
+  void _alRecibirPushPrimerPlano(NotificacionPush notif) {
+    final ctx = _navegadorKey.currentContext;
+    if (ctx != null) {
+      ServicioPush.instancia.mostrarBannerPrimerPlano(ctx, notif);
+    }
+  }
+
+  void _alPulsarPush(NotificacionPush notif) {
+    final token = _tokenActivo;
+    if (token != null && token.isNotEmpty) {
+      ServicioPush.instancia.navegarADestino(
+        navegadorKey: _navegadorKey,
+        token: token,
+        notificacion: notif,
+      );
+    }
   }
 
   void _alExpirarSesion(SesionEvento evento) {
@@ -149,6 +176,7 @@ class _EcMobileAppState extends State<EcMobileApp> {
 
   /// Devuelve al usuario al login limpiando toda la pila de navegación.
   void _volverAlLogin() {
+    _tokenActivo = null;
     // El flag anti-duplicados de SesionManager debe liberarse al volver al login;
     // si no, un 401 posterior quedaría silenciado para siempre.
     SesionManager.instancia.reiniciar();
@@ -173,6 +201,7 @@ class _EcMobileAppState extends State<EcMobileApp> {
   /// P2-CU02: el cliente elige la tienda en la que navega (A10, A15); el empleado entra con la de
   /// su cuenta.
   void _despuesDelLogin(String token, LoginRespuestaDto usuario) {
+    _tokenActivo = token;
     final nombreCompleto = '${usuario.nombres} ${usuario.apellidos}'.trim();
     final destino = destinoTrasLogin(usuario.rol);
     // AC-A1: el empleado con la empresa de su cuenta; el cliente, sin tienda hasta que la elija.

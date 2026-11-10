@@ -56,6 +56,16 @@ class ReservaServicio:
         db.commit()
         db.refresh(registrada.reserva)
         ReservaServicio.auditar(db, usuario, registrada)
+        from integrations.fcm_service import notificar_cliente
+        nombre_suc = getattr(getattr(registrada, "sucursal", None), "nombre", "la boutique")
+        notificar_cliente(
+            db,
+            id_cliente=usuario.id_usuario,
+            titulo="Reserva confirmada",
+            cuerpo=f"Tu cita de prueba en {nombre_suc} ha sido confirmada.",
+            datos={"pantalla": "reservas", "id": str(registrada.reserva.id_reserva)},
+        )
+        db.commit()
         return ReservaServicio.salida(registrada)
 
     @staticmethod

@@ -24,22 +24,41 @@ from modules.sincronizacion.modelos import DispositivoORM, SyncLogORM
 class DispositivoRepositorio:
     @staticmethod
     def insertar_si_falta(
-        db: Session, identificador: uuid.UUID, id_cliente: int, plataforma: str, codigo_corto: str
+        db: Session,
+        identificador: uuid.UUID,
+        id_cliente: int,
+        plataforma: str,
+        codigo_corto: str,
+        token_push: Optional[str] = None,
     ) -> bool:
         """`INSERT … ON CONFLICT DO NOTHING`: dos registros simultáneos del mismo UUID dan un solo
         dispositivo. Devuelve True si lo creó esta llamada."""
+        valores = {
+            "identificador": identificador,
+            "id_cliente": id_cliente,
+            "plataforma": plataforma,
+            "codigo_corto": codigo_corto,
+        }
+        if token_push is not None:
+            valores["token_push"] = token_push
+
         sentencia = (
             insert(DispositivoORM)
-            .values(
-                identificador=identificador,
-                id_cliente=id_cliente,
-                plataforma=plataforma,
-                codigo_corto=codigo_corto,
-            )
+            .values(**valores)
             .on_conflict_do_nothing(constraint="uq_dispositivos_identificador")
             .returning(DispositivoORM.id_dispositivo)
         )
         return db.execute(sentencia).scalar_one_or_none() is not None
+
+    @staticmethod
+    def actualizar_token_push(
+        db: Session, identificador: uuid.UUID, token_push: str
+    ) -> Optional[DispositivoORM]:
+        dispositivo = DispositivoRepositorio.por_identificador(db, identificador, bloquear=True)
+        if dispositivo:
+            dispositivo.token_push = token_push
+            db.flush()
+        return dispositivo
 
     @staticmethod
     def por_identificador(db: Session, identificador: uuid.UUID, bloquear: bool = False) -> Optional[DispositivoORM]:

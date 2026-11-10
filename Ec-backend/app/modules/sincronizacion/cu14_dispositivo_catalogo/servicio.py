@@ -23,6 +23,8 @@ from modules.sincronizacion.cu14_dispositivo_catalogo.esquemas import (
     ColorLocalOut,
     DispositivoIn,
     DispositivoOut,
+    DispositivoTokenPushIn,
+    DispositivoTokenPushOut,
     ExistenciaLocalOut,
     ProductoLocalOut,
     PromocionLocalOut,
@@ -50,7 +52,12 @@ class DispositivoServicio:
         # RN16: el plan debe incluir la operación sin conexión (403 FUNCIONALIDAD_NO_INCLUIDA).
         SuscripcionServicio.validar(db, funcionalidad="operacion_offline")
         creado = DispositivoRepositorio.insertar_si_falta(
-            db, datos.identificador, id_cliente, datos.plataforma, codigo_corto(datos.identificador)
+            db,
+            datos.identificador,
+            id_cliente,
+            datos.plataforma,
+            codigo_corto(datos.identificador),
+            datos.token_push,
         )
         dispositivo = DispositivoRepositorio.por_identificador(db, datos.identificador)
         if dispositivo is None or dispositivo.id_cliente != id_cliente:
@@ -60,6 +67,8 @@ class DispositivoServicio:
                 "Este dispositivo está registrado para otra cuenta. Cierra sesión y vuelve a entrar.",
                 code="DISPOSITIVO_DE_OTRO_CLIENTE",
             )
+        if not creado and datos.token_push and getattr(dispositivo, "token_push", None) != datos.token_push:
+            dispositivo.token_push = datos.token_push
         if creado:
             ServicioBitacoraAuditoria.registrar_evento_seguro(
                 id_usuario=usuario.id_usuario,
@@ -76,6 +85,21 @@ class DispositivoServicio:
         db.commit()
         db.refresh(dispositivo)
         return DispositivoServicio._salida(db, dispositivo), creado
+
+    @staticmethod
+    def actualizar_token_push(
+        db: Session, usuario: UsuarioORM, datos: DispositivoTokenPushIn
+    ) -> DispositivoTokenPushOut:
+        """Actualiza el token push de un dispositivo previamente registrado (AC-C1)."""
+        dispositivo = DispositivoServicio.del_cliente(db, usuario, datos.identificador, bloquear=True)
+        dispositivo.token_push = datos.token_push
+        db.commit()
+        db.refresh(dispositivo)
+        return DispositivoTokenPushOut(
+            ok=True,
+            identificador=dispositivo.identificador,
+            token_push=dispositivo.token_push or "",
+        )
 
     @staticmethod
     def del_cliente(db: Session, usuario: UsuarioORM, identificador: uuid.UUID, bloquear: bool = False) -> DispositivoORM:
@@ -98,6 +122,7 @@ class DispositivoServicio:
             codigo_corto=dispositivo.codigo_corto,
             registrado_en=dispositivo.registrado_en,
             ultima_descarga_en=dispositivo.ultima_descarga_en,
+            token_push=getattr(dispositivo, "token_push", None),
             operacion_offline_habilitada=parametros.operacion_offline_habilitada,
             dias_antiguedad_offline=parametros.dias_antiguedad_offline,
             horas_vencimiento_reserva=parametros.horas_vencimiento_reserva,

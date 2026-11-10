@@ -17,3 +17,4 @@ tzdata>=2024.1  # zoneinfo de America/La_Paz en cualquier entorno (fix P2-CU11)
 numpy>=1.26,<3
 pandas>=2.2,<3
 scikit-learn>=1.5,<2
+firebase-admin>=6.5.0

@@ -1,5 +1,6 @@
 """Servicio de dominio para CU19: Asistente Inteligente / Chatbot."""
 
+import time
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -28,6 +29,7 @@ class ServicioAsistenteChatbot:
         usuario: Optional[UsuarioORM] = None,
     ) -> RespuestaChatbotOut:
         """Procesa una consulta del usuario, recupera contexto real y persiste el intercambio."""
+        inicio = time.time()
         id_cliente = usuario.id_usuario if usuario else None
 
         # 1. Recuperar contexto verídico de la base de datos (RAG)
@@ -93,6 +95,20 @@ class ServicioAsistenteChatbot:
 
         # 6. Sugerencias rápidas dinámicas
         sugerencias = cls._generar_sugerencias_rapidas(payload.mensaje, bool(productos_out))
+
+        # AC-C2.7: push si la consulta se envió en segundo plano o tardó más de 5 s (o canal móvil)
+        duracion = time.time() - inicio
+        if id_cliente and (duracion >= 5.0 or payload.canal in ("movil", "segundo_plano")):
+            from integrations.fcm_service import notificar_cliente
+            cuerpo_push = (respuesta_texto[:100] + "...") if len(respuesta_texto) > 100 else respuesta_texto
+            notificar_cliente(
+                db,
+                id_cliente=id_cliente,
+                titulo="FashionStore Atelier",
+                cuerpo=cuerpo_push,
+                datos={"pantalla": "asistente", "id": str(interaccion.id_interaccion)},
+            )
+            db.commit()
 
         return RespuestaChatbotOut(
             id_interaccion=interaccion.id_interaccion,
