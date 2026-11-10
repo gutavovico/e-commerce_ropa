@@ -1,6 +1,6 @@
 """Pruebas unitarias del script de carga de Menshopping (RF15), sin base de datos.
 
-Spec: `.specs/changes/P2-RF15-menshopping/spec.md` §4. La carga completa contra PostgreSQL (con
+Spec: `.specs/modules/plataforma/P2-RF15-menshopping.md` §4. La carga completa contra PostgreSQL (con
 rollback) está en `tests/integracion/test_multitenant.py` §RF15.
 """
 

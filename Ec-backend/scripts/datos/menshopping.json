@@ -1,5 +1,5 @@
 {
-  "_comentario": "Datos de la empresa de prueba Menshopping (RF15). Spec: .specs/changes/P2-RF15-menshopping/spec.md. Sin contraseñas: el script las pide o las lee de MENSHOPPING_CLAVE_INICIAL.",
+  "_comentario": "Datos de la empresa de prueba Menshopping (RF15). Spec: .specs/modules/plataforma/P2-RF15-menshopping.md. Sin contraseñas: el script las pide o las lee de MENSHOPPING_CLAVE_INICIAL.",
   "empresa": {
     "codigo": "menshopping",
     "nombre": "Menshopping",
