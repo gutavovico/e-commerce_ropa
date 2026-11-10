@@ -37,6 +37,16 @@ class AvisosServicio:
             id_venta=id_venta,
         )
         db.add(aviso)
+
+        from integrations.fcm_service import notificar_cliente
+        notificar_cliente(
+            db,
+            id_cliente=id_cliente,
+            titulo=titulo,
+            cuerpo=mensaje,
+            datos={"pantalla": "avisos", "id": str(id_reserva or id_venta or "")},
+        )
+
         return aviso
 
     @staticmethod

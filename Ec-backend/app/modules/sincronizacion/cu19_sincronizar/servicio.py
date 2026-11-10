@@ -335,6 +335,15 @@ class SincronizacionServicio:
             registrada = ReservaServicio.registrar(db, usuario, payload, codigo_provisional=op.codigo_provisional)
             ReservaServicio.auditar(db, usuario, registrada)
             reserva = registrada.reserva
+            from integrations.fcm_service import notificar_cliente
+            nombre_suc = getattr(getattr(registrada, "sucursal", None), "nombre", "la boutique")
+            notificar_cliente(
+                db,
+                id_cliente=usuario.id_usuario,
+                titulo="Reserva confirmada",
+                cuerpo=f"Tu cita de prueba en {nombre_suc} ha sido confirmada.",
+                datos={"pantalla": "reservas", "id": str(reserva.id_reserva)},
+            )
             return _Desenlace(
                 estado="confirmada",
                 id_sucursal=id_sucursal,

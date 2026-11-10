@@ -46,6 +46,7 @@ class DispositivoORM(Base):
     registrado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     ultima_descarga_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     ultima_sincronizacion_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    token_push: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
 
 class OperacionSyncORM(Base):

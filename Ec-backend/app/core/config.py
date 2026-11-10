@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     OTP_MAX_ATTEMPTS: int = 5
     OTP_RESEND_COOLDOWN_SECONDS: int = 60
 
+    # --- Notificaciones Push Móvil (FCM · RF37) y Tareas Cron ---
+    FIREBASE_CREDENCIALES: str = ""
+    TAREAS_TOKEN: str = "secreto-tareas-cron"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: Any) -> list[str]:

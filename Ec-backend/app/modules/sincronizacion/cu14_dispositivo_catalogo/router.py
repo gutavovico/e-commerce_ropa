@@ -13,6 +13,8 @@ from modules.sincronizacion.cu14_dispositivo_catalogo.esquemas import (
     CatalogoLocalOut,
     DispositivoIn,
     DispositivoOut,
+    DispositivoTokenPushIn,
+    DispositivoTokenPushOut,
 )
 from modules.sincronizacion.cu14_dispositivo_catalogo.servicio import (
     CatalogoSinConexionServicio,
@@ -39,6 +41,19 @@ def registrar_dispositivo(
     salida, creado = DispositivoServicio.registrar(db, usuario, datos)
     response.status_code = status.HTTP_201_CREATED if creado else status.HTTP_200_OK
     return salida
+
+
+@router.post(
+    "/dispositivos/token-push",
+    response_model=DispositivoTokenPushOut,
+    summary="Asociar o renovar el token FCM de un dispositivo",
+)
+def registrar_token_push(
+    datos: DispositivoTokenPushIn,
+    db: Session = Depends(get_db),
+    usuario: UsuarioORM = Depends(_cliente),
+) -> DispositivoTokenPushOut:
+    return DispositivoServicio.actualizar_token_push(db, usuario, datos)
 
 
 @router.get("/catalogo", response_model=CatalogoLocalOut, summary="Paquete de catálogo para usar sin conexión")

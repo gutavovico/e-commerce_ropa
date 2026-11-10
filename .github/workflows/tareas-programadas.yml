@@ -1,0 +1,23 @@
+name: Tareas Programadas Cron
+
+on:
+  schedule:
+    # Cada hora en punto (H8 / T-C-05)
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  vencer-reservas:
+    name: Vencer reservas expiradas y emitir push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar al endpoint protegido de vencimiento
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL || 'https://fashionstore-api.onrender.com' }}
+          TAREAS_TOKEN: ${{ secrets.TAREAS_TOKEN }}
+        run: |
+          echo "Ejecutando tarea programada de vencimiento de reservas..."
+          curl -f -X POST "${BACKEND_URL}/api/v1/reservas/vencer-expiradas" \
+            -H "Content-Type: application/json" \
+            -H "X-Tareas-Token: ${TAREAS_TOKEN}" || echo "Aviso: No se pudo conectar al backend o token no configurado en GitHub Secrets."
+

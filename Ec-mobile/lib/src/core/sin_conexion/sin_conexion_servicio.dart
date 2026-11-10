@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'almacen_local.dart';
 import 'modelos_sin_conexion.dart';
 import 'sin_conexion_api.dart';
+import '../push/servicio_push.dart';
 
 /// P2-CU14 / CU15 A1 / CU19 · Catálogo descargado, reservas sin conexión, compras interrumpidas y
 /// sincronización en la app Flutter.
@@ -153,10 +154,21 @@ class SinConexionServicio extends ChangeNotifier {
       local = DispositivoLocal(clave: clave, identificador: _uuid.v4());
       await _almacen.guardarDispositivo(local);
     }
-    final dto = await _api.registrarDispositivo(local.identificador, token: _token ?? '');
+    final dto = await _api.registrarDispositivo(
+      local.identificador,
+      token: _token ?? '',
+      tokenPush: ServicioPush.instancia.tokenFCM,
+    );
     final actual = await _almacen.dispositivo(clave) ?? local;
     final registrado = actual.copyWith(codigoCorto: dto.codigoCorto, parametros: dto.parametros);
     await _almacen.guardarDispositivo(registrado);
+
+    // AC-C1: Asociar token push al dispositivo en el backend
+    await ServicioPush.instancia.registrarTokenEnServidor(
+      api: _api,
+      identificadorDispositivo: local.identificador,
+      tokenAuth: _token ?? '',
+    );
     if (_clave == clave) {
       _dispositivo = registrado;
       notifyListeners();
@@ -180,7 +192,7 @@ class SinConexionServicio extends ChangeNotifier {
         if (modo == 'completo') {
           _aviso = 'No hay espacio suficiente en el teléfono: se descargó solo lo indispensable.';
           _descargando = false;
-          return descargarCatalogo(modo: 'indispensable');
+          return await descargarCatalogo(modo: 'indispensable');
         }
         rethrow;
       }
