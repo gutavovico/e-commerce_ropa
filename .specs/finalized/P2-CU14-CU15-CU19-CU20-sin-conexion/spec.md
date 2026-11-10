@@ -1,4 +1,4 @@
-# Requisitos · P2-CU14, CU15, CU19 y CU20 — Operación sin conexión   Nivel: 3   Estado: aprobado
+# Requisitos · P2-CU14, CU15, CU19 y CU20 — Operación sin conexión   Nivel: 3   Estado: ✅ cerrada y en producción (2026-11-10)
 
 **ID del cambio:** `P2-CU14-CU15-CU19-CU20-sin-conexion`
 **Aprobado por:** Gustavo (usuario) **Fecha:** 2026-11-09

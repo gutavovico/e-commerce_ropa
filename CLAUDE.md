@@ -135,9 +135,12 @@ sola cuando no hay `DATABASE_URL` en `Ec-backend/.env`.
 **La cadena de Alembic es lineal desde el defecto 45 del `CHANGELOG.md`:**
 `0001 → … → 0008 → 0009 → 0009a → 0010 → 0010a → 0011`. `0009a` (CU28) y `0010a` (CU29) son
 marcadores vacíos; los IDs llevan sufijo porque `0009` y `0010` ya pertenecían a migraciones con DDL
-real. Desde la fundación multitenant la cadena sigue `0011 → 0012 → 0013 → 0014 → 0015 → 0016` y
-producción está en `0016`. **Nueva migración:** `down_revision = "0016"` e ID nuevo y único (`0017`);
+real. Desde la fundación multitenant la cadena sigue `0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017
+→ 0018 → 0019 → 0020` (`0017`–`0019`: superadmin, reportes IA y ML; `0020`: operación sin conexión).
+Producción y la rama `pruebas-multitenant` están en `0020` (2026-11-10). **Nueva migración:** `down_revision = "0020"` e ID nuevo y único (`0021`);
 avisa al resto del equipo del número antes de crearla y comprueba `alembic heads` antes de enviarla.
+Una migración que añade una columna `NOT NULL` a una tabla que el código desplegado ya escribe necesita
+un valor por defecto: entre la migración y el push sigue corriendo el código anterior.
 
 **Las migraciones se aplican a mano, antes del push** (defecto 55): Render no ejecutó el
 `preDeployCommand` de `render.yaml`, y desplegar código que espera un esquema nuevo sobre una base sin
@@ -266,7 +269,9 @@ app/core/{config,database,deps,errors,security,token_blacklist}.py
 
 Paquetes actuales: `autenticacion_seguridad`, `catalogo`, `reservas`, `compras_pagos` (incluye el POS
 `cu31_cu32_punto_venta`), `comercial` (CU27–CU29 y `cu31_reportes_voz`), `gestion_operativa` (CU21–CU26)
-`seguridad` (CU30 bitácora) y `plataforma` (modelo SaaS: empresas, planes, suscripciones; P2-CU12).
+`seguridad` (CU30 bitácora), `plataforma` (modelo SaaS: empresas, planes, suscripciones; P2-CU12) y
+`sincronizacion` (operación sin conexión: dispositivos, catálogo local, sincronización, conflictos con
+reembolso y avisos al cliente; P2-CU14, CU19 y CU20).
 Las integraciones externas viven en `app/integrations/` (`stripe_service.py` y `gemini_service.py`,
 ambos con simulador/fallback determinista cuando falta la clave).
 
@@ -300,6 +305,12 @@ Cuidado con dónde vive un modelo antes de declararlo: `VentaORM` y `VentaDetall
   primeros con `scalar_one_or_none()` provoca `MultipleResultsFound` en cuanto hay dos temporadas.
 - `venta_detalle.subtotal_linea` es `GENERATED ALWAYS`: se mapea en solo lectura con
   `FetchedValue()`; incluirla en un `INSERT` hace que PostgreSQL rechace la sentencia.
+- **Vencimiento de reservas (P2-CU15, RN25):** `reservas.vence_en = creado_en + horas_vencimiento_reserva`,
+  fijado al crearla; una cita posterior responde 400 `CITA_FUERA_DE_PLAZO`. Web y móvil ofrecen las horas
+  con `franjasDeCita`; nunca una fecha fija («mañana a las 11:30»).
+- **Sincronización (P2-CU19):** reutiliza los servicios en línea mediante sus piezas sin `commit`
+  (`ReservaServicio.registrar`, `PagoServicio.completar_venta_cobrada`…): un `commit` dentro de otro flujo
+  confirmaría también lo ajeno. Una compra ya cobrada nunca se rechaza: se abre un conflicto (CU20).
 - El trigger `trg_descontar_inventario` fue **neutralizado** en la migración `0009`. El movimiento
   de stock lo ejecuta el servicio, como en `ReservaServicio` y `CheckoutServicio`.
 
@@ -333,6 +344,9 @@ src/app/core/{guards,interceptors,layouts}/
   `/admin` va con el token del empleado). **Un enlace del cliente nunca se escribe absoluto:** usa
   `[routerLink]="'/bolsa' | rutaPortal"` en plantillas y `this.portal.ruta(['/productos', id])` en
   navegaciones. La marca se muestra con `<app-marca-tienda />`, no con «FASHION STORE» escrito.
+- **PWA sin conexión (P2-CU14):** el service worker (`ngsw-config.json`) solo se activa en el build de
+  producción y **nunca cachea la API**; los datos sin conexión salen de IndexedDB (`core/sin-conexion`),
+  separados por tienda y cliente. Para probarlo: `ng build` y servir `dist/`, no `ng serve`.
 - **No inyectes `TenantService` ni nada que dependa del `Router` en un proveedor que el `Router`
   necesite (`TitleStrategy`, etc.):** la dependencia circular deja la web en blanco (NG0200, defecto 58).
   Usa el `Injector` de forma diferida. `app.config.spec.ts` arranca con la configuración real.
@@ -358,6 +372,9 @@ lib/src/{core,navegacion}/
   **Todo datasource nuevo usa `ClienteHttpApi()` como cliente por defecto**, nunca `http.Client()`: es
   el que añade `X-Tenant`; sin él el backend no devuelve datos de ninguna empresa. La marca visible es
   `EmpresaActual.instancia.marca`.
+- **Sin conexión (P2-CU14/CU19):** SQLite (`core/sin_conexion/almacen_local.dart`) y
+  `SinConexionServicio.instancia`, que crea el hub solo para clientes; en el resto del código usa
+  `instanciaSiExiste`. Las pruebas usan `sqflite_common_ffi` con `inMemoryDatabasePath`.
 - `RenderFlex overflowed` ha reaparecido siete veces. Usa `Expanded`/`Flexible` con
   `overflow: TextOverflow.ellipsis` en lugar de reducir tamaños de fuente; para un precio, que no debe
   truncarse, un `Wrap`.
