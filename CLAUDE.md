@@ -146,7 +146,8 @@ un valor por defecto: entre la migración y el push sigue corriendo el código a
 **Las migraciones se aplican a mano, antes del push** (defecto 55): Render no ejecutó el
 `preDeployCommand` de `render.yaml`, y desplegar código que espera un esquema nuevo sobre una base sin
 migrar tumba producción. El orden es: ensayar en la rama de Neon `pruebas-multitenant`
-(`alembic -x db=pruebas upgrade head`, con `upgrade → downgrade → upgrade`), aplicar en producción
+(`alembic -x db=pruebas upgrade head`, con `upgrade → downgrade → upgrade`), crear la rama de respaldo
+de producción (RNF18: `neonctl branches create --name respaldo-pre-NNNN`, o desde la consola), aplicar en producción
 (`alembic upgrade head`, que usa `DATABASE_URL_MIGRACIONES`), comprobar `alembic current` y solo
 entonces hacer push. Alembic se conecta como dueño de las tablas (`DATABASE_URL_MIGRACIONES`); la
 aplicación, con `fashionstore_app`, que no puede hacer DDL.
@@ -420,4 +421,11 @@ lib/src/{core,navegacion}/
   abrirla o recargarla (defecto 59).
 - **Base de datos:** Neon PostgreSQL, esquema `fashionstore`. `Ec-backend/.env` no está versionado.
   Ramas: la principal (producción), `pruebas-multitenant` (ensayo de migraciones y pruebas de
-  integración) y `respaldo-pre-0012` (copia previa a la fundación multitenant).
+  integración) y `respaldo-pre-NNNN` (copia previa a cada migración; la primera, `respaldo-pre-0012`).
+- **Respaldos (RNF18):** el automático es `.github/workflows/respaldo.yml` (diario 03:00 de Bolivia,
+  `pg_dump` cifrado con gpg en Cloudflare R2, retención de 30 días en el bucket); el manual, la pestaña
+  «Respaldos» del panel del super administrador (`GET /api/v1/plataforma/respaldos`, datos con `COPY`,
+  de toda la plataforma o de una empresa). Se restaura **solo en una rama nueva de Neon**: el automático
+  con la acción «restaurar» del mismo flujo; el manual con `scripts/restaurar_respaldo.py`
+  (`DATABASE_URL_RESTAURACION`, tras `alembic upgrade <revisión de la cabecera>`). Ambos rechazan el
+  endpoint de producción. Ningún respaldo se guarda en el repo ni en el disco del servidor.

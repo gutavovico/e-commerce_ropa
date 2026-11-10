@@ -4,6 +4,11 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ## [Unreleased] - 2026-11-09 (Parcial 2)
 
+### Fix · Sin internet no se podía volver a entrar a la app móvil (defecto sin numerar: se numera al fusionar)
+- **Causa:** la app no guardaba la sesión y siempre arrancaba en el login, que necesita el servidor. Si Android cerraba la app, el cliente no podía volver al catálogo local ni reservar sin conexión, aunque los datos seguían en SQLite. Además, «Cerrar sesión» sin conexión no hacía nada: la revocación del token en el servidor fallaba y la app no llegaba al login.
+- **Solución:** la sesión (token, usuario y tienda) se guarda en la base local y, mientras el token no vence (24 h), la app entra directo al hub de la tienda o a la caja, con o sin conexión. Un 401 o el cierre de sesión la borran sin tocar las operaciones pendientes (RN37), y el cierre de sesión sale aunque no haya red. `AlmacenSqlite` resuelve la fábrica de la base al abrirla, no al construirse.
+- **Pruebas:** 9 nuevas (`test/sesion/`); suite móvil 339/339.
+
 ### Cambio de prenda — P2-CU18
 - **Qué:** el cajero, el encargado o el administrador cambia en caja una o más prendas de una venta pagada por otras, dentro del plazo de la empresa (`dias_cambio_prenda`, RN30). La prenda devuelta vale lo pagado, con el cupón repartido (decisión F2). Si la diferencia es a favor de la tienda, se cobra con cualquier método de la caja; si es a favor del cliente, se le devuelve en efectivo (F1). Se puede cambiar varias veces la misma venta sin pasar de lo vendido (RN31), y el inventario de la sucursal y su kardex quedan al día (RN32). Sin conexión no se registra.
 - **Backend:** módulo `compras_pagos/cu18_cambio_prenda` (`/api/v1/pos/cambios`: venta cambiable, previsualizar, registrar, listar y detalle) y migración `0021_cambios_prenda` (`cambios_prenda` y `cambio_prenda_detalle` con RLS y FK compuestas; no toca tablas existentes). Comprobante `CAM-AAAA-NNNNN` por empresa; la venta original sigue `pagada`.

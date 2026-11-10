@@ -1312,3 +1312,91 @@ def test_p2_cu18_dos_cambios_a_la_vez_sobre_la_ultima_unidad(motor, empresa_conf
             stock = c.execute(text("SELECT cantidad_disponible FROM fashionstore.inventario_sucursal WHERE id_inventario = :i"),
                               {"i": e["inventario"]}).scalar()
     assert (n, stock) == (1, 1)  # un solo cambio; la prenda entra y sale: el stock queda igual
+
+
+# ---------------------------------------------------------------------------------------------
+# RNF18 · Respaldo manual (`.specs/changes/P2-cierre-sesion-respaldos-push/`, parte B)
+# ---------------------------------------------------------------------------------------------
+
+
+NULO = "\\N"  # NULL en el formato de texto de COPY
+
+
+def _respaldo(mundo, id_tenant=None):
+    """Genera el respaldo con la sesión del super administrador (modo plataforma) y lo lee como el script."""
+    from types import SimpleNamespace
+
+    from core.tenant import fijar_contexto
+    from modules.plataforma.rnf18_respaldos.servicio import RespaldosServicio
+    from tests.modules.plataforma.test_rnf18_respaldos import restaurar
+
+    sesion = Session(bind=mundo["conexion"], join_transaction_mode="create_savepoint")
+    try:
+        fijar_contexto(sesion, None, plataforma=True)
+        respaldo = RespaldosServicio.generar(sesion, SimpleNamespace(id_usuario=None, email="super@pruebas"), id_tenant)
+    finally:
+        sesion.close()
+    _contexto(mundo["conexion"], plataforma=True)
+    filas = {}
+    for bloque in restaurar.leer_respaldo(respaldo.contenido.decode()).bloques:
+        tabla = bloque.tabla.split('"')[1]
+        columnas = [c.strip('"') for c in bloque.columnas.split(", ")]
+        filas[tabla] = [dict(zip(columnas, linea.split("\t"))) for linea in bloque.datos.decode().splitlines()]
+    return filas
+
+
+def _claves_foraneas(conexion):
+    return conexion.execute(text(
+        "SELECT cl.relname, cr.relname, "
+        "  (SELECT array_agg(a.attname ORDER BY x.n) FROM unnest(k.conkey) WITH ORDINALITY x(c, n) "
+        "     JOIN pg_attribute a ON a.attrelid = k.conrelid AND a.attnum = x.c), "
+        "  (SELECT array_agg(a.attname ORDER BY x.n) FROM unnest(k.confkey) WITH ORDINALITY x(c, n) "
+        "     JOIN pg_attribute a ON a.attrelid = k.confrelid AND a.attnum = x.c) "
+        "FROM pg_constraint k JOIN pg_class cl ON cl.oid = k.conrelid JOIN pg_class cr ON cr.oid = k.confrelid "
+        "JOIN pg_namespace n ON n.oid = cl.relnamespace WHERE k.contype = 'f' AND n.nspname = 'fashionstore'"
+    )).all()
+
+
+def test_rnf18_el_respaldo_de_una_empresa_no_lleva_filas_de_otra(mundo):
+    id_b = mundo["id_b"]
+    filas = _respaldo(mundo, id_b)
+    assert [f["codigo"] for f in filas["tenants"]] == ["pruebas-b"]
+    assert {f["email"] for f in filas["usuarios"] if f["id_tenant"] != NULO} == {"admin@empresa-b.com"}
+    for tabla, lista in filas.items():
+        ajenas = [f for f in lista if f.get("id_tenant") not in (None, NULO, str(id_b))]
+        assert not ajenas, f"{tabla} lleva filas de otra empresa"
+    assert len(filas["sucursales"]) == 2
+    assert "codigos_recuperacion" not in filas
+
+    # Y el de FASHION STORE no lleva nada de B
+    otra = mundo["conexion"].execute(text("SELECT id_tenant FROM fashionstore.tenants WHERE codigo = 'fashionstore'")).scalar()
+    assert otra, "la rama de pruebas debe tener FASHION STORE"
+    de_fashion = _respaldo(mundo, otra)
+    assert all(f.get("id_tenant") != str(id_b) for lista in de_fashion.values() for f in lista)
+
+
+@pytest.mark.parametrize("codigo", ["pruebas-b", "fashionstore", "menshopping"])
+def test_rnf18_el_respaldo_de_una_empresa_se_puede_restaurar_sin_claves_rotas(mundo, codigo):
+    """Toda FK de una fila respaldada apunta a una fila que también está en el respaldo."""
+    id_tenant = mundo["conexion"].execute(
+        text("SELECT id_tenant FROM fashionstore.tenants WHERE codigo = :c"), {"c": codigo}
+    ).scalar()
+    assert id_tenant, f"falta la empresa {codigo} en la rama de pruebas"
+    filas = _respaldo(mundo, id_tenant)
+    rotas = []
+    for hija, padre, columnas, referidas in _claves_foraneas(mundo["conexion"]):
+        if hija not in filas or hija == padre:
+            continue
+        existentes = {tuple(f[c] for c in referidas) for f in filas.get(padre, [])}
+        for fila in filas[hija]:
+            clave = tuple(fila[c] for c in columnas)
+            if NULO not in clave and clave not in existentes:
+                rotas.append((hija, padre, clave))
+    assert not rotas, rotas[:10]
+
+
+def test_rnf18_el_respaldo_de_toda_la_plataforma_lleva_todas_las_empresas(mundo):
+    filas = _respaldo(mundo)
+    codigos = {f["codigo"] for f in filas["tenants"]}
+    assert "pruebas-b" in codigos and len(codigos) >= 2
+    assert "codigos_recuperacion" in filas
