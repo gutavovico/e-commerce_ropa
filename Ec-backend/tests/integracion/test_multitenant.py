@@ -1400,3 +1400,35 @@ def test_rnf18_el_respaldo_de_toda_la_plataforma_lleva_todas_las_empresas(mundo)
     codigos = {f["codigo"] for f in filas["tenants"]}
     assert "pruebas-b" in codigos and len(codigos) >= 2
     assert "codigos_recuperacion" in filas
+
+
+# ---------------------------------------------------------------------------------------------
+# Panel del super administrador contra la base real (defectos del enum `rol_usuario` y de
+# `ventas.estado` comparado como VARCHAR: las pruebas simuladas no los veían)
+# ---------------------------------------------------------------------------------------------
+
+
+def test_panel_del_super_administrador_responde_contra_la_base_real(mundo):
+    conexion = mundo["conexion"]
+    _contexto(conexion, plataforma=True)
+    id_super = conexion.execute(text(
+        "INSERT INTO fashionstore.usuarios (email, password_hash, nombres, apellidos, rol, activo) "
+        "VALUES ('super-integracion@fashionstore-pruebas.com', :h, 'Super', 'Integración', 'super_administrador', true) "
+        "RETURNING id_usuario"), {"h": hash_password(CLAVE_PRUEBA)}).scalar()
+    _contexto(conexion)
+
+    cliente = mundo["cliente"]
+    login = cliente.post("/api/v1/autenticacion/login",
+                         json={"email": "super-integracion@fashionstore-pruebas.com", "password": CLAVE_PRUEBA})
+    assert login.status_code == 200, login.text
+    assert login.json()["rol"] == "super_administrador"
+
+    cabeceras = _token(id_super, "super_administrador", None)
+    empresas = cliente.get("/api/v1/plataforma/empresas", headers=cabeceras)
+    assert empresas.status_code == 200, empresas.text
+    assert "pruebas-b" in {e["codigo"] for e in empresas.json()}
+    assert cliente.get("/api/v1/plataforma/metricas", headers=cabeceras).status_code == 200
+
+    respaldo = cliente.get(f"/api/v1/plataforma/respaldos?id_tenant={mundo['id_b']}", headers=cabeceras)
+    assert respaldo.status_code == 200, respaldo.text
+    assert respaldo.headers["content-disposition"].startswith('attachment; filename="respaldo-pruebas-b-')
