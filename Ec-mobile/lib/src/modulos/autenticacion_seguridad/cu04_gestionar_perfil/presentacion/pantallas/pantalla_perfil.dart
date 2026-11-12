@@ -9,6 +9,8 @@ import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/
 import 'package:ec_mobile/src/modulos/reservas/cu13_consultar_cancelar_reservas/presentacion/pantallas/pantalla_mis_reservas.dart';
 import '../../../../../core/empresa_actual.dart';
 import 'package:ec_mobile/src/core/moneda.dart';
+import 'package:ec_mobile/src/core/push/servicio_push.dart';
+import 'package:ec_mobile/src/core/sin_conexion/sin_conexion_api.dart';
 import 'package:ec_mobile/src/core/sin_conexion/sin_conexion_servicio.dart';
 import 'package:ec_mobile/src/core/theme/app_theme.dart';
 import 'package:ec_mobile/src/modulos/sincronizacion/cu19_sincronizacion/presentacion/pantalla_sincronizacion.dart';
@@ -1148,6 +1150,7 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
             ),
             const SizedBox(height: 10),
 
+            _construirTarjetaNotificaciones(),
             _construirOpcionConfiguracion(
               icono: Icons.location_on_outlined,
               titulo: 'Direcciones de entrega',
@@ -1319,6 +1322,286 @@ class _PantallaPerfilState extends State<PantallaPerfil> {
               ],
             )
           : null,
+    );
+  }
+
+  Future<void> _alternarNotificacionesPush(bool activar) async {
+    final offline = SinConexionServicio.instanciaSiExiste;
+    final api = offline?.api ?? SinConexionApi();
+    final idDispositivo = offline != null ? await offline.asegurarIdentificadorDispositivo() : null;
+    final tokenAuth = widget.token;
+
+    if (activar) {
+      final res = await ServicioPush.instancia.activarNotificaciones(
+        api: api,
+        identificadorDispositivo: idDispositivo,
+        tokenAuth: tokenAuth,
+        almacen: offline?.almacen,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(res.mensaje),
+            backgroundColor: res.activadas ? const Color(0xFF0F1116) : Colors.amber.shade900,
+            action: res.permisoDenegado
+                ? SnackBarAction(
+                    label: 'AJUSTES',
+                    textColor: const Color(0xFFD4AF37),
+                    onPressed: () => ServicioPush.instancia.abrirAjustesSistema(),
+                  )
+                : null,
+          ),
+        );
+    } else {
+      await ServicioPush.instancia.desactivarNotificaciones(
+        api: api,
+        identificadorDispositivo: idDispositivo,
+        tokenAuth: tokenAuth,
+        almacen: offline?.almacen,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Notificaciones push desactivadas en este dispositivo.'),
+            backgroundColor: Color(0xFF0F1116),
+          ),
+        );
+    }
+  }
+
+  void _abrirModalNotificaciones() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return AnimatedBuilder(
+          animation: ServicioPush.instancia,
+          builder: (ctx, _) {
+            final push = ServicioPush.instancia;
+            final activas = push.notificacionesActivas;
+            final tokenFcm = push.tokenFCM;
+
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Notificaciones Push',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Recibe avisos instantáneos cuando se confirme, venza o cancele una reserva, cuando tu pedido esté listo para recoger o te responda el asistente.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          activas ? Icons.notifications_active : Icons.notifications_off_outlined,
+                          color: activas ? const Color(0xFF15803D) : Colors.grey.shade700,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Activar notificaciones',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                activas
+                                    ? 'Activadas en este dispositivo'
+                                    : (push.permisoConcedido
+                                        ? 'Desactivadas por preferencia'
+                                        : 'Requiere permiso de Android'),
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch.adaptive(
+                          key: const Key('modal_switch_notificaciones'),
+                          value: activas,
+                          activeTrackColor: const Color(0xFF0F1116),
+                          onChanged: (val) => _alternarNotificacionesPush(val),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Permiso Android: ${push.permisoConcedido ? "Concedido" : "Pendiente / Denegado"}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          push.firebaseDisponible
+                              ? (tokenFcm != null && tokenFcm.isNotEmpty
+                                  ? 'Canal FCM conectado (${tokenFcm.substring(0, tokenFcm.length > 14 ? 14 : tokenFcm.length)}…)'
+                                  : 'Firebase conectado (esperando token FCM)')
+                              : 'Canal local Android activo (agrega google-services.json al compilar para FCM remoto)',
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      if (!push.permisoConcedido)
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => ServicioPush.instancia.abrirAjustesSistema(),
+                            icon: const Icon(Icons.settings_outlined, size: 16),
+                            label: const Text('AJUSTES ANDROID', style: TextStyle(fontSize: 11)),
+                          ),
+                        ),
+                      if (!push.permisoConcedido) const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          key: const Key('modal_btn_probar_notificacion'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0F1116),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () async {
+                            if (!push.notificacionesActivas) {
+                              await _alternarNotificacionesPush(true);
+                            }
+                            final offline = SinConexionServicio.instanciaSiExiste;
+                            await ServicioPush.instancia.enviarNotificacionPruebaLocal(
+                              api: offline?.api,
+                              tokenAuth: widget.token,
+                            );
+                          },
+                          icon: const Icon(Icons.notifications_active_outlined, size: 16),
+                          label: const Text(
+                            'PROBAR NOTIFICACIÓN',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _construirTarjetaNotificaciones() {
+    return AnimatedBuilder(
+      animation: ServicioPush.instancia,
+      builder: (context, _) {
+        final push = ServicioPush.instancia;
+        final activas = push.notificacionesActivas;
+        return InkWell(
+          key: const Key('perfil_opcion_notificaciones'),
+          onTap: _abrirModalNotificaciones,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: activas ? Colors.grey.shade200 : const Color(0xFFD4AF37),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: activas ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    activas ? Icons.notifications_active_outlined : Icons.notifications_off_outlined,
+                    size: 18,
+                    color: activas ? const Color(0xFF15803D) : const Color(0xFFB45309),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Notificaciones Push',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        activas
+                            ? 'Activadas · Reservas, pedidos y asistente'
+                            : 'Desactivadas · Toca aquí para activar avisos',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: activas ? Colors.grey.shade600 : const Color(0xFFB45309),
+                          fontWeight: activas ? FontWeight.normal : FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  key: const Key('perfil_switch_notificaciones'),
+                  value: activas,
+                  activeTrackColor: const Color(0xFF0F1116),
+                  onChanged: (valor) => _alternarNotificacionesPush(valor),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

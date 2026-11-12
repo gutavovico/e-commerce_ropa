@@ -112,6 +112,13 @@ def enviar_push(
                 title=titulo,
                 body=cuerpo,
             ),
+            android=messaging.AndroidConfig(
+                priority="high",
+                notification=messaging.AndroidNotification(
+                    channel_id="fashionstore_notificaciones",
+                    sound="default",
+                ),
+            ),
             data=datos_limpios,
             token=token,
         )

@@ -70,6 +70,15 @@ class SinConexionApi {
     );
   }
 
+  Future<void> probarPush({required String token}) async {
+    await _post(
+      '/api/v1/sin-conexion/dispositivos/probar-push',
+      const <String, dynamic>{},
+      token,
+      'enviar notificación de prueba',
+    );
+  }
+
   /// Devuelve el JSON tal cual: se guarda entero en SQLite.
   Future<Map<String, dynamic>> descargarCatalogo(String identificador, String modo, {required String token}) async {
     final datos = await _get('/api/v1/sin-conexion/catalogo', {'dispositivo': identificador, 'modo': modo}, token,

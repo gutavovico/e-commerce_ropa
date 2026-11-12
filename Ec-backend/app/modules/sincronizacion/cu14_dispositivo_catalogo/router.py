@@ -15,6 +15,7 @@ from modules.sincronizacion.cu14_dispositivo_catalogo.esquemas import (
     DispositivoOut,
     DispositivoTokenPushIn,
     DispositivoTokenPushOut,
+    ProbarPushOut,
 )
 from modules.sincronizacion.cu14_dispositivo_catalogo.servicio import (
     CatalogoSinConexionServicio,
@@ -54,6 +55,38 @@ def registrar_token_push(
     usuario: UsuarioORM = Depends(_cliente),
 ) -> DispositivoTokenPushOut:
     return DispositivoServicio.actualizar_token_push(db, usuario, datos)
+
+
+@router.post(
+    "/dispositivos/probar-push",
+    response_model=ProbarPushOut,
+    summary="Enviar notificación push de verificación al cliente autenticado",
+)
+def probar_notificacion_push(
+    db: Session = Depends(get_db),
+    usuario: UsuarioORM = Depends(_cliente),
+) -> ProbarPushOut:
+    from integrations.fcm_service import notificar_cliente
+    from modules.sincronizacion.comun import exigir_cliente
+
+    id_cliente = exigir_cliente(db, usuario)
+    enviados = notificar_cliente(
+        db,
+        id_cliente=id_cliente,
+        titulo="Notificaciones activadas",
+        cuerpo="Recibirás avisos de tus reservas, pedidos y asistente de estilo.",
+        datos={"pantalla": "reservas"},
+    )
+    db.commit()
+    return ProbarPushOut(
+        ok=True,
+        dispositivos_notificados=enviados,
+        mensaje=(
+            "Notificación de prueba despachada."
+            if enviados > 0
+            else "Sin dispositivos con token push registrado en esta tienda."
+        ),
+    )
 
 
 @router.get("/catalogo", response_model=CatalogoLocalOut, summary="Paquete de catálogo para usar sin conexión")

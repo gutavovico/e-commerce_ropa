@@ -90,9 +90,32 @@ class DispositivoServicio:
     def actualizar_token_push(
         db: Session, usuario: UsuarioORM, datos: DispositivoTokenPushIn
     ) -> DispositivoTokenPushOut:
-        """Actualiza el token push de un dispositivo previamente registrado (AC-C1)."""
-        dispositivo = DispositivoServicio.del_cliente(db, usuario, datos.identificador, bloquear=True)
-        dispositivo.token_push = datos.token_push
+        """Actualiza o registra el token push del dispositivo del cliente (AC-C1).
+
+        Si el token llega vacío, desasocia las notificaciones push del dispositivo.
+        Si el dispositivo aún no existía (p. ej. tienda sin operación offline), lo da de alta
+        para garantizar que las notificaciones push (RF37) funcionen en cualquier plan.
+        """
+        id_cliente = exigir_cliente(db, usuario)
+        token_limpio = datos.token_push.strip() or None
+        dispositivo = DispositivoRepositorio.por_identificador(db, datos.identificador, bloquear=True)
+        if dispositivo is None:
+            DispositivoRepositorio.insertar_si_falta(
+                db,
+                datos.identificador,
+                id_cliente,
+                "flutter",
+                codigo_corto(datos.identificador),
+                token_limpio,
+            )
+            dispositivo = DispositivoRepositorio.por_identificador(db, datos.identificador, bloquear=True)
+        if dispositivo is None or dispositivo.id_cliente != id_cliente:
+            db.rollback()
+            raise ConflictError(
+                "Este dispositivo está registrado para otra cuenta. Cierra sesión y vuelve a entrar.",
+                code="DISPOSITIVO_DE_OTRO_CLIENTE",
+            )
+        dispositivo.token_push = token_limpio
         db.commit()
         db.refresh(dispositivo)
         return DispositivoTokenPushOut(
