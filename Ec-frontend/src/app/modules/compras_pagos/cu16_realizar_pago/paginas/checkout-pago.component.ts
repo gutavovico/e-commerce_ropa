@@ -59,6 +59,8 @@ export class CheckoutPagoComponent implements OnInit, OnDestroy {
   protected readonly stripeDisponible = computed(() => !!this.stripeConfig.publishableKey);
   protected readonly montandoStripe = signal(false);
   protected readonly stripeListo = signal(false);
+  /** El formulario de Stripe no pudo cargarse (sin conexión con Stripe): se ofrece reintentar. */
+  protected readonly errorCargaStripe = signal(false);
   protected readonly escenarioPrueba = signal<EscenarioPrueba>('aprobado');
   private stripe: Stripe | null = null;
   private elements: StripeElements | null = null;
@@ -144,7 +146,26 @@ export class CheckoutPagoComponent implements OnInit, OnDestroy {
     } else {
       this.detenerCuentaAtrasQr();
     }
+    this.remontarFormularioDeTarjeta(metodo);
     this.prepararStripeSiCorresponde();
+  }
+
+  /**
+   * El panel de la tarjeta vive dentro de un `@if`: al elegir otro método Angular destruye el
+   * contenedor donde Stripe montó el formulario, y al volver crea uno nuevo y vacío. El Payment
+   * Element se desmonta al salir y se monta de nuevo en el contenedor recién creado al volver.
+   */
+  private remontarFormularioDeTarjeta(metodo: MetodoPago): void {
+    const elemento = this.paymentElement;
+    if (!elemento) return;
+    elemento.unmount();
+    if (metodo === 'tarjeta_credito' || metodo === 'tarjeta_debito') {
+      setTimeout(() => {
+        if (this.paymentElement === elemento && document.getElementById('stripe-payment-element')) {
+          elemento.mount('#stripe-payment-element');
+        }
+      }, 0);
+    }
   }
 
   protected seleccionarEscenarioPrueba(escenario: EscenarioPrueba): void {
@@ -164,6 +185,7 @@ export class CheckoutPagoComponent implements OnInit, OnDestroy {
     const r = this.resumen();
     if (!r) return;
 
+    this.errorCargaStripe.set(false);
     this.montandoStripe.set(true);
     this.stripeLoader
       .cargar(this.stripeConfig.publishableKey)
@@ -174,13 +196,28 @@ export class CheckoutPagoComponent implements OnInit, OnDestroy {
         }
         this.stripe = stripe;
         const centimos = Math.round(Number(r.total) * 100);
-        this.elements = stripe.elements({ mode: 'payment', amount: centimos, currency: 'eur' });
+        // La moneda es la de la empresa (BOB o USD), la misma con la que el backend crea el
+        // PaymentIntent: si no coinciden, Stripe rechaza la confirmación.
+        const moneda = (r.moneda || 'BOB').toLowerCase();
+        this.elements = stripe.elements({ mode: 'payment', amount: centimos, currency: moneda });
         this.paymentElement = this.elements.create('payment');
+        // Sin red hacia Stripe el formulario no llega a pintarse: se avisa y se permite reintentar.
+        this.paymentElement.on('loaderror', () => {
+          this.paymentElement?.destroy();
+          this.paymentElement = null;
+          this.elements = null;
+          this.stripeListo.set(false);
+          this.errorCargaStripe.set(true);
+        });
         // El contenedor se pinta en el siguiente ciclo de Angular; se monta justo después.
         setTimeout(() => this.paymentElement?.mount('#stripe-payment-element'), 0);
         this.stripeListo.set(true);
       })
       .finally(() => this.montandoStripe.set(false));
+  }
+
+  protected reintentarCargaStripe(): void {
+    this.prepararStripeSiCorresponde();
   }
 
   /** Cuenta atrás informativa del código Bizum/QR mostrado en pantalla (§0.6). */

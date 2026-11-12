@@ -4,6 +4,16 @@ Todas las modificaciones notables, correcciones de errores de infraestructura y 
 
 ## [Unreleased] - 2026-11-09 (Parcial 2)
 
+### Fix · El formulario de tarjeta desaparecía al cambiar de método de pago y volver (defecto sin numerar: se numera al fusionar)
+- **Causa:** el panel de la tarjeta vive dentro de un `@if` en `checkout-pago.component.html`. Al elegir otro método, Angular destruye el contenedor `#stripe-payment-element` donde Stripe montó el formulario; al volver crea uno nuevo y vacío, pero `stripeListo` seguía en `true` y nadie lo montaba otra vez. Al pagar, Stripe respondía `IntegrationError: We could not retrieve data from the specified Element`.
+- **Solución:** `seleccionarMetodo` desmonta el Payment Element al salir de la tarjeta y lo monta de nuevo en el contenedor recién creado al volver, sin crear otra sesión de Elements.
+- **Pruebas:** una nueva en `checkout-pago-stripe-real.component.spec.ts`; CU16 web 28/28.
+
+### Fix · El formulario de tarjeta de la web se pedía a Stripe en euros (defecto sin numerar: se numera al fusionar)
+- **Causa:** `checkout-pago.component.ts` montaba el Payment Element con `currency: 'eur'` fijo, resto de antes del fix de moneda de P2-CU11, mientras el backend crea el PaymentIntent en la moneda de la empresa (BOB o USD). Stripe exige que ambas coincidan al confirmar, así que el cobro con tarjeta real fallaba en la web. Además, si el navegador no alcanzaba a Stripe (`ERR_NAME_NOT_RESOLVED`), el hueco del formulario quedaba vacío sin aviso («Unhandled payment Element loaderror»).
+- **Solución:** la moneda sale de `resumen.moneda`. El evento `loaderror` del Payment Element muestra un aviso con botón «Reintentar» que vuelve a montar el formulario.
+- **Pruebas:** la prueba de Stripe real espera `bob` y hay una nueva para el fallo de carga; CU16 web 27/27.
+
 ### Fix · El panel del super administrador daba 500 al listar empresas y métricas (defecto sin numerar: se numera al fusionar)
 - **Causa:** `cu05_empresas_supervision/repositorio.py` declara `ventas` como tabla ligera (`table(...)`) con `estado` sin tipo. Al compararlo con `"pagada"`, psycopg 3 (el driver de producción) envía el literal como `VARCHAR`, y PostgreSQL no compara el enum `estado_venta` con `varchar`. Quedaba oculto detrás del defecto anterior (el super administrador no podía ni entrar) y ninguna prueba de integración llamaba a estos endpoints.
 - **Solución:** `CAST(estado AS VARCHAR) = 'pagada'`. Prueba de integración nueva que entra como super administrador y recorre empresas, métricas y respaldo contra la base real (falla sin la corrección).
