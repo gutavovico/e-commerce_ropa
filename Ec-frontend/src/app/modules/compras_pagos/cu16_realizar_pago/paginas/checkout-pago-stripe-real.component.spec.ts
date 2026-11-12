@@ -31,7 +31,9 @@ const elementsFalsos = {
 
 const paymentElementFalso = {
   mount: vi.fn(),
+  unmount: vi.fn(),
   destroy: vi.fn(),
+  on: vi.fn(),
 };
 
 const RESUMEN_MOCK: ResumenPago = {
@@ -143,9 +145,39 @@ describe('CheckoutPagoComponent (CU16 - con STRIPE_PUBLISHABLE_KEY real)', () =>
     expect(clienteStripeFalso.elements).toHaveBeenCalledWith({
       mode: 'payment',
       amount: 194000,
-      currency: 'eur',
+      currency: 'bob',
     });
     expect(elementsFalsos.create).toHaveBeenCalledWith('payment');
+  });
+
+  it('al cambiar de método y volver a la tarjeta, vuelve a montar el formulario de Stripe', async () => {
+    await new Promise((r) => setTimeout(r, 0));
+    paymentElementFalso.mount.mockClear();
+
+    (componente as any).seleccionarMetodo('qr');
+    fixture.detectChanges();
+    expect(paymentElementFalso.unmount).toHaveBeenCalled();
+    expect(paymentElementFalso.mount).not.toHaveBeenCalled();
+
+    (componente as any).seleccionarMetodo('tarjeta_credito');
+    fixture.detectChanges();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(paymentElementFalso.mount).toHaveBeenCalledWith('#stripe-payment-element');
+    expect(clienteStripeFalso.elements).toHaveBeenCalledTimes(1);
+  });
+
+  it('si Stripe no puede cargar el formulario, avisa y permite reintentar', async () => {
+    const alFallar = paymentElementFalso.on.mock.calls.find(([evento]) => evento === 'loaderror')![1];
+    alFallar();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('No se pudo conectar con Stripe');
+
+    (componente as any).reintentarCargaStripe();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(clienteStripeFalso.elements).toHaveBeenCalledTimes(2);
   });
 
   it('al confirmar: valida con elements.submit(), abre el intento y confirma contra Stripe antes de cerrar con el backend', async () => {
