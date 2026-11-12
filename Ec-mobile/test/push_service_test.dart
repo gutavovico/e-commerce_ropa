@@ -223,5 +223,46 @@ void main() {
       expect(find.byKey(const Key('modal_switch_notificaciones')), findsOneWidget);
       expect(find.byKey(const Key('modal_btn_probar_notificacion')), findsOneWidget);
     });
+
+    test('notificarEvento emite notificaciones de eventos y deduplica por clave', () async {
+      final servicio = ServicioPush.instancia;
+      servicio.configurarEstadoParaPruebas(
+        permisoConcedido: true,
+        preferenciaActiva: true,
+      );
+
+      final recibidas = <NotificacionPush>[];
+      final sub = servicio.enPrimerPlano.listen(recibidas.add);
+
+      await servicio.notificarEvento(
+        titulo: 'Reserva confirmada',
+        cuerpo: 'Tu cita RES-001 fue confirmada.',
+        datos: const {'pantalla': 'reservas', 'id': '1'},
+        claveDeduplicacion: 'test_res_1',
+      );
+      // Repetir con la misma clave debe deduplicarse
+      await servicio.notificarEvento(
+        titulo: 'Reserva confirmada',
+        cuerpo: 'Tu cita RES-001 fue confirmada.',
+        datos: const {'pantalla': 'reservas', 'id': '1'},
+        claveDeduplicacion: 'test_res_1',
+      );
+      // Otro evento con distinta clave sí se emite
+      await servicio.notificarEvento(
+        titulo: 'Pago confirmado',
+        cuerpo: 'Tu pago de 450 BOB fue aprobado.',
+        datos: const {'pantalla': 'compras', 'id': '9'},
+        claveDeduplicacion: 'test_pago_9',
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await sub.cancel();
+
+      expect(recibidas.length, 2);
+      expect(recibidas[0].titulo, 'Reserva confirmada');
+      expect(recibidas[0].pantalla, 'reservas');
+      expect(recibidas[1].titulo, 'Pago confirmado');
+      expect(recibidas[1].pantalla, 'compras');
+    });
   });
 }

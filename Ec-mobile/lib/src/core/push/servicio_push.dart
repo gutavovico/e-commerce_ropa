@@ -108,6 +108,7 @@ class ServicioPush extends ChangeNotifier {
   bool _inicializado = false;
   bool _bannerDescartadoEnSesion = false;
   NotificacionPush? _notificacionInicialPendiente;
+  final Set<String> _clavesDeduplicadas = <String>{};
 
   StreamSubscription<RemoteMessage>? _subOnMessage;
   StreamSubscription<RemoteMessage>? _subOnOpenedApp;
@@ -153,6 +154,37 @@ class ServicioPush extends ChangeNotifier {
     }
 
     _permisoConcedido = await _verificarPermisoNativo();
+
+    if (!kIsWeb && Platform.isAndroid) {
+      _canalNativo.setMethodCallHandler((call) async {
+        if (call.method == 'notificacionTocada') {
+          final args = call.arguments as Map?;
+          if (args != null) {
+            tocarNotificacion(
+              NotificacionPush(
+                titulo: 'Fashion Store',
+                cuerpo: '',
+                datos: {
+                  if (args['pantalla'] != null) 'pantalla': args['pantalla'].toString(),
+                  if (args['id'] != null) 'id': args['id'].toString(),
+                },
+              ),
+            );
+          }
+        }
+      });
+
+      try {
+        final destinoInicial = await _canalNativo.invokeMapMethod<String, String>('consumirDestinoInicial');
+        if (destinoInicial != null && destinoInicial.isNotEmpty) {
+          _notificacionInicialPendiente ??= NotificacionPush(
+            titulo: 'Fashion Store',
+            cuerpo: '',
+            datos: destinoInicial,
+          );
+        }
+      } catch (_) {}
+    }
 
     if (!omitirFirebase && !kIsWeb && Platform.isAndroid) {
       await _inicializarFirebaseReal();
@@ -412,13 +444,10 @@ class ServicioPush extends ChangeNotifier {
     const titulo = 'Fashion Store · Notificaciones activas';
     const cuerpo = 'Recibirás avisos de tus reservas, pedidos y asistente de estilo.';
 
-    await mostrarNotificacionLocalSistema(titulo: titulo, cuerpo: cuerpo);
-    recibirNotificacionEnPrimerPlano(
-      const NotificacionPush(
-        titulo: titulo,
-        cuerpo: cuerpo,
-        datos: {'pantalla': 'reservas'},
-      ),
+    await notificarEvento(
+      titulo: titulo,
+      cuerpo: cuerpo,
+      datos: const {'pantalla': 'reservas'},
     );
 
     if (api != null && tokenAuth != null && tokenAuth.isNotEmpty && _firebaseDisponible && _tokenFCM != null) {
@@ -428,16 +457,49 @@ class ServicioPush extends ChangeNotifier {
     }
   }
 
+  /// Emite una notificación real de un evento de negocio (reserva, compra, asistente, aviso).
+  ///
+  /// Muestra notificación nativa en Android (barra de estado) y el banner in-app boutique (H9),
+  /// respetando la preferencia del usuario y evitando duplicados mediante [claveDeduplicacion].
+  Future<void> notificarEvento({
+    required String titulo,
+    required String cuerpo,
+    Map<String, String> datos = const {},
+    String? claveDeduplicacion,
+  }) async {
+    if (!_preferenciaActiva) return;
+    if (claveDeduplicacion != null && !_clavesDeduplicadas.add(claveDeduplicacion)) {
+      return;
+    }
+
+    final notif = NotificacionPush(titulo: titulo, cuerpo: cuerpo, datos: datos);
+    await mostrarNotificacionLocalSistema(
+      titulo: titulo,
+      cuerpo: cuerpo,
+      pantalla: datos['pantalla'],
+      idRef: datos['id'],
+    );
+    recibirNotificacionEnPrimerPlano(notif);
+  }
+
   /// Muestra una notificación nativa en la barra de estado de Android (solo móvil Android).
   Future<bool> mostrarNotificacionLocalSistema({
     required String titulo,
     required String cuerpo,
+    String? pantalla,
+    String? idRef,
   }) async {
     if (kIsWeb || !Platform.isAndroid || !_preferenciaActiva) return false;
     try {
+      final args = <String, dynamic>{
+        'titulo': titulo,
+        'cuerpo': cuerpo,
+      };
+      if (pantalla != null) args['pantalla'] = pantalla;
+      if (idRef != null) args['id'] = idRef;
       final res = await _canalNativo.invokeMethod<bool>(
         'mostrarNotificacionLocal',
-        {'titulo': titulo, 'cuerpo': cuerpo},
+        args,
       );
       return res ?? false;
     } catch (_) {

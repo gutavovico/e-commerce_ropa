@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
+import '../../../../../core/push/servicio_push.dart';
 import '../../datos/datasources/reservas_api.dart';
 import '../../datos/modelos/reserva_dto.dart';
 
@@ -69,6 +72,14 @@ class MisReservasBloc extends ChangeNotifier {
 
     try {
       await _api.cancelarReserva(idReserva, motivo, token: _token);
+      unawaited(
+        ServicioPush.instancia.notificarEvento(
+          titulo: 'Reserva cancelada',
+          cuerpo: 'Tu reserva #$idReserva ha sido cancelada y el stock fue liberado.',
+          datos: {'pantalla': 'reservas', 'id': '$idReserva'},
+          claveDeduplicacion: 'reserva_cancelada_$idReserva',
+        ),
+      );
       await cargarMisReservas();
       _cancelando = false;
       notifyListeners();

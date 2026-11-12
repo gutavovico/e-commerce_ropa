@@ -348,12 +348,26 @@ class SinConexionServicio extends ChangeNotifier {
           reintentar = true;
           await _actualizar(op.copyWith(estado: EstadoOperacion.registradaLocalmente, mensaje: r.mensaje));
         } else {
+          final nuevoEstado = estadoDesdeServidor(r.estado);
           await _actualizar(op.copyWith(
-            estado: estadoDesdeServidor(r.estado),
+            estado: nuevoEstado,
             motivo: r.motivo,
             mensaje: r.mensaje,
             codigoReserva: r.codigoReserva,
           ));
+          if (nuevoEstado == EstadoOperacion.confirmada) {
+            final esReserva = op.tipo == 'reserva';
+            unawaited(
+              ServicioPush.instancia.notificarEvento(
+                titulo: esReserva ? 'Reserva confirmada' : 'Compra confirmada',
+                cuerpo: esReserva
+                    ? 'Tu reserva ${r.codigoReserva ?? ''} se sincronizó y confirmó con éxito.'
+                    : 'Tu compra ${op.titulo} quedó confirmada tras recuperar la conexión.',
+                datos: {'pantalla': esReserva ? 'reservas' : 'compras'},
+                claveDeduplicacion: 'sync_${r.uuid}',
+              ),
+            );
+          }
         }
       }
       _reintentos = 0;
@@ -404,6 +418,16 @@ class SinConexionServicio extends ChangeNotifier {
   Future<BandejaAvisosDto> cargarAvisos() async {
     final bandeja = await _api.avisos(token: _token ?? '');
     _avisosNoLeidos = bandeja.noLeidos;
+    for (final aviso in bandeja.avisos.where((a) => !a.leido)) {
+      unawaited(
+        ServicioPush.instancia.notificarEvento(
+          titulo: aviso.titulo,
+          cuerpo: aviso.mensaje,
+          datos: {'pantalla': 'avisos', 'id': '${aviso.idAviso}'},
+          claveDeduplicacion: 'aviso_${aviso.idAviso}',
+        ),
+      );
+    }
     notifyListeners();
     return bandeja;
   }

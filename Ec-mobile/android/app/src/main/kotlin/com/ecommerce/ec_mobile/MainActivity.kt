@@ -15,6 +15,7 @@ import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.atomic.AtomicInteger
 
 class MainActivity : FlutterActivity() {
     companion object {
@@ -22,19 +23,34 @@ class MainActivity : FlutterActivity() {
         private const val CANAL_NOTIF_ID = "fashionstore_notificaciones"
         private const val CANAL_NOTIF_NOMBRE = "Notificaciones Fashion Store"
         private const val CODIGO_SOLICITUD_NOTIF = 4109
+        private const val EXTRA_PANTALLA = "fs_push_pantalla"
+        private const val EXTRA_ID_REF = "fs_push_id"
+        private val contadorNotif = AtomicInteger(1000)
     }
 
     private var resultadoPermisoPendiente: MethodChannel.Result? = null
+    private var canalMetodo: MethodChannel? = null
+    private var destinoInicialPendiente: Map<String, String>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         asegurarCanalNotificaciones()
+        capturarDestinoDeIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val destino = extraerDestinoDeIntent(intent)
+        if (destino != null) {
+            canalMetodo?.invokeMethod("notificacionTocada", destino)
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CANAL_METODO)
-            .setMethodCallHandler { call, result ->
+        canalMetodo = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CANAL_METODO).apply {
+            setMethodCallHandler { call, result ->
                 when (call.method) {
                     "verificarPermiso" -> {
                         result.success(tienePermisoNotificaciones())
@@ -59,7 +75,14 @@ class MainActivity : FlutterActivity() {
                     "mostrarNotificacionLocal" -> {
                         val titulo = call.argument<String>("titulo") ?: "Fashion Store"
                         val cuerpo = call.argument<String>("cuerpo") ?: ""
-                        result.success(mostrarNotificacionSistema(titulo, cuerpo))
+                        val pantalla = call.argument<String>("pantalla")
+                        val idRef = call.argument<String>("id")
+                        result.success(mostrarNotificacionSistema(titulo, cuerpo, pantalla, idRef))
+                    }
+                    "consumirDestinoInicial" -> {
+                        val pendiente = destinoInicialPendiente
+                        destinoInicialPendiente = null
+                        result.success(pendiente)
                     }
                     "abrirAjustesNotificaciones" -> {
                         abrirAjustesSistema()
@@ -68,6 +91,7 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -82,6 +106,19 @@ class MainActivity : FlutterActivity() {
             resultadoPermisoPendiente?.success(concedido)
             resultadoPermisoPendiente = null
         }
+    }
+
+    private fun capturarDestinoDeIntent(intent: Intent?) {
+        val destino = extraerDestinoDeIntent(intent)
+        if (destino != null) {
+            destinoInicialPendiente = destino
+        }
+    }
+
+    private fun extraerDestinoDeIntent(intent: Intent?): Map<String, String>? {
+        val pantalla = intent?.getStringExtra(EXTRA_PANTALLA) ?: return null
+        val idRef = intent.getStringExtra(EXTRA_ID_REF) ?: ""
+        return mapOf("pantalla" to pantalla, "id" to idRef)
     }
 
     private fun tienePermisoNotificaciones(): Boolean {
@@ -119,21 +156,33 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun mostrarNotificacionSistema(titulo: String, cuerpo: String): Boolean {
+    private fun mostrarNotificacionSistema(
+        titulo: String,
+        cuerpo: String,
+        pantalla: String?,
+        idRef: String?
+    ): Boolean {
         return try {
             asegurarCanalNotificaciones()
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
                 ?: return false
 
+            val notifId = contadorNotif.incrementAndGet()
             val intent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                if (!pantalla.isNullOrBlank()) {
+                    putExtra(EXTRA_PANTALLA, pantalla)
+                }
+                if (!idRef.isNullOrBlank()) {
+                    putExtra(EXTRA_ID_REF, idRef)
+                }
             }
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             } else {
                 PendingIntent.FLAG_UPDATE_CURRENT
             }
-            val pendingIntent = PendingIntent.getActivity(this, 0, intent, flags)
+            val pendingIntent = PendingIntent.getActivity(this, notifId, intent, flags)
 
             val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 Notification.Builder(this, CANAL_NOTIF_ID)
@@ -151,7 +200,6 @@ class MainActivity : FlutterActivity() {
                 .setContentIntent(pendingIntent)
                 .build()
 
-            val notifId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
             manager.notify(notifId, notif)
             true
         } catch (_: Exception) {

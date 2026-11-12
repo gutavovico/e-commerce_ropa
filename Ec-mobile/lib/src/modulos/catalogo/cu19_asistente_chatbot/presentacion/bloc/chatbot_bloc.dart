@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
+import '../../../../../core/push/servicio_push.dart';
 import '../../datos/datasources/chatbot_api.dart';
 import '../../datos/modelos/chatbot_dto.dart';
 
@@ -204,6 +207,16 @@ class ChatbotBloc extends ChangeNotifier {
       );
       if (!_chatAbierto) {
         _mensajesNoLeidos = true;
+        unawaited(
+          ServicioPush.instancia.notificarEvento(
+            titulo: 'Tu Asistente de Estilo respondió',
+            cuerpo: respuesta.respuesta.length > 100
+                ? '${respuesta.respuesta.substring(0, 97)}...'
+                : respuesta.respuesta,
+            datos: {'pantalla': 'asistente', 'id': '${respuesta.idInteraccion}'},
+            claveDeduplicacion: 'chatbot_${respuesta.idInteraccion}',
+          ),
+        );
       }
       notifyListeners();
     } on ChatbotException catch (e) {
