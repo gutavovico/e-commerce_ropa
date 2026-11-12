@@ -1,0 +1,5 @@
+# Falsos positivos de gitleaks, uno por línea, con la huella que imprime el propio gitleaks.
+#
+# Clave publicable de Stripe (pk_test_...) de la web: no es secreta, Stripe la diseña para vivir
+# en el navegador. La secreta (sk_...) nunca va en el repo: solo en Render y en Ec-backend/.env.
+cf55e07a5462abf5cc318d4cc1ca1e638a26fd9e:Ec-frontend/src/environments/environment.prod.ts:generic-api-key:9
