@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../../../core/push/servicio_push.dart';
 import '../../datos/datasources/pago_api.dart';
 import '../../datos/datasources/stripe_gateway.dart';
 import '../../datos/modelos/pago_dto.dart';
@@ -208,6 +210,7 @@ class PagoBloc extends ChangeNotifier {
         );
         _estado = PagoExitoso(confirmacion);
         notifyListeners();
+        _notificarPagoConfirmado(resumen, confirmacion);
         return true;
       }
 
@@ -224,6 +227,7 @@ class PagoBloc extends ChangeNotifier {
       if (intento.yaConfirmado && intento.confirmacion != null) {
         _estado = PagoExitoso(intento.confirmacion!);
         notifyListeners();
+        _notificarPagoConfirmado(resumen, intento.confirmacion!);
         return true;
       }
 
@@ -268,6 +272,7 @@ class PagoBloc extends ChangeNotifier {
       }
       _estado = PagoExitoso(confirmacion);
       notifyListeners();
+      _notificarPagoConfirmado(resumen, confirmacion);
       return true;
     } on PagoException catch (e) {
       if (e.esPagoRechazado) {
@@ -280,6 +285,31 @@ class PagoBloc extends ChangeNotifier {
       }
       notifyListeners();
       return false;
+    }
+  }
+
+  void _notificarPagoConfirmado(ResumenPagoDto resumen, PagoConfirmadoDto confirmacion) {
+    unawaited(
+      ServicioPush.instancia.notificarEvento(
+        titulo: 'Pago confirmado',
+        cuerpo:
+            'Tu pago de ${confirmacion.monto.toStringAsFixed(2)} ${confirmacion.moneda} para la orden ${confirmacion.numeroComprobante} fue aprobado.',
+        datos: {'pantalla': 'compras', 'id': '${confirmacion.idVenta}'},
+        claveDeduplicacion: 'pago_confirmado_${confirmacion.idVenta}',
+      ),
+    );
+    if (resumen.tipoEntrega == 'retiro_sucursal') {
+      final sede = resumen.nombreSucursalRetiro?.isNotEmpty == true
+          ? resumen.nombreSucursalRetiro!
+          : 'boutique';
+      unawaited(
+        ServicioPush.instancia.notificarEvento(
+          titulo: 'Pedido listo para recoger',
+          cuerpo: 'Tu pedido ${confirmacion.numeroComprobante} ya está listo para recoger en $sede.',
+          datos: {'pantalla': 'compras', 'id': '${confirmacion.idVenta}'},
+          claveDeduplicacion: 'pedido_listo_${confirmacion.idVenta}',
+        ),
+      );
     }
   }
 

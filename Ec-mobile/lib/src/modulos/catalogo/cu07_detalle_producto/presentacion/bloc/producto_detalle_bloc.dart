@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import '../../../../../core/push/servicio_push.dart';
 import '../../../../compras_pagos/cu11_gestionar_carrito/datos/datasources/carrito_api.dart';
 import '../../../../compras_pagos/cu11_gestionar_carrito/datos/modelos/carrito_dto.dart';
 import '../../datos/datasources/producto_detalle_api.dart';
@@ -463,6 +466,16 @@ class ProductoDetalleBloc extends ChangeNotifier {
       );
 
       final resultado = await _api.crearReserva(payload, token: token);
+
+      unawaited(
+        ServicioPush.instancia.notificarEvento(
+          titulo: 'Reserva confirmada',
+          cuerpo:
+              'Tu cita ${resultado.codigoReserva} en ${resultado.sucursalNombre} ha sido confirmada.',
+          datos: {'pantalla': 'reservas', 'id': '${resultado.idReserva}'},
+          claveDeduplicacion: 'reserva_confirmada_${resultado.idReserva}',
+        ),
+      );
 
       _estado = actual.copyWith(
         reservaEnCurso: false,
