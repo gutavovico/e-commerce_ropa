@@ -72,6 +72,10 @@ class SinConexionServicio extends ChangeNotifier {
   bool get enLinea => _enLinea;
   String? get clave => _clave;
   DispositivoLocal? get dispositivo => _dispositivo;
+  String? get identificadorDispositivo => _dispositivo?.identificador;
+  SinConexionApi get api => _api;
+  String? get tokenAuth => _token;
+  AlmacenLocal get almacen => _almacen;
   CatalogoLocal? get catalogo => _catalogo;
   DateTime? get guardadoEn => _guardadoEn;
   List<OperacionLocal> get operaciones => _operaciones;
@@ -114,7 +118,49 @@ class SinConexionServicio extends ChangeNotifier {
       await cargarAvisos();
     } on SinConexionException {
       // Sin red, servidor caído o cliente no registrado en la tienda: se trabaja con lo guardado.
+    } finally {
+      // RF37 (AC-C1): Incluso si el plan no habilita operación offline, gestionamos permisos y token push.
+      await _sincronizarPushEnTienda();
     }
+  }
+
+  Future<void> _sincronizarPushEnTienda() async {
+    final clave = _clave;
+    if (clave == null) return;
+    try {
+      var local = _dispositivo ?? await _almacen.dispositivo(clave);
+      if (local == null) {
+        local = DispositivoLocal(clave: clave, identificador: _uuid.v4());
+        await _almacen.guardarDispositivo(local);
+        _dispositivo = local;
+      }
+      final idDispositivo = local.identificador;
+      ServicioPush.instancia.configurarCallbackRenovacionToken((nuevoToken) async {
+        final tk = _token;
+        if (tk != null && tk.isNotEmpty) {
+          await _api.registrarTokenPush(idDispositivo, nuevoToken, token: tk);
+        }
+      });
+      await ServicioPush.instancia.solicitarAlEntrarTiendaSiCorresponde(
+        api: _api,
+        identificadorDispositivo: idDispositivo,
+        tokenAuth: _token ?? '',
+        almacen: _almacen,
+      );
+    } catch (_) {}
+  }
+
+  /// Garantiza un identificador de dispositivo local (para asociar el token push desde Perfil).
+  Future<String> asegurarIdentificadorDispositivo() async {
+    final existente = _dispositivo?.identificador;
+    if (existente != null && existente.isNotEmpty) return existente;
+    final clave = _clave ?? '__dispositivo_push_global__';
+    var local = await _almacen.dispositivo(clave);
+    if (local == null) {
+      local = DispositivoLocal(clave: clave, identificador: _uuid.v4());
+      await _almacen.guardarDispositivo(local);
+    }
+    return local.identificador;
   }
 
   /// Al cerrar sesión: fuera el catálogo, pero nunca las operaciones pendientes (RNF03).

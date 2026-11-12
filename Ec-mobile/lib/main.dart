@@ -29,6 +29,7 @@ DestinoSesion destinoTrasLogin(String rol) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ServicioPush.instancia.inicializar();
   // Sin STRIPE_PUBLISHABLE_KEY (--dart-define), no se inicializa el SDK: CU16 cae en su panel de
   // «modo simulador» en vez de intentar montar un CardField sin clave configurada.
   if (ApiConfig.stripePublishableKey.isNotEmpty) {
@@ -271,6 +272,7 @@ class _EcMobileAppState extends State<EcMobileApp> {
   }
 
   void _abrirHub(String tokenActivo, String? nombreUsuario, {required bool esCliente}) {
+    _tokenActivo = tokenActivo;
     _navegadorKey.currentState?.pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (_) => PantallaPrincipalHub(
@@ -285,6 +287,10 @@ class _EcMobileAppState extends State<EcMobileApp> {
       ),
       (route) => false,
     );
+    final notifInicial = ServicioPush.instancia.consumirNotificacionInicial();
+    if (notifInicial != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _alPulsarPush(notifInicial));
+    }
   }
 
   @override

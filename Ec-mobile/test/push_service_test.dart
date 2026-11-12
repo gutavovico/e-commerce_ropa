@@ -191,5 +191,37 @@ void main() {
 
       expect(find.byType(PantallaPerfil), findsOneWidget);
     });
+
+    testWidgets('PantallaPerfil muestra la opción de Notificaciones Push y abre su panel', (tester) async {
+      final servicio = ServicioPush.instancia;
+      servicio.configurarEstadoParaPruebas(
+        permisoConcedido: false,
+        preferenciaActiva: false,
+        firebaseDisponible: false,
+        inicializado: true,
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: PantallaPerfil(
+            token: 'token_jwt_prueba',
+            habilitarImagenesRed: false,
+            mostrarBottomNav: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final opcionPush = find.byKey(const Key('perfil_opcion_notificaciones'));
+      await tester.ensureVisible(opcionPush);
+      expect(opcionPush, findsOneWidget);
+      expect(find.text('Notificaciones Push'), findsOneWidget);
+
+      await tester.tap(opcionPush);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('modal_switch_notificaciones')), findsOneWidget);
+      expect(find.byKey(const Key('modal_btn_probar_notificacion')), findsOneWidget);
+    });
   });
 }

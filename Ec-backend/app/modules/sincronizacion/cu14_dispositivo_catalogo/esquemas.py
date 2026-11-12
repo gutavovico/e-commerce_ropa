@@ -28,6 +28,12 @@ class DispositivoTokenPushOut(BaseModel):
     token_push: str
 
 
+class ProbarPushOut(BaseModel):
+    ok: bool = True
+    dispositivos_notificados: int
+    mensaje: str
+
+
 class DispositivoOut(BaseModel):
     id_dispositivo: int
     identificador: uuid.UUID

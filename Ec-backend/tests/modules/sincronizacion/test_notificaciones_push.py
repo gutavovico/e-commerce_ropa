@@ -201,6 +201,14 @@ def test_ac_c1_actualizar_token_push_en_servicio(db, usuario, monkeypatch):
     assert res_token.token_push == "fcm_token_nuevo_abc"
     assert dispositivo_mock.token_push == "fcm_token_nuevo_abc"
 
+    # Enviar cadena vacía desactiva (limpia) el token push
+    res_limpio = DispositivoServicio.actualizar_token_push(
+        db, usuario, DispositivoTokenPushIn(identificador=identificador, token_push="")
+    )
+    assert res_limpio.ok is True
+    assert res_limpio.token_push == ""
+    assert dispositivo_mock.token_push is None
+
 
 # ---------------------------------------------------------------------------------------------
 # AC-C6: Aislamiento de dispositivos por empresa

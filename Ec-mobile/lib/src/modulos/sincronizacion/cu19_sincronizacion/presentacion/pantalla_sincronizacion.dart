@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/push/servicio_push.dart';
 import '../../../../core/sin_conexion/modelos_sin_conexion.dart';
 import '../../../../core/sin_conexion/sin_conexion_api.dart';
 import '../../../../core/sin_conexion/sin_conexion_servicio.dart';
@@ -122,6 +123,50 @@ class _PantallaSincronizacionState extends State<PantallaSincronizacion> {
               padding: AppSpacing.paddingSpace4,
               children: [
                 _tarjetaEstado(),
+                AnimatedBuilder(
+                  animation: ServicioPush.instancia,
+                  builder: (context, _) {
+                    if (ServicioPush.instancia.notificacionesActivas) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.space4),
+                      child: Container(
+                        padding: AppSpacing.paddingCard,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFBEB),
+                          borderRadius: AppRadius.radiusLarge,
+                          border: Border.all(color: const Color(0xFFD4AF37)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.notifications_active_outlined, color: Color(0xFFB45309)),
+                            AppSpacing.gapHSpace3,
+                            const Expanded(
+                              child: Text(
+                                'Activa las notificaciones push para enterarte al instante de tus reservas y pedidos.',
+                                style: AppTypography.caption,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final idDisp = await _servicio.asegurarIdentificadorDispositivo();
+                                final res = await ServicioPush.instancia.activarNotificaciones(
+                                  api: _servicio.api,
+                                  identificadorDispositivo: idDisp,
+                                  tokenAuth: _servicio.tokenAuth,
+                                  almacen: _servicio.almacen,
+                                );
+                                if (mounted) _mostrar(res.mensaje);
+                              },
+                              child: const Text('ACTIVAR', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
                 AppSpacing.gapVSpace5,
                 const Text('Operaciones', style: AppTypography.h3),
                 AppSpacing.gapVSpace3,

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../core/empresa_actual.dart';
+import '../core/push/servicio_push.dart';
 import '../core/sin_conexion/banda_sin_conexion.dart';
 import '../core/sin_conexion/sin_conexion_servicio.dart';
 import '../core/sin_conexion/token_jwt.dart';
@@ -274,6 +275,75 @@ class _PantallaPrincipalHubState extends State<PantallaPrincipalHub> {
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          AnimatedBuilder(
+            animation: ServicioPush.instancia,
+            builder: (context, _) {
+              final push = ServicioPush.instancia;
+              final sesion = leerToken(widget.token);
+              if (!push.inicializado || !push.mostrarBannerActivacion || sesion.rol != 'cliente') {
+                return const SizedBox.shrink();
+              }
+              return Container(
+                key: const Key('hub_banner_activar_push'),
+                color: const Color(0xFF0F1116),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Row(
+                  children: [
+                    const Icon(Icons.notifications_active_outlined, color: Color(0xFFD4AF37), size: 16),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Activa notificaciones para tus reservas y pedidos',
+                        style: TextStyle(color: Colors.white, fontSize: 11),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () async {
+                        final offline = SinConexionServicio.instanciaSiExiste;
+                        final idDisp =
+                            offline != null ? await offline.asegurarIdentificadorDispositivo() : null;
+                        final res = await ServicioPush.instancia.activarNotificaciones(
+                          api: offline?.api,
+                          identificadorDispositivo: idDisp,
+                          tokenAuth: widget.token,
+                          almacen: offline?.almacen,
+                        );
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(res.mensaje),
+                              backgroundColor: const Color(0xFF0F1116),
+                            ),
+                          );
+                      },
+                      child: const Text(
+                        'ACTIVAR',
+                        style: TextStyle(
+                          color: Color(0xFFD4AF37),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.grey, size: 16),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => push.descartarBannerActivacion(),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           if (SinConexionServicio.instanciaSiExiste != null)
             BandaSinConexion(servicio: SinConexionServicio.instanciaSiExiste!),
           BottomNavigationBar(
